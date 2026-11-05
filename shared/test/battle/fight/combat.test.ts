@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  emptyBag, Enemy, Health, packFor, physicalDamage, Player, PLAYER, wayShape, WEAPONS, Wielder, type ItemId, type Strike,
-  type SwingDir,
+  damageTotal, emptyBag, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER, strikeDamage, wayShape, WEAPONS,
+  Wielder, type ItemId, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
-import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, armed, duel, enemy, input, player, run, STATS, STATUE } from "./fixtures.js";
+import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
+import { ARENA, armed, BITER, duel, enemy, input, player, run, STATS, STATUE } from "./fixtures.js";
 
 before(() => initPhysics());
 
-const DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
+const LIGHT = strikeDamage(WEAPONS.sword, "light", 1, STATS);
+const DAMAGE = damageTotal(LIGHT);
 const WAYS: readonly SwingDir[] = ["lr", "tb", "tlbr"];
 const shape = (way: SwingDir) => wayShape(way, PLAYER.armReachM, WEAPONS.sword);
 /** Half an attack's arc, either side of the aim. */
@@ -60,7 +61,44 @@ describe("an attack", () => {
     });
     assert.deepEqual(seen, [{
       type: "hit", by: fight.players[0], target: fight.enemies[0], team: "enemy", damage: DAMAGE, weapon: true,
+      byType: LIGHT,
     }]);
+  });
+});
+
+describe("damage types", () => {
+  const hitsIn = (fight: Fight, seconds: number, next = (_step: number) => input({})) => {
+    const hits: Extract<FightEvent, { type: "hit" }>[] = [];
+    run(fight, seconds, (step) => {
+      hits.push(...fight.events.flatMap((e) => (e.type === "hit" ? [e] : [])));
+      return next(step);
+    });
+    return hits;
+  };
+
+  test("a swing's slash and blunt each go through the target's defense on their own, and add up to its damage", () => {
+    const tough = { ...STATUE, stats: { ...STATUE.stats, defense: 30 } };
+    const fight = duel(tough, { x: 0, y: 0.05, z: 0 }, { x: 0, y: 0.05, z: reach("lr", 0.3) });
+    const [hit] = hitsIn(fight, 1, (step) => input({ attack: step === 12 ? "light" : null }));
+    const taken = physicalTakenFactor(tough.stats);
+    assert.ok(hit?.byType && LIGHT.slash > 0 && LIGHT.blunt > 0);
+    assert.deepEqual(hit.byType, { slash: LIGHT.slash * taken, stab: 0, blunt: LIGHT.blunt * taken });
+    assert.equal(hit.damage, hit.byType.slash + hit.byType.blunt);
+    assert.ok(Math.abs(tough.maxHp - fight.world.require(fight.enemies[0]!, Health).hp - hit.damage) < 1e-9);
+  });
+
+  test("a stab deals only stab", () => {
+    const fight = duel(STATUE, { x: 0, y: 0.05, z: 0 }, { x: 0, y: 0.05, z: reach("lr", 0.3) });
+    const [hit] = hitsIn(fight, 1, (step) => input({ attack: step === 12 ? "stab" : null }));
+    assert.deepEqual(hit?.byType, strikeDamage(WEAPONS.sword, "stab", 1, STATS));
+    assert.deepEqual(hit?.byType && { slash: hit.byType.slash, blunt: hit.byType.blunt }, { slash: 0, blunt: 0 });
+  });
+
+  test("a beast's body blow is blunt", () => {
+    const fight = duel(BITER, { x: 0, y: 0.05, z: 0 }, { x: 0, y: 0.05, z: 2 });
+    const hit = hitsIn(fight, 2).find((e) => e.team === "player");
+    assert.ok(hit?.byType && hit.damage > 0);
+    assert.deepEqual(hit.byType, { slash: 0, stab: 0, blunt: hit.damage });
   });
 });
 

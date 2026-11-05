@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  applyStatus, Body, dodgeCost, ELEMENTS, Enemy, Health, maxStacksOf, SKILL_EFFECTS, PLAYER, stacksOf, Stamina,
-  STATUS_DEFS, Statuses, statusOn, timeLeft, WEAPONS, type EnemyDef, type SkillElement, type StatusData, type Vec3,
+  applyStatus, Body, damageTotal, dodgeCost, ELEMENTS, Enemy, Health, maxStacksOf, SKILL_EFFECTS, PLAYER, stacksOf,
+  Stamina, STATUS_DEFS, Statuses, statusOn, strikeDamage, timeLeft, WEAPONS, type EnemyDef, type SkillElement,
+  type StatusData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -288,7 +289,7 @@ describe("Self", () => {
       };
     };
     const plain = swing(null);
-    assert.ok(plain.dealt >= WEAPONS.sword.damage);
+    assert.ok(plain.dealt >= damageTotal(strikeDamage(WEAPONS.sword, "light", 1, STATS)));
     close(swing("empowered").dealt, plain.dealt * STATUS_DEFS.empowered.mods.damageDealtFactor);
     close(swing("siphoning").healed, plain.dealt * STATUS_DEFS.siphoning.mods.lifesteal);
   });

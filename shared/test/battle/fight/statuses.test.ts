@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  applyStatus, Health, Stamina, STATUS_DEFS, Statuses, timeLeft, WEAPONS, type StatusOn, type Vec3,
+  applyStatus, BASE_STATS, damageTotal, Health, Stamina, STATUS_DEFS, Statuses, strikeDamage, timeLeft, WEAPONS,
+  type StatusOn, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, enemy, FULL_HP, IDLE, input, player, run, STATUE } from "./fixtures.js";
@@ -71,7 +72,7 @@ describe("statuses in a fight", () => {
     };
     const plain = swing(undefined), timed = swing(10), permanent = swing(null);
     const F = STATUS_DEFS.frenzy.mods;
-    assert.ok(plain.dealt >= WEAPONS.sword.damage);
+    assert.ok(plain.dealt >= damageTotal(strikeDamage(WEAPONS.sword, "light", 1, BASE_STATS)));
     close(timed.dealt, plain.dealt * F.damageDealtFactor);
     close(timed.spent, plain.spent * F.attackCostFactor);
     assert.deepEqual(permanent, timed);

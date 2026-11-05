@@ -202,7 +202,8 @@ main.ts
   canvas of its own (`visuals/battle/overlay.ts`): your aim ring (or, with a bow in hand, its draw meter) at the bottom
   centre and, while you aim, a crosshair
   at the centre (while you pan the camera, a dot); where the camera puts them each frame, the lock-on diamond and,
-  over anyone but you, a chanter's words as a row of squares in front of it (`chantWords.ts`). The
+  over anyone but you, a chanter's words as a row of squares in front of it (`chantWords.ts`) and the damage a hit
+  dealt, rising and fading, one number a type in its colour (`numbers.ts`). The
   player's look is read from `ui.you`'s character and painted once
   (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
   every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
@@ -266,7 +267,9 @@ main.ts
   Every hit, skill and burn hurts through `hurt` (`fight/health.ts`), which spares an invulnerable player
   (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight), takes defense or special defense
   off by the damage's kind (physical or skill), and pauses HP regen (`Health.regenDelay`, `HP_REGEN_PAUSE_TIME`);
-  `regenSystem` there gives it back by the fighter's stats after the step's hits.
+  `regenSystem` there gives it back by the fighter's stats after the step's hits. A weapon's or a body blow's damage is
+  typed (`Damage`: slash, stab and blunt) from the swing or arrow to the hitbox (`ActiveHit.damage`), and lands through
+  `hurtPhysical`, one `hurt` a type, so its `hit` event carries what each type took (`byType`).
 - **The core in a fight**: each player's `Player.core` (from the setup, part of the state) and `FighterStats` (the
   setup's `stats`: the core's, from the server). Essence is absorbed as any consumable is used (`useSystem`), and a
   breakthrough counts at once: `takeCore` (`fight/player/use.ts`) adds the step's gains to the fighter's stats and
@@ -490,9 +493,12 @@ main.ts
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is each weapon item's `weapon` component in `ITEMS`,
   gathered by `shared/src/weapons/weapons.ts` into `WEAPONS` (each weapon by item id: its `kind`, the moveset it swings
-  with, its length, damage, heft and minimum strength; `feltHeft` is the heft a wielder's strength feels, `canWield`
-  whether it's enough). Equipping a weapon is refused below its minimum by the shared gear rules (`moveGear`), on the
-  server, in a fight and in the bag screen alike. The sword's rules and numbers are in `shared/src/weapons/hybrid.ts`:
+  with, its length, heft, minimum strength and damage profile; `feltHeft` is the heft a wielder's strength feels,
+  `canWield` whether it's enough). Its damage has one owner, `weaponDamage` there: `DAMAGE_PER_HEFT` × heft × quality,
+  or a hand-set `baseDamage`, split into slash, stab and blunt by its profile (`DAMAGE_PROFILES`); `strikeDamage`
+  (`hybrid.ts`) and `loosedDamage` (`bow.ts`) scale it, and nothing else holds a damage number for a weapon.
+  Equipping a weapon is refused below its minimum by the shared gear rules (`moveGear`), on the server, in a fight and
+  in the bag screen alike. The sword's rules and numbers are in `shared/src/weapons/hybrid.ts`:
   the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and momentum (`CHAIN`, `MOMENTUM`), the strikes and the block
   (`HYBRID`), the hit shapes (`wayShape`: one reach from the wielder's own arm reach plus the weapon's length, the arc
   by line), and `wayStepsAfter`, `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's
@@ -868,7 +874,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   slot and the cosmetics), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), each way's
-  reach and shape by line and no hit-stop in the fight (`combat.test.ts`), hits doing damage only and blocks pushing
+  reach and shape by line, no hit-stop in the fight and the damage types (a swing's slash and blunt each through the
+  defense, a stab only stab, a body blow blunt) (`combat.test.ts`), hits doing damage only and blocks pushing
   (`knockback.test.ts`: a light, a stab, a heavy and an arrow moving and stunning no enemy, a stagger only on a broken
   poise, a body blow on a player only hurting then the hurt invulnerability, the momentum chain broken by a hit, no
   stun-lock, Air still blowing; an enemy's block pushing it by its factor and the strike, sliding as it swings, its
@@ -915,7 +922,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   taking no damage, its flag in the state and hash. Where a fighter aims (`aim.test.ts`: at a locked foe's middle,
   else the input's way and spot, kept in the arena, a downed target let go), and a locked Bolt, Beam and the Kobold's
   sidestep going by it. A duel (`duel.test.ts`, and the sword's defences above): hits and
-  Bolts player against player, the lock, and how it ends. `weapons/hybrid.test.ts` for the ways' rules;
+  Bolts player against player, the lock, and how it ends. `weapons/weapons.test.ts` for the arsenal and each weapon's
+  damage by the rule (by heft, quality and profile; the old stick and the bow off it); `weapons/hybrid.test.ts` for the
+  ways' rules and a strike's damage by type;
   `weapons/kinds.test.ts` for what each kind does and the bow's draw damage, speed, nocking and heft. The bow
   (`player/bow.test.ts`: held to draw, let go to loose one arrow, its cost, none without arrows, the least draw,
   damage and speed by the draw, the nock from the quiver or the bag, the quiver's arrows first, no block while
@@ -1250,7 +1259,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
                      to 2 decimals, statuses.ts (statusSystem: statuses run down, burns
                      and heals over time), health.ts (hurt, by the damage's kind, the target's defenses and shields;
-                     heal, lifesteal, regenSystem)
+                     hurtPhysical, a typed hit type by type; heal, lifesteal, regenSystem)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, reach (a
                        sweep that moves nothing), contacts, rays),
@@ -1335,7 +1344,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
-                   heft and minStrength, a bow's powerMps; feltHeft, canWield, twoHanded, weaponIn, weaponItemIn,
+                   heft and minStrength, a bow's powerMps; DAMAGE_TYPES and Damage (slash, stab, blunt), typedDamage,
+                   scaleDamage, damageTotal; DAMAGE_PER_HEFT, DAMAGE_PROFILES, weaponDamage (a weapon's damage by
+                   type); feltHeft, canWield, twoHanded, weaponIn, weaponItemIn,
                    weaponHandIn (the hand that swings: the active one's weapon first, Hands.active);
                    AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
@@ -1648,8 +1659,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        polygon chart, each one's number between − (only by a campfire) and + for free points, hovering
                        them previewing the change and what the stat does; Advanced, AdvancedStats.tsx, the fight's
                        numbers for your gear, stats and passives, from combatNumbers.ts: per hand holding a weapon its
-                       weight, heft and strikes' times, then the guard, the dodge and the body; CoreTab.tsx: the
-                       sphere big, with its rings, and the rings listed;
+                       weight, heft and strikes' times and damage by type, then the guard, the dodge and the body;
+                       CoreTab.tsx: the sphere big, with its rings, and the rings listed;
                        RelationshipsTab.tsx: its sub-tabs, so far only Gods, your faith with each; chart.ts:
                        chartPoints, the polygon's corners for any number of stats, and chartMax, its rim: the most a
                        stat could be at the step), paintSphere.ts (usePaintedSphere: a sphere painted onto a canvas
@@ -1665,7 +1676,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        hovered / selected / landing states, EquipmentSlots.tsx the slots (the worn ones 3 by 3, the
                        wrists and rings, the cosmetics; QuiverSlot, the hip's, for the quiver's column); bagMouse.ts
                        holds those states as plain data (and why a drop into a hand was refused: tooWeak, noHands),
-                       itemInfo.ts the tooltip's lines and the rarity colours' classes,
+                       itemInfo.ts the tooltip's lines (a weapon's damage by type among them) and the rarity
+                       colours' classes,
                        grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
                        box: it measures itself and shrinks to fit the view), layout.ts (fitPanel: where a side panel
@@ -1935,6 +1947,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          other fighters' chant words
         stunned.ts       Your stun on the overlay: a vignette, and in first person stars circling the top of the
                          view (STUN_HUD; stunStars and vignetteAlpha, tested)
+        numbers.ts       Floating damage numbers on the overlay, over anyone hit but you: one a damage type it dealt,
+                         side by side in the type's colour (a skill's one, in its own), rising and fading
+                         (DAMAGE_COLOUR, DAMAGE_NUMBERS; damageNumbers and numberLook, tested), kept in
+                         ArenaScene.numbers from each hit event
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -2250,7 +2266,8 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
 - **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
   that reveals it; the questbook lists it under that quest once the step is done.
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand) with a `weapon` component
-  (kind, length, damage, heft, minimum strength), its bag picture (`client/src/gfx/items/items.ts`)
+  (kind, length, heft, minimum strength, and its damage `profile`, a row of `DAMAGE_PROFILES` in
+  `shared/src/weapons/weapons.ts`, a new sort of blade adding its own), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
   the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS`, a `MOVES` row (`shared/src/weapons/kinds.ts`:
@@ -2338,7 +2355,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | What | Where |
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
+| Weapons: the arsenal (length, heft, minimum strength, damage profile, quality, a hand-set `baseDamage` off the rule) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
+| Weapon damage: per heft, and each profile's slash, blunt and stab shares | `DAMAGE_PER_HEFT`, `DAMAGE_PROFILES` in `shared/src/weapons/weapons.ts` |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint and its recovery, the clash's stagger, the lunge, the walk while swinging, the live blade's turn cap, a whiff's overextension; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
 | Pushback (only blocks push; a hit that lands only hurts): how hard a light, heavy and stab push a guard, an arrow's push by its speed, a body blow's, Air's push; how much each fighter takes; a blocked hit's share and its chip against the wall; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`, `GUARDS` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
@@ -2403,6 +2421,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | The arena's pixels: their size, how far they stay full size, the smallest they get, how deep a size fades into the next; the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
 | Your stun's cue: its strength by length, fades, the camera's kick and sway (`STUN_CUE`); the stars and vignette (`STUN_HUD`) | top of `client/src/modes/battle/stun.ts`; top of `client/src/visuals/battle/stunned.ts` |
+| Floating damage numbers: each damage type's colour, a skill's, how long they last, how far they rise, their size and spacing | `DAMAGE_COLOUR`, `SKILL_COLOUR`, `DAMAGE_NUMBERS` at the top of `client/src/visuals/battle/numbers.ts` |
 | Arena camera feel, locked and not | `CAMERA_VIEWS` (first person, and the shoulder view a dodge zooms out to) and the dev-only `CAMERA_PRESETS` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person; how far from the head the eye takes them back to the body | `FP_ARMS` (`fade`) in `client/src/visuals/battle/firstPerson.ts` |

@@ -81,7 +81,8 @@ What's built so far:
   stars at night, the shadows follow them, and glowing mushrooms light the mire.
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the back side button or
   K stabs, and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
-  quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
+  quickest) until a gap, block, dodge or hit taken, and a stab spends it. A swing deals its weapon's slash and blunt,
+  a stab its stab, each shown as its own coloured number over the foe. A held block (left Shift) stops anything in
   front for stamina and a chip, pushing you back (less the stronger you are), twice the chip getting through with your
   back to the wall, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
   free, costing the attacker stamina and opening them; pressed in your own heavy's wind-up it feints it. Stamina is
@@ -130,8 +131,8 @@ What's built so far:
   glass sphere whose light grows brighter every step and changes colour every realm, fiery Yan to ethereal Tian, with
   no bar or number; sparks show as a breakthrough nears, and a breakthrough flashes. The character panel's tabs show
   your stats as a polygon chart, where free points are placed (hovering + or − previews the change), and under
-  Advanced the fight's numbers for your gear (each held weapon's swing times, the guard, the dodge); your core big
-  with its rings; and your faith with each god.
+  Advanced the fight's numbers for your gear (each held weapon's swing times and damage, the guard, the dodge); your
+  core big with its rings; and your faith with each god.
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a small 3 x 2 bag that items fit into by size, and a backpack worn on your back with a grid of its
@@ -176,8 +177,9 @@ What's built so far:
   The battle HUD shows yours under your bars and the foe's by its name, each with a timer and its stacks.
 - **Equipment:** hands, head, body, legs and boots; you start empty-handed (Bram's stick is the first weapon), and dying
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
-  quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the
-  stronger you are, and too heavy for your strength it can't be wielded.
+  quick-cast. Worn things count toward the weight. A heavier weapon swings slower, costs more stamina and hits harder,
+  less so the stronger you are, and too heavy for your strength it can't be wielded. A weapon's tooltip gives its
+  slash, stab and blunt damage.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), the region's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the
   top shows which way the camera faces. Small notices (loot, a full bag, dying, resting, eating, a breakthrough, quests)

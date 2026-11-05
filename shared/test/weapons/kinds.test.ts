@@ -3,7 +3,8 @@ import { describe, test } from "node:test";
 import {
   addItem, appliedStrength, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, gripOf, guardOf,
   ITEM_IDS, itemDef, ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage,
-  rangedOf, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, WEAPONS, wayShape, wayStepsAfter, type ItemId, type Weapon,
+  rangedOf, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, weaponDamage, WEAPONS, wayShape, wayStepsAfter, type ItemId,
+  type Weapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
@@ -91,14 +92,22 @@ describe("weapon kinds", () => {
 
 describe("the bow's draw", () => {
   test("its damage grows with the draw, from the least share at once to the bow's own fully drawn", () => {
-    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime");
-    assert.equal(loosedDamage(BOW, TRAINING_BOW, 0, BASE_STATS),
-      physicalDamage(TRAINING_BOW.damage * BOW.draw.minDamageShare, BASE_STATS));
-    assert.equal(loosedDamage(BOW, TRAINING_BOW, full, BASE_STATS), physicalDamage(TRAINING_BOW.damage, BASE_STATS));
-    assert.equal(loosedDamage(BOW, TRAINING_BOW, full * 3, BASE_STATS), loosedDamage(BOW, TRAINING_BOW, full, BASE_STATS));
-    const half = loosedDamage(BOW, TRAINING_BOW, full / 2, BASE_STATS);
-    assert.ok(half > loosedDamage(BOW, TRAINING_BOW, 0, BASE_STATS) && half < TRAINING_BOW.damage);
+    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), arrow = weaponDamage(TRAINING_BOW).stab;
+    const stab = (drawnTime: number) => loosedDamage(BOW, TRAINING_BOW, drawnTime, BASE_STATS).stab;
+    assert.equal(stab(0), physicalDamage(arrow * BOW.draw.minDamageShare, BASE_STATS));
+    assert.equal(stab(full), physicalDamage(arrow, BASE_STATS));
+    assert.equal(stab(full * 3), stab(full));
+    assert.ok(stab(full / 2) > stab(0) && stab(full / 2) < arrow);
     assert.equal(drawnShare(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), 0.5);
+  });
+
+  test("an arrow is all stab", () => {
+    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime");
+    for (const drawnTime of [0, full / 2, full]) {
+      const { slash, blunt, stab } = loosedDamage(BOW, TRAINING_BOW, drawnTime, BASE_STATS);
+      assert.deepEqual({ slash, blunt }, { slash: 0, blunt: 0 });
+      assert.ok(stab > 0);
+    }
   });
 
   test("the arrow leaves at the bow's power × (t² + 2t) / 3, t the share drawn, as Minecraft's bow", () => {

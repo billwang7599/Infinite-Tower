@@ -15,7 +15,8 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "light", way: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
-  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, whiffed: false, hand: "rightHand",
+  liveUntil: 12, endAt: 17, damage: { slash: 8, stab: 0, blunt: 1 }, poiseDamage: 12, whiffed: false,
+  hand: "rightHand",
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -117,8 +118,8 @@ describe("a fight's hash", () => {
       ["the charge's cooldown", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).cooldown += 0.05; }],
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
-        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, poiseDamage: 0, attack: null,
-        way: null, alreadyHit: new Set<number>(),
+        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: { slash: 0, stab: 0, blunt: 5 }, knockback: 0,
+        poiseDamage: 0, attack: null, way: null, alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
@@ -156,7 +157,8 @@ describe("a fight's hash", () => {
       ["when its blade goes live", (s) => { s.liveAt += 1; }],
       ["when its blade is done", (s) => { s.liveUntil += 1; }],
       ["when it's over", (s) => { s.endAt += 1; }],
-      ["its damage", (s) => { s.damage += 1; }],
+      ["its damage", (s) => { s.damage = { ...s.damage, slash: s.damage.slash + 1 }; }],
+      ["its damage's type", (s) => { s.damage = { ...s.damage, slash: 0, stab: s.damage.slash }; }],
       ["its poise damage", (s) => { s.poiseDamage += 1; }],
       ["when it draws back", (s) => { s.driveAt += 1; }],
       ["whether it whiffed", (s) => { s.whiffed = !s.whiffed; }],

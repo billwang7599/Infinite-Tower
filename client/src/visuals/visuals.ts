@@ -1,6 +1,6 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, Player, Projectile, regionAt, SkillObject, weaponHandIn, Wielder, type DayChange, type EnemyId,
+  Body, Enemy, Player, Projectile, regionAt, SkillObject, weaponHandIn, Wielder, type DayChange, type EnemyId,
   type Entity,
   type Hand, type Look, type NpcId, type SkillObjectKind, type Theme, type World,
 } from "@infinite-tower/shared";
@@ -15,6 +15,7 @@ import {
 import { arenaStage } from "./battle/battle.js";
 import { arrowVisual } from "./battle/bow.js";
 import { arrowStopped, clash, guardBroken, parried, strike } from "./battle/impact.js";
+import { damageNumbers } from "./battle/numbers.js";
 import { playerFrames } from "./battle/materials.js";
 import { arenaOverlay } from "./battle/overlay.js";
 import { renderScale } from "./battle/pixel.js";
@@ -72,6 +73,8 @@ export const EFFECTS: Effects = {
   hit(scene, ev, world) {
     shake(scene, ev.team === "player" ? 0.15 + ev.damage * 0.008 : 0.06);
     if (ev.weapon) strike(scene, world, ev.by, ev.target, ev.at);
+    const at = ev.at ?? world.get(ev.target, Body)?.pos;
+    if (at && !world.has(ev.target, LocalPlayer)) scene.numbers.push(...damageNumbers(ev, { ...at }));
   },
   block(scene, ev, world) {
     if (ev.at) {
@@ -210,6 +213,7 @@ export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanv
       for (const d of fighters.values()) VISUALS[d.kind].dispose(d.state);
       fighters.clear();
       arena.skills.clear();
+      arena.numbers.length = 0;
       fired = new FiredEffects();
       if (fight) stage.newFight(fight, fightTheme());
       drawnFight = fight;

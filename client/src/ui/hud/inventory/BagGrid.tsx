@@ -166,6 +166,7 @@ export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cel
       </div>
       <div className="text-bone/65 tabular-nums">Size {info.size}</div>
       <div className="text-bone/65 tabular-nums">Weight {info.weight}</div>
+      {info.damage && <div id="bag-tooltip-damage" className="text-bone tabular-nums">{info.damage}</div>}
       {info.effect && <div className="text-verdigris">{info.effect}</div>}
     </div>
   );

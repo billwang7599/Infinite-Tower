@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, bagCounts, blankSkillbook, Body, carryLimit, emptyBag, emptyEquipment, FIXED_DT, HASH_EVERY_STEPS, Health,
-  IDLE_INPUT, ITEMS, packFor, physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, useSteps, WEAPONS, type Bag,
+  addItem, bagCounts, blankSkillbook, Body, carryLimit, damageTotal, emptyBag, emptyEquipment, FIXED_DT,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, packFor, Player, SAVE_IN_FIGHT_TIME, Skilled, strikeDamage, useSteps,
+  WEAPONS, type Bag,
   type Equipment, type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -74,7 +75,8 @@ function brawler(session: GameSession): () => PlayerInputData {
 /** The boar one slash from dying, then the brawler: a win, decided by the server from the player's inputs. */
 function win(session: GameSession): void {
   const fight = fightOf(session);
-  fight.world.require(fight.enemies[0]!, Health).hp = physicalDamage(WEAPONS.sword.damage, PLAYER_STATS);
+  const slash = damageTotal(strikeDamage(WEAPONS.sword, "light", 1, PLAYER_STATS));
+  fight.world.require(fight.enemies[0]!, Health).hp = slash;
   play(session, brawler(session));
 }
 

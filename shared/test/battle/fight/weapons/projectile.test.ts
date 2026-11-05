@@ -17,9 +17,10 @@ const lone = (at: Vec3 = { x: 30, y: 0.05, z: 30 }) => new Fight({
   arena: WIDE, players: [player({ x: -30, y: 0.05, z: -30 })], enemies: [enemy(THIN, at)],
 });
 
-function loose(fight: Fight, shooter: Entity, pos: Vec3, vel: Vec3, damage = 10): ProjectileData {
+function loose(fight: Fight, shooter: Entity, pos: Vec3, vel: Vec3, stab = 10): ProjectileData {
   return fight.world.add(fight.world.spawn(), Projectile, {
-    shooter, weapon: "training-bow", pos: { ...pos }, vel: { ...vel }, damage, left: ARROW.lifeTime, stuck: false,
+    shooter, weapon: "training-bow", pos: { ...pos }, vel: { ...vel }, damage: { slash: 0, stab, blunt: 0 },
+    left: ARROW.lifeTime, stuck: false,
   });
 }
 
@@ -84,8 +85,10 @@ describe("an arrow in flight", () => {
     const dealt = 7 * physicalTakenFactor(STATS);
     assert.equal(hits.length, 1);
     const [hit] = hits as [Extract<FightEvent, { type: "hit" }>];
-    assert.deepEqual({ ...hit, at: undefined },
-      { type: "hit", by: me, target: foe, team: "enemy", damage: dealt, weapon: true, at: undefined });
+    assert.deepEqual({ ...hit, at: undefined }, {
+      type: "hit", by: me, target: foe, team: "enemy", damage: dealt, weapon: true, at: undefined,
+      byType: { slash: 0, stab: dealt, blunt: 0 },
+    });
     assert.ok(Math.abs(hit.at!.z - (10 - THIN.radius - ARROW.radiusM)) < 1e-6, `${hit.at!.z}`);
     assert.equal(fight.world.require(foe, Health).hp, THIN.maxHp - dealt);
     assert.equal(arrows(fight).length, 0);

@@ -62,7 +62,7 @@ describe("the Kobold Swordsman", () => {
     const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way), blade = WEAPONS["kobold-blade"];
     const opening = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy", KOBOLD.stats.strength);
     assert.equal(swing.liveAt, opening.liveAt);
-    assert.equal(swing.damage, strikeDamage(blade, strike, 1, KOBOLD.stats));
+    assert.deepEqual(swing.damage, strikeDamage(blade, strike, 1, KOBOLD.stats));
   });
 
   test("a player who reads it beats it, whatever its seed", () => {

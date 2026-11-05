@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { BOW, ITEMS, WEAPONS, type BagItem, type ItemId } from "@infinite-tower/shared";
+import { BOW, ITEMS, weaponDamage, WEAPONS, type BagItem, type ItemId } from "@infinite-tower/shared";
 import { formatWeight, itemInfo } from "../../../../src/ui/hud/inventory/itemInfo.js";
 
 const stack = (item: ItemId, count = 1, turned = false): BagItem => ({ item, count, x: 0, y: 0, turned });
@@ -60,6 +60,16 @@ describe("itemInfo (the tooltip)", () => {
     assert.match(quiver, new RegExp(`${holds.stackSize} arrows`));
     assert.match(quiver, new RegExp(`${BOW.nock.quiverTime} s`));
     assert.match(quiver, new RegExp(`${BOW.nock.bagTime} s`));
+  });
+
+  test("a weapon gives its damage by type, Slash · Stab · Blunt, leaving out a type it doesn't deal", () => {
+    const sword = weaponDamage(WEAPONS.sword), stick = weaponDamage(WEAPONS["old-stick"]);
+    assert.equal(itemInfo(stack("sword")).damage, `Slash ${sword.slash} · Stab ${sword.stab} · Blunt ${sword.blunt}`);
+    assert.equal(stick.slash, 0);
+    assert.equal(itemInfo(stack("old-stick")).damage, `Stab ${stick.stab} · Blunt ${stick.blunt}`);
+    assert.equal(itemInfo(stack("training-bow")).damage, `Stab ${weaponDamage(WEAPONS["training-bow"]).stab}`);
+    assert.equal(itemInfo(stack("wooden-shield")).damage, null);
+    assert.equal(itemInfo(stack("boar-meat")).damage, null);
   });
 
   test("a weapon that needs strength says how much", () => {

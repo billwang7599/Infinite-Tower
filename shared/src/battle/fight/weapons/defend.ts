@@ -3,6 +3,7 @@ import { clamp, type Vec2, type Vec3 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { blockStaminaShare, guardRaiseTime, GUARDS, HYBRID, type GuardKind } from "../../../weapons/hybrid.js";
 import { guardOf } from "../../../weapons/kinds.js";
+import { damageTotal, scaleDamage } from "../../../weapons/weapons.js";
 import {
   Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData, type BodyData,
 } from "../../components.js";
@@ -11,7 +12,7 @@ import { faces, knock, knockbackOf, spend, stagger } from "../combat.js";
 import type { FightContext, FightEvent } from "../context.js";
 import type { ArenaPhysics } from "../physics/arena-physics.js";
 import { modsOf } from "../../statuses.js";
-import { hurt } from "../health.js";
+import { hurtPhysical } from "../health.js";
 import { endChain, endSwing, strengthIn } from "./swing.js";
 
 export function facingOf(world: World, e: Entity): Vec2 {
@@ -96,12 +97,12 @@ function blocked(
   { world, physics, events }: FightContext, attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
   guard: (typeof GUARDS)[GuardKind],
 ): void {
-  const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
+  const block = HYBRID.block, damage = scaleDamage(hit.damage, modsOf(world, attacker).damageDealtFactor);
   const player = world.has(target, Player);
   let broken: boolean;
   if (player) {
     const stamina = world.require(target, Stamina);
-    const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1)
+    const cost = damageTotal(damage) * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1)
       * blockStaminaShare(guard, strengthIn(world, target));
     broken = stamina.value <= cost;
     spend(stamina, cost);
@@ -119,7 +120,8 @@ function blocked(
     pinned = pinnedShare(world, physics, target, body);
   }
   if (hit.attack !== null) {
-    hurt(world, target, damage * guard.chipFraction * (1 + (block.pinnedChipFactor - 1) * pinned), "physical");
+    const chip = guard.chipFraction * (1 + (block.pinnedChipFactor - 1) * pinned);
+    hurtPhysical(world, target, scaleDamage(damage, chip));
     if (!shot) endSwing(world, attacker);
   }
   if (broken && player) stagger(world, target, block.brokenTime);

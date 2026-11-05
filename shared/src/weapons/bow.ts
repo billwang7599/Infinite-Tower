@@ -2,7 +2,7 @@ import { physicalDamage, type Stats } from "../battle/stats.js";
 import { clamp, type Vec3 } from "../core/math.js";
 import { bagCounts, type Bag } from "../items/bag.js";
 import type { AmmoId } from "../items/items.js";
-import { feltHeft, type Weapon } from "./weapons.js";
+import { feltHeft, typedDamage, weaponDamage, type Damage, type Weapon } from "./weapons.js";
 
 /** Lengths in m, speeds in m/s, times in s. `release*M`: where it leaves the bow, from the shooter's center. */
 export interface ProjectileDef {
@@ -53,9 +53,10 @@ export const drawCost = (moves: RangedMoves, weapon: Weapon, strength: number): 
 export const drawnShare = (moves: RangedMoves, weapon: Weapon, strength: number, drawnTime: number): number =>
   clamp(drawnTime / drawTime(moves, weapon, strength, "fullTime"), 0, 1);
 
-export function loosedDamage(moves: RangedMoves, weapon: Weapon, drawnTime: number, stats: Stats): number {
+export function loosedDamage(moves: RangedMoves, weapon: Weapon, drawnTime: number, stats: Stats): Damage {
   const share = drawnShare(moves, weapon, stats.strength, drawnTime), least = moves.draw.minDamageShare;
-  return physicalDamage(weapon.damage * (least + (1 - least) * share), stats);
+  const arrow = weaponDamage(weapon);
+  return typedDamage((type) => physicalDamage(arrow[type] * (least + (1 - least) * share), stats));
 }
 
 export function drawnPower(moves: RangedMoves, weapon: Weapon, strength: number, drawnTime: number): number {

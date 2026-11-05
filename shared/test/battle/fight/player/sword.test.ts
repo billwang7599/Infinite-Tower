@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, feltHeft, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage,
-  physicalDamage, Player, Stamina, strikeCost, toSteps, TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, Wielder,
-  windupTime, type ChainKind, type Hand, type ItemId, type PlayerInputData, type Strike, type SwingDir, type Weapon,
+  FIXED_DT, AVERAGE_STAT, CHAIN, damageTotal, DAMAGE_TYPES, emptyBag, feltHeft, packFor, HYBRID, lastFeintStep,
+  MOMENTUM, momentumDamage, Player, Stamina, strikeCost, strikeDamage, toSteps,
+  TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, Wielder, windupTime, type ChainKind, type Hand, type ItemId,
+  type PlayerInputData, type Strike, type SwingDir, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -12,6 +13,7 @@ before(() => initPhysics());
 
 const SWORD = WEAPONS.sword;
 const NEAR = 2;
+const dealt = (strike: Strike, power = 1) => damageTotal(strikeDamage(SWORD, strike, power, STATS));
 
 const newFight = (at = NEAR) => new Fight({
   arena: { ...ARENA, radius: 40 },
@@ -87,8 +89,8 @@ describe("the sword's attacks", () => {
     const p = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"]], landed);
     assert.equal(momentumOf(p.fight), 2 * MOMENTUM.gain.reverse);
     assert.equal(p.damage.length, 3);
-    assert.equal(p.damage[0], physicalDamage(SWORD.damage, STATS));
-    assert.equal(p.damage[2], physicalDamage(SWORD.damage * momentumDamage(2 * MOMENTUM.gain.reverse), STATS));
+    assert.equal(p.damage[0], dealt("light"));
+    assert.equal(p.damage[2], dealt("light", momentumDamage(2 * MOMENTUM.gain.reverse)));
     chain(p.fight, [], landed + reverse.endAt - reverse.liveUntil + toSteps(CHAIN.gapTime) + 2);
     assert.equal(momentumOf(p.fight), 0);
   });
@@ -109,7 +111,7 @@ describe("the sword's attacks", () => {
   test("a stab spends the momentum for more damage", () => {
     const fresh = chain(newFight(), [["stab", "lr"]], 40).damage[0]!;
     const spent = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"], ["stab", "lr"]], 200);
-    assert.equal(fresh, physicalDamage(SWORD.damage * HYBRID.stab.damageFactor, STATS));
+    assert.equal(fresh, dealt("stab"));
     assert.ok(spent.damage[3]! > fresh);
     assert.equal(momentumOf(spent.fight), 0);
   });
@@ -198,17 +200,22 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
     }
   });
 
-  test("the Basic Sword feels as at twice the strength, and hits √TWO_HAND_STRENGTH_FACTOR as hard", () => {
-    const one = swingWith("sword", "skillbook"), two = swingWith("sword", null);
+  test("the Basic Sword feels as at twice the strength, and hits each type √TWO_HAND_STRENGTH_FACTOR as hard", () => {
     assert.ok(feltHeft(SWORD, STATS.strength * TWO_HAND_STRENGTH_FACTOR) < feltHeft(SWORD, STATS.strength));
-    assert.ok(Math.abs(two.damage - one.damage * Math.sqrt(TWO_HAND_STRENGTH_FACTOR)) < 1e-9);
-    assert.ok(Math.abs(one.damage - physicalDamage(SWORD.damage, STATS)) < 1e-9);
+    for (const strike of ["light", "heavy", "stab"] as const) {
+      const one = swingWith("sword", "skillbook", strike), two = swingWith("sword", null, strike);
+      assert.deepEqual(one.damage, strikeDamage(SWORD, strike, 1, STATS), strike);
+      for (const type of DAMAGE_TYPES) {
+        const want = one.damage[type] * Math.sqrt(TWO_HAND_STRENGTH_FACTOR);
+        assert.ok(Math.abs(two.damage[type] - want) < 1e-9, `${strike} ${type}: ${two.damage[type]} vs ${want}`);
+      }
+    }
   });
 
   test("anything in the other hand, a second blade too, keeps it one-handed", () => {
     const book = swingWith("greatsword", "skillbook"), blade = swingWith("greatsword", "sword");
     assert.equal(blade.liveAt, book.liveAt);
-    assert.equal(blade.damage, book.damage);
+    assert.deepEqual(blade.damage, book.damage);
   });
 });
 
@@ -290,17 +297,18 @@ describe("two blades: the switch-hand key picks the one that swings", () => {
     fight.step([input({ locked: 0, way: "lr", attack: "light" })]);
     return wielderOf(fight).swing?.damage ?? null;
   };
+  const lightOf = (weapon: Weapon) => strikeDamage(weapon, "light", 1, STATS);
 
   test("the right hand swings first; a tap of the key swings the left's blade, another the right's", () => {
-    const fight = holding("sword", "kobold-blade");
+    const fight = holding("sword", "longsword");
     assert.equal(wielderOf(fight).hands.active, "rightHand");
     tap(fight);
     assert.equal(wielderOf(fight).hands.active, "leftHand");
-    assert.equal(lightDamage(fight), physicalDamage(WEAPONS["kobold-blade"].damage, STATS));
-    const back = holding("sword", "kobold-blade");
+    assert.deepEqual(lightDamage(fight), lightOf(WEAPONS.longsword));
+    const back = holding("sword", "longsword");
     tap(back);
     tap(back);
-    assert.equal(lightDamage(back), physicalDamage(SWORD.damage, STATS));
+    assert.deepEqual(lightDamage(back), lightOf(SWORD));
   });
 
   test("does nothing without a blade in each hand", () => {
@@ -327,7 +335,7 @@ describe("two blades: the switch-hand key picks the one that swings", () => {
 
   test("with a shield in one hand, the other hand's blade swings", () => {
     const fight = holding("wooden-shield", "sword");
-    assert.equal(lightDamage(fight), physicalDamage(SWORD.damage, STATS));
+    assert.deepEqual(lightDamage(fight), lightOf(SWORD));
   });
 
   test("the other hand swings while the first recovers", () => {

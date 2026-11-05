@@ -5,7 +5,8 @@ import {
   ChargeAttack, LungeAttack, PounceAttack, SlamAttack, WeaponAttack, type EnemyData, type EnemyState,
 } from "../../components.js";
 import { FighterStats, physicalDamage } from "../../stats.js";
-import { addHit, type HitSpec } from "../combat.js";
+import type { AttackDef } from "../../defs.js";
+import { addHit } from "../combat.js";
 import { endSwing } from "../weapons/swing.js";
 
 export function enter(world: World, e: Entity, enemy: EnemyData, state: EnemyState, duration = 0): void {
@@ -27,9 +28,11 @@ export function stun(world: World, e: Entity, enemy: EnemyData, state: "staggere
   if (pounce) pounce.cooldown = Math.max(pounce.cooldown, pounce.def.cooldown);
 }
 
-export function addHitAhead(world: World, e: Entity, enemy: EnemyData, attack: HitSpec): void {
-  const damage = physicalDamage(attack.damage, world.require(e, FighterStats));
-  addHit(world, e, Math.sin(enemy.yaw), Math.cos(enemy.yaw), { ...attack, damage });
+export function addHitAhead(
+  world: World, e: Entity, enemy: EnemyData, attack: Pick<AttackDef, "range" | "minDot" | "damage" | "knockback">,
+): void {
+  const blunt = physicalDamage(attack.damage, world.require(e, FighterStats));
+  addHit(world, e, Math.sin(enemy.yaw), Math.cos(enemy.yaw), { ...attack, damage: { slash: 0, stab: 0, blunt } });
 }
 
 /** 0..1. */

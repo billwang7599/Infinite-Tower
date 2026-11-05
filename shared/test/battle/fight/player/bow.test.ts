@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, bagCounts, Body, BOW, drawCost, drawTime, emptyBag, emptyEquipment, Fighter, FIXED_DT, flightAfter, Health,
-  loosedDamage, loosedSpeed, packFor, Player, Projectile, Stamina, stowedCounts, toSteps, WEAPONS, type PlayerInputData,
-  type Vec3,
+  addItem, bagCounts, Body, BOW, damageTotal, drawCost, drawTime, emptyBag, emptyEquipment, Fighter, FIXED_DT,
+  flightAfter, Health, loosedDamage, loosedSpeed, packFor, Player, Projectile, Stamina, stowedCounts, toSteps, WEAPONS,
+  type PlayerInputData, type Vec3,
 } from "@infinite-tower/shared";
 import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, FULL_STAMINA, input, player, STATS, STATUE } from "../fixtures.js";
@@ -95,11 +95,20 @@ describe("drawing a bow", () => {
     const quickHits = damageOf(play(quick.fight, 90, drawn(1, { locked: 0 })));
     const fullHits = damageOf(play(full.fight, FULL_STEPS + 90, drawn(FULL_STEPS + 1, { locked: 0 })));
     const overHits = damageOf(play(over.fight, 3 * FULL_STEPS + 90, drawn(3 * FULL_STEPS, { locked: 0 })));
+    const loosed = (drawnTime: number) => damageTotal(loosedDamage(BOW, BOW_ITEM, drawnTime, STATS));
     assert.equal(quickHits.length, 1);
-    assert.ok(Math.abs(quickHits[0]! - loosedDamage(BOW, BOW_ITEM, MIN_STEPS * FIXED_DT, STATS)) < 1e-9);
-    assert.deepEqual(fullHits, [loosedDamage(BOW, BOW_ITEM, FULL_STEPS * FIXED_DT, STATS)]);
+    assert.ok(Math.abs(quickHits[0]! - loosed(MIN_STEPS * FIXED_DT)) < 1e-9);
+    assert.deepEqual(fullHits, [loosed(FULL_STEPS * FIXED_DT)]);
     assert.deepEqual(overHits, fullHits);
     assert.ok(quickHits[0]! < fullHits[0]!);
+  });
+
+  test("an arrow strikes as stab only", () => {
+    const a = archer(5, 3);
+    const hits = play(a.fight, FULL_STEPS + 90, drawn(FULL_STEPS + 1, { locked: 0 })).flatMap((ev) =>
+      (ev.type === "hit" ? [ev] : []));
+    assert.equal(hits.length, 1);
+    assert.deepEqual(hits[0]!.byType, { slash: 0, stab: hits[0]!.damage, blunt: 0 });
   });
 
   test("can't block while drawing; once loosed, it can", () => {

@@ -1,7 +1,10 @@
 import { AVERAGE_STAT, physicalDamage, type Stats } from "../battle/stats.js";
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
-import { feltHeft, type AttackKind, type AttackSteps, type Guard, type HitShape, type Weapon } from "./weapons.js";
+import {
+  feltHeft, typedDamage, weaponDamage, type AttackKind, type AttackSteps, type Damage, type Guard, type HitShape,
+  type Weapon,
+} from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
 // from its first letters' side; facing each other, one fighter's left is the other's right (`mirrorWay`).
@@ -72,7 +75,7 @@ export const HYBRID = {
   heavy: {
     extraTime: 0.36, activeTime: 0.15, recoverTime: 0.26, cost: 21, damageFactor: 2, poiseDamage: 24, knockbackSpeed: 8,
   },
-  stab: { cost: 16, damageFactor: 1.25, poiseDamage: 18, knockbackSpeed: 6 },
+  stab: { cost: 16, damageFactor: 1, poiseDamage: 18, knockbackSpeed: 6 },
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
@@ -153,8 +156,11 @@ export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean, st
 export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): number =>
   HYBRID[strike].cost * feltHeft(weapon, strength);
 
-export const strikeDamage = (weapon: Weapon, strike: Strike, power: number, stats: Stats): number =>
-  physicalDamage(weapon.damage * HYBRID[strike].damageFactor * power, stats);
+export function strikeDamage(weapon: Weapon, strike: Strike, power: number, stats: Stats): Damage {
+  const base = weaponDamage(weapon), factor = HYBRID[strike].damageFactor * power;
+  return typedDamage((type) =>
+    ((type === "stab") === (strike === "stab") ? physicalDamage(base[type] * factor, stats) : 0));
+}
 
 export type GuardKind = "shield" | "one" | "dual";
 

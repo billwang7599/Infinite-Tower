@@ -7,6 +7,7 @@ import {
 import { AIMING } from "../../modes/battle/aim.js";
 import { LocalPlayer } from "../../modes/components.js";
 import { drawChantWords } from "./chantWords.js";
+import { drawNumbers } from "./numbers.js";
 import type { ArenaScene } from "./scene.js";
 import { drawStun } from "./stunned.js";
 
@@ -124,6 +125,7 @@ export function arenaOverlay(
         if (skilled.chanting && node && !world.has(e, LocalPlayer)) drawChantWords(g, project, skilled, node.position);
       }
       drawMarker(g, ctx, world, project, spinRad);
+      drawNumbers(g, ctx.numbers, project, dt);
       drawAim(g, ctx, world, widthPx, heightPx);
     },
   };
