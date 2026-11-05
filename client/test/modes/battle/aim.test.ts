@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   addItem, BASE_STATS, Body, BOW, copyInput, drawTime, emptyBag, emptyEquipment, IDLE_INPUT, maxHpOf, newCore,
-  packFor, Projectile, quantizeInput, staminaMaxOf, toSteps, WEAPONS, type EnemyDef, type PlayerAction, type Vec2,
-  type Vec3,
+  packFor, Player, Projectile, quantizeInput, staminaMaxOf, toSteps, WEAPONS, World, type EnemyDef, type PlayerAction,
+  type PlayerData, type Vec2, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import type { Polled } from "../../../src/core/actions.js";
@@ -72,15 +72,15 @@ describe("an arrow loosed at the crosshair", () => {
     poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
   };
 
-  function stuckAt(spot: Vec3, wallM: number): Vec3 {
+  function archer(spot: Vec3, wallM: number) {
     const fight = new Fight({
       arena: { id: "test", radius: wallM, look: "forest-clearing" },
       players: [{
         at: { x: 0, y: 0.05, z: 0 }, vitals: { hp: maxHpOf(BASE_STATS), stamina: staminaMaxOf(BASE_STATS) },
         stats: BASE_STATS, core: newCore(), burden: "light", book: [],
         gear: {
-          bag: addItem(emptyBag(), BOW.ammo, 5).bag, pack: packFor(null), quiver: packFor(null),
-          equipment: { ...emptyEquipment(), rightHand: "training-bow" },
+          bag: emptyBag(), pack: packFor(null), quiver: addItem(packFor("training-quiver"), BOW.ammo, 5).bag,
+          equipment: { ...emptyEquipment(), rightHand: "training-bow", hip: "training-quiver" },
         },
       }],
       enemies: [{ def: STATUE, at: { x: 0, y: 0.05, z: 2 - wallM }, yaw: 0 }],
@@ -91,10 +91,20 @@ describe("an arrow loosed at the crosshair", () => {
     const aiming = copyInput(IDLE_INPUT);
     readPlayerInput(polled({}), 0, "tb", aiming, playerAim({ lock: null, freeCamera: "aim", view }, [], me, wallM).aim);
     const aimed = quantizeInput(aiming);
-    for (let s = 1; s < FULL_STEPS + 240; s++) {
+    let s = 0;
+    const step = () => {
+      s++;
       fight.step([{ ...aimed, attack: s === 1 ? "light" : null, attackHeld: s <= FULL_STEPS }]);
-      const stuck = [...fight.world.query(Projectile)].find(([, arrow]) => arrow.stuck);
-      if (stuck) return stuck[1].pos;
+      return [...fight.world.query(Projectile)].map(([, arrow]) => arrow)[0];
+    };
+    return { fight, me: fight.players[0]!, step };
+  }
+
+  function stuckAt(spot: Vec3, wallM: number): Vec3 {
+    const { step } = archer(spot, wallM);
+    for (let s = 1; s < FULL_STEPS + 240; s++) {
+      const arrow = step();
+      if (arrow?.stuck) return arrow.pos;
     }
     throw new Error("the arrow never landed");
   }
@@ -110,6 +120,23 @@ describe("an arrow loosed at the crosshair", () => {
     assert.ok(near > 0 && far > 4 * near, `${near} m low near, ${far} m 25 m off`);
   });
 
+  test("the camera stays the aim's while it flies, past the loose's recovery, and is the lock's once it lands", () => {
+    const { fight, me, step } = archer({ x: 0, y: 6, z: Math.sqrt(899) }, 30);
+    let afterLoose = 0;
+    for (let s = 1; s < FULL_STEPS + 240; s++) {
+      const arrow = step(), { action } = fight.world.require(me, Player);
+      if (arrow?.stuck) {
+        assert.ok(afterLoose > 0, "it flew on past the loose");
+        assert.equal(freeCamera(polled({}), fight.world, me), null);
+        return;
+      }
+      if (!arrow || action === "loose") continue;
+      afterLoose++;
+      assert.equal(freeCamera(polled({}), fight.world, me), "aim", `${action}, ${afterLoose} steps after the loose`);
+    }
+    throw new Error("the arrow never landed");
+  });
+
   test("on the floor, it sticks in the floor short of the spot", () => {
     for (const [spot, wallM] of [[{ x: 0.5, y: 0, z: 6 }, 8], [{ x: 0, y: 0, z: 25 }, 30]] as const) {
       const got = stuckAt(spot, wallM);
@@ -119,7 +146,11 @@ describe("an arrow loosed at the crosshair", () => {
 });
 
 describe("freeCamera", () => {
-  const free = (over: Partial<Polled>, action: PlayerAction = "none") => freeCamera(polled(over), action);
+  const free = (over: Partial<Polled>, action: PlayerAction = "none") => {
+    const world = new World(), me = world.spawn();
+    world.add(me, Player, { action } as PlayerData);
+    return freeCamera(polled(over), world, me);
+  };
 
   test("a bow drawn or just loosed, a skill chanted, cast or streamed: the camera aims", () => {
     for (const action of ["draw", "loose", "chant", "cast", "beam"] as const) assert.equal(free({}, action), "aim");

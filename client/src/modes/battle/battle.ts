@@ -84,12 +84,12 @@ export function createBattle(opts: BattleOptions): Battle {
     if (steps === 0) return;
     ctx.polled = actions.poll();
     if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
-    const [, , { pos: me }, { book, action }] = fight.world.first(LocalPlayer, Body, Player)!;
+    const [localPlayer, , { pos: me }, { book }] = fight.world.first(LocalPlayer, Body, Player)!;
     for (const action of ctx.polled.pressed) {
       const written = book[HOTBAR.indexOf(action as (typeof HOTBAR)[number])];
       if (written) ctx.casts.push(written);
     }
-    const foes = livingFoes(fight), free = freeCamera(ctx.polled, action);
+    const foes = livingFoes(fight), free = freeCamera(ctx.polled, fight.world, localPlayer);
     actions.setFreeLook(free === "aim");
     const steer = { pressed: ctx.polled.pressed, free: free !== null, wasFree: ctx.freeCamera !== null };
     ctx.lock = steerLock(ctx.lock, steer, foes, ctx.view, me);

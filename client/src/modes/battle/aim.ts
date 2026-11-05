@@ -1,4 +1,6 @@
-import type { BodyData, Entity, FighterData, PlayerAction, Vec3 } from "@infinite-tower/shared";
+import {
+  Player, Projectile, type BodyData, type Entity, type FighterData, type PlayerAction, type Vec3, type World,
+} from "@infinite-tower/shared";
 import { entersAt, landsAt } from "@infinite-tower/shared/fight";
 import type { Polled } from "../../core/actions.js";
 import type { BattleContext } from "./context.js";
@@ -14,10 +16,12 @@ export const AIMING: readonly PlayerAction[] = ["draw", "loose", "chant", "cast"
 // Nearer than this ahead of the player, the crosshair's spot gives no clear way to aim.
 export const CROSSHAIR_MIN_M = 1;
 
+// Your arrow still flying keeps it: swung back to the lock mid-flight, the arrow would streak off the screen.
 export function freeCamera(
-  { dragging, turn, look }: Pick<Polled, "dragging" | "turn" | "look">, action: PlayerAction,
+  { dragging, turn, look }: Pick<Polled, "dragging" | "turn" | "look">, world: World, me: Entity,
 ): FreeCamera {
-  if (AIMING.includes(action)) return "aim";
+  const flying = [...world.query(Projectile)].some(([, arrow]) => arrow.shooter === me && !arrow.stuck);
+  if (AIMING.includes(world.require(me, Player).action) || flying) return "aim";
   return dragging || turn !== 0 || look !== 0 ? "pan" : null;
 }
 
