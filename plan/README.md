@@ -1,39 +1,24 @@
 # Plans
 
-Where the game and the code are headed: one file per plan, so each can grow on its own and be deleted when it's
-done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md](../ARCHITECTURE.md) and the
-[README](../README.md).
+Where the game and the code are headed, one file per plan. Each says its goal, what's decided (by the user unless
+marked otherwise) and what's open. What's built is in the other docs; the user's standing decisions are in
+[AGENTS.md](../AGENTS.md), one line each; a plan keeps the detail of what was decided. Settle a plan's open questions
+with the user before building it (game mechanics always need their say), and when it's built, shrink its file to what
+was decided and what's still open, or delete it.
 
 | Plan | Status |
 |---|---|
-| [vision.md](vision.md): the game this is growing into (floors of a tower, souls-like fights) | direction |
-| [core.md](core.md): the core's sphere HUD, enemy realms, other ways to fill it | logic, saving and the stats chart built; the HUD next |
+| [vision.md](vision.md): the game this is growing into | direction |
 | [lore.md](lore.md): the story, from the player's soul outward; the game breaks the fourth wall | direction |
-| [npcs.md](npcs.md): NPCs with routines, quests, friendships and a questbook; Hollis moves on with the story | next big step |
-| [server-fights.md](server-fights.md): what's left after moving fights to the server (lag, more players) | later |
-| [multiplayer.md](multiplayer.md): the server list, a shared overworld, duels (PvP) and joining fights | being built |
-| [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
-| [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
-| [inventory.md](inventory.md): the rest of the grid inventory (drawing what's worn, armour, splitting stacks) | being built |
-| [drops.md](drops.md): loot and death drops as piles of items, in the arena and on the overworld (3 PRs) | being built |
-| [inscriptions.md](inscriptions.md): permanent passives carved into the core, one build per player | partly built |
-| [rarity.md](rarity.md): item and inscription rarity, and unique things only one player can hold | tiers, treasure and uniques built; notices and pile glow next |
-| [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
-| [combat-v2.md](combat-v2.md): sword combat v2, the spec and the user's decisions; Phase 1 (one sword duel) | being built |
-| [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
-| [art-lab.md](art-lab.md): the art lab (sprites, tiles, animations built): what's open, a level editor maybe later | later |
-| [overworld-2d.md](overworld-2d.md): the flat 2D overworld, archived at a git tag, and what bringing it back takes | archived |
+| [combat-v2.md](combat-v2.md): the sword combat spec, its pillars and every combat decision | partly built |
+| [skills.md](skills.md): skills built from words, cast in fights | mostly built |
+| [core.md](core.md): the core, inscriptions and blessings | mostly built |
+| [items.md](items.md): the bag, gear, drops, rarity and money | mostly built |
+| [npcs.md](npcs.md): routines, friendships and a cast that moves with the story | next big step |
+| [server-fights.md](server-fights.md): multiplayer and server-run fights: what's left (lag, cheats, channels) | later |
+| [art.md](art.md): hand-drawn art by an artist, animation, and what's next for the art lab | later |
+| [deploy.md](deploy.md): hosting beyond the one machine | idea |
+| [tests.md](tests.md): what the unit tests don't cover | later |
+| [overworld-2d.md](overworld-2d.md): the flat 2D overworld, archived at a git tag | archived |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
-
-Statuses:
-
-- **direction**: what the user wants the game to become; the details aren't decided.
-- **next big step**: agreed it should happen; how is still open.
-- **being built**: decided, and coming in PRs now.
-- **idea** / **later**: mentioned and worth keeping; nothing decided, or deliberately put off.
-- **archived**: built once and taken out; kept at a git tag.
-
-Each plan says what's decided (and by whom), what's open, and any notes gathered so far. When work on one starts,
-settle its open questions with the user first (game mechanics always need the user's say, see
-[AGENTS.md](../AGENTS.md)). When it's built, move what's true into ARCHITECTURE.md or the README and delete the
-plan file, or trim it to what's left.
+| [agent-picks.md](agent-picks.md): what the agents decided when told to, for the user to review | to review |

@@ -1,12 +1,9 @@
-# Tests: what's not covered yet
+# Tests: what's not covered
 
-Status: **later**. The unit tests exist (`npm test`; how they work is in [ARCHITECTURE.md](../ARCHITECTURE.md)
-and [AGENTS.md](../AGENTS.md)). These parts have none yet:
+Status: **later**.
 
-- **The Postgres stores** (`server/src/db/`: `PgPlayerStore`, `PgAccountStore`, migrations). They'd need a real
-  database: a throwaway one from `compose.yaml` on another port, created and dropped by the test run. Open: is
-  that worth the extra setup, or are the fakes enough?
-- **React screens** (`client/src/ui/`). Would need jsdom and React Testing Library. Today they're tried in a
-  browser (Playwright scripts kept outside the repo).
-- **Blocking a red merge**: CI runs on every PR, but GitHub only enforces a required check (branch protection or a
-  ruleset) on a public repo or with GitHub Pro. Until then a PR with a failing check can still be merged by hand.
+- **The Postgres stores and migrations**: they'd need a throwaway database per test run. Open: worth the setup, or
+  are the fakes enough?
+- **React screens**: would need jsdom and Testing Library; today they're tried in a browser.
+- **Blocking a red merge**: GitHub enforces a required check only on a public repo or with Pro, so a red PR can still
+  be merged by hand.
