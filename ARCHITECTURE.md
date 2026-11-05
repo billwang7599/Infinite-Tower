@@ -1797,9 +1797,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
                        after, or the rest when a fight starts, again when the hand the fight's weapon is in changes
-                       (its `Wielder`), the sword left out; a frame from the front only the first time it's shown
-                       (battleSprite); where the sword hand is in a frame (handAt); BATTLE_FRAMES; chibiDraw; the "!"
-                       alert and the crossed swords over a player in a battle
+                       (its `Wielder`; not with 3D people, which show none of them), the sword left out; a frame from
+                       the front only the first time it's shown (battleSprite); where the sword hand is in a frame
+                       (handAt); BATTLE_FRAMES; chibiDraw; the "!" alert and the crossed swords over a player in a
+                       battle
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, grey-wolf/, bog-lurker/, kobold-swordsman/,
                        goblin-warlock/, each with model.ts (lofted parts and limbs), pose.ts (where its parts head, from
                        its state; no Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk,
@@ -1862,9 +1863,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          changes, the gait from the ground speed, the pose on the joints, both arms bent to the pose's
                          hand targets round the torso by reachArms and reachWith (reachRound), the 3D blade on grip.R
                          or grip.L (handSide: a bow always in the left, a shield always the other hand) and a second
-                         blade or a shield on the other (placeHeld); easeArms, the arms eased to the pose (a swing by
-                         its set, a change of guard or block over GUARD_SHIFT by heft, a near half turn over the top,
-                         in first person the way round that keeps the blade in front, held as the target moves),
+                         blade or a shield on the other (placeHeld; switching hands, each blade stays in its hand);
+                         easeArms, the arms eased to the pose (a swing by its set, a change of guard or block, or of
+                         hands even mid-swing, over GUARD_SHIFT by heft, a near half turn over the top, in first
+                         person the way round that keeps the blade in front, held as the target moves),
                          for the body and first person alike; a bow's string pulled to the off hand, the hair
                          swung by the head's motion; with &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked

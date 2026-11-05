@@ -84,21 +84,22 @@ export function easeArms(
     returnTime: number; dt: number; ahead?: Vec3 },
 ): ShownArms {
   const now = shown ?? { ...copyArms(want), key: o.key, side: o.side, from: null };
-  if (now.side !== o.side) {
-    [now.hand, now.offHand, now.holding, now.offHolding] = [now.offHand, now.hand, now.offHolding, now.holding];
-    Object.assign(now, { side: o.side, key: "", from: null });
-  }
   const begin = (swing: SwingData | null, time: number) => {
     now.from = { ...copyArms(now), swing, sinceTime: 0, time, toward: {} };
   };
-  if (o.swung) {
+  if (now.side !== o.side) {
+    [now.hand, now.offHand, now.holding, now.offHolding] = [now.offHand, now.hand, now.offHolding, now.holding];
+    now.side = o.side;
+    // Timed even mid-swing: the swing's own set is long done, and would take the other hand over at once.
+    begin(o.swung?.swing ?? null, o.shiftTime);
+  } else if (o.swung) {
     if (now.from?.swing !== o.swung.swing) begin(o.swung.swing, 0);
   } else if (now.from?.swing) begin(null, o.returnTime);
   else if (o.key !== now.key) begin(null, o.shiftTime);
   now.key = o.key;
-  if (!o.swung && now.from && (now.from.sinceTime += o.dt) >= now.from.time) now.from = null;
+  if (now.from?.time && (now.from.sinceTime += o.dt) >= now.from.time) now.from = null;
   const from = now.from ?? now;
-  const k = o.swung ? o.swung.set : now.from ? smoothstep(0, now.from.time, now.from.sinceTime)
+  const k = now.from?.time ? smoothstep(0, now.from.time, now.from.sinceTime) : o.swung ? o.swung.set
     : dampFactor(JOINT_RATE, o.dt);
   Vector3.LerpToRef(from.hand, want.hand, k, now.hand);
   Vector3.LerpToRef(from.offHand, want.offHand, k, now.offHand);
@@ -378,11 +379,13 @@ function placeHeld(
   offWeapon: WeaponId | null, shield: ItemId | null,
 ): void {
   const grip = (s: 1 | -1) => model.joints[s === 1 ? "grip.R" : "grip.L"], moved = side !== p.bladeSide;
-  if (moved || weapon !== (p.blade?.weapon ?? null)) {
+  // Each blade stays in its hand: rebuilt, it would draw bare for a frame (new materials, the art's texture).
+  if (moved) [p.blade, p.offBlade] = [p.offBlade, p.blade];
+  if (weapon !== (p.blade?.weapon ?? null)) {
     dropBlade(p.blade);
     p.blade = weapon && holdBlade(ctx, e, grip(side), weapon, 0);
   }
-  if (moved || offWeapon !== (p.offBlade?.weapon ?? null)) {
+  if (offWeapon !== (p.offBlade?.weapon ?? null)) {
     dropBlade(p.offBlade);
     p.offBlade = offWeapon && holdBlade(ctx, e, grip(-side as 1 | -1), offWeapon, 0);
   }

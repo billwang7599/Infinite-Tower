@@ -2,11 +2,18 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  DEFAULT_LOOK, FIXED_DT, LOOK_OPTIONS, PLAYER, WAYS, type Look, type PlayerData, type SwingData, type WeaponId,
+  Body, DEFAULT_LOOK, FIXED_DT, Health, LOOK_OPTIONS, Player, PLAYER, WAYS, Wielder, World, type Look, type PlayerData,
+  type SwingData, type WeaponId,
 } from "@infinite-tower/shared";
+import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
+import { orbitBack } from "../../../../src/modes/orbit.js";
 import { BATTLE_BUILDS } from "../../../../src/gfx/look/body.js";
 import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js";
-import { handSide, reachArms, reachWith } from "../../../../src/visuals/battle/person/animation.js";
+import { holdInView, restShoulders } from "../../../../src/visuals/battle/firstPerson.js";
+import {
+  dropPerson, framePerson, handSide, newPerson, reachArms, reachWith,
+} from "../../../../src/visuals/battle/person/animation.js";
+import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
 import { SHAPES } from "../../../../src/visuals/battle/person/body.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
 import {
@@ -18,7 +25,7 @@ import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js
 import type { Sky } from "../../../../src/visuals/sky/sky.js";
 import { alongSegment, depthIn, loftSurface, type Loft } from "../../../fixtures/clearance.js";
 import { playerDoing } from "../../../fixtures/players.js";
-import { swingSteps } from "../../../fixtures/swings.js";
+import { swingAt, swingSteps } from "../../../fixtures/swings.js";
 
 const sky = { castShadows: (_m: AbstractMesh) => {} } as unknown as Sky;
 
@@ -198,6 +205,64 @@ describe("the 3D person's arms go round its body", () => {
     for (const body of LOOK_OPTIONS.body) {
       const { depthM, where } = deepestIn(body, body === "medium" ? 1 : 3);
       assert.ok(depthM <= TOLERANCE_M, `${body}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
+    }
+  });
+});
+
+describe("switching hands with a blade in each", () => {
+  const scene = new Scene(new NullEngine()), node = new TransformNode("player", scene), feet = { x: 2, y: 0.7, z: -1 };
+  node.position.set(feet.x, feet.y, feet.z);
+  const fp = CAMERA_VIEWS.fp, back = orbitBack(0, fp.lockPitchRad), o = { ...feet, y: feet.y + fp.orbitHeightM };
+  const view = { yaw: 0, pitch: fp.lockPitchRad, fovRad: fp.fovRad,
+    eye: { x: o.x + back.x * fp.distanceM, y: o.y + back.y * fp.distanceM, z: o.z + back.z * fp.distanceM },
+    at: { x: o.x - back.x, y: o.y - back.y, z: o.z - back.z } };
+  // A body just built eases in from its rest pose first.
+  const SETTLED_TIME = 0.2, SWITCH_TIME = 0.3;
+
+  function run(firstPerson: boolean, midSwing: boolean, perSec: number) {
+    const world = new World(), e = world.spawn();
+    const blend = { alpha: 1 }, ctx = { scene, sky, bows: new Map(), looks: new Map([[e, { current: DEFAULT_LOOK }]]),
+      battle: { blend }, pixel: { steps: null } } as unknown as ArenaScene;
+    world.add(e, Player, playerDoing("none", 0, "lr"));
+    world.add(e, Body, { pos: { ...feet }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.8, collider: 0 });
+    world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    const wielder = world.add(e, Wielder, { hands: { rightHand: "sword", leftHand: "sword", active: "rightHand" },
+      armReachM: PLAYER.armReachM, swing: null, combo: null, comboTime: 0, momentum: 0 });
+    const p = newPerson(), swing = swingAt("light", "lr", 0);
+    // Pressed mid-swing, a switch waits for the blade's live time to end.
+    const swingFrom = SWITCH_TIME - (swing.liveUntil + 2) * FIXED_DT;
+    let handM = 0, last: Vector3[] | null = null, kept = true, held: unknown[] = [];
+    for (let i = 0; i <= 0.8 * perSec; i++) {
+      const t = i / perSec, clock = (t - swingFrom) / FIXED_DT;
+      if (t >= SWITCH_TIME && wielder.hands.active === "rightHand") {
+        held = [p.blade, p.offBlade];
+        wielder.hands = { ...wielder.hands, active: "leftHand" };
+      }
+      swing.step = Math.floor(clock) + 1;
+      blend.alpha = clock - Math.floor(clock);
+      wielder.swing = midSwing && clock >= 0 && swing.step <= swing.endAt ? swing : null;
+      if (firstPerson) restShoulders(p);
+      framePerson(p, ctx, node, world, e, 1 / perSec, { action: wielder.swing ? "attack" : "none", actionTime: 0,
+        actionDir: { x: 0, z: 1 }, way: "lr", grounded: true, aim: { x: 0, z: 1 } }, { left: 0, of: 0 });
+      if (firstPerson) holdInView(p, view, 1, 1 / perSec);
+      if (held.length) kept &&= p.blade === held[1] && p.offBlade === held[0];
+      const grips = (["grip.R", "grip.L"] as const).map((g) =>
+        p.model!.joints[g].computeWorldMatrix(true).getTranslation());
+      if (last && t > SETTLED_TIME) handM = Math.max(handM, ...grips.map((g, k) => Vector3.Distance(g, last![k]!)));
+      last = grips;
+    }
+    dropPerson(p);
+    return { handM, kept };
+  }
+
+  test("each hand keeps its blade, and both ease to their new places, at rest or mid-swing, in first person or not", () => {
+    for (const firstPerson of [true, false]) {
+      for (const midSwing of [false, true]) {
+        const what = `${firstPerson ? "first" : "third"} person${midSwing ? ", mid-swing" : ""}`;
+        const at60 = run(firstPerson, midSwing, 60), at240 = run(firstPerson, midSwing, 240);
+        assert.ok(at60.kept, `${what}: the blades were rebuilt`);
+        assert.ok(at240.handM < at60.handM / 2.5, `${what}: ${at60.handM} m a frame at 60 fps, ${at240.handM} at 240`);
+      }
     }
   });
 });

@@ -524,7 +524,9 @@ Decided by the user:
   switches once that blade's done (after its live time), and a chain goes on across a switch. The Wooden shield is 2 x
   2, weight 4, worth 250c, sold and bought at Garrick's forge. A small mark either side of the aim ring shows which
   hand swings, with two blades only. The arena's 3D people hold the shield (a round board) and the second blade in
-  the other hand, and block by guard (the sword's guard, below).
+  the other hand, and block by guard (the sword's guard, below). A switch eases both hands into their new places as
+  a change of guard does (the user: "duel wield makes it so when switching hands the other hand teleports into
+  position").
 - The sword's guard is realistic (the user: "sword when aiming should be more realistic. ie edge always facing the
   enemy, and the plane that the sword makes should be parallel to the plane we're looking at"): aimed, the blade lies in
   the plane its cut sweeps through (the cut's line across the view and the way ahead), toward where the cut starts, its
