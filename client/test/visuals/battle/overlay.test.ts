@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
-import { AVERAGE_STAT, BOW, drawTime, WEAPONS, type PlayerAction } from "@infinite-tower/shared";
+import { AVERAGE_STAT, BOW, drawTime, loosedSpeed, WEAPONS, type PlayerAction } from "@infinite-tower/shared";
 import {
   AIM_HUD, aimHud, aimLayout, meterSpan, onScreen, ringLights, wedgeOf,
 } from "../../../src/visuals/battle/overlay.js";
@@ -88,20 +88,26 @@ describe("the draw meter, in the ring's place while a bow is in hand", () => {
   const FULL = drawTime(BOW, BOW_ITEM, STRENGTH, "fullTime"), MIN = drawTime(BOW, BOW_ITEM, STRENGTH, "minTime");
   const hud = (action: PlayerAction, t: number, hp = 10, fighting = true) =>
     aimHud(playerDoing(action, t), hp, null, "tb", fighting, BOW_ITEM, STRENGTH);
+  const speedShare = (t: number) => loosedSpeed(BOW, BOW_ITEM, STRENGTH, t) / BOW_ITEM.powerMps!;
+  const near = (got: number | undefined, want: number) => assert.ok(Math.abs((got ?? NaN) - want) < 1e-12, `${got}`);
 
   test("with a bow in hand it shows, and the ring doesn't", () => {
-    assert.deepEqual(hud("none", 0), { ring: null, crosshair: false, meter: { share: 0, minShare: MIN / FULL } });
+    const { meter, ...rest } = hud("none", 0);
+    assert.deepEqual(rest, { ring: null, crosshair: false });
+    assert.equal(meter?.share, 0);
+    near(meter?.minShare, speedShare(MIN));
   });
 
-  test("it fills with the draw, and stays full past the full draw", () => {
-    assert.equal(hud("draw", FULL / 2).meter?.share, 0.5);
+  test("it fills with the speed the arrow would leave at, and stays full past the full draw", () => {
+    near(hud("draw", FULL / 2).meter?.share, speedShare(FULL / 2));
+    assert.ok(speedShare(FULL / 2) < 0.5);
     assert.equal(hud("draw", FULL).meter?.share, 1);
     assert.equal(hud("draw", 3 * FULL).meter?.share, 1);
   });
 
   test("it marks the least draw, where a release looses at once", () => {
-    assert.equal(hud("draw", 0).meter?.minShare, MIN / FULL);
-    assert.ok(MIN / FULL > 0 && MIN / FULL < 1);
+    near(hud("draw", 0).meter?.minShare, speedShare(MIN));
+    assert.ok(speedShare(MIN) > 0 && speedShare(MIN) < 1);
   });
 
   test("it's empty while the next arrow is nocked", () => {

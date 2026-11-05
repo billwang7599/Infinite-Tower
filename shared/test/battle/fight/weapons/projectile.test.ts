@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BOW, Body, FIXED_DT, Health, HYBRID, physicalTakenFactor, Player, Projectile, Stamina, toSteps, type Entity,
-  type PlayerInputData, type ProjectileData, type Vec3,
+  BOW, Body, FIXED_DT, Health, HYBRID, physicalTakenFactor, Player, Projectile, Stamina, toSteps, WEAPONS,
+  type Entity, type PlayerInputData, type ProjectileData, type Vec3,
 } from "@infinite-tower/shared";
-import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
+import { Fight, initPhysics, launchAt, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, FULL_HP, input, player, STATS, STATUE } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -35,14 +35,15 @@ function play(fight: Fight, steps: number, inputs: (s: number) => PlayerInputDat
 }
 
 describe("an arrow in flight", () => {
-  test("stays on the arc its velocity and gravity make, step by step", () => {
-    const fight = lone(), me = fight.players[0]!;
+  test("slows by its drag and falls by gravity, step by step: dv/dt = g - drag × v", () => {
+    const fight = lone(), me = fight.players[0]!, k = ARROW.dragPerSec, g = ARROW.gravityMps2;
     const arrow = loose(fight, me, { x: 0, y: 2, z: 0 }, { x: 0, y: 3, z: 10 });
-    const t = 20 * FIXED_DT;
-    play(fight, 20);
-    assert.ok(Math.abs(arrow.pos.y - (2 + 3 * t + (ARROW.gravityMps2 * t * t) / 2)) < 1e-9);
-    assert.ok(Math.abs(arrow.pos.z - 10 * t) < 1e-9);
-    assert.ok(Math.abs(arrow.vel.y - (3 + ARROW.gravityMps2 * t)) < 1e-9);
+    const t = 30 * FIXED_DT, kept = Math.exp(-k * t), reach = (1 - kept) / k;
+    play(fight, 30);
+    assert.ok(Math.abs(arrow.vel.z - 10 * kept) < 1e-9, `${arrow.vel.z}`);
+    assert.ok(Math.abs(arrow.vel.y - ((3 - g / k) * kept + g / k)) < 1e-9, `${arrow.vel.y}`);
+    assert.ok(Math.abs(arrow.pos.z - 10 * reach) < 1e-9, `${arrow.pos.z}`);
+    assert.ok(Math.abs(arrow.pos.y - (2 + (3 - g / k) * reach + (g / k) * t)) < 1e-9, `${arrow.pos.y}`);
   });
 
   test("is gone once its lifetime runs out", () => {
@@ -110,6 +111,26 @@ describe("an arrow in flight", () => {
   });
 });
 
+describe("launchAt, a locked-on shot's aim", () => {
+  const SPEED = WEAPONS["training-bow"].powerMps!, FROM = { x: 0, y: 1, z: 0 };
+
+  test("the low arc through a spot on the wall: flown with the drag and gravity, it sticks there", () => {
+    for (const to of [{ x: 0, y: 1, z: WIDE.radius }, { x: -24, y: 5, z: 32 }, { x: WIDE.radius, y: 0.3, z: 0 }]) {
+      const fight = lone({ x: 0, y: 0.05, z: -30 }), vel = launchAt(ARROW, FROM, to, SPEED)!;
+      assert.ok(Math.abs(Math.hypot(vel.x, vel.y, vel.z) - SPEED) < 1e-9 && vel.y < Math.hypot(vel.x, vel.z), "low");
+      const arrow = loose(fight, fight.players[0]!, FROM, vel);
+      play(fight, 120);
+      assert.ok(arrow.stuck && Math.hypot(arrow.pos.x - to.x, arrow.pos.y - to.y, arrow.pos.z - to.z) < 0.01,
+        `${JSON.stringify(to)}: ${JSON.stringify(arrow.pos)}`);
+    }
+  });
+
+  test("none past the speed's reach, or straight overhead", () => {
+    assert.equal(launchAt(ARROW, FROM, { x: 0, y: 1, z: WIDE.radius }, SPEED / 10), null);
+    assert.equal(launchAt(ARROW, FROM, { x: 0, y: 5, z: 0 }, SPEED), null);
+  });
+});
+
 describe("an arrow meeting a player", () => {
   const facingOff = () => {
     const fight = new Fight({
@@ -160,12 +181,12 @@ describe("an arrow meeting a player", () => {
   });
 
   test("passes a player dodging through it", () => {
-    const { fight, me, them } = facingOff();
+    const { fight, me, them } = facingOff(), stoodZ = fight.world.require(them, Body).pos.z;
     const arrow = shoot(fight, me);
     play(fight, 6, (s) => [input({}), input({ dodge: s === 4, moveX: 0, aimZ: -1 })]);
     play(fight, 24);
     assert.equal(fight.world.require(them, Health).hp, FULL_HP);
-    assert.ok(arrow.pos.z > fight.world.require(them, Body).pos.z, "it flew on past them");
+    assert.ok(arrow.pos.z > stoodZ, "it flew on past where they stood");
   });
 });
 

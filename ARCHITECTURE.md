@@ -494,21 +494,21 @@ main.ts
   a way, and a ranged one in hand turns the light attack into a draw while the input's `attackHeld` stays true
   (`fight/player/bow.ts`), loosing a `Projectile` entity at the draw's speed (`loosedSpeed`) where the fighter aims
   (`aimOf`, below), the quiver's arrows first. `projectileSystem`
-  (`fight/weapons/projectile.ts`, after the combat system) moves each along the exact arc of its
-  velocity and gravity and sweeps the step against every foe's upright cylinder (`Fighter.radius`, `heightM`), the
-  floor and the wall, with plain math; one that meets a foe goes through `defend` with a `Shot` (where it came from,
-  for the guard's facing) and else `land`s like a blade, and one in the floor or wall lies `stuckTime`. Projectiles
-  are in the fight's snapshot and hash, so they resync like the rest.
+  (`fight/weapons/projectile.ts`, after the combat system) moves each along the exact path of its
+  velocity, drag and gravity (`flightAfter`, `weapons/bow.ts`) and sweeps the step against every foe's upright
+  cylinder (`Fighter.radius`, `heightM`), the floor and the wall, with plain math; one that meets a foe goes through
+  `defend` with a `Shot` (where it came from, for the guard's facing) and else `land`s like a blade, and one in the
+  floor or wall lies `stuckTime`. Projectiles are in the fight's snapshot and hash, so they resync like the rest.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where it aims (`aim`,
   `aimAt`, `target`: a player's from the input's aim, `aimAt` kept inside the wall and over the floor, and `locked`
   each step; an enemy's from its own facing) and its seed. `aimOf` (`fight/aim.ts`) is the one answer to where a
   fighter aims, for arrows, skills and the Kobold's sidestep alike: at a living `target`'s middle (its flat way, the
-  spot and the target), else along `aim` at `aimAt`. An arrow is loosed in the arc that lands on the spot; Bolts and
-  Beams fly flat, so they take only its way. Whoever drives it calls the same
-  three things: `startCast` (a quick-cast, or a chant's release; one at a time), `chant(words)` and `releaseChant`; the
-  player's controller does it from the input, a casting enemy's `skillAttackSystem` (`fight/behaviors/skill.ts`) from
-  its own choices. A player's input carries a
+  spot and the target), else along `aim` at `aimAt`. An arrow is loosed straight at the spot, and drops (locked on, in
+  the arc that lands on the target, `launchAt`); Bolts and Beams fly flat, so they take only its way. Whoever drives
+  it calls the same three things: `startCast` (a quick-cast, or a chant's release; one at a time), `chant(words)` and
+  `releaseChant`; the player's controller does it from the input, a casting enemy's `skillAttackSystem`
+  (`fight/behaviors/skill.ts`) from its own choices. A player's input carries a
   whole skill (`cast`) only on the step its key goes down, then just `castHeld` while the key stays down: the fight
   keeps the skill, so a long one isn't resent in every input; the chant's words come the same way, whole, on the step
   they change (`chantWords`). The controller
@@ -885,9 +885,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `weapons/kinds.test.ts` for what each kind does and the bow's draw damage, speed, nocking and heft. The bow
   (`player/bow.test.ts`: held to draw, let go to loose one arrow, its cost, none without arrows, the least draw,
   damage and speed by the draw, the nock from the quiver or the bag, the quiver's arrows first, no block while
-  drawing, a dodge keeping the arrow, unlocked onto the spot aimed at on a foe, the wall or the floor, straight at one
-  out of reach, an arc to a locked target, the aim's spot for a downed one) and its
-  arrows (`weapons/projectile.test.ts`: the exact arc of velocity and gravity step by step, the lifetime, stuck in
+  drawing, a dodge keeping the arrow, unlocked straight along the line to the spot, hitting a near foe there and
+  dropping below a far spot, a tap falling far short, an arc onto a locked target's middle near and across the arena,
+  straight at one out of reach, the aim's spot for a downed one) and its
+  arrows (`weapons/projectile.test.ts`: the exact path of velocity, drag and gravity step by step, `launchAt`'s arc
+  sticking where it was aimed and none out of reach, the lifetime, stuck in
   the floor and the wall, the first foe hit once even at speed, over a short one, never its own side, a held block
   from in front and not behind, a perfect block, a dodge; exact through a save, and in the hash). Eating in a
   fight (`player/use.test.ts`): healed and one
@@ -1038,7 +1040,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   cut, the
   boar's and the Kobold's poses, effects fired once per step and event,
   camera, the aim (at the lock-on, or the crosshair's way and spot while a bow or a skill aims, the camera then the
-  mouse's; an arrow loosed at the crosshair landing on its spot, near and far, up and down), mouse, HUD and combat
+  mouse's; an arrow loosed at the crosshair sticking straight under its spot on the wall, lower far off, and short of
+  it on the floor), mouse, HUD and combat
   settings, settings sync, when the mouse is captured (a camera drag's lock too),
   overworld prediction, what Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
@@ -1221,8 +1224,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        / heavy / stab
                        on the old momentum chains, the held block; a ranged weapon hands off to bow.ts), bow.ts
                        (drawBow: the light attack held draws, let go looses an arrow (the quiver's first) at the
-                       draw's speed, in the arc onto aimOf's spot (straight at it out of reach); no block while
-                       drawing),
+                       draw's speed, straight at aimOf's spot, or locked on in the arc onto the target (straight at
+                       it out of reach); no block while drawing),
                        use.ts (useSystem: a consumable used
                        once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
@@ -1247,9 +1250,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
                        block, the held block and its stamina or poise, a projectile's `Shot` too; blocking, facingOf),
                        parry.ts (parries: a swing parried by a swing, or two clashing; the recoil by the swings'
-                       weights), projectile.ts (projectileSystem: each arrow flies its arc, sweeps its step against
-                       every foe's upright cylinder, the floor and the wall, and lands, is blocked or sticks;
-                       launchAt: the low arc to a point; tested)
+                       weights), projectile.ts (projectileSystem: each arrow flies its path (flightAfter), sweeps
+                       its step against every foe's upright cylinder, the floor and the wall, and lands, is blocked
+                       or sticks; launchAt: the low arc to a point under the drag and gravity; tested)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -1285,8 +1288,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
                    meleeOf, rangedOf, meleeIn: what the fight branches on), bow.ts (BOW: the bow's placeholder draw,
-                   nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, loosedDamage, loosedSpeed,
-                   nockTime),
+                   nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
+                   curve), loosedDamage, loosedSpeed, flightAfter (where an arrow is and how fast it goes some time
+                   on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
                    wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime)
@@ -1835,10 +1839,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
                          centre while you fight with a sword, a bow's draw meter there instead (filling with the
-                         draw, marked at the least and the full draw), and a crosshair at the centre while you aim
-                         (aimHud, aimLayout, meterSpan, wedgeOf and ringLights: what shows where, the aimed way's
-                         wedge, a stab's mark and the share drawn; tested); where the camera puts them (onScreen: a
-                         world point's spot and pixels a
+                         speed it would loose at, drawnPower, marked at the least and the full draw), and a crosshair
+                         at the centre while you aim (aimHud, aimLayout, meterSpan, wedgeOf and ringLights: what
+                         shows where, the aimed way's wedge, a stab's mark and the meter's fill; tested); where the
+                         camera puts them (onScreen: a world point's spot and pixels a
                          metre; tested), the lock-on's diamond (an octahedron's facets, turning) and other fighters'
                          chant words
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
@@ -1867,8 +1871,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          middle drawn back by bowDrawOf: the shared drawnShare), arrowVisual (an arrow in flight,
                          along its velocity, leaving from its shooter's bow (the scene's `bows`, set by holdBlade) and
                          eased onto the fight's path over LEAVE_BOW_TIME; stuck, its head sunk in; flying, a trail
-                         behind its nock over the last TRAIL.lengthS of its path, worked back from where it is and
-                         how fast it goes, facing the camera, at least TRAIL.minWidthPx wide; tested)
+                         behind its nock over the last TRAIL.lengthS of its path, worked back along it by
+                         flightAfter, facing the camera, at least TRAIL.minWidthPx wide; tested)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it, on the
                          overlay
         pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered

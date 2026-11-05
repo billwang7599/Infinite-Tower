@@ -318,7 +318,8 @@ Decided by the user:
 - One aim for the bow and skills (the user: "make sure we consolidate the aim to api or something, cause magic
   casting also needs this"; the rest the main chat's picks): skills aim exactly as the bow does, locked on at the
   target and unlocked at the crosshair's spot, through the one `aimOf` (`shared/src/battle/fight/aim.ts`). An arrow
-  lands on the aim's spot (the user: "its not pointing where im aiming (kinda too low)"; "Bows", below); Bolts and
+  leaves for the aim's spot and drops on the way unless locked on (the user: "for arrows, i want similar physics to
+  minecraft"; "Bows", below); Bolts and
   Beams still fly flat (their hits are on the ground plane at any height, so a pitch would need 3D hits), taking only
   its way. Sword swings keep their flat aim. Unlocked, a Follow Bolt homes onto the foe nearest the aim's line, not
   the nearest foe (the user: "follow bolt yes"; the agent's picks: none more than 90° off, so none behind, the nearer
@@ -758,8 +759,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     Form) or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`; when,
     `AIMING` in `client/src/modes/battle/aim.ts`). Then the aim is the spot where the screen's centre line first meets
     a foe, the floor or the wall, and the way from you to it (`crosshairAim` in that file, the input's `aimAt`), so
-    with a camera off to the side an arrow still lands on what the crosshair shows (a foe under it is hit) and a skill
-    goes its way; nearer than 1 m ahead, it's the camera's way, level, at the wall.
+    with a camera off to the side an arrow still leaves for what the crosshair shows (dropping on the way: "Bows") and
+    a skill goes its way; nearer than 1 m ahead, it's the camera's way, level, at the wall.
     Both, the lock-on diamond and other fighters' chant words are HUD: drawn sharp at full resolution over the pixel
     art, not pixelated (the user: "the indication should be part of the hud (shouldnt be pixelated)"); the diamond and
     the words stay over who they mark.
@@ -926,7 +927,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   `shared/src/weapons/bow.ts` and the items' data (`ITEMS`). A weapon kind says what it does (`MOVES` in
   `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit shapes and timings) or ranged (the bow: a draw, a
   loose, a projectile), and the fight branches on that, not on the kind's name. The Training bow (1 x 3, length 1.2,
-  12 damage, power 40 m/s, heft 1, no least strength), the Arrow (1 x 1, stacks of 20 in a bag cell, weight 0.05) and
+  12 damage, power 60 m/s, heft 1, no least strength), the Arrow (1 x 1, stacks of 20 in a bag cell, weight 0.05) and
   the Training quiver (1 x 2, weight 0.5) come only from the admin panel's give: no shop, drop or quest has them.
   - Two hands: a bow (the kinds in `TWO_HANDED`, `weapons/weapons.ts`) and anything else are never held together.
     Whatever goes into a hand, if it or what the other hand holds is two-handed, sends the other hand's into the bag
@@ -945,20 +946,25 @@ them; treat them as changeable, and still ask before deciding new ones):
     draw and its cost as it does a swing's. The heavy and the stab do nothing with a bow.
   - Nocking: after a loose the next draw can start 0.3 s later if the next arrow is in the quiver, 0.8 s if it comes
     from the bag (`BOW.nock`); you can dodge out of it, not block.
-  - The arrow: it leaves at the bow's power × (0.4 + 0.6 × the share drawn) (`minSpeedShare`), so the Training bow's
-    22 m/s at the least draw and 40 m/s full; its damage goes from 30% at once to the bow's whole damage at 1 s. It
-    falls at 9.8 m/s² for at most 3 s. It's loosed in the low arc at its speed that lands on where it's aimed: locked
-    on, the target's middle; with no lock-on in the input, the spot under the crosshair (`aimAt`; the fight keeps it
-    inside the wall and over the floor), so it lands there up or down, near or far (the main chat's pick, for the
-    user's "its not pointing where im aiming (kinda too low)"). A spot out of the draw's reach gets a shot straight at
-    it, which drops short. It lands on the first foe in its
-    way (poise 10) unless it's dodging or in hurt invulnerability; from in front a held block stops it as a blade (a
-    chip, its damage in stamina) and a perfect block whole, the shooter far off not recoiling. In the floor or the
-    wall it lies 2 s, then is gone. The server decides all of it, as for any fight input.
+  - The arrow flies as Minecraft's (the user: "for arrows, i want similar physics to minecraft", picking real drop over
+    landing on the crosshair; the numbers are the agent's): it leaves at the bow's power × (t² + 2t) / 3, t the share
+    drawn (Minecraft's draw curve), so the Training bow's 11 m/s at the least draw (a tap barely flies), 25 m/s half
+    drawn and 60 m/s full; its damage still goes from 30% at once to the bow's whole damage at 1 s (no damage by
+    speed). It falls at 20 m/s² and keeps e^−0.2 (82%) of its speed a second (Minecraft's 0.99 a tick), for at most
+    3 s, so a full draw drops 7 cm over 5 m, 0.7 m over 16 m (the arena's middle to its wall) and 3 m over 32 m (wall
+    to wall). With no lock-on in the input it's loosed straight along the line to the spot under the crosshair
+    (`aimAt`; the fight keeps it inside the wall and over the floor), no arc: near, it lands about there; far, it drops
+    below, and you aim high. Locked on (the assisted aim), it's loosed in the low arc at its speed that lands on the
+    target's middle, drag and gravity counted (`launchAt`); a target out of the draw's reach gets a shot straight at
+    it, which drops short. It lands on the first foe in its way (poise 10) unless it's dodging or in hurt
+    invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina) and a perfect
+    block whole, the shooter far off not recoiling. In the floor or the wall it lies 2 s, then is gone. The server
+    decides all of it, as for any fight input.
   - The draw meter: with a bow in hand it stands in the aim ring's place, a level carved bar with pointed ends 120 px
-    wide (the HUD's CSS pixels), faint bone, filling in bone with the share drawn and cinnabar once full; a bone mark
-    where a release looses at once (25%) and a cinnabar one at full. Empty while nocking, hidden once you're down or
-    the fight is decided (`AIM_HUD`, `aimHud` in `client/src/visuals/battle/overlay.ts`).
+    wide (the HUD's CSS pixels), faint bone, filling in bone with the arrow's speed share ((t² + 2t) / 3, slow at first)
+    and cinnabar once full; a bone mark where a release looses at once (19%) and a cinnabar one at full. Empty while
+    nocking, hidden once you're down or the fight is decided (`AIM_HUD`, `aimHud` in
+    `client/src/visuals/battle/overlay.ts`).
   - The 3D person holds a bow in the left hand whichever hand's slot it's in, and carries and draws it held out to the
     side, near upright, so the locked camera over the left shoulder sees all of it past the body and head; the arrow
     is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only). The quiver isn't

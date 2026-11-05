@@ -1,6 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Vec3 } from "../../../core/math.js";
-import type { ProjectileDef } from "../../../weapons/bow.js";
+import { flightAfter, type ProjectileDef } from "../../../weapons/bow.js";
 import { rangedOf } from "../../../weapons/kinds.js";
 import { WEAPONS } from "../../../weapons/weapons.js";
 import {
@@ -16,15 +16,33 @@ const EPS = 1e-6;
 export const projectileOf = (o: Pick<ProjectileData, "weapon">): ProjectileDef =>
   rangedOf(WEAPONS[o.weapon])!.projectile;
 
-/** The low arc from `from` that passes through `to` at `speed`; null if it can't reach. `gravity` is negative. */
-export function launchAt(from: Vec3, to: Vec3, speed: number, gravity: number): Vec3 | null {
-  const dx = to.x - from.x, dz = to.z - from.z, flat = Math.hypot(dx, dz), up = to.y - from.y, g = -gravity;
-  if (flat < EPS) return null;
-  const v2 = speed * speed, disc = v2 * v2 - g * (g * flat * flat + 2 * up * v2);
-  if (disc < 0) return null;
-  const tan = g < EPS ? up / flat : (v2 - Math.sqrt(disc)) / (g * flat);
-  const cos = 1 / Math.hypot(1, tan);
-  return { x: (dx / flat) * speed * cos, y: speed * tan * cos, z: (dz / flat) * speed * cos };
+const PITCH_STEP_RAD = Math.PI / 360;
+
+// The lower of the two arcs through `to`; null past the speed's reach.
+export function launchAt(def: ProjectileDef, from: Vec3, to: Vec3, speedMps: number): Vec3 | null {
+  const dx = to.x - from.x, dz = to.z - from.z, flatM = Math.hypot(dx, dz);
+  if (flatM < EPS) return null;
+  const velAt = (rad: number): Vec3 => {
+    const flatMps = speedMps * Math.cos(rad);
+    return { x: (dx / flatM) * flatMps, y: speedMps * Math.sin(rad), z: (dz / flatM) * flatMps };
+  };
+  const heightAt = (rad: number): number => {
+    const slowed = (def.dragPerSec * flatM) / (speedMps * Math.cos(rad));
+    if (slowed >= 1) return -Infinity;
+    return flightAfter(def, from, velAt(rad), -Math.log1p(-slowed) / def.dragPerSec).pos.y;
+  };
+  let low = Math.atan2(to.y - from.y, flatM), high = low;
+  while (heightAt(high) < to.y) {
+    low = high;
+    high += PITCH_STEP_RAD;
+    if (high >= Math.PI / 2) return null;
+  }
+  for (let i = 0; i < 50; i++) {
+    const mid = (low + high) / 2;
+    if (heightAt(mid) < to.y) low = mid;
+    else high = mid;
+  }
+  return velAt(high);
 }
 
 /** The share of `d` along which a step from `a` is first inside a fighter's upright cylinder; null if never. */
@@ -86,9 +104,9 @@ function strike(ctx: FightContext, o: ProjectileData, target: Entity, struck: Ve
 }
 
 function fly(ctx: FightContext, e: Entity, o: ProjectileData, dt: number): void {
-  const def = projectileOf(o), fall = def.gravityMps2 * dt;
-  const a = o.pos, d = { x: o.vel.x * dt, y: (o.vel.y + fall / 2) * dt, z: o.vel.z * dt };
-  o.vel.y += fall;
+  const def = projectileOf(o), a = o.pos, next = flightAfter(def, a, o.vel, dt);
+  const d = { x: next.pos.x - a.x, y: next.pos.y - a.y, z: next.pos.z - a.z };
+  Object.assign(o.vel, next.vel);
   const stopsAt = landsAt(a, d, ctx.arena.radius);
   const met = meets(ctx.world, o, a, d, Math.min(1, stopsAt));
   if (met) {
@@ -97,7 +115,7 @@ function fly(ctx: FightContext, e: Entity, o: ProjectileData, dt: number): void 
     return;
   }
   if (stopsAt > 1) {
-    Object.assign(o.pos, at(a, d, 1));
+    Object.assign(o.pos, next.pos);
     return;
   }
   Object.assign(o.pos, at(a, d, stopsAt));

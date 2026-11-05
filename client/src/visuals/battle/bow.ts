@@ -2,8 +2,8 @@ import {
   Color3, Mesh, MeshBuilder, Quaternion, TransformNode, Vector3, type Camera, type Scene, type StandardMaterial,
 } from "@babylonjs/core";
 import {
-  drawnShare, FighterStats, Player, Projectile, rangedOf, smoothstep, weaponIn, WEAPONS, Wielder, type Entity,
-  type ProjectileData, type World,
+  drawnShare, FighterStats, flightAfter, Player, Projectile, rangedOf, smoothstep, weaponIn, WEAPONS, Wielder,
+  type Entity, type ProjectileData, type World,
 } from "@infinite-tower/shared";
 import { colorMaterial } from "../materials.js";
 import type { Visual } from "../visuals.js";
@@ -123,6 +123,11 @@ const flightOf = (o: ProjectileData) => rangedOf(WEAPONS[o.weapon])!.projectile;
 const flownTime = (o: ProjectileData): number => flightOf(o).lifeTime - o.left;
 const offBow = (flown: number): number => 1 - smoothstep(0, LEAVE_BOW_TIME, flown);
 
+function nockAgo(o: ProjectileData, agoTime: number, way: Vector3, nock: Vector3): void {
+  const { pos, vel } = flightAfter(flightOf(o), o.pos, o.vel, -agoTime);
+  way.set(vel.x, vel.y, vel.z).normalize().scaleAndAddToRef(-ARROW_M, nock.set(pos.x, pos.y, pos.z));
+}
+
 export const arrowVisual: Visual<FlyingArrow> = {
   spawn({ scene, sky, bows, camera, materials: { arrowTrail } }, world, e) {
     const root = new TransformNode(`arrow-${e}`, scene), materials = arrowMaterials(scene);
@@ -133,8 +138,8 @@ export const arrowVisual: Visual<FlyingArrow> = {
     place(root, o);
     if (nock && !nock.isDisposed() && !o.stuck && flown < LEAVE_BOW_TIME) {
       // From where the fight loosed it, so drawing it again after a reload doesn't move it.
-      nock.computeWorldMatrix(true).getTranslationToRef(fromBow).subtractInPlace(root.position)
-        .addInPlaceFromFloats(o.vel.x * flown, o.vel.y * flown, o.vel.z * flown);
+      nockAgo(o, flown, pastHeading, past);
+      nock.computeWorldMatrix(true).getTranslationToRef(fromBow).subtractInPlace(past);
     }
     const trail = buildRibbon(scene, `arrow-trail-${e}`, TRAIL.points, arrowTrail);
     const drawn = { root, materials, fromBow, trail, camera };
@@ -168,13 +173,11 @@ function drawTrail(trail: Ribbon, o: ProjectileData, fromBow: Vector3, camera: C
   const flown = o.stuck ? 0 : flownTime(o), spanS = Math.min(TRAIL.lengthS, flown);
   trail.mesh.setEnabled(spanS > 0);
   if (spanS <= 0) return;
-  const g = flightOf(o).gravityMps2, { positions, colors } = trail;
+  const { positions, colors } = trail;
   const metresPerPx = (2 * Math.tan(camera.fov / 2)) / camera.getEngine().getRenderHeight();
   for (let i = 0; i < TRAIL.points; i++) {
     const ago = (spanS * i) / (TRAIL.points - 1);
-    pastHeading.set(o.vel.x, o.vel.y - g * ago, o.vel.z).normalize();
-    past.set(o.pos.x - o.vel.x * ago, o.pos.y - o.vel.y * ago + (g * ago * ago) / 2, o.pos.z - o.vel.z * ago);
-    pastHeading.scaleAndAddToRef(-ARROW_M, past);
+    nockAgo(o, ago, pastHeading, past);
     fromBow.scaleAndAddToRef(offBow(flown - ago), past);
     past.subtractToRef(camera.position, toEye);
     const widthM = Math.max(TRAIL.widthM, TRAIL.minWidthPx * metresPerPx * toEye.length());

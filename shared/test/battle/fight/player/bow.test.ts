@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, bagCounts, BOW, drawCost, drawTime, emptyBag, emptyEquipment, FIXED_DT, Health, loosedDamage, loosedSpeed,
-  packFor, Player, Projectile, Stamina, stowedCounts, toSteps, WEAPONS, type PlayerInputData, type Vec3,
+  addItem, bagCounts, Body, BOW, drawCost, drawTime, emptyBag, emptyEquipment, Fighter, FIXED_DT, flightAfter, Health,
+  loosedDamage, loosedSpeed, packFor, Player, Projectile, Stamina, stowedCounts, toSteps, WEAPONS, type PlayerInputData,
+  type Vec3,
 } from "@infinite-tower/shared";
 import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, FULL_STAMINA, input, player, STATS, STATUE } from "../fixtures.js";
@@ -15,10 +16,11 @@ const FULL_STEPS = toSteps(drawTime(BOW, BOW_ITEM, STATS.strength, "fullTime"));
 const TARGET = { ...STATUE, maxHp: 10_000 };
 
 const QUIVER = "training-quiver";
+const WALL_M = 40;
 
 function archer(arrows: number, foeAt = 8, quivered: number | null = null) {
   const fight = new Fight({
-    arena: { ...ARENA, radius: 40 },
+    arena: { ...ARENA, radius: WALL_M },
     players: [player({ x: 0, y: 0.05, z: 0 }, {
       gear: {
         bag: addItem(emptyBag(), BOW.ammo, arrows).bag, pack: packFor(null),
@@ -53,8 +55,7 @@ const drawn = (heldTo: number, over: Partial<PlayerInputData> = {}): Script => (
 
 const damageOf = (events: FightEvent[]) => events.flatMap((ev) => (ev.type === "hit" ? [ev.damage] : []));
 
-/** Its velocity as loosed: the step it has flown since took a step's gravity off it. */
-const launched = ({ vel }: { vel: Vec3 }): Vec3 => ({ ...vel, y: vel.y - BOW.projectile.gravityMps2 * FIXED_DT });
+const launched = ({ pos, vel }: { pos: Vec3; vel: Vec3 }) => flightAfter(BOW.projectile, pos, vel, -FIXED_DT);
 
 describe("drawing a bow", () => {
   test("the light attack held draws it, and letting go looses one arrow from the bag", () => {
@@ -90,7 +91,7 @@ describe("drawing a bow", () => {
   });
 
   test("the arrow's damage grows with the draw, up to the full draw's", () => {
-    const quick = archer(5), full = archer(5), over = archer(5);
+    const quick = archer(5, 3), full = archer(5, 3), over = archer(5, 3);
     const quickHits = damageOf(play(quick.fight, 90, drawn(1, { locked: 0 })));
     const fullHits = damageOf(play(full.fight, FULL_STEPS + 90, drawn(FULL_STEPS + 1, { locked: 0 })));
     const overHits = damageOf(play(over.fight, 3 * FULL_STEPS + 90, drawn(3 * FULL_STEPS, { locked: 0 })));
@@ -167,7 +168,7 @@ describe("how fast the arrow leaves", () => {
   const speedOf = (heldTo: number) => {
     const a = archer(5, 30);
     play(a.fight, Math.max(heldTo, MIN_STEPS) + 1, drawn(heldTo, { aimAt: { x: 0, y: 1, z: 30 } }));
-    const { x, y, z } = launched(a.flying()[0]!);
+    const { x, y, z } = launched(a.flying()[0]!).vel;
     return Math.hypot(x, y, z);
   };
 
@@ -185,50 +186,87 @@ describe("where the arrow goes", () => {
   const FAR = 16;
   const untouched = (a: ReturnType<typeof archer>) =>
     assert.equal(a.fight.world.require(a.fight.enemies[0]!, Health).hp, TARGET.maxHp);
-
-  const near = (got: Vec3, want: Vec3) =>
-    Math.hypot(got.x - want.x, got.y - want.y, got.z - want.z) < BOW.projectile.radiusM;
-
-  test("unlocked, a full draw and a short one both arc onto the spot aimed at on a far foe", () => {
-    const onFoe = { aimAt: { x: 0, y: TARGET.radius, z: FAR - TARGET.radius } };
-    assert.equal(damageOf(play(archer(5, FAR).fight, 120, drawn(FULL_STEPS, onFoe))).length, 1);
-    assert.equal(damageOf(play(archer(5, FAR).fight, 120, drawn(1, onFoe))).length, 1);
-  });
-
-  test("unlocked, a spot past the draw's reach: loosed straight at it, it drops below it", () => {
-    const a = archer(5, FAR), high = { x: 0, y: 30, z: 40 };
-    play(a.fight, MIN_STEPS + 1, drawn(1, { aimAt: high }));
-    const [arrow] = a.flying(), upRad = Math.atan2(launched(arrow!).y, launched(arrow!).z);
-    assert.ok(Math.abs(upRad - Math.atan2(high.y - arrow!.pos.y, high.z - arrow!.pos.z)) < 1e-3, `${upRad}`);
-    play(a.fight, 240);
-    assert.ok(arrow!.stuck && arrow!.pos.y < high.y - 1, JSON.stringify(arrow!.pos));
-  });
-
-  test("aimed at a spot high on the wall, it flies over a foe on the way and sticks there", () => {
-    const a = archer(5), high = { x: 0, y: 6, z: 40 };
-    assert.deepEqual(damageOf(play(a.fight, 240, drawn(FULL_STEPS, { aimAt: high }))), []);
-    untouched(a);
+  const stuckAt = (a: ReturnType<typeof archer>): Vec3 => {
     const [arrow] = a.flying();
-    assert.ok(arrow?.stuck && near(arrow.pos, high), JSON.stringify(arrow?.pos));
+    assert.ok(arrow?.stuck, JSON.stringify(arrow));
+    return arrow.pos;
+  };
+  const unit = ({ x, y, z }: Vec3): Vec3 => {
+    const m = Math.hypot(x, y, z);
+    return { x: x / m, y: y / m, z: z / m };
+  };
+  const middleOf = (a: ReturnType<typeof archer>): number => {
+    const foe = a.fight.enemies[0]!, { pos, centerHeight } = a.fight.world.require(foe, Body);
+    return pos.y - centerHeight + a.fight.world.require(foe, Fighter).heightM / 2;
+  };
+  const hitsOf = (events: FightEvent[]) => events.flatMap((ev) => (ev.type === "hit" ? [ev] : []));
+
+  test("unlocked, it leaves straight along the line to the spot aimed at, with no arc", () => {
+    for (const spot of [{ x: 0, y: 6, z: WALL_M }, { x: 3, y: 0, z: 5 }, { x: -20, y: 2, z: 30 }]) {
+      const a = archer(5, FAR);
+      play(a.fight, FULL_STEPS + 1, drawn(FULL_STEPS, { aimAt: spot }));
+      const { pos, vel } = launched(a.flying()[0]!), way = unit(vel);
+      const want = unit({ x: spot.x - pos.x, y: spot.y - pos.y, z: spot.z - pos.z });
+      assert.ok(Math.hypot(way.x - want.x, way.y - want.y, way.z - want.z) < 1e-9, JSON.stringify({ way, want }));
+    }
   });
 
-  test("aimed at the floor short of the foe, it sticks there", () => {
+  test("unlocked, it hits a near foe about where it's aimed", () => {
+    const a = archer(5, 4), spot = { x: 0.2, y: middleOf(a), z: 4 - TARGET.radius };
+    const [hit] = hitsOf(play(a.fight, FULL_STEPS + 30, drawn(FULL_STEPS, { aimAt: spot })));
+    const offM = hit?.at ? Math.hypot(hit.at.x - spot.x, hit.at.y - spot.y, hit.at.z - spot.z) : Infinity;
+    assert.ok(offM < 0.1, JSON.stringify(hit));
+  });
+
+  test("unlocked, it drops below a far spot by at least gravity's fall over the flight, so you aim high", () => {
+    const a = archer(5, FAR), spot = { x: 0, y: 6, z: WALL_M }, power = BOW_ITEM.powerMps!;
+    play(a.fight, FULL_STEPS + 90, drawn(FULL_STEPS, { aimAt: spot }));
+    untouched(a);
+    const at = stuckAt(a), fallM = (-BOW.projectile.gravityMps2 / 2) * ((WALL_M - 1) / power) ** 2;
+    assert.ok(Math.hypot(at.x - spot.x, at.z - spot.z) < 1e-6, `in the wall straight below: ${JSON.stringify(at)}`);
+    assert.ok(at.y > 0 && spot.y - at.y > fallM, `${at.y} vs ${spot.y} - ${fallM}`);
+  });
+
+  test("a tap barely flies: aimed level at the far wall, it falls into the floor far short of a full draw", () => {
+    const level = { aimAt: { x: WALL_M, y: 1, z: 0 } };
+    const tap = archer(5, FAR), full = archer(5, FAR);
+    play(tap.fight, FULL_STEPS + 60, drawn(1, level));
+    play(full.fight, FULL_STEPS + 60, drawn(FULL_STEPS, level));
+    const short = stuckAt(tap), long = stuckAt(full);
+    assert.ok(Math.abs(short.y) < 1e-9 && Math.abs(long.y) < 1e-9, "both in the floor");
+    assert.ok(short.x < long.x / 3, `${short.x} vs ${long.x}`);
+  });
+
+  test("aimed at the floor short of the foe, it sticks in the floor about there", () => {
     const a = archer(5), floor = { x: 0.5, y: 0, z: 4 };
     assert.deepEqual(damageOf(play(a.fight, 120, drawn(FULL_STEPS, { aimAt: floor }))), []);
     untouched(a);
-    const [arrow] = a.flying();
-    assert.ok(arrow?.stuck && near(arrow.pos, floor), JSON.stringify(arrow?.pos));
+    const at = stuckAt(a);
+    assert.ok(Math.abs(at.y) < 1e-9 && Math.hypot(at.x - floor.x, at.z - floor.z) < 0.5, JSON.stringify(at));
+  });
+
+  test("locked on, it's aimed over the drop to land on the target's middle, near or across the arena", () => {
+    for (const foeAt of [4, FAR, 2 * FAR]) {
+      const a = archer(5, foeAt), [hit] = hitsOf(play(a.fight, 120, drawn(FULL_STEPS, { locked: 0 })));
+      assert.ok(hit?.at && Math.abs(hit.at.y - middleOf(a)) < 0.25, `${foeAt} m: ${JSON.stringify(hit)}`);
+    }
+  });
+
+  test("locked on, a tap that can't reach a far target is loosed straight at it and drops short", () => {
+    const a = archer(5, FAR);
+    play(a.fight, MIN_STEPS + 1, drawn(1, { locked: 0 }));
+    const { pos, vel } = launched(a.flying()[0]!), way = unit(vel);
+    const want = unit({ x: -pos.x, y: middleOf(a) - pos.y, z: FAR - pos.z });
+    assert.ok(Math.hypot(way.x - want.x, way.y - want.y, way.z - want.z) < 1e-6, JSON.stringify({ way, want }));
+    play(a.fight, 60);
+    untouched(a);
+    const at = stuckAt(a);
+    assert.ok(Math.abs(at.y) < 1e-9 && at.z < FAR - TARGET.radius, JSON.stringify(at));
   });
 
   test("locked on, it arcs onto the target whatever spot the input aims at", () => {
     const a = archer(5);
     const events = play(a.fight, 120, drawn(FULL_STEPS, { locked: 0, aimAt: { x: 0, y: 6, z: 40 } }));
-    assert.equal(damageOf(events).length, 1);
-  });
-
-  test("locked on, it's loosed in an arc that lands on the target", () => {
-    const a = archer(5, FAR);
-    const events = play(a.fight, 120, drawn(FULL_STEPS, { locked: 0 }));
     assert.equal(damageOf(events).length, 1);
   });
 

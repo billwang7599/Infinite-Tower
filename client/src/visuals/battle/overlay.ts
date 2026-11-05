@@ -1,6 +1,6 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
-  AVERAGE_STAT, Body, clamp, drawnShare, drawTime, FighterStats, Health, Player, rangedOf, SCREEN_DIR, Skilled,
+  AVERAGE_STAT, Body, clamp, drawnPower, drawTime, FighterStats, Health, Player, rangedOf, SCREEN_DIR, Skilled,
   weaponIn, Wielder, type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type World,
 } from "@infinite-tower/shared";
 import { AIMING } from "../../modes/battle/aim.js";
@@ -48,8 +48,8 @@ function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number
   const bow = rangedOf(weapon);
   if (!bow || !weapon) return null;
   return {
-    share: player.action === "draw" ? drawnShare(bow, weapon, strength, player.actionTime) : 0,
-    minShare: drawTime(bow, weapon, strength, "minTime") / drawTime(bow, weapon, strength, "fullTime"),
+    share: player.action === "draw" ? drawnPower(bow, weapon, strength, player.actionTime) : 0,
+    minShare: drawnPower(bow, weapon, strength, drawTime(bow, weapon, strength, "minTime")),
   };
 }
 

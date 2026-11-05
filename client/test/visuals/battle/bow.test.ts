@@ -3,12 +3,14 @@ import { describe, test } from "node:test";
 import {
   NullEngine, Scene, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer,
 } from "@babylonjs/core";
-import { BOW, Projectile, WEAPONS, World, type Entity, type ProjectileData } from "@infinite-tower/shared";
+import {
+  BOW, flightAfter, Projectile, WEAPONS, World, type Entity, type ProjectileData, type Vec3,
+} from "@infinite-tower/shared";
 import { ARROW_M, arrowVisual, LEAVE_BOW_TIME, TRAIL, type HeldBow } from "../../../src/visuals/battle/bow.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 
 const SHOOTER = 1 as Entity;
-const { lifeTime, stuckTime, gravityMps2 } = BOW.projectile, speedMps = WEAPONS["training-bow"].powerMps ?? 0;
+const ARROW = BOW.projectile, { lifeTime, stuckTime } = ARROW, speedMps = WEAPONS["training-bow"].powerMps ?? 0;
 const near = (a: Vector3, b: Vector3, what: string, within = 1e-6) =>
   assert.ok(Vector3.Distance(a, b) < within, `${what}: ${a.toString()} vs ${b.toString()}`);
 
@@ -23,20 +25,22 @@ const ctx = {
 } as unknown as ArenaScene;
 const world = new World();
 
+const fly = (o: ProjectileData, dt: number) => {
+  Object.assign(o, flightAfter(ARROW, o.pos, o.vel, dt));
+  o.left -= dt;
+};
+const fightsNock = ({ pos, vel }: { pos: Vec3; vel: Vec3 }) =>
+  new Vector3(pos.x, pos.y, pos.z).subtract(new Vector3(vel.x, vel.y, vel.z).normalize().scale(ARROW_M));
+
 describe("an arrow in flight", () => {
   const loosed = (t: number, shooter = SHOOTER): { e: Entity; o: ProjectileData } => {
     const e = world.spawn();
     const o = world.add<ProjectileData>(e, Projectile, {
-      shooter, weapon: "training-bow", pos: { x: 0, y: 0.85, z: 0.6 + speedMps * t },
-      vel: { x: 0, y: 0, z: speedMps }, damage: 1, left: lifeTime - t, stuck: false,
+      shooter, weapon: "training-bow", ...flightAfter(ARROW, { x: 0, y: 0.85, z: 0.6 }, { x: 0, y: 2, z: speedMps }, t),
+      damage: 1, left: lifeTime - t, stuck: false,
     });
     return { e, o };
   };
-  const fly = (o: ProjectileData, dt: number) => {
-    o.pos.z += speedMps * dt;
-    o.left -= dt;
-  };
-  const fightsNock = (o: ProjectileData) => new Vector3(o.pos.x, o.pos.y, o.pos.z - ARROW_M);
 
   test("is drawn leaving from the bow's nock, then eases onto the fight's path and keeps to it", () => {
     const { e, o } = loosed(0), drawn = arrowVisual.spawn(ctx, world, e);
@@ -84,11 +88,7 @@ describe("an arrow's trail", () => {
     });
     const drawn = arrowVisual.spawn(ctx, world, e), nocks = [drawn.root.position.clone()];
     for (let i = 0; i < Math.round(forS / stepS); i++) {
-      o.pos.x += o.vel.x * stepS;
-      o.pos.y += o.vel.y * stepS + (gravityMps2 * stepS * stepS) / 2;
-      o.pos.z += o.vel.z * stepS;
-      o.vel.y += gravityMps2 * stepS;
-      o.left -= stepS;
+      fly(o, stepS);
       arrowVisual.frame(drawn, world, e, stepS);
       nocks.push(drawn.root.position.clone());
     }
