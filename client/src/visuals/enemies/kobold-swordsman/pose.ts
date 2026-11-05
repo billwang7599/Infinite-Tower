@@ -1,6 +1,7 @@
-import type { EnemyState, Vec3 } from "@infinite-tower/shared";
+import type { EnemyState, GuardKind, Vec3 } from "@infinite-tower/shared";
+import { guardPose, type GuardFit } from "../../battle/guard.js";
 import {
-  cutStart, DRAWBACK, drawnBack, edgeLeading, edgeToward, pullOf, REELING_BLADE, type BladePose, type Cut,
+  cutStart, DRAWBACK, drawnBack, edgeLeading, edgeToward, lerpBlade, pullOf, REELING_BLADE, type BladePose, type Cut,
   type WeaponMotion,
 } from "../../battle/weapons.js";
 
@@ -13,6 +14,8 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 const HAND_PIVOT: Vec3 = { x: 0.2, y: 0.92, z: 0 };
 const HAND_ARC_M = 0.28;
 const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
+// Lower and further out than shoulders: under its snout, before its leaning chest.
+export const KOBOLD_GUARD_FIT: GuardFit = { y: 0.94, z: 0.22 };
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;
@@ -50,9 +53,13 @@ export interface KoboldPose {
   stars: boolean;
 }
 
+const mix = (a: Vec3, b: Vec3 | undefined, k: number): Vec3 =>
+  b ? { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k } : a;
+
 export function koboldPose(
   state: EnemyState, t: number, k: number, cut: Cut, motion: WeaponMotion,
   stroke: { set: number; turn: number } | null, held: BladePose, heavy = false,
+  guard: { kind: GuardKind; raised: number } | null = null,
 ): KoboldPose {
   const tell = heavy ? DRAWBACK.heavyFactor : 1;
   const p = {
@@ -86,6 +93,8 @@ export function koboldPose(
       p.yOff = 0.25;
       break;
   }
+  const raised = guard?.raised ?? 0, block = guard && raised > 0 ? guardPose(guard.kind, 1, KOBOLD_GUARD_FIT) : null;
+  if (block?.blade) p.blade = lerpBlade(p.blade, block.blade, raised);
   const handBlade = p.blade, pull = swinging ? pullOf(stroke, heavy) : 0;
   p.blade = drawnBack(p.blade, pull);
   p.lean -= KOBOLD_DRAWBACK.leanRad * pull;
@@ -94,16 +103,17 @@ export function koboldPose(
     : motion.stroke(cut, stroke.turn + LEAD_TURN * ahead).blade;
   const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2), coil = coilToward(chestAt);
   const coilTwist = KOBOLD_DRAWBACK.turnRad * pull * coil.x;
+  const turned = dead ? 0 : block?.blade ? 1 - raised : 1;
   return {
     ...p,
     edge: swinging ? edgeLeading(p.blade, cutStart(cut)) : edgeToward(p.blade),
-    hand: {
+    hand: mix({
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
-    },
-    offHand: OFF_HAND,
-    twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
-    hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
+    }, block?.hand, raised),
+    offHand: mix(OFF_HAND, block?.offHand, raised),
+    twist: turned * (TWIST_RAD * chestAt.x + coilTwist),
+    hipTwist: turned * HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,
   };
 }

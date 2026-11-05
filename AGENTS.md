@@ -604,6 +604,11 @@ Decided by the user:
   In first person the blade never goes behind your head (the user: "sword animation weird. ie when swing, it rotates
   back through my head"): a swing turns it out to the side and no further, and going into a swing, from one into the
   next or back to the guard it turns the way round that stays in front.
+  Enemies guard like you (the user: "when theyre guarding give them a guard stance like the character"): while an
+  enemy's block is up (the fight's `blocking`) it holds the same stance by what blocks, eased in and out over the
+  same time by heft, its edge toward its foe: the Kobold Swordsman and the Kobold Greatsword on their own rig (the
+  spots measured lower and further out, under the snout: `KOBOLD_GUARD_FIT`, the agent's pick), Bram as a person.
+  Looks only, tried in a headless browser, not hand-played.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
   40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the

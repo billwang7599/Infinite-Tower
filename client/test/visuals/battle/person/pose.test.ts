@@ -10,8 +10,9 @@ import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/mo
 import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
 import { HAIR_SHELL, HEAD } from "../../../../src/visuals/battle/person/head.js";
 import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
+import { BLOCK } from "../../../../src/visuals/battle/guard.js";
 import {
-  BLOCK, CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
+  CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
 import { GUARD_LEAN, MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../../fixtures/players.js";

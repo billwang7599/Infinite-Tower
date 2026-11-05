@@ -2,6 +2,7 @@ import {
   clamp, FIXED_DT, PLAYER, smoothstep, type GuardKind, type PlayerData, type SwingData, type SwingDir, type Vec2,
   type Vec3, type WielderData,
 } from "@infinite-tower/shared";
+import { guardPose, shieldFacing } from "../guard.js";
 import { playerBlade, STAGGERED } from "../pose.js";
 import { DRAWBACK, edgeToward, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
@@ -127,49 +128,13 @@ function swingBlade(
   return { blade: along.blade, edge: along.edge ?? null, handBlade, handZ: along.handZ, arcRad, set };
 }
 
-const UP: Vec3 = { x: 0, y: 1, z: 0 }, AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
 const unit = ({ x, y, z }: Vec3): Vec3 => {
   const l = Math.hypot(x, y, z);
   return { x: x / l, y: y / l, z: z / l };
 };
-const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
-const cross = (a: Vec3, b: Vec3): Vec3 =>
-  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
-const facing = (face: Vec3) => ({ blade: UP, edge: unit(cross(UP, face)) });
-
-// m in the model's frame for the right hand, y from the shoulders; edges out, crossed blades are a width apart.
-export const BLOCK = {
-  one: { hand: { x: 0.19, y: 0.075, z: 0.24 }, blade: { x: -1, y: 0.12, z: 0.2 }, supportM: 0.45, underM: 0.04 },
-  dual: { hand: { x: 0.14, y: -0.06, z: 0.26 }, blade: { x: -0.5, y: 0.8, z: 0.33 }, crossM: 0.11 },
-  shield: { hand: { x: -0.08, y: 0.04, z: 0.3 } },
-} as const;
 const OFF_CARRY = {
   hand: { x: -0.2, y: -0.18, z: 0.15 }, blade: { x: -0.3, y: 0.5, z: 0.81 }, shieldFace: { x: -0.5, y: 0, z: 0.87 },
 } as const;
-
-function blockPose(p: PersonPose, kind: GuardKind, b: PersonBuild, side: 1 | -1): void {
-  const at = ({ x, y, z }: Vec3): Vec3 => ({ x: side * x, y: b.shoulderY + y, z });
-  const turned = ({ x, y, z }: Vec3): Vec3 => unit({ x: side * x, y, z });
-  if (kind === "shield") {
-    p.offHand = at(BLOCK.shield.hand);
-    p.off = facing(AHEAD);
-  } else if (kind === "one") {
-    const { hand, blade, supportM, underM } = BLOCK.one, way = turned(blade);
-    const down = unit({ x: way.x * way.y, y: way.y * way.y - 1, z: way.z * way.y });
-    p.hand = at(hand);
-    p.blade = way;
-    p.edge = edgeToward(way);
-    p.offHand = along(along(p.hand, way, supportM), down, underM);
-  } else {
-    const { hand, blade, crossM } = BLOCK.dual, main = turned(blade), off = turned({ ...blade, x: -blade.x });
-    const apart = unit(cross(main, off)), out = apart.z < 0 ? -crossM / 2 : crossM / 2;
-    p.hand = along(at(hand), apart, out);
-    p.offHand = along(at({ ...hand, x: -hand.x }), apart, -out);
-    p.blade = main;
-    p.edge = edgeToward(main);
-    p.off = { blade: off, edge: edgeToward(off) };
-  }
-}
 
 /** The motions are sized for this arm (the kobold's). */
 const MOTION_ARM_M = PLAYER.armReachM;
@@ -290,7 +255,7 @@ export function personPose(
     hand: { x: pivot.x + handBlade.x * arc, y: pivot.y + handBlade.y * arc, z: handZ * scale + handBlade.z * arc },
     offHand: restOff,
     off: offHeld === "dual" ? { blade: offBlade, edge: edgeToward(offBlade) }
-      : offHeld === "shield" ? facing(carried(OFF_CARRY.shieldFace)) : null,
+      : offHeld === "shield" ? shieldFacing(carried(OFF_CARRY.shieldFace)) : null,
     held: alive && !o.bow && !STAGGERED.includes(player.action) ? { way: player.way, block: blocking } : null,
     gripped: alive && !!o.twoHanded && !o.bow && !offHeld && !blocking,
     joints, rootY: 0, legsExact: false, swing: swing && swung && { at: swing, alpha, set: swung.set },
@@ -325,7 +290,7 @@ export function personPose(
       }
       case "block":
         play(joints, CLIPS.block, t);
-        if (blocking) blockPose(p, blocking, b, side);
+        if (blocking) Object.assign(p, guardPose(blocking, side, { y: b.shoulderY, z: 0 }));
         break;
       case "chant":
         towardOff({ x: -side * 0.08, y: b.shoulderY - 0.05, z: reach * 0.85 });
