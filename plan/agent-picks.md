@@ -17,7 +17,6 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 - The sphere: a smoky pixel-art glass sphere, each realm's light its own shape and colour, breathing, sparks from 70%
   fill, a breakthrough animation; a 128 px card bottom left that flips between portrait and sphere (`gfx/core/`).
 - A character's name is 2-16 letters, digits, spaces, ' or -; boy or girl only changes how the game refers to you.
-- The count of fights won is saved and kept through death (no longer shown).
 - Inscriptions built: slots grow by step (more on a new realm's first); five sigils (Grit, Embers, the Last Breath, the
   Red Blade, the First Door); carved by Ysolde Thatcher of the Collegium in the Market Ward, priced by rarity in coins
   and essence, removal × 3 coins and × 2 essence; rings drawn round the sphere.

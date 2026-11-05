@@ -130,7 +130,7 @@ export type ServerMsg =
   /** `character` is null until the player has made one; the world comes only after that. `chat`: the last lines
    * said, oldest first. */
   | {
-    t: "welcome"; wins: number; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
+    t: "welcome"; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
     gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; cheats: boolean;
     faith: Faith;
   }
@@ -186,7 +186,7 @@ export type ServerMsg =
    * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel;
    * `spar`: the foe's, after a training fight. */
   | {
-    t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; lost: ItemCounts; gear: Gear;
+    t: "battleResult"; won: boolean; me: Vec2; vitals: Vitals; lost: ItemCounts; gear: Gear;
     skillbook: Skillbook; afterFightMs: number | null; core: CoreState; coreLost: CoreLoss; duel?: string;
     spar?: string;
   }

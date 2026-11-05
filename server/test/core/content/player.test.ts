@@ -23,7 +23,7 @@ describe("player content", () => {
 
   test("a new player is rested and at Early Yan, and starts with only a backpack on: empty hands and grids", () => {
     assert.deepEqual(newPlayer(), {
-      vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
+      vitals: fullVitals(PLAYER_STATS), settings: {}, character: null, bag: emptyBag(),
       pack: packFor(STARTER_BACKPACK), quiver: packFor(null), knownWords: [],
       equipment: { ...emptyEquipment(), back: STARTER_BACKPACK },
       skillbook: [null, null, null, null], story: { quests: {}, flags: [] }, pad: START_REGION, core: newCore(),

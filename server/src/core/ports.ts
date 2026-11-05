@@ -16,8 +16,6 @@ export interface Account {
 /** To keep something else across connections: add it here, to `newPlayer` (content/player.ts), and to the store. */
 export interface PlayerSave {
   vitals: Vitals;
-  /** Fights won. */
-  wins: number;
   settings: SavedSettings;
   /** null until they've made one (their first visit). */
   character: Character | null;

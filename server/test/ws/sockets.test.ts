@@ -22,7 +22,7 @@ before(() => initPhysics());
 const ACCOUNT: Account = { id: "account-1", username: "tester" };
 
 const SAVED: PlayerSave = {
-  vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
+  vitals: { hp: 42, stamina: 30 }, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, pack: packFor(null),
   quiver: packFor(null),
   knownWords: [],
@@ -72,7 +72,6 @@ describe("game sockets", () => {
     const welcome = socket.messages[0];
     assert.ok(welcome?.t === "welcome");
     assert.deepEqual(welcome.vitals, SAVED.vitals);
-    assert.equal(welcome.wins, 3);
     assert.deepEqual(welcome.character, TEST_CHARACTER);
     assert.deepEqual(welcome.gear.bag, SAVED.bag);
     assert.deepEqual(welcome.gear.equipment, SAVED.equipment);

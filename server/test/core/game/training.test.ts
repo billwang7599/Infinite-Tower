@@ -91,7 +91,7 @@ describe("the training yard", () => {
   test("the dummy fight is a spar nobody can join; beating it moves on, costing nothing", () => {
     const { session, link } = fresh({ story: onStep("bram") });
     talkTo(session, link, "bram");
-    const before = { vitals: { ...session.vitals }, carried: carried(session), wins: session.wins };
+    const before = { vitals: { ...session.vitals }, carried: carried(session) };
     session.train();
     const { room } = session.battle!;
     assert.equal(room.fight.enemies.length, DUMMY_SPOTS.length);
@@ -104,7 +104,6 @@ describe("the training yard", () => {
     session.leaveBattle();
     assert.deepEqual(session.vitals, before.vitals);
     assert.deepEqual(carried(session), before.carried);
-    assert.equal(session.wins, before.wins);
   });
 
   test("Bram sets up three dummies in a row ahead, the middle one nearest, and all must fall", () => {

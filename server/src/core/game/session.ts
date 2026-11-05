@@ -60,7 +60,6 @@ export function nearestOtherSession(
 
 export class GameSession {
   battle: Battle | null = null;
-  wins: number;
   vitals: Vitals;
   settings: SavedSettings;
   character: Character | null;
@@ -97,7 +96,6 @@ export class GameSession {
     private readonly overworldOf: () => Overworld,
     private readonly others: Others,
   ) {
-    this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
     const { bag, pack, quiver, equipment } = saved;
@@ -139,7 +137,7 @@ export class GameSession {
   /** Sends `welcome`, then puts the player in the world, unless they have no character yet. */
   start(): void {
     this.link.send({
-      t: "welcome", wins: this.wins, vitals: this.vitals, core: this.core, settings: this.settings,
+      t: "welcome", vitals: this.vitals, core: this.core, settings: this.settings,
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
       chat: this.others.chat.recent(), questbook: questbookOf(this.story), cheats: this.cheats, faith: this.faith,
     });
@@ -406,7 +404,7 @@ export class GameSession {
     this.saveTimer = null;
     if (this.wasReset) return;
     this.persist({
-      vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
+      vitals: { ...this.vitals }, settings: this.settings, character: this.character,
       bag: this.bag, pack: this.gear.pack, quiver: this.gear.quiver, equipment: this.gear.equipment,
       knownWords: this.knownWords,
       skillbook: this.skillbook, story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought,

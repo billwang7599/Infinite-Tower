@@ -35,7 +35,7 @@ describe("joining", () => {
     assert.deepEqual(link.sent.map((m) => m.t), ["welcome"]);
     const welcome = link.last("welcome");
     assert.deepEqual(
-      { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
+      { vitals: welcome.vitals, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, pack: welcome.gear.pack, quiver: welcome.gear.quiver, equipment: welcome.gear.equipment,
         knownWords: welcome.knownWords,
         skillbook: welcome.skillbook, story: newStory(), pad: START_REGION, core: welcome.core, shopsBought: [],

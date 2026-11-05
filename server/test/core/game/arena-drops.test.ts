@@ -255,7 +255,6 @@ describe("leaving the arena after a win", () => {
     session.moveItem(spotOf("boar-tusk"), bagSpot(0, 0), false);
     session.disconnect();
     assert.deepEqual(bagCounts(saves.at(-1)!.bag), { "boar-tusk": 1 });
-    assert.equal(saves.at(-1)!.wins, 1);
     assert.equal(pileAt(overworld, home), left);
   });
 });

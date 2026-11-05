@@ -172,7 +172,7 @@ describe("a duel", () => {
     assert.ok(!a.link.all("battleInputs").some((m) => m.inputs.some((r) => r.seat === 0)), "not back to its sender");
   });
 
-  test("a spar: down to 0 HP ends it; nothing lost or gained, no wins, and both back as they came", async () => {
+  test("a spar: down to 0 HP ends it; nothing lost or gained, and both back as they came", async () => {
     const { online, a, b } = await dueling();
     const room = a.session.battle!.room;
     room.edit(1, (world, e) => { world.require(e, Health).hp = 0; });
@@ -181,7 +181,6 @@ describe("a duel", () => {
     assert.equal(ra.won, true);
     assert.equal(rb.won, false);
     assert.equal(ra.duel, B_CHARACTER.name);
-    assert.deepEqual([ra.wins, rb.wins], [0, 0]);
     assert.deepEqual(ra.vitals, HURT);
     assert.deepEqual(rb.vitals, newPlayer().vitals);
     assert.deepEqual([ra.lost, rb.lost, ra.afterFightMs, rb.afterFightMs], [{}, {}, null, null]);
