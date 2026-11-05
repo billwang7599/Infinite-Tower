@@ -167,6 +167,14 @@ describe("Net", () => {
     assert.deepEqual(lost, [SAVE_RESET]);
   });
 
+  test("an idle player's close says why on the title", async (t) => {
+    const { net, ws } = await connect(t);
+    const lost: string[] = [];
+    net.onLost((reason) => lost.push(reason));
+    ws.drop(CLOSE_CODES.idle);
+    assert.match(lost[0] ?? "", /idle/);
+  });
+
   test("close() hangs up quietly: no onLost, and nothing more is delivered", async (t) => {
     const { net, ws } = await connect(t);
     const heard: unknown[] = [];

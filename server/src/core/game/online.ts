@@ -2,7 +2,7 @@
  * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
  * the old session is saved first, so the new one loads what it had.
  */
-import { carriedCounts, CLOSE_CODES, sigilOf, type ItemId } from "@infinite-tower/shared";
+import { carriedCounts, CLOSE_CODES, sigilOf, type ClientMsg, type ItemId } from "@infinite-tower/shared";
 import { keptSave, newPlayer } from "../content/player.js";
 import { Pile } from "../overworld/components.js";
 import { Overworld } from "../overworld/overworld.js";
@@ -13,8 +13,15 @@ import { Duels } from "./duels.js";
 import { GameSession, type Others } from "./session.js";
 import { Uniques } from "./uniques.js";
 
+export const IDLE_KICK_MS = 15 * 60 * 1000;
+
+// The client sends these on its own timer, idle or not.
+const playerDriven = (msg: ClientMsg) =>
+  msg.t === "battleInput" ? msg.inputs.length > 0 : msg.t !== "battleResync" && msg.t !== "ping";
+
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
+  private readonly activeAtMs = new WeakMap<GameSession, number>();
   private world: Overworld | null = null;
   private readonly online = () => this.byAccount.values();
   readonly uniques: Uniques;
@@ -54,10 +61,24 @@ export class OnlinePlayers {
     return this.byAccount.get(session.account.id) === session;
   }
 
+  heard(session: GameSession, msg: ClientMsg): void {
+    if (playerDriven(msg)) this.activeAtMs.set(session, Date.now());
+  }
+
   tick(dt: number): void {
     if (this.world && !this.world.empty) this.world.step(dt);
     for (const session of this.byAccount.values()) session.tick();
     this.others.duels.tick();
+    this.kickIdle();
+  }
+
+  private kickIdle(): void {
+    const nowMs = Date.now();
+    const idle = [...this.byAccount.values()].filter((s) => nowMs - (this.activeAtMs.get(s) ?? nowMs) >= IDLE_KICK_MS);
+    for (const session of idle) {
+      this.leave(session);
+      session.link.close(CLOSE_CODES.idle, "idle too long");
+    }
   }
 
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
@@ -81,6 +102,7 @@ export class OnlinePlayers {
     }
     // Only once it has started: a session that failed to start is never ticked or saved.
     this.byAccount.set(id, session);
+    this.activeAtMs.set(session, Date.now());
     return session;
   }
 

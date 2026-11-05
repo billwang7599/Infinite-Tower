@@ -147,5 +147,6 @@ function refusedReason(closeCode: number): string {
 function closeReason(closeCode: number): string {
   if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
   if (closeCode === CLOSE_CODES.saveReset) return SAVE_RESET;
+  if (closeCode === CLOSE_CODES.idle) return "You were idle too long, so the game let you go.";
   return "Lost the connection to the game server.";
 }

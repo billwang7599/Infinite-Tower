@@ -144,6 +144,7 @@ Multiplayer and server:
 - One shared overworld: an enemy someone touches is gone for everyone until it respawns; players pass each other.
 - Duels come by challenge and are spars, costing and winning nothing. Others may join a fight; no friendly fire.
 - Chat is the whole server's. The title lists the game servers (one for now).
+- Spamming messages or sitting idle disconnects you (the user: "if its spam, then sure disconnect. or if theyre afk").
 - Settings live on the server with the save; only the dev admin panel's are kept in the browser.
 
 Controls and presentation:
