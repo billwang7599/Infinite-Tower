@@ -138,8 +138,7 @@ export interface PersonMoment {
   walk: { phase: number; speed: number; way: Vec2 };
   /** 1 on touching down, to 0 as the landing's squash ends. */
   landing?: number;
-  /** A bow in hand: how far it's drawn, 0..1. */
-  bow?: BowLook & { drawn: number };
+  bow?: BowLook & { drawn: number; flick?: number };
 }
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
@@ -247,7 +246,7 @@ export function personPose(
       case "draw":
       case "loose":
         if (o.bow) {
-          drawPose(p, o.bow, b, side, player.action === "loose");
+          drawPose(p, o.bow, b, side);
           play(joints, CLIPS.draw, player.action === "draw" ? t : 1, { side });
           if (player.action === "loose") play(joints, CLIPS.loose, t);
         }
@@ -290,13 +289,13 @@ function walk(
   return rootY;
 }
 
-function drawPose(p: PersonPose, bow: BowLook & { drawn: number }, b: PersonBuild, side: 1 | -1, loosed: boolean): void {
+function drawPose(p: PersonPose, bow: NonNullable<PersonMoment["bow"]>, b: PersonBuild, side: 1 | -1): void {
   const y = b.shoulderY + 0.04, z = b.reachM + 0.05;
   p.blade = { x: side * Math.sin(BOW_DRAWN.cantRad), y: Math.cos(BOW_DRAWN.cantRad), z: 0 };
   p.bladeExact = false;
   p.hand = { x: side * BOW_DRAWN.outM, y, z };
-  const back = bow.braceM + bow.drawM * (loosed ? 1 : bow.drawn);
-  p.offHand = { x: p.hand.x - (loosed ? side * LOOSED_FLICK_M : 0), y, z: z - back };
+  const back = bow.braceM + bow.drawM * bow.drawn;
+  p.offHand = { x: p.hand.x - side * LOOSED_FLICK_M * (bow.flick ?? 0), y, z: z - back };
   for (const [j, turn] of Object.entries(DRAW_TWIST)) p.joints[j as PosedJoint].y = side * turn;
   p.joints.spine.x = p.joints.chest.x = 0;
 }

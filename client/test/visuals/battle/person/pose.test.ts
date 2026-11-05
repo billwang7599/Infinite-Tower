@@ -286,8 +286,8 @@ describe("the 3D player's bow", () => {
     assert.ok(lean(kick) < lean(settled) && lean(kick) < lean(bowPose(playerDoing("draw", 1), 1)));
   });
 
-  test("just loosed, the string hand is still back by the face", () => {
-    const p = bowPose(playerDoing("loose", 0.05));
+  test("just loosed from a full draw, the string hand is still back by the face", () => {
+    const p = bowPose(playerDoing("loose", 0.05), 1);
     assert.ok(p.offHand.z < p.hand.z - BOW.braceM - BOW.drawM / 2);
   });
 

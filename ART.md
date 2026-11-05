@@ -147,8 +147,11 @@ The blade's faces are `SWORD`'s blade drawn to the blade's length with square pi
 (`bladeArt`); the art lab draws the whole `SWORD`. In the left hand the body is the right-handed frame flipped (a swing
 uses its mirror image's), so it needs no drawings of its own. A bow (`visuals/battle/bow.ts`) is built in code,
 no drawing: a curved tube of a stave in `WEAPON_LOOKS`' colour on the grip joint, a leather wrap, a pale string in
-two straight runs to its middle, and a nocked arrow there while it's drawn; an arrow in flight is boxes (a shaft
-thicker than life so it shows a pixel wide, a steel head, crossed white fletching), its head sunk in where it sticks.
+two straight runs to where it's drawn, and a nocked arrow there while it's drawn, lying on top of the bow hand beside
+the stave (`ARROW_REST`). The limbs bend further back the further it's drawn (`FLEX_M`); loosed, the string snaps
+forward past the brace and rings out in a few hundredths of a second (`BOW_MOTION` in `bowMotion.ts`). An arrow in
+flight is boxes (a shaft thicker than life so it shows a pixel wide, a steel head, crossed white fletching), its head
+sunk in where it sticks.
 It's drawn leaving from the bow's string, then eased onto the fight's path (which starts at the shooter's middle).
 In flight it leaves a light streak behind its nock (`TRAIL` in `bow.ts`): the last 0.2 s of its path, fading to
 nothing at the end and in from the bow, at least 3 render pixels wide however far, unfogged and see-through, so it's
@@ -345,7 +348,12 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
     in view: posed for a fixed first-person view, the hands pulled most of the way toward spots low on the screen
     (the sword hand right of the middle, the other left) and the blade leaned ahead and a little in, so the sword sits
-    lower and nearer the middle than the pose's own; a two-handed grip or a hand on the bowstring stays on the weapon.
+    lower and nearer the middle than the pose's own; a two-handed grip stays on the weapon. A bow is placed from the
+    eye instead (`FP_BOW`): carried low across the bottom right, canted, pointing ahead and down; drawn, raised so the
+    arrow lies along the view below and right of the crosshair, so it points at it, the stave canted with its top to
+    the right, clear of the crosshair, and the string hand on the nock pulling it back toward you as the grip is
+    pushed out (the chibi's arms are shorter than the draw); loosed, the string hand flicks back and out and the bow's
+    top kicks forward. Raising, drawing, loosing and lowering are eased (`BOW_MOTION`), so neither hand ever jumps.
     Then both arms go with the camera, so they're in the same place on screen wherever it looks (`FP_ARMS` in
     `client/src/visuals/battle/firstPerson.ts`). Others, and you in third person, see the pose as it is.
   - **Arms go round the body** (`reachRound` in `arm.ts`, the enemies' arms too): bent to reach the pose's hands, a

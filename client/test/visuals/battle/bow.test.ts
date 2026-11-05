@@ -6,7 +6,10 @@ import {
 import {
   BOW, flightAfter, Projectile, WEAPONS, World, type Entity, type ProjectileData, type Vec3,
 } from "@infinite-tower/shared";
-import { ARROW_M, arrowVisual, LEAVE_BOW_TIME, TRAIL, type HeldBow } from "../../../src/visuals/battle/bow.js";
+import {
+  ARROW_M, ARROW_REST, arrowVisual, buildBow, LEAVE_BOW_TIME, pullString, TRAIL, type HeldBow,
+} from "../../../src/visuals/battle/bow.js";
+import { WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 
 const SHOOTER = 1 as Entity;
@@ -158,5 +161,34 @@ describe("an arrow's trail", () => {
       arrowVisual.dispose(drawn);
     }
     camera.position.copyFrom(from);
+  });
+});
+
+describe("a held bow", () => {
+  const look = WEAPON_LOOKS["training-bow"], { braceM, drawM } = look.bow!, hand = new TransformNode("hand", scene);
+  const material = new StandardMaterial("stave", scene);
+  const { held } = buildBow(scene, hand, { ...look, bow: look.bow! }, material, material);
+
+  test("the string is pulled back with the draw, the nocked arrow on it, over the bow hand beside the stave", () => {
+    for (const pull of [0, 0.5, 1]) {
+      pullString(held, pull, true);
+      near(held.nocked.position, new Vector3(ARROW_REST.x, ARROW_REST.y, -braceM - drawM * pull), `drawn ${pull}`);
+      held.strings.forEach((string, i) =>
+        near(string.position, Vector3.Center(held.tips[i]!, held.nocked.position), `run ${i}, tip to nock`));
+    }
+    assert.ok(ARROW_REST.y > 0 && ARROW_REST.x !== 0, "over the hand, beside the stave");
+  });
+
+  test("the limbs bend further back the further it's drawn, the string's ends going with their tips", () => {
+    const tipsAt = (pull: number) => {
+      pullString(held, pull, true);
+      return held.tips.map((t) => t.clone());
+    };
+    const [rest, half, full] = [0, 0.5, 1].map(tipsAt);
+    for (const i of [0, 1]) {
+      assert.ok(full![i]!.z < half![i]!.z && half![i]!.z < rest![i]!.z, `tip ${i} back`);
+      assert.ok(Math.abs(full![i]!.y) < Math.abs(rest![i]!.y), `tip ${i} in`);
+      near(held.path[i === 0 ? 0 : held.path.length - 1]!, full![i]!, `the stave's end ${i}`);
+    }
   });
 });

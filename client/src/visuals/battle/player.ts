@@ -10,7 +10,8 @@ import { LocalPlayer } from "../../modes/components.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
-import { bowDrawOf, pullString } from "./bow.js";
+import { pullString } from "./bow.js";
+import { bowDrawOf } from "./bowMotion.js";
 import { holdInView, restShoulders } from "./firstPerson.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
@@ -129,7 +130,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
     sprite.armsInView = hidden && ctx.pixel.steps === null;
     const held = weapon && WEAPON_LOOKS[weapon], alive = health.hp > health.floor;
-    const gripped = alive && !!held?.twoHanded && (!held.bow || player.action === "draw" || player.action === "loose");
+    const gripped = alive && !!held?.twoHanded;
     if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, gripped);
   } else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {
