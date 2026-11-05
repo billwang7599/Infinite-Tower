@@ -33,9 +33,9 @@ const SAVED: PlayerSave = {
 /** Lets a pending store load (and what follows it) finish. */
 const settle = () => new Promise(setImmediate);
 
-function setup(ping: PingOptions = { dev: false, pingMs: 0 }, dev = false) {
+function setup(ping: PingOptions = { dev: false, pingMs: 0 }, cheats = false) {
   const store = new MemoryPlayerStore();
-  const sockets = gameSockets(new OnlinePlayers(store, dev, 50), ping);
+  const sockets = gameSockets(new OnlinePlayers(store, cheats, 50), ping);
   const connect = async (account: Account | null = ACCOUNT, requestedPing?: string) => {
     const socket = new FakeSocket();
     sockets.accept(socket.ws, account, requestedPing);

@@ -131,7 +131,7 @@ export type ServerMsg =
    * said, oldest first. */
   | {
     t: "welcome"; wins: number; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
-    gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; dev: boolean;
+    gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; cheats: boolean;
     faith: Faith;
   }
   | { t: "character"; character: Character }

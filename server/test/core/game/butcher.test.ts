@@ -90,7 +90,7 @@ describe("the Butcher's chickens", () => {
   });
 
   test("played through the server: taken from Bram, the Butcher found, three chickens, then back to him", () => {
-    const p = startIn(START_REGION, { dev: true, saved: { story: yardDone() } });
+    const p = startIn(START_REGION, { cheats: true, saved: { story: yardDone() } });
     talkTo(p.session, p.link, "bram");
     p.session.acceptQuest(QUEST);
     for (const step of QUESTS[QUEST]!.steps) doStep(p, QUEST, step);

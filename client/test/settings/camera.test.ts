@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { OVERWORLD_CAMERA_ANGLES } from "@infinite-tower/shared";
-import { CameraSettings, SENSITIVITY } from "../../src/settings/camera.js";
+import { CAMERA_SENSITIVITY, OVERWORLD_CAMERA_ANGLES } from "@infinite-tower/shared";
+import { CameraSettings } from "../../src/settings/camera.js";
 
 const sensitivity = (c: CameraSettings) => c.get().sensitivity;
 
 describe("CameraSettings", () => {
   test("starts at the default sensitivity", () => {
     const c = new CameraSettings();
-    assert.equal(sensitivity(c), SENSITIVITY.default);
+    assert.equal(sensitivity(c), CAMERA_SENSITIVITY.default);
     assert.deepEqual(c.toSaved(), {});
   });
 
@@ -28,7 +28,7 @@ describe("CameraSettings", () => {
   });
 
   test("restore takes any number in range, ends included", () => {
-    for (const value of [SENSITIVITY.min, 0.5, 2.5, SENSITIVITY.max]) {
+    for (const value of [CAMERA_SENSITIVITY.min, 0.5, 2.5, CAMERA_SENSITIVITY.max]) {
       const c = new CameraSettings();
       c.restore({ sensitivity: value });
       assert.equal(sensitivity(c), value);
@@ -37,14 +37,14 @@ describe("CameraSettings", () => {
 
   test("restore falls back to the default for anything out of range or unreadable", () => {
     const junk: unknown[] = [
-      { sensitivity: SENSITIVITY.min - 0.01 }, { sensitivity: SENSITIVITY.max + 0.01 }, { sensitivity: NaN },
-      { sensitivity: Infinity }, { sensitivity: "2" }, { sensitivity: null }, {}, undefined,
+      { sensitivity: CAMERA_SENSITIVITY.min - 0.01 }, { sensitivity: CAMERA_SENSITIVITY.max + 0.01 },
+      { sensitivity: NaN }, { sensitivity: Infinity }, { sensitivity: "2" }, { sensitivity: null }, {}, undefined,
     ];
     for (const saved of junk) {
       const c = new CameraSettings();
       c.setSensitivity(2);
       c.restore(saved as Parameters<CameraSettings["restore"]>[0]);
-      assert.equal(sensitivity(c), SENSITIVITY.default, JSON.stringify(saved));
+      assert.equal(sensitivity(c), CAMERA_SENSITIVITY.default, JSON.stringify(saved));
     }
   });
 
@@ -59,7 +59,7 @@ describe("CameraSettings", () => {
   test("setSensitivity leaves no float noise", () => {
     const c = new CameraSettings();
     for (let steps = 5; steps <= 60; steps++) {
-      const value = steps * SENSITIVITY.step;
+      const value = steps * CAMERA_SENSITIVITY.step;
       c.setSensitivity(value);
       assert.equal(sensitivity(c), Number(value.toFixed(2)));
     }
@@ -70,11 +70,11 @@ describe("CameraSettings", () => {
   test("setSensitivity clamps to the range", () => {
     const c = new CameraSettings();
     c.setSensitivity(0);
-    assert.equal(sensitivity(c), SENSITIVITY.min);
+    assert.equal(sensitivity(c), CAMERA_SENSITIVITY.min);
     c.setSensitivity(-5);
-    assert.equal(sensitivity(c), SENSITIVITY.min);
+    assert.equal(sensitivity(c), CAMERA_SENSITIVITY.min);
     c.setSensitivity(99);
-    assert.equal(sensitivity(c), SENSITIVITY.max);
+    assert.equal(sensitivity(c), CAMERA_SENSITIVITY.max);
   });
 
   test("reset brings back the default", () => {
@@ -82,7 +82,7 @@ describe("CameraSettings", () => {
     c.setSensitivity(0.5);
     assert.notDeepEqual(c.toSaved(), {});
     c.reset();
-    assert.equal(sensitivity(c), SENSITIVITY.default);
+    assert.equal(sensitivity(c), CAMERA_SENSITIVITY.default);
     assert.deepEqual(c.toSaved(), {});
   });
 

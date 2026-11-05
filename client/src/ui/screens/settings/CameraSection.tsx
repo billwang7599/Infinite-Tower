@@ -1,5 +1,6 @@
-import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
-import { FLICK_SENSITIVITY, type MouseSettings } from "../../../settings/mouse.js";
+import { CAMERA_SENSITIVITY, FLICK_SENSITIVITY } from "@infinite-tower/shared";
+import type { CameraSettings } from "../../../settings/camera.js";
+import type { MouseSettings } from "../../../settings/mouse.js";
 import { BUTTON } from "../../components/styles.js";
 import { useStore } from "../../useStore.js";
 import { FOCUS_RING, SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
@@ -18,9 +19,9 @@ export function CameraSection({ camera, mouse }: { camera: CameraSettings; mouse
           <input
             id="camera-sensitivity"
             type="range"
-            min={SENSITIVITY.min}
-            max={SENSITIVITY.max}
-            step={SENSITIVITY.step}
+            min={CAMERA_SENSITIVITY.min}
+            max={CAMERA_SENSITIVITY.max}
+            step={CAMERA_SENSITIVITY.step}
             value={sensitivity}
             onChange={(e) => camera.setSensitivity(e.currentTarget.valueAsNumber)}
             className={`w-44 cursor-pointer accent-victory ${FOCUS_RING}`}

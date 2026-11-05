@@ -59,6 +59,13 @@ export function parseBehindCloudflare(raw: string | undefined): boolean {
   throw new Error(`BEHIND_CLOUDFLARE must be true or false (got "${raw}")`);
 }
 
+export function parseCheats(raw: string | undefined): boolean {
+  if (raw === undefined || raw === "" || raw === "0") return false;
+  if (raw === "1") return true;
+  throw new Error(`CHEATS must be 1 or 0 (got "${raw}")`);
+}
+
 export const SERVER_NAME = parseServerName(process.env.SERVER_NAME);
 export const MAX_PLAYERS = parseMaxPlayers(process.env.MAX_PLAYERS);
 export const BEHIND_CLOUDFLARE = parseBehindCloudflare(process.env.BEHIND_CLOUDFLARE);
+export const CHEATS = parseCheats(process.env.CHEATS);

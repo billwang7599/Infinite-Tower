@@ -163,7 +163,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         if (mode === "battle" && !transition) transition = startTransition("overworld");
       });
       setMode("overworld");
-      if (import.meta.env.DEV && joined.welcome.dev) {
+      if (import.meta.env.DEV && joined.welcome.cheats) {
         applySavedCheats({
           storage: localStorage, admin: ui.admin, send: (cheat) => joined.net.send({ t: "cheat", cheat }),
           setDayClock: drawing.setDayClock,

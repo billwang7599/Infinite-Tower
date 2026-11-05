@@ -39,7 +39,7 @@ describe("the Grass Field's and the Mistwood's natives", () => {
   for (const [npc, chain] of NATIVES) {
     test(`${npc}'s quests, played through the server: every step done, rewarded and told; then what's next`, () => {
       const level = stopFor(newStory(), NPCS[npc])!.region;
-      const p = startSession({ dev: true, saved: { pad: level } });
+      const p = startSession({ cheats: true, saved: { pad: level } });
       for (const id of chain) {
         const offer = talkTo(p.session, p.link, npc).offer;
         assert.ok(offer?.kind === "quest" && offer.quest === id, `${npc} offers ${id}`);

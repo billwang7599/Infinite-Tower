@@ -109,7 +109,7 @@ describe("opening a pile", () => {
   });
 
   test("not mid-fight", () => {
-    const { session, link } = byAPile({ dev: true });
+    const { session, link } = byAPile({ cheats: true });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const sent = link.all("gear").length;
     session.openPile();
@@ -190,7 +190,7 @@ describe("a pile closes", () => {
   });
 
   test("when a fight starts", () => {
-    const { session } = byAPile({ dev: true });
+    const { session } = byAPile({ cheats: true });
     session.openPile();
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(session.gear.pile, NO_PILE);

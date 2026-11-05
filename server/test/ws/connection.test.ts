@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import { emptyBag, emptyCloth, NO_PILE, packFor, type ClientMsg } from "@infinite-tower/shared";
-import { Connection } from "../../src/ws/connection.js";
+import { emptyBag, emptyCloth, FIXED_DT, NO_PILE, packFor, type ClientMsg } from "@infinite-tower/shared";
+import { Connection, MAX_MESSAGE_BURST, MAX_MESSAGES_PER_SEC } from "../../src/ws/connection.js";
 import { FakeSocket } from "./fake-socket.js";
 import { armed } from "../fixtures/fight.js";
 
@@ -105,6 +105,64 @@ describe("Connection", () => {
     conn.onClose(() => closes++);
     socket.close(1000, "bye");
     assert.equal(closes, 1);
+  });
+});
+
+describe("Connection's message rate cap", () => {
+  function clocked() {
+    const socket = new FakeSocket(), clock = { ms: 0 };
+    const conn = new Connection(socket.ws, 0, () => clock.ms);
+    let received = 0;
+    conn.onMessage(() => received++);
+    return { socket, conn, clock, received: () => received };
+  }
+
+  test("a burst of MAX_MESSAGE_BURST at once is all handled", () => {
+    const { socket, conn, received } = clocked();
+    for (let i = 0; i < MAX_MESSAGE_BURST; i++) socket.receive(REST);
+    assert.equal(received(), MAX_MESSAGE_BURST);
+    assert.equal(conn.open, true);
+  });
+
+  test("one more than the burst closes it with 1008", () => {
+    const { socket, conn, received } = clocked();
+    for (let i = 0; i <= MAX_MESSAGE_BURST; i++) socket.receive(REST);
+    assert.equal(received(), MAX_MESSAGE_BURST);
+    assert.equal(conn.open, false);
+    assert.deepEqual(socket.closed, { code: 1008, reason: "too many messages" });
+  });
+
+  test("just under MAX_MESSAGES_PER_SEC, kept up for a minute after a full burst, is fine", () => {
+    const { socket, conn, clock, received } = clocked();
+    for (let i = 0; i < MAX_MESSAGE_BURST; i++) socket.receive(REST);
+    const gapMs = 1000 / (MAX_MESSAGES_PER_SEC * 0.99);
+    for (let i = 0; i < 60 * MAX_MESSAGES_PER_SEC; i++) {
+      clock.ms += gapMs;
+      socket.receive(REST);
+    }
+    assert.equal(conn.open, true);
+    assert.equal(received(), MAX_MESSAGE_BURST + 60 * MAX_MESSAGES_PER_SEC);
+  });
+
+  test("a little faster than MAX_MESSAGES_PER_SEC, kept up, closes it", () => {
+    const { socket, conn, clock } = clocked();
+    const gapMs = 1000 / (MAX_MESSAGES_PER_SEC * 1.1);
+    for (let i = 0; i < 60 * MAX_MESSAGES_PER_SEC && conn.open; i++) {
+      clock.ms += gapMs;
+      socket.receive(REST);
+    }
+    assert.equal(socket.closed?.code, 1008);
+  });
+
+  test("a client sending every step, whose network stalls 5 s and then delivers it all at once, stays on", () => {
+    const { socket, conn, clock } = clocked();
+    const stepMs = FIXED_DT * 1000, stallSteps = Math.round(5 / FIXED_DT);
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < stallSteps; i++) { clock.ms += stepMs; socket.receive(REST); }
+      clock.ms += 5000;
+      for (let i = 0; i < stallSteps; i++) socket.receive(REST);
+    }
+    assert.equal(conn.open, true);
   });
 });
 

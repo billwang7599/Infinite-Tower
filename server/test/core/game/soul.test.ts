@@ -23,7 +23,7 @@ const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreStat
 const HURT = { hp: 50, stamina: 40 };
 const campfire = () => getRegion(HOLLOW).campfires[0]!;
 const holding = (core: CoreState, dev = false) =>
-  startSession({ dev, saved: { core, bag: essence(), vitals: { ...HURT } } });
+  startSession({ cheats: dev, saved: { core, bag: essence(), vitals: { ...HURT } } });
 
 describe("the core on a session", () => {
   test("welcome carries the saved core; its stats are the session's", () => {
@@ -33,7 +33,7 @@ describe("the core on a session", () => {
   });
 
   test("a fight's setup carries the core and the stats it gives", () => {
-    const { session, link } = startSession({ dev: true, saved: { core: at(4, 5) } });
+    const { session, link } = startSession({ cheats: true, saved: { core: at(4, 5) } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const me = link.last("encounter").setup.players[0]!;
     assert.deepEqual(me.core, at(4, 5));
@@ -115,7 +115,7 @@ describe("free points", () => {
   });
 
   test("not in a battle", () => {
-    const { session } = startSession({ dev: true, saved: { core: at(1) } });
+    const { session } = startSession({ cheats: true, saved: { core: at(1) } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.statPoint("strength", true);
     assert.deepEqual(session.core.points, {});
@@ -220,7 +220,7 @@ describe("the core in a fight", () => {
 
 describe("the admin's core steps", () => {
   test("a step added or taken away, the fill emptied, told and saved", () => {
-    const { session, link, saves } = startSession({ dev: true, saved: { core: at(1, 30), vitals: { ...HURT } } });
+    const { session, link, saves } = startSession({ cheats: true, saved: { core: at(1, 30), vitals: { ...HURT } } });
     session.cheat({ kind: "coreStep", add: true });
     assert.deepEqual(session.core, at(2));
     assert.deepEqual(link.last("core").core, at(2));
@@ -238,7 +238,7 @@ describe("the admin's core steps", () => {
   });
 
   test("mid-fight the fight's core takes it, its stats with it; the client gets the fight, and a win keeps it", () => {
-    const { session, link } = startSession({ dev: true, saved: { core: at(1) } });
+    const { session, link } = startSession({ cheats: true, saved: { core: at(1) } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     play(session, () => IDLE_INPUT, 2);
     session.cheat({ kind: "coreStep", add: true });
@@ -252,7 +252,7 @@ describe("the admin's core steps", () => {
   });
 
   test("in the arena after a win, as on the overworld, and the fight's core follows", () => {
-    const { session, link } = startSession({ dev: true, saved: { core: at(1) } });
+    const { session, link } = startSession({ cheats: true, saved: { core: at(1) } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     endFight(session, true);
     assert.ok(session.afterFight);

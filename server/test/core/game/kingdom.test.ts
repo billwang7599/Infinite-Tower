@@ -155,7 +155,7 @@ describe("Highmere, the old capital", () => {
 
 describe("dying", () => {
   test("anywhere, bound to no other pad, wakes you on the kingdom's platform", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: "kingdom" } });
+    const { session, link } = startSession({ cheats: true, saved: { pad: "kingdom" } });
     arriveIn(session, "grass-field");
     dieIn(session);
     assert.equal(link.last("battleResult").won, false);
@@ -165,7 +165,7 @@ describe("dying", () => {
   });
 
   test("in the kingdom itself wakes you on its platform", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: "kingdom" } });
+    const { session, link } = startSession({ cheats: true, saved: { pad: "kingdom" } });
     session.overworld.place(session.me, stopFor(newStory(), NPCS.bram)!.at);
     dieIn(session);
     assert.deepEqual(link.last("battleResult").me, KINGDOM.spawn);

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  DEFAULT_DEV_PING_MS, DEFAULT_MAX_PLAYERS, DEFAULT_SERVER_NAME, parseBehindCloudflare, parseDevPing, parseMaxPlayers,
+  DEFAULT_DEV_PING_MS, DEFAULT_MAX_PLAYERS, DEFAULT_SERVER_NAME, parseBehindCloudflare, parseCheats, parseDevPing,
+  parseMaxPlayers,
   parsePingMs, parseServerName,
 } from "../src/env.js";
 
@@ -76,5 +77,19 @@ describe("SERVER_NAME", () => {
 
   test("otherwise the name, trimmed", () => {
     assert.equal(parseServerName("  Aincrad East "), "Aincrad East");
+  });
+});
+
+describe("CHEATS", () => {
+  test("only 1 turns cheats on", () => {
+    assert.equal(parseCheats("1"), true);
+  });
+
+  test("left out, empty or 0, they're off", () => {
+    for (const raw of [undefined, "", "0"]) assert.equal(parseCheats(raw), false);
+  });
+
+  test("anything else stops the server", () => {
+    for (const raw of ["true", "yes", " 1", "2"]) assert.throws(() => parseCheats(raw), /CHEATS/, raw);
   });
 });

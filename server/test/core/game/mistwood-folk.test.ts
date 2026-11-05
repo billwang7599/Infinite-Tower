@@ -85,7 +85,7 @@ describe("the Mistwood's folk", () => {
 
   for (const [npc, chain] of MISTWOOD_FOLK) {
     test(`${npc}'s quests, played through the server: every step done, rewarded and told; then what's next`, () => {
-      const p = startSession({ dev: true, saved: { pad: "mistwood", story: sonFound() } });
+      const p = startSession({ cheats: true, saved: { pad: "mistwood", story: sonFound() } });
       for (const id of chain) {
         goTo(p, "mistwood");
         assert.equal(offeredQuest(talkTo(p.session, p.link, npc).offer), id, `${npc} offers ${id}`);

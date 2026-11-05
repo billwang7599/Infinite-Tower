@@ -20,7 +20,7 @@ export class OnlinePlayers {
   readonly uniques: Uniques;
   private readonly others: Others;
 
-  constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {
+  constructor(private readonly store: PlayerStore, private readonly cheats: boolean, readonly maxPlayers: number) {
     this.uniques = new Uniques(store, () => this.inPlay());
     this.others = {
       online: this.online, duels: new Duels(this.online), chat: new Chat(this.online), uniques: this.uniques,
@@ -69,7 +69,7 @@ export class OnlinePlayers {
     if (!link.open || this.refusedAsFull(link, id)) return null;
     this.replace(id); // another tab may have joined while this one was loading
     const saved = this.uniques.kept(id, loaded);
-    const session = new GameSession(account, link, this.dev, saved, (data) => {
+    const session = new GameSession(account, link, this.cheats, saved, (data) => {
       this.uniques.saved(id, data);
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));

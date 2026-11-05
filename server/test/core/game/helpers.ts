@@ -29,7 +29,7 @@ export const ACCOUNT: Account = { id: "player-1", username: "tester" };
 
 export const HOLLOW = "waking-hollow";
 
-export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
+export function startSession(opts: { cheats?: boolean; saved?: Partial<PlayerSave> } = {}) {
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
   const saved: PlayerSave = {
@@ -41,7 +41,7 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const persist = (data: PlayerSave) => saves.push(structuredClone(data));
   const online = () => [session];
   const session = new GameSession(
-    ACCOUNT, link, opts.dev ?? false, saved, persist, overworldOf,
+    ACCOUNT, link, opts.cheats ?? false, saved, persist, overworldOf,
     {
       online, duels: new Duels(online), chat: new Chat(online),
       uniques: new Uniques(new MemoryPlayerStore(), () => []),
@@ -92,7 +92,7 @@ export function talkTo(session: GameSession, link: FakeLink, npc: NpcId) {
   return said;
 }
 
-/** Needs a dev session: the fight starts through the encounter cheat. */
+/** Needs cheats on: the fight starts through the encounter cheat. */
 export function winFight(session: GameSession, enemy: EnemyId): void {
   session.cheat({ kind: "encounter", enemy });
   const fight = session.battle!.room.fight;
@@ -127,7 +127,7 @@ export function arriveIn(session: GameSession, region: string): void {
 }
 
 /** A region with no pad wakes you elsewhere: they walk in from there. */
-export function startIn(region: string, opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
+export function startIn(region: string, opts: { cheats?: boolean; saved?: Partial<PlayerSave> } = {}) {
   const started = startSession({ ...opts, saved: { ...opts.saved, pad: region } });
   arriveIn(started.session, region);
   return started;
