@@ -137,20 +137,19 @@ main.ts
   only while their layer is on top (the chant's, and the arena's bag's, let through only the dodge and the walk keys,
   for the dodge's way; the arena's bag takes its R and Enter from the overworld's keys, first, then the arena's);
   the arena camera reads the fight's last poll. Actions also owns the mouse: the pointer is held captured (pointer
-  lock) while the overworld or the arena is on top (`PLAYING`) and no panel worked with the pointer is open over it
-  (`setLayers`'s `mouseFree`, the character panel's), taken by Auto mouse lock as that starts or by a press on the
-  canvas; every screen, the bags, the chant and the dialogs over it let it go. The overworld's lock asks for raw
-  movement where the browser has it, the arena's for the OS's (`RAW_MOVEMENT`). A lock the browser lets go while
+  lock, the OS's movement) while the arena is on top (`setLayers`), taken by Auto mouse lock as that starts or by a
+  press on the canvas; every screen, the bag, the chant and the dialogs over it let it go. The overworld leaves it
+  free, the game's cursor showing. A lock the browser lets go while
   still wanted, with the page in focus, is the player's Esc, whose key the browser keeps: it fires Esc's action
   (Settings' `menu`), and an Esc key coming just after (`ESC_ECHO_MS`) is dropped. Chrome and Firefox let go of a lock
   taken while Esc is down as it comes up, so a screen Esc closes takes the lock only as Esc comes up (the keyboard's
   `onRelease`, `Mouse.lockIfDue`), not to reopen Settings. `actions.pointer` tells the UI
   whether it's captured (the arena's reticle). Where it's wanted but not captured, the mouse counts for nothing, and a
-  press there only asks for the lock. Both cameras read its movement each frame with `actions.lookDelta()`: in the
-  overworld every move while captured, and anywhere a drag, past `DRAG.startPx` with the place's `dragCamera` middle
-  or right button held; the poll's `dragging` says a drag is turning it (the arena's pan). While you aim (`AIMING`),
+  press there only asks for the lock. Both cameras read its movement each frame with `actions.lookDelta()`: only a
+  drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held; the poll's `dragging` says a
+  drag is turning it (the arena's pan). While you aim (`AIMING`),
   the arena sets `setFreeLook`, and every move counts with no button and no flicks. A drag past `DRAG.startPx` with
-  the pointer free over the world (the character panel open) asks `Mouse.lockWhileHeld` to lock it, with raw
+  the pointer free (the overworld) asks `Mouse.lockWhileHeld` to lock it, with raw
   movement, until the drag button comes up; refused, the drag goes on with the pointer free. The first move after
   that lock is dropped (a browser may report its jump into the lock there), and Esc or leaving the tab ends the drag.
   A drag button that's another action's too (the right one: the arena's heavy attack, the overworld's item turn) does
@@ -1474,8 +1473,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
                      it sends; captureKey for rebinding), mouse.ts (optional
                      pointer lock: on a press on the canvas while the game wants the mouse, or by itself as it
-                     starts wanting it when auto lock is on (with Esc down, as it comes up: lockIfDue), asked
-                     again as raw movement is wanted or not;
+                     starts wanting it when auto lock is on (with Esc down, as it comes up: lockIfDue), a drag's
+                     raw lock asked again as the OS's then;
                      shouldAutoLock is that rule; onLock tells a lock lost while wanted (Esc) from one let go;
                      lockWhileHeld, a camera drag's lock while its button is held; buttons as "Mouse0"…, read
                      from pointer events

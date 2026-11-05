@@ -53,8 +53,6 @@ const DRAG_BUTTONS: Partial<Record<Layer, readonly string[]>> = {
 
 // A browser that also sends the Esc key that let go of the lock sends it about at once: it isn't a second Esc.
 export const ESC_ECHO_MS = 250;
-// The arena's flicks were tuned on the OS's accelerated movement; the overworld's camera turns by raw counts.
-const RAW_MOVEMENT: readonly Layer[] = ["overworld"];
 
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
@@ -93,7 +91,6 @@ const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as 
 // Only these read held keys and taps: under a screen or the overworld's bag you stand still. The fight holds a
 // chanter, and anyone in the bag, still.
 const WORLD: readonly Layer[] = ["overworld", "battle", "chant", "battleBag"];
-const PLAYING: readonly Layer[] = ["overworld", "battle"];
 // Keys the browser would otherwise use in the world (scrolling, moving focus, Firefox's quick find).
 const SWALLOW = new Set([
   "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
@@ -102,7 +99,6 @@ const SWALLOW = new Set([
 export class Actions {
   readonly pointer = new Store<{ locked: boolean }>({ locked: false });
   private layers: readonly Layer[] = ["title"];
-  private mouseFree = false;
   private escapedAtMs = -Infinity;
   private readonly handlers = new Set<{ action: ActionName; handle: Handler }>();
   private readonly devices: readonly Buttons[];
@@ -145,24 +141,18 @@ export class Actions {
   }
 
   // Bottom first; only the top one gets keys.
-  setLayers(layers: readonly Layer[], mouseFree = false): void {
-    const same = layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i]);
-    if (same && mouseFree === this.mouseFree) return;
-    this.mouseFree = mouseFree;
-    if (!same) {
-      this.layers = layers;
-      for (const d of this.devices) d.clearPressed();
-      this.flicks = [];
-      this.look = { dx: 0, dy: 0 };
-      this.zoom = 0;
-      this.clicks.clear();
-      this.freeLook = false;
-    }
-    const top = this.top;
+  setLayers(layers: readonly Layer[]): void {
+    if (layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i])) return;
+    this.layers = layers;
+    for (const d of this.devices) d.clearPressed();
+    this.flicks = [];
+    this.look = { dx: 0, dy: 0 };
+    this.zoom = 0;
+    this.clicks.clear();
+    this.freeLook = false;
     // Chrome and Firefox let go of a lock taken while Esc is down as it comes up: Esc closing a screen locks after.
     this.mouse.setLockable(
-      PLAYING.includes(top) && !mouseFree, this.mouseSettings.get().autoLock, RAW_MOVEMENT.includes(top),
-      this.keyboard.held.has("Escape"),
+      this.top === "battle", this.mouseSettings.get().autoLock, this.keyboard.held.has("Escape"),
     );
   }
 
@@ -235,7 +225,7 @@ export class Actions {
   private moved(dx: number, dy: number, atMs: number): void {
     const dragHeld = this.dragHeld(), locked = this.mouse.locked;
     if (dragHeld) this.dragBy(dx, dy);
-    const turns = (dragHeld && this.drag.turning) || (locked && (this.top === "overworld" || this.freeLook));
+    const turns = (dragHeld && this.drag.turning) || (locked && this.freeLook);
     if (turns) this.look = { dx: this.look.dx + dx, dy: this.look.dy + dy };
     if (turns || dragHeld || !locked || this.top !== "battle") {
       this.sweep = [];
