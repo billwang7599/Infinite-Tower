@@ -1,7 +1,7 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Vec2 } from "../../../core/math.js";
 import type { Equipment } from "../../../items/gear.js";
-import { HYBRID, strikeDamage, type Strike, type Way } from "../../../weapons/hybrid.js";
+import { HYBRID, strikeDamage, strikeOf, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { meleeOf } from "../../../weapons/kinds.js";
 import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
@@ -55,7 +55,7 @@ export function weaponSystem(): System {
       else if (!world.has(e, ActiveHit)) {
         addHit(world, e, swing.dir.x, swing.dir.z, {
           ...melee.shape(swing.way, wielder.armReachM, weapon), damage: swing.damage, poiseDamage: swing.poiseDamage,
-          attack: swing.attack, way: swing.way,
+          knockback: HYBRID[strikeOf(swing.attack, swing.way)].knockbackSpeed, attack: swing.attack, way: swing.way,
         });
       }
       swing.step++;

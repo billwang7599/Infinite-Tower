@@ -36,6 +36,21 @@ describe("enemies' weapons", () => {
   });
 });
 
+describe("knockback", () => {
+  const factorOf = (id: EnemyId) => ENEMIES[id].def.knockbackFactor ?? 1;
+
+  test("the big beasts are pushed less than a Kobold, the bog lurker least; a training dummy not at all", () => {
+    const person = factorOf("kobold-swordsman");
+    assert.ok(factorOf("wild-boar") < person, "the boar");
+    assert.ok(factorOf("bog-lurker") < factorOf("wild-boar"), "the bog lurker");
+    assert.equal(factorOf("training-dummy"), 0);
+  });
+
+  test("none is pushed further than a person", () => {
+    for (const id of ENEMY_IDS) assert.ok(factorOf(id) <= 1, id);
+  });
+});
+
 describe("rollDrops", () => {
   test("a lowest roll drops boar meat, a hide and a tusk from a wild boar", () => {
     const loot = rollDrops("wild-boar", () => 0, NONE_FREE);

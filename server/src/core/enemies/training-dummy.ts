@@ -11,6 +11,7 @@ export const TRAINING_DUMMY: Enemy = {
     heightM: 1.7,
     walkSpeed: 0,
     turnRate: 0,
+    knockbackFactor: 0,
     poise: 1000,
     poiseRegen: 1000,
     staggerTime: 0.5,

@@ -16,6 +16,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Weapon attacks](#weapon-attacks)
 - [Bows (placeholder)](#bows-placeholder)
 - [Body blows](#body-blows)
+- [Knockback](#knockback)
 - [Blocks](#blocks)
 - [Swing parries](#swing-parries)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
@@ -126,6 +127,7 @@ Kobolds' blades as theirs).
   most 4, and is lost on a gap, a dodge, a block, a cast, the chant, the bag, a hit taken or being blocked perfectly.
 - **Damage:** a swing the weapon's damage × (1 + 0.25 × momentum, ×2 at most), a heavy ×2 more; a stab × 1.25 ×
   (1 + 0.5 × momentum) and spends it. **Stamina:** a light 10, a heavy 16, a stab 12 (× heft). **Poise:** 12, 24, 18.
+  **Knockback** on an enemy: 4, 8, 6 m/s (Knockback, below).
 - **Reach** (`wayShape`): (arm reach + blade) × 1.15 for every swing (2.19 m with the sword), its arc by line: 160°
   across, 110° on a diagonal, 60° down from the top; × 1.75 for a stab (16°), to the target's surface; arcs by angle
   to its centre (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also
@@ -178,7 +180,8 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
 - **Aim:** with no lock-on, straight at the spot under the crosshair (`aimAt`), no arc; locked on, in the low arc at
   that speed that meets the target's middle under the drag and gravity (`launchAt`: the pitch stepped up by 0.5° from
   the straight line until the flight reaches the middle's height there, then halved 50 times), straight at it if it
-  can't. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
+  can't. Poise 10 on an enemy, knockback 0.07 × its speed (Knockback); blocked like a light (below). Stuck, it lies
+  `stuckTime` 2 s.
 
 Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
 60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 12 at
@@ -190,7 +193,7 @@ Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) d
 An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a
 player who isn't blocking, it knocks them back at its `knockback` m/s (plus `lift` up; not while Warded) and takes
 control away (hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness
-(`combat.ts`). A weapon's hit only hurts: no knockback, no hitstun.
+(`combat.ts`). A weapon's hit on a player only hurts: no knockback, no hitstun.
 
 | Blow | Damage | Knockback (m/s) | Hitstun (s) |
 |---|---|---|---|
@@ -201,6 +204,38 @@ control away (hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 �
 | Lurker tail sweep | 20 | 10 | 0.45 |
 | Warlock's staff (lunge) | 5 | 3 | 0.31 |
 
+## Knockback
+
+`knock` and `knockbackOf` in `fight/combat.ts`. A knock sets the body moving at its speed (m/s), half away from the
+attacker and half along the blow; the floor and the wall stop it as they stop any move. A knocked player slides to a
+stop at 24 m/s² (`PLAYER.accel` × 0.4) through their hitstun (above). A knocked enemy is slowed by its own
+state's acceleration (25 m/s² walking or winding up, 30 staggered, 60 stunned, 15 dead; quicker in a lunge or a
+step into its swing), so it slides about v² / 50 m walking, and it isn't stunned: it goes on with what it was
+doing, so no chain of hits can lock it, and none lifts it.
+
+- **A player's hits on an enemy:** `knockbackSpeed` in `HYBRID`, a light 4 m/s, a stab 6, a heavy 8, whatever the
+  blade and the strength (heft doesn't count: a greatsword's longer reach with a bigger push kept a Kobold out of
+  reach of its own swings); an arrow `knockbackShare` 0.07 × its speed as it strikes; Air 12 × its factor (Skills).
+  Blocked (held) × `HYBRID.block.pushbackFactor` 0.6, as a player blocking a body blow; perfectly, none.
+- **× the enemy's `knockbackFactor`** (1 if not given; Enemies, below) and its statuses' knockback factor (Warded
+  and Bulwark 0, Brannoc's Anvil 0.5); none while it's armored, committed to a blow (the boar's charge, the wolf's
+  crouch and leap, the lurker's rise, slam, coil and sweep).
+- A weapon or an arrow pushes no player, in a duel or from an enemy; only body blows and Air do.
+
+How far it slides, walking (in 1/60 s steps):
+
+| Hit | m/s | Kobold, wolf, warlock, Bram (1) | Boar (0.7) | Bog lurker (0.3) |
+|---|---|---|---|---|
+| Light | 4 | 0.29 m | 0.13 m | 0.02 m |
+| Stab | 6 | 0.67 m | 0.32 m | 0.05 m |
+| Heavy | 8 | 1.2 m | 0.58 m | 0.1 m |
+| Arrow, full draw (~55 m/s) | ~3.9 | 0.3 m | 0.15 m | 0.02 m |
+
+Example: a sword light lands as the blade goes live and carries its swinger on at 4 m/s for its 0.1 s (0.4 m), so a
+Kobold slid 0.29 m ends 0.1 m nearer than before (0.4 m with no knockback); a heavy (0.48 m of step) leaves it 0.7 m
+further off. A Kobold blocking the heavy is pushed at 0.6 × 8 = 4.8 m/s, about 0.45 m. A training dummy (0) never
+moves.
+
 ## Blocks
 
 `HYBRID.block` in `hybrid.ts`; `fight/weapons/defend.ts`.
@@ -209,7 +244,7 @@ control away (hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 �
   stamina (a heavy × `heavyStaminaFactor` 2); a body blow costs its damage and pushes you back at 60% of its
   knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime` 0.8 s.
   Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
-  costs it the hit's poise instead (below).
+  costs it the hit's poise instead (below), and pushes it back at 60% of the hit's knockback.
 - **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.05 s +
   `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.05, longsword 0.08,
   greatsword 0.15 s at strength 10, 0.1 s at 20. An enemy's rises after its `blockReactTime`.
@@ -253,7 +288,7 @@ partly parrying a heavy: 0.5 × 0.5 = 0.25 s.
   or already staggered.
 - Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s × 10 / toughness
   (`elements.lightning`).
-- Enemies have no hurt invulnerability, and a hit doesn't stun them.
+- Enemies have no hurt invulnerability, and a hit doesn't stun them; it knocks them back (Knockback, above).
 
 Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword lights 0.5 s apart: 36 − 3 × 12 + 8 × 1
 = 8 after three, so the next staggers it; two heavies and a light (24 + 24) do it on the second.
@@ -411,6 +446,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 | HP | 160 | 70 | 200 | 160 | 160 | 40 | 60 |
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
+| Knockback taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 |
 | Hits | bite 16, charge 30 | bite 14 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,

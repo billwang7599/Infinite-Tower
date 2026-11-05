@@ -4,7 +4,7 @@
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
-import { STRIKES, type Strike, type Way } from "../../weapons/hybrid.js";
+import { STRIKES, strikeOf, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
@@ -65,6 +65,12 @@ export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0
   if (along) { x = x * 0.5 + along.x * 0.5; z = z * 0.5 + along.z * 0.5; }
   const len = Math.hypot(x, z) || 1;
   Object.assign(vel, { x: (x / len) * speed, y: lift, z: (z / len) * speed });
+}
+
+export function knockbackOf(world: World, e: Entity, speed: number): number {
+  const enemy = world.get(e, Enemy);
+  if (enemy?.armored) return 0;
+  return speed * (enemy?.def.knockbackFactor ?? 1) * modsOf(world, e).knockbackFactor;
 }
 
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
@@ -170,11 +176,9 @@ function hitPlayer(
   health.invuln = PLAYER.hurtInvuln;
   if (hit.attack === null) {
     const stun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
-    const mods = modsOf(world, target);
+    const mods = modsOf(world, target), speed = knockbackOf(world, target, hit.knockback);
     health.hitstun = stunTime(stun, world.require(target, FighterStats)) * mods.stunTimeFactor;
-    if (mods.knockbackFactor > 0) {
-      knock(body.pos, from, body.vel, hit.knockback * mods.knockbackFactor, hit.lift, { x: hit.dirX, z: hit.dirZ });
-    }
+    if (mods.knockbackFactor > 0) knock(body.pos, from, body.vel, speed, hit.lift, { x: hit.dirX, z: hit.dirZ });
   }
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag", "use"].includes(player.action)) {
     breakOff(player, world.require(target, Skilled));
@@ -204,10 +208,12 @@ function hitEnemy(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
 ): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
-  if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, hit.way === "stab" ? "stab" : hit.attack);
+  if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, strikeOf(hit.attack, hit.way));
   const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
+  const speed = knockbackOf(world, target, hit.knockback), body = world.require(target, Body);
+  if (speed > 0) knock(body.pos, world.require(attacker, Body).pos, body.vel, speed, 0, { x: hit.dirX, z: hit.dirZ });
   lifesteal(world, attacker, damage, hit.attack !== null);
   burnOnHit(world, attacker, target, hit);
   events.push({

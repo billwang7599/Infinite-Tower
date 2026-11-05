@@ -84,7 +84,8 @@ What's built so far:
   front for stamina and a chip, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
   free, costing the attacker stamina and opening them; pressed in your own heavy's wind-up it feints it. Stamina is
   the one bar for attacks, dodges and blocks. A landed hit holds the picture for a beat (longer the heavier the
-  blade) and jolts its target the way the blade went.
+  blade; the fight itself never pauses), jolts its target the way the blade went and knocks it back, a heavy
+  further, a big beast less.
   A dodge roll with i-frames, jump.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a

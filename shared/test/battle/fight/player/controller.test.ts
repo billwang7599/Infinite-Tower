@@ -66,6 +66,22 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
     }
   });
 
+  test("pressed in a light's wind-up it doesn't cancel it (the user: \"no\"): the blade still lands", () => {
+    const liveAt = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT).liveAt;
+    for (const k of [1, liveAt - 1]) {
+      const inReach = new Fight({
+        arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })], enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 2.4 })],
+      });
+      let landed = false;
+      const { dodgeStarts } = play((step) => {
+        landed ||= inReach.events.some((e) => e.type === "hit" && e.target === inReach.enemies[0]);
+        return swingThen({ [SWING_AT + k]: { dodge: true } })(step);
+      }, 90, inReach);
+      assert.ok(landed, `pressed ${k} steps in`);
+      assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
+    }
+  });
+
   test("pressed once the swing has let go, it starts at once, as before", () => {
     for (let k = LOCKED_STEPS; k < LOCKED_STEPS + 5; k++) {
       assert.deepEqual(play(swingThen({ [SWING_AT + k]: { dodge: true } })).dodgeStarts, [SWING_AT + k]);

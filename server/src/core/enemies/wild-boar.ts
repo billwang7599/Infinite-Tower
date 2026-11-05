@@ -13,6 +13,7 @@ export const WILD_BOAR: Enemy = {
     radius: 0.85,
     walkSpeed: 3.2,
     turnRate: 3.0,
+    knockbackFactor: 0.7,
     poise: 36,
     poiseRegen: 8,
     staggerTime: 1.0,

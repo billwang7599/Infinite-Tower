@@ -5,7 +5,7 @@ import { guardRaiseTime, HYBRID } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
 import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
-import { faces, knock, spend, stagger } from "../combat.js";
+import { faces, knock, knockbackOf, spend, stagger } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { modsOf } from "../../statuses.js";
 import { hurt } from "../health.js";
@@ -79,8 +79,9 @@ function blocked(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
 ): void {
   const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
+  const player = world.has(target, Player);
   let broken: boolean;
-  if (world.has(target, Player)) {
+  if (player) {
     const stamina = world.require(target, Stamina);
     const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1);
     broken = stamina.value <= cost;
@@ -91,13 +92,16 @@ function blocked(
     // The brain staggers it on its next step, as for a hit.
     broken = enemy.poise <= 0;
   }
-  if (hit.attack === null) {
+  // A weapon only hurts a player, so it pushes back only an enemy's guard.
+  const speed = hit.attack === null ? hit.knockback : player ? 0 : knockbackOf(world, target, hit.knockback);
+  if (speed > 0) {
     const body = world.require(target, Body), from = world.require(attacker, Body).pos;
-    knock(body.pos, from, body.vel, hit.knockback * block.pushbackFactor, 0, { x: hit.dirX, z: hit.dirZ });
-  } else {
+    knock(body.pos, from, body.vel, speed * block.pushbackFactor, 0, { x: hit.dirX, z: hit.dirZ });
+  }
+  if (hit.attack !== null) {
     hurt(world, target, damage * block.chipFraction, "physical");
     if (!shot) endSwing(world, attacker);
   }
-  if (broken && world.has(target, Player)) stagger(world, target, block.brokenTime);
+  if (broken && player) stagger(world, target, block.brokenTime);
   events.push({ type: "block", by: attacker, target, broken, ...(shot && { at: shot.at }) });
 }

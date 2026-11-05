@@ -1,7 +1,7 @@
 import { AVERAGE_STAT, physicalDamage, type Stats } from "../battle/stats.js";
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
-import { feltHeft, type AttackSteps, type HitShape, type Weapon } from "./weapons.js";
+import { feltHeft, type AttackKind, type AttackSteps, type HitShape, type Weapon } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
 // from its first letters' side; facing each other, one fighter's left is the other's right (`mirrorWay`).
@@ -29,6 +29,7 @@ const MIRROR: Record<Way, Way> = {
 };
 
 export const isSwing = (way: Way): way is SwingDir => way !== "stab";
+export const strikeOf = (attack: AttackKind, way: Way | null): Strike => (way === "stab" ? "stab" : attack);
 export const mirrorWay = (way: Way): Way => MIRROR[way];
 
 export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
@@ -70,9 +71,11 @@ export const startupTime = (kind: ChainKind, momentum: number): number => Math.m
   CHAIN.minStartupTime, CHAIN.startupTime[kind] * (1 - Math.min(momentum, MOMENTUM.max) * MOMENTUM.speedPerPoint));
 
 export const HYBRID = {
-  light: { cost: 10, damageFactor: 1, poiseDamage: 12 },
-  heavy: { extraTime: 0.35, activeTime: 0.12, recoverTime: 0.2, cost: 16, damageFactor: 2, poiseDamage: 24 },
-  stab: { cost: 12, damageFactor: 1.25, poiseDamage: 18 },
+  light: { cost: 10, damageFactor: 1, poiseDamage: 12, knockbackSpeed: 4 },
+  heavy: {
+    extraTime: 0.35, activeTime: 0.12, recoverTime: 0.2, cost: 16, damageFactor: 2, poiseDamage: 24, knockbackSpeed: 8,
+  },
+  stab: { cost: 12, damageFactor: 1.25, poiseDamage: 18, knockbackSpeed: 6 },
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
