@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { applyStatus, type StatusOn } from "@infinite-tower/shared";
 import { statusIcons } from "../../../src/modes/battle/hud.js";
+import { followStun, noStun } from "../../../src/modes/battle/stun.js";
 
 describe("statusIcons", () => {
   test("buffs before debuffs, each in the order they went on", () => {
@@ -28,6 +29,20 @@ describe("statusIcons", () => {
     const [icon] = statusIcons(on, []);
     assert.equal(icon!.secondsLeft, null);
     assert.equal(icon!.shareLeft, 1);
+  });
+
+  test("a stun shows last, as long as it lasts, its time left draining in tenths of a second", () => {
+    const on: StatusOn[] = [];
+    applyStatus(on, "burning", 4, 1);
+    const stun = noStun();
+    followStun(stun, 0.8, 0);
+    followStun(stun, 0.33, 0.47);
+    assert.deepEqual(statusIcons(on, [], stun).map((i) => i.status), ["burning", "stunned"]);
+    assert.deepEqual(statusIcons(on, [], stun)[1], {
+      status: "stunned", harmful: true, stacks: 1, secondsLeft: 0.4, shareLeft: 0.41,
+    });
+    followStun(stun, 0, 0.33);
+    assert.deepEqual(statusIcons(on, [], stun).map((i) => i.status), ["burning"]);
   });
 
   test("gives back the last list when nothing it shows has changed, so the HUD doesn't redraw", () => {

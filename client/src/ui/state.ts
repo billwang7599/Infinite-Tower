@@ -63,7 +63,7 @@ export interface OverworldHudState {
 export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look" | "bindPad";
 
 export interface StatusIcon {
-  status: Status;
+  status: Status | "stunned";
   harmful: boolean;
   stacks: number;
   /** null: permanent. */

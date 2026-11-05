@@ -1713,8 +1713,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
                          time and drops, the lock, whether the camera is free (freeCamera) and its distance (zoomM,
-                         first person as each fight starts), its orbit, this frame's events and
+                         first person as each fight starts), its orbit, your stun's cue, this frame's events and
                          corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
+        stun.ts          Your stun as you see it, from your hitstun, once a frame: followStun (the stun it began as,
+                         how strong and how shown, the camera's kick and sway; STUN_CUE; tested)
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
                          yaw is the aim. Its distance (steerZoom): the wheel from close out to ZOOM.maxM, a notch in
                          from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in. While you dodge
@@ -1742,7 +1744,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          straight down; a block pressed or held; the aim as playerAim gives it)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
                          included; statusIcons: your and the foe's statuses as the HUD shows them (buffs first, the
-                         share of time left), the last list kept while nothing shown changes
+                         share of time left; your stun last, in tenths), the last list kept while nothing shown changes
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
                      page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
@@ -1835,8 +1837,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a dead enemy
                          crumbling to ash and a player who left the arena fading; DISSOLVE_TIME, LEAVE_FADE_TIME),
-                         arenaStage (the scenery per arena, the camera on the mode's view plus shake, the drops'
-                         sacks after a win)
+                         arenaStage (the scenery per arena, the camera on the mode's view plus shake and your
+                         stun's kick and sway, the drops' sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
                          centre while you fight with a sword, a bow's draw meter there instead (filling with the
@@ -1846,6 +1848,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          camera puts them (onScreen: a world point's spot and pixels a
                          metre; tested), the lock-on's diamond (an octahedron's facets, turning) and other fighters'
                          chant words
+        stunned.ts       Your stun on the overlay: a vignette, and in first person stars circling the top of the
+                         view (STUN_HUD; stunStars and vignetteAlpha, tested)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -2285,6 +2289,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts` (the haze too), `RAYS` in `client/src/visuals/sky/rays.ts`; `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | The arena's pixels: their size, how far they stay full size, the smallest they get, how deep a size fades into the next; the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
+| Your stun's cue: its strength by length, fades, the camera's kick and sway (`STUN_CUE`); the stars and vignette (`STUN_HUD`) | top of `client/src/modes/battle/stun.ts`; top of `client/src/visuals/battle/stunned.ts` |
 | Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |

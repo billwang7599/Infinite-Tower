@@ -310,6 +310,15 @@ Decided by the user:
   person"). The camera's numbers (`CAMERA_VIEWS` and `ZOOM` at the top of `client/src/modes/battle/camera.ts`, the
   turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to tune; dev servers try others with
   `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
+- Seeing you're stunned (the user: "i want an indication that im stunned since we're in first person now", "maybe
+  stun status effect and also stars on screen?"; the look and numbers are the agent's, seen in a headless browser,
+  not hand-played). Looks only, from your hitstun: while it runs a "Stunned" tile shows last in your statuses, its
+  time left in tenths and draining; in first person cartoon stars circle the top of the view, 3 on the shortest stun
+  to 5 on one of 1 s or more; the screen's edges darken a little, more on a long stun; and the camera kicks (rolls up
+  to 3° and dips 1.5°, peaking at 0.07 s) and sways (1° at 1.2 Hz). All of it is weaker on a short stun (from 35%
+  for 0.35 s or less, full from 1 s), comes in over 0.06 s and fades over the stun's last 0.25 s (half a short one),
+  so it's gone, the camera level, the moment you can move. Numbers: `STUN_CUE` in
+  `client/src/modes/battle/stun.ts`, `STUN_HUD` in `client/src/visuals/battle/stunned.ts`.
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a

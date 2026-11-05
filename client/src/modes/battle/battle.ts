@@ -1,5 +1,5 @@
 import {
-  Body, copyInput, Fighter, IDLE_INPUT, Player, sameSkill, type ServerMsgOf, type Skill,
+  Body, copyInput, Fighter, Health, IDLE_INPUT, Player, sameSkill, type ServerMsgOf, type Skill,
   type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
@@ -16,6 +16,7 @@ import { hudSystem } from "./hud.js";
 import { freeCamera, playerAim } from "./aim.js";
 import { pickedWay, readPlayerInput } from "./input.js";
 import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
+import { followStun, noStun } from "./stun.js";
 import { FightSync } from "./sync.js";
 
 const HOTBAR = ["skill1", "skill2", "skill3", "skill4"] as const;
@@ -54,6 +55,7 @@ export function createBattle(opts: BattleOptions): Battle {
     freeCamera: null,
     zoomM: views.fp.distanceM,
     way: START_WAY,
+    stun: noStun(),
     who: [],
     fight: null,
     sync: null,
@@ -177,6 +179,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.freeCamera = null;
       ctx.zoomM = views.fp.distanceM;
       ctx.way = START_WAY;
+      ctx.stun = noStun();
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
       Object.assign(ctx.view, START_VIEW, { yaw: (target && lockYaw(me, target)) ?? START_VIEW.yaw });
       ctx.polled = actions.poll();
@@ -207,6 +210,8 @@ export function createBattle(opts: BattleOptions): Battle {
       }
       runFight(fight, sync);
       ctx.events = sync.events.splice(0);
+      const health = fight.world.first(LocalPlayer, Health)?.[2];
+      followStun(ctx.stun, health && health.hp > 0 ? health.hitstun : 0, dt);
       camera(fight, dt);
       hud(fight);
     },

@@ -7,6 +7,7 @@ import { AIMING } from "../../modes/battle/aim.js";
 import { LocalPlayer } from "../../modes/components.js";
 import { drawChantWords } from "./chantWords.js";
 import type { ArenaScene } from "./scene.js";
+import { drawStun } from "./stunned.js";
 
 const WEDGES = 8;
 // Wedge 6 would be a swing from below: there is no upward swing.
@@ -113,6 +114,7 @@ export function arenaOverlay(
       spinRad += MARKER_SPIN_RAD_PER_SEC * dt;
       if (!world) return;
       const project: Project = (at) => onScreen(at, ctx.camera, widthPx, heightPx);
+      drawStun(g, ctx, world, widthPx, heightPx);
       for (const [e, skilled] of world.query(Skilled)) {
         const node = ctx.nodes.get(e);
         if (skilled.chanting && node && !world.has(e, LocalPlayer)) drawChantWords(g, project, skilled, node.position);

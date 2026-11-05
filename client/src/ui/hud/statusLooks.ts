@@ -1,7 +1,7 @@
-import type { Status } from "@infinite-tower/shared";
+import type { StatusIcon } from "../state.js";
 
 // `path`: an SVG path on a 24 x 24 box, filled even-odd.
-export const STATUS_LOOKS: Record<Status, { name: string; color: string; path: string }> = {
+export const STATUS_LOOKS: Record<StatusIcon["status"], { name: string; color: string; path: string }> = {
   burning: {
     name: "Burning", color: "#ff7a3c",
     path: "M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 3 1 4 2 4 1-3 0-6 1-9z",
@@ -52,6 +52,11 @@ export const STATUS_LOOKS: Record<Status, { name: string; color: string; path: s
   kaelithsEdge: { name: "Kaelith's Edge", color: "#e8d27a", path: "M11 2h2l1 12h-4zM7 15h10v2h-4v5h-2v-5H7z" },
   brannocsAnvil: {
     name: "Brannoc's Anvil", color: "#b8a58a", path: "M3 7h14c0 3 2 4 4 4v2h-6v3l3 4H6l3-4v-3c-3 0-6-2-6-6z",
+  },
+  stunned: {
+    name: "Stunned", color: "#ffd84a",
+    path: "M12 2l1.53 3.9 4.18.25-3.24 2.65 1.06 4.05L12 10.6l-3.53 2.25 1.06-4.05-3.24-2.65 4.18-.25z"
+      + "M2 17a10 3.5 0 1 0 20 0 10 3.5 0 1 0-20 0zm1.6 0a8.4 2.1 0 1 0 16.8 0 8.4 2.1 0 1 0-16.8 0z",
   },
   haldisHearth: {
     name: "Haldis's Hearth", color: "#ffb05a",
