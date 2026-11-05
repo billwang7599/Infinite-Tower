@@ -123,7 +123,7 @@ export const ITEMS = {
     name: "Sword", rarity: "common",
     description: "A plain straight blade. Quick to swing, and it guards as well as any.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.1, damage: 9, heft: 1, minStrength: 0 },
+    weapon: { kind: "sword", length: 1.1, damage: 9, heft: 1.3, minStrength: 0 },
   },
   "kobold-blade": {
     name: "Kobold blade", rarity: "uncommon",
@@ -134,13 +134,13 @@ export const ITEMS = {
   longsword: {
     name: "Longsword", rarity: "uncommon", description: "A longer, heavier blade. Slower to swing, and it hits harder.",
     cols: 1, rows: 3, stackSize: 1, weight: 4.5, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.4, damage: 11, heft: 1.2, minStrength: 6 },
+    weapon: { kind: "sword", length: 1.4, damage: 11, heft: 1.55, minStrength: 6 },
   },
   greatsword: {
     name: "Greatsword", rarity: "uncommon",
     description: "Taller than a kobold. Slow to swing, but it lands like a door.", cols: 1, rows: 4, stackSize: 1,
     weight: 8, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.9, damage: 16, heft: 1.6, minStrength: 9 },
+    weapon: { kind: "sword", length: 1.9, damage: 16, heft: 2.1, minStrength: 9 },
   },
   "kobold-greatsword": {
     name: "Kobold greatsword", rarity: "uncommon",

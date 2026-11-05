@@ -140,10 +140,17 @@ Decided by the user:
 - Heft scales everything and strength scales heft down (the user: "heft scales everything which is realistic", "a
   stronger person would use a greatsword well, while a weaker person wouldn't"): a weapon's wind-up, live time,
   recovery and stamina costs go × the heft its wielder feels, 1 + (heft − 1) × (10 / strength), players and enemies
-  alike (strength 10 feels the listed heft; a heft-1 sword feels the same to everyone). Each weapon has a minimum
-  strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing it, and the
-  bag screen says why. The test numbers: sword 0, longsword 6, greatsword 9. Two-handed grips, halving the heft
-  penalty, come later ([plan/weapons.md](plan/weapons.md)).
+  alike (strength 10 feels the listed heft; a heft-1 weapon, the old stick, feels the same to everyone). Each weapon
+  has a minimum strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing
+  it, and the bag screen says why. The test numbers: sword 0, longsword 6, greatsword 9. Two-handed grips, halving
+  the heft penalty, come later ([plan/weapons.md](plan/weapons.md)).
+- Swords are heavier (the user: "increase sword weight, swinging is too easy"; the numbers are the agent's, tried by
+  tests only, not hand-played): the sword, longsword and greatsword have 30% more heft (1.3, 1.55, 2.1; were 1, 1.2,
+  1.6), so by the rule above every part of a swing, its stamina and the guard's raise take that much longer at
+  strength 10, less for the stronger. A sword's opening light at strength 10 winds up 0.45 s (was 0.35), is live
+  0.13 s (0.1), recovers 0.1 s (0.08) and costs 13 stamina (10); at strength 20, 0.4 s, 0.12, 0.1 and 11.5. The
+  times and costs the Hybrid lists below are a heft-1 blade's. The old stick (Bram's too) and the Kobolds' blades
+  keep their heft, so no enemy swings slower; a player's heavier blade now weighs more than a Kobold's in a parry.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -174,7 +181,7 @@ Decided by the user:
     at it, with a real swing the parrying way.
   - Blocking goes by the blade (the user: small fast blades and big slow ones play differently): the perfect window
     grows with the blocker's blade length (0.2 s × length / 1.1: sword 0.2, longsword ~0.25, greatsword ~0.35), and
-    raising the guard takes time that grows with the heft its wielder feels (sword 0.05 s, greatsword ~0.15 s at
+    raising the guard takes time that grows with the heft its wielder feels (sword 0.1 s, greatsword ~0.24 s at
     strength 10); a hit landing while it comes up isn't blocked. Enemies raise theirs the same way. No close-range
     penalty for big weapons.
   - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); a light costs 10, a heavy
@@ -787,8 +794,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     nothing for the next hit. An enemy's held block costs it the hit's poise instead, and out of poise it staggers as
     when hit.
   - The guard comes up in 0.05 s + 0.17 s for each point of felt heft over 1 (`raiseTime`, `raiseTimePerHeft`):
-    longsword 0.08, greatsword 0.15 at strength 10. The perfect window opens once it's up, so a heavier blade has to
-    be pressed earlier. An enemy's comes up after its `blockReactTime`, a feint's too.
+    sword 0.1, longsword 0.14, greatsword 0.24 at strength 10. The perfect window opens once it's up, so a heavier
+    blade has to be pressed earlier. An enemy's comes up after its `blockReactTime`, a feint's too.
   - The perfect block: a block press opens a window (0.2 s with the sword, by blade length), even let go again, as long
     as nothing else starts; a weapon from in front lands in it blocked perfectly: no stamina, no chip; the attacker
     loses 10 stamina (if it has a bar) and recoils 0.4 s (a stagger, its chain lost), so the blocker gets in first. A
@@ -798,7 +805,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     invulnerability, on a defender whose swing is aimed at the attacker (within the block's 140°). The window counts
     from the parrier's blade going live. In reach, its blade lands first and the parry is settled then, against the
     other's blade still to come; out of its reach, the window holds only while its swing lasts (a sword light's
-    ~0.17 s). The swing that parries does no damage
+    ~0.23 s). The swing that parries does no damage
     either, and a parrying player's chain goes on. A clash is any two blades live within 3 steps (0.05 s) of each
     other. Felt by angle: facing each other the other's way is mirrored, so the same named way (lr against lr) meets
     head on; the straight-down swing has no exact reverse (no upward swing) and is only ever partly parried, by a
@@ -989,9 +996,10 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
-- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
-  8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
-  the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS` (`shared/src/items/items.ts`).
+- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.55, 11 damage; the Greatsword 1 x 4, 1.9 m,
+  weight 8, heft 2.1, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword's
+  size with heft 1.6 and the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
+  (`shared/src/items/items.ts`).
 - Bows (the user's rules above, building on the agent's earlier prep: "prep for future weapons (bows)", "make any
   assumptions you want as to not block me"): **placeholders, every rule below the user's and every number.** All of it
   is the agent's, tried by tests and a headless browser, never hand-played; the numbers are `BOW` in

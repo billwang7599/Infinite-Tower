@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage,
-  Player, Stamina, strikeCost, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Strike, type SwingDir,
+  Player, Stamina, strikeCost, toSteps, wayStepsAfter, WEAPONS, Wielder, type ItemId, type PlayerInputData,
+  type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -66,12 +67,15 @@ describe("the sword's attacks", () => {
   });
 
   test("a chain builds momentum, more damage each swing, and loses it after a gap", () => {
-    const p = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"]], 85);
+    const swing = wayStepsAfter(SWORD, CHAIN.startupTime.opening, false, AVERAGE_STAT);
+    // Each chained light starts as the last one's blade is done and winds up no slower than the opening.
+    const landed = 3 * swing.liveUntil + 2;
+    const p = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"]], landed);
     assert.equal(momentumOf(p.fight), 2 * MOMENTUM.gain.reverse);
     assert.equal(p.damage.length, 3);
     assert.equal(p.damage[0], physicalDamage(SWORD.damage, STATS));
     assert.equal(p.damage[2], physicalDamage(SWORD.damage * momentumDamage(2 * MOMENTUM.gain.reverse), STATS));
-    chain(p.fight, [], 85 + Math.ceil((CHAIN.gapTime + CHAIN.recoverTime) * 60) + 2);
+    chain(p.fight, [], landed + swing.endAt - swing.liveUntil + toSteps(CHAIN.gapTime) + 2);
     assert.equal(momentumOf(p.fight), 0);
   });
 

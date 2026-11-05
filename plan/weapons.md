@@ -12,9 +12,9 @@ stats)."
   gives the stats of the one in hand. Reach is the wielder's arm reach (`PLAYER.armReachM`, an enemy's
   `wielder.armReachM`, 0.8 m for everyone) plus the weapon's length.
 - Six weapons, all with the sword's moveset: the old stick (1 m, 5 damage, heft 1; Bram's first gift), the sword
-  (1.1 m, 9 damage, heft 1), the longsword (1.4 m, 11, 1.2) and the greatsword (1.9 m, 16, 1.6), and the Kobolds'
-  own blades, which never drop: the Kobold blade (the sword's, 14 damage) and the Kobold greatsword (the greatsword's,
-  14 damage). The forge sells the three swords; nobody starts with one.
+  (1.1 m, 9 damage, heft 1.3), the longsword (1.4 m, 11, 1.55) and the greatsword (1.9 m, 16, 2.1), and the Kobolds'
+  own blades, which never drop: the Kobold blade (the sword's length, heft 1, 14 damage) and the Kobold greatsword
+  (the greatsword's length, heft 1.6, 14 damage). The forge sells the three swords; nobody starts with one.
 - The client picks a weapon's look by item (`WEAPON_LOOKS`) and its motion by kind (`MOTIONS`), both in
   `client/src/visuals/battle/weapons.ts`.
 - One sword system, the Hybrid (the user tried five and kept it, then made it simpler): light, heavy and a stab on

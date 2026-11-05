@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   Body, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor,
-  perfectBlockTime, physicalDamage, Player, PLAYER, Stamina,
+  perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost,
   toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -126,7 +126,8 @@ describe("the perfect block", () => {
       assert.equal(hp(fight, 1), FULL_HP);
       const held = HYBRID.block.holdStaminaPerSec * (RAISE + perfectSteps) * FIXED_DT;
       assert.ok(stamina(fight, 1) >= FULL_STAMINA - held - 1e-6, `${stamina(fight, 1)}`);
-      close(stamina(fight, 0), FULL_STAMINA - HYBRID.light.cost - HYBRID.block.perfectDrain, "the attacker's");
+      const swung = strikeCost(WEAPONS.sword, "light", STATS.strength);
+      close(stamina(fight, 0), FULL_STAMINA - swung - HYBRID.block.perfectDrain, "the attacker's");
       assert.equal(action(fight, 0), "stagger");
       const recoil = fight.world.require(fight.players[0]!, Health).hitstun;
       assert.ok(Math.abs(recoil - HYBRID.block.perfectRecoilTime) < 0.02, `${recoil}`);
@@ -174,8 +175,8 @@ describe("blocking by the blade", () => {
   const hit = (events: FightEvent[]) => events.some((e) => e.type === "hit");
   const perfect = (events: FightEvent[]) => events.some((e) => e.type === "block" && e.perfect);
 
-  test("the sword's guard comes up in the listed time, its perfect window as listed", () => {
-    assert.equal(guardRaiseTime(WEAPONS.sword, STATS.strength), HYBRID.block.raiseTime);
+  test("a weightless blade's guard comes up in the listed time, the sword's perfect window as listed", () => {
+    assert.equal(guardRaiseTime({ ...WEAPONS.sword, heft: 1 }, STATS.strength), HYBRID.block.raiseTime);
     close(perfectBlockTime(WEAPONS.sword), HYBRID.block.perfectTime, "window");
   });
 

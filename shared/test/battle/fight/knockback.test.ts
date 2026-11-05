@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, BOW, CHAIN, emptyBag, emptyEquipment, Enemy, FIXED_DT, Health, HYBRID, packFor, toSteps,
-  type EnemyDef, type ItemId, type Strike, type Vec3,
+  addItem, BOW, CHAIN, emptyBag, emptyEquipment, Enemy, FIXED_DT, Health, HYBRID, packFor, toSteps, wayStepsAfter,
+  WEAPONS, windupTime, type EnemyDef, type ItemId, type Strike, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
   ARENA, armed, BOAR, bodyOf, castNow, enemy, flatDist, flatRadius, GUARDIAN, input, LURKER, player, run, segment,
-  skill, STATUE,
+  skill, STATS, STATUE,
 } from "./fixtures.js";
 
 before(() => initPhysics());
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const IN_REACH_M = 2.4;
-const SETTLE_TIME = 1.5;
+const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening", 0), true, STATS.strength);
+const SETTLE_TIME = SLOWEST.endAt * FIXED_DT + 1;
 
 const PERSON: EnemyDef = { ...STATUE, knockbackFactor: 1 };
 const heavier = (def: EnemyDef, factor: number): EnemyDef => ({ ...def, knockbackFactor: factor });

@@ -20,9 +20,10 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Kobold Greatsword's blade is a greatsword that hits like the Kobold's", () => {
-    assert.deepEqual({ ...WEAPONS["kobold-greatsword"], damage: WEAPONS["kobold-blade"].damage },
-      { ...WEAPONS.greatsword, damage: WEAPONS["kobold-blade"].damage });
+  test("the Kobold Greatsword's blade is a greatsword that hits like the Kobold's; Kobolds' blades are lighter", () => {
+    const { heft: koboldHeft, ...kobold } = WEAPONS["kobold-greatsword"], { heft, ...greatsword } = WEAPONS.greatsword;
+    assert.deepEqual(kobold, { ...greatsword, damage: WEAPONS["kobold-blade"].damage });
+    assert.ok(koboldHeft < heft && WEAPONS["kobold-blade"].heft < WEAPONS.sword.heft);
   });
 
   test("every weapon is a worn-in-hand item of a known kind", () => {
@@ -38,8 +39,9 @@ describe("the arsenal", () => {
     assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT * 2), 1 + (heft - 1) / 2);
     assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT / 2), 1 + (heft - 1) * 2);
     for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
-      assert.equal(feltHeft(WEAPONS.sword, strength), 1, `${strength}`);
+      assert.equal(feltHeft(WEAPONS["old-stick"], strength), 1, `${strength}`);
     }
+    assert.ok(feltHeft(WEAPONS.sword, AVERAGE_STAT * 2) < feltHeft(WEAPONS.sword, AVERAGE_STAT));
   });
 
   test("a weapon can be wielded from its minimum strength up, not below", () => {

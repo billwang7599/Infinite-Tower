@@ -68,7 +68,9 @@ function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
 }
 
 describe("the advanced stats' weapon numbers", () => {
-  for (const [item, core] of [["sword", newCore()], ["greatsword", newCore()], ["greatsword", strong(10)]] as const) {
+  for (const [item, core] of [
+    ["sword", newCore()], ["sword", strong(10)], ["greatsword", newCore()], ["greatsword", strong(10)],
+  ] as const) {
     test(`a chain's first strike with a ${item} at strength ${coreStats(core).strength} times as the fight's`, () => {
       const gear = holding({ rightHand: item }), [held] = combatNumbers(gear, core, {}).held;
       for (const strike of STRIKES) {
