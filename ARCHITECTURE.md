@@ -445,10 +445,10 @@ main.ts
   `modes/battle/lock.ts` each step), always on while an enemy lives. `modes/battle/aim.ts` has the rest of the aim:
   `freeCamera` says when the camera turns by hand instead (`ctx.freeCamera`: "pan" for a drag or held arrows, the
   target kept; "aim" while the player's action is one of `AIMING`: a bow's draw until its loose recovers, a chant, a
-  cast's wind-up, a Beam), and `playerAim` gives the input's move frame, aim and `locked`: locked and not aiming,
-  toward the target, level, naming it; aiming or with no target, walking by the camera and at the spot under the
-  crosshair (`crosshairAim`, the input's `aimAt`), naming none. As the free camera ends, the lock goes to the enemy
-  in view nearest the screen's middle (`inViewFoe`), else stays.
+  cast's wind-up, a Beam), and `playerAim` gives the input's move frame, aim and `locked`: locked with the camera
+  the lock's, toward the target, level, naming it; with the camera free (panned or aiming) or no target, walking by
+  the camera and at the spot under the crosshair (`crosshairAim`, the input's `aimAt`), naming none. As the free
+  camera ends, the lock goes to the enemy in view nearest the screen's middle (`inViewFoe`), else stays.
 - **Fighters are moved by code, not by forces.** Systems set a body's velocity (`Body.vel`); the physics step
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
@@ -1735,8 +1735,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         aim.ts           The player's aim, no Babylon: AIMING (the actions that aim: a bow drawn or loosed, a chant,
                          a cast, a Beam), freeCamera (a pan, or the mouse's while aiming), crosshairAim (the spot
                          where the screen's centre line first meets a foe, the floor or the wall, and the way to it),
-                         playerAim (the input's move frame, aim and lock: at the lock-on unless aiming, else the
-                         crosshair, else level to the wall); tested
+                         playerAim (the input's move frame, aim and lock: at the lock-on unless the camera is free,
+                         else the crosshair, else level to the wall); tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
                          straight down; a block pressed or held; the aim as playerAim gives it)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view

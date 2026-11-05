@@ -268,7 +268,9 @@ Decided by the user:
   you face the target (A / D circle it, W / S close in and back off), and the camera keeps it in view on its own. Q
   switches to the enemy nearest the screen's middle other than the target (with one enemy it stays), Right Shift to
   the closest; nothing lets go. A drag with the middle or right button (past about 6 px) or the held arrows pan the
-  camera by hand, the target kept; let go, it eases to the enemy in view nearest the screen's middle, or back to the
+  camera by hand, the target kept; while it's panned you walk by the camera and attacks go the crosshair's way, the
+  fight not told of the lock, as when aiming (the user: "when panning the camera, the control should follow where im
+  looking, not the locked target"); let go, it eases to the enemy in view nearest the screen's middle, or back to the
   old target if none is in view (the main chat's picks; Q skipping the target, the arrows panning like the drag and
   a dead target's rule are the agent's). A target that dies passes the lock the same way, to the closest enemy if
   none is in view. A right click is the heavy attack, fired as

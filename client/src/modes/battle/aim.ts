@@ -45,7 +45,7 @@ export function playerAim(
   { lock, freeCamera: free, view }: Pick<BattleContext, "lock" | "freeCamera" | "view">, foes: readonly Aimed[],
   from: Vec3, wallM: number,
 ): { walkYaw: number; aim: Aiming; locked: Entity | null } {
-  const target = free === "aim" ? undefined : foes.find((f) => f.e === lock)?.body.pos;
+  const target = free !== null ? undefined : foes.find((f) => f.e === lock)?.body.pos;
   const walkYaw = (target && lockYaw(from, target)) ?? view.yaw;
   const x = Math.sin(walkYaw), z = Math.cos(walkYaw), reach = { x: x * 2 * wallM, y: 0, z: z * 2 * wallM };
   const share = landsAt(from, reach, wallM);
