@@ -869,7 +869,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   window by blade length; the push by guard, less for a stronger or steadier blocker; the chip doubled backed against
   the wall, part of it with part of the room, none extra in the open), the swordsman
   (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
-  block and the swing after, chains by its seed and through a save, its landed hits only hurting), the wolf
+  block and the swing after, chains by its seed and through a save, its landed hits only hurting, a stagger or a
+  perfect block's recoil dropping its chain and its answer for its whole cooldown and a fresh opening wind-up, its
+  recovery by heft), every attack's cooldown restarting after a stagger (`behaviors/brain.test.ts`: the boar's bite
+  and charge, the wolf's leap, the lurker's slam), the wolf
   (`behaviors/pounce.test.ts`: circling before its first leap, backing off when walked up to, the bite, the locked
   line, stepping aside, dodging and blocking it, longer open after a miss, the hop, no stagger while it commits, its
   seed and a save), the bog lurker (`behaviors/slam.test.ts`: the slam on one who stands there, its slow rise, the
@@ -1264,7 +1267,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        quick-cast
                        up close, a chant a word at a time from farther, backing away while it chants if kept away,
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
-                       a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
+                       a Bolt winding up at it), common.ts (enter; stun: a stun or stagger, ending the attack under
+                       way and restarting its cooldowns; roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
                        block, the held block and its stamina or poise, its push and the chip raised against the

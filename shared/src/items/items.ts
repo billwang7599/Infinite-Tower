@@ -129,7 +129,7 @@ export const ITEMS = {
     name: "Kobold blade", rarity: "uncommon",
     description: "A notched blade, heavier at the tip. Kobolds don't let go of theirs.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.1, damage: 14, heft: 1, minStrength: 0 },
+    weapon: { kind: "sword", length: 1.1, damage: 14, heft: 1.3, minStrength: 0 },
   },
   longsword: {
     name: "Longsword", rarity: "uncommon", description: "A longer, heavier blade. Slower to swing, and it hits harder.",
@@ -146,7 +146,7 @@ export const ITEMS = {
     name: "Kobold greatsword", rarity: "uncommon",
     description: "A slab of iron with a handle. Kobolds don't let go of theirs either.",
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.9, damage: 14, heft: 1.6, minStrength: 9 },
+    weapon: { kind: "sword", length: 1.9, damage: 14, heft: 2.1, minStrength: 9 },
   },
   "wooden-shield": {
     name: "Wooden shield", rarity: "common",

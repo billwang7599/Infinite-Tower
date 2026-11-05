@@ -20,10 +20,9 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Kobold Greatsword's blade is a greatsword that hits like the Kobold's; Kobolds' blades are lighter", () => {
-    const { heft: koboldHeft, ...kobold } = WEAPONS["kobold-greatsword"], { heft, ...greatsword } = WEAPONS.greatsword;
-    assert.deepEqual(kobold, { ...greatsword, damage: WEAPONS["kobold-blade"].damage });
-    assert.ok(koboldHeft < heft && WEAPONS["kobold-blade"].heft < WEAPONS.sword.heft);
+  test("the Kobold Greatsword's blade is a greatsword that hits like the Kobold's; Kobolds' blades weigh as ours", () => {
+    assert.deepEqual(WEAPONS["kobold-greatsword"], { ...WEAPONS.greatsword, damage: WEAPONS["kobold-blade"].damage });
+    assert.equal(WEAPONS["kobold-blade"].heft, WEAPONS.sword.heft);
   });
 
   test("every weapon is a worn-in-hand item of a known kind", () => {

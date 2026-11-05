@@ -149,8 +149,19 @@ Decided by the user:
   1.6), so by the rule above every part of a swing, its stamina and the guard's raise take that much longer at
   strength 10, less for the stronger. A sword's opening light at strength 10 winds up 0.45 s (was 0.35), is live
   0.13 s (0.1), recovers 0.1 s (0.08) and costs 13 stamina (10); at strength 20, 0.4 s, 0.12, 0.1 and 11.5. The
-  times and costs the Hybrid lists below are a heft-1 blade's. The old stick (Bram's too) and the Kobolds' blades
-  keep their heft, so no enemy swings slower; a player's heavier blade now weighs more than a Kobold's in a parry.
+  times and costs the Hybrid lists below are a heft-1 blade's. The old stick (Bram's too) keeps its heft. The Kobolds'
+  blades followed (the user: "also make their swords heavier too"; tests only, not hand-played): the Kobold blade 1.3
+  and the Kobold greatsword 2.1 (were 1 and 1.6), as the sword's and the greatsword's, and an enemy's recovery after a
+  chain goes × its felt heft too, as a player's does. The Kobold's opening swing winds up 1.43 s (was 1.1), a chained
+  one 0.58 s (0.45), and it recovers 0.65 s (0.5); the Kobold Greatsword's 2.32 s (1.76), 0.95 s (0.72) and 1.05 s
+  (0.5). Bram's old stick swings as before.
+- A stun resets an enemy's attack (the user: "when the enemy gets stunned, it should reset their attack. their follow
+  up attack is too quick"; the details the main chat's, tried by tests only, not hand-played): any stun or stagger (a
+  broken poise, a perfect block's or a parry's recoil, the boar's wall, Lightning) ends the attack under way: a
+  Kobold's swing, the rest of its chain and its quick answer are dropped, and every attack (sword, bite, charge, leap,
+  slam) waits its whole cooldown once the stun is over, then a Kobold opens with its full first wind-up. Hits still
+  don't stun enemies: poise is their stagger meter. A skill's cooldown already runs from the cast, so it's unchanged.
+  `stun` in `shared/src/battle/fight/behaviors/common.ts`.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -827,7 +838,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     perfect block does (the clang, the hold, sparks); a clash bounces both with sparks.
   - The Kobold (the Greatsword too): a swing winds up 1.1 s, chained ones 0.45 s (its old, approved numbers), a heavy
     0.35 s more; any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s
-    of recovery after a chain, then its cooldown. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
+    of recovery after a chain, then its cooldown; each time × its blade's felt heft. Stunned, it waits its cooldown and
+    starts a fresh chain. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
     the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
     answers at once with a quick swing. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
     few hits and loses (the bot test). The seeded rolls are the fight's, as for its other choices.
@@ -1009,8 +1021,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
 - Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.55, 11 damage; the Greatsword 1 x 4, 1.9 m,
-  weight 8, heft 2.1, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword's
-  size with heft 1.6 and the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
+  weight 8, heft 2.1, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword
+  with the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
   (`shared/src/items/items.ts`).
 - Bows (the user's rules above, building on the agent's earlier prep: "prep for future weapons (bows)", "make any
   assumptions you want as to not block me"): **placeholders, every rule below the user's and every number.** All of it

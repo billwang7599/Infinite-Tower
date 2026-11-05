@@ -10,7 +10,7 @@ import type { System } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { Body, ChargeAttack, Enemy } from "../../components.js";
 import type { FightContext } from "../context.js";
-import { addHitAhead, enter } from "./common.js";
+import { addHitAhead, enter, stun } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.7;
@@ -52,8 +52,7 @@ export function chargeAttackSystem(ctx: Pick<FightContext, "arena" | "events">):
           const p = body.pos, r = Math.hypot(p.x, p.z);
           const outward = r > 0.01 ? (p.x * move.dirX + p.z * move.dirZ) / r : 0;
           if (r > ctx.arena.radius - enemy.def.radius - WALL_MARGIN && outward > MIN_OUTWARD_DOT) {
-            enter(world, e, enemy, "stunned", def.stunTime);
-            charge.cooldown = def.stunTime + def.cooldown;
+            stun(world, e, enemy, "stunned", def.stunTime);
             move.speed = 0; move.halt = true;
             ctx.events.push({ type: "slam", enemy: e });
           } else if (enemy.stateTime >= def.maxChargeTime) {

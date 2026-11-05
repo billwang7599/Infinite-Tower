@@ -8,7 +8,7 @@ import { FIXED_DT, toSteps } from "../../core/time.js";
 import { STRIKES, strikeOf, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
@@ -16,7 +16,7 @@ import { FighterStats, HP_REGEN_PAUSE_TIME, knockbackTakenFactor, stunTime } fro
 import { applyStatus, modsOf } from "../statuses.js";
 import { EMBERS } from "../../soul/inscriptions.js";
 import type { FightContext, FightEvent } from "./context.js";
-import { enter } from "./behaviors/common.js";
+import { stun } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
 import { hurt, lifesteal } from "./health.js";
 import { defend } from "./weapons/defend.js";
@@ -161,12 +161,7 @@ export function stagger(world: World, e: Entity, time: number): void {
     player.action = "stagger";
     world.require(e, Health).hitstun = time;
   } else if (enemy) {
-    enter(world, e, enemy, "staggered", time);
-    const attack = world.get(e, WeaponAttack);
-    if (attack) {
-      attack.cooldown = Math.max(attack.cooldown, time);
-      attack.riposte = false;
-    }
+    stun(world, e, enemy, "staggered", time);
   }
 }
 
