@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { NullEngine, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
+import { NullEngine, Quaternion, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import type { WeaponId } from "@infinite-tower/shared";
 import { FIXED } from "../../../src/gfx/look/palette.js";
 import { LIGHT, OUTLINE, SHADOW } from "../../../src/gfx/look/pixels.js";
-import { bladeArt, bladeEdge, buildBlade, BLADE_FROM_M } from "../../../src/visuals/battle/blade.js";
+import {
+  bladeArt, bladeEdge, buildBlade, BLADE_FROM_M, dropShield, holdingOf, holdShield, SHIELD,
+} from "../../../src/visuals/battle/blade.js";
+import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 import { WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
 
 const hex = (rgba: Uint8ClampedArray, i: number) =>
@@ -67,5 +70,43 @@ describe("a 3D blade", () => {
       assert.ok(Vector3.Distance(new Vector3(v.x, v.y, v.z), want) < 1e-6, JSON.stringify(v));
     at(base, new Vector3(2, 1, 1 + BLADE_FROM_M));
     at(tip, new Vector3(2, 1, 1 + BLADE_FROM_M + look.blade.lengthM));
+  });
+});
+
+describe("a 3D shield", () => {
+  test("a round board on the hand's face, its boss out ahead (+z), the hand behind it", () => {
+    const scene = new Scene(new NullEngine()), hand = new TransformNode("hand", scene);
+    const ctx = { scene, sky: { castShadows: () => {} } } as unknown as ArenaScene;
+    const shield = holdShield(ctx, hand, "wooden-shield"), meshes = shield.root.getChildMeshes();
+    let min = new Vector3(Infinity, Infinity, Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity);
+    for (const m of meshes) {
+      m.computeWorldMatrix(true);
+      m.refreshBoundingInfo({});
+      min = Vector3.Minimize(min, m.getBoundingInfo().boundingBox.minimumWorld);
+      max = Vector3.Maximize(max, m.getBoundingInfo().boundingBox.maximumWorld);
+    }
+    const near = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 0.02, `${what}: ${a} vs ${b}`);
+    near(max.x - min.x, 2 * SHIELD.radiusM, "across");
+    near(max.y - min.y, 2 * SHIELD.radiusM, "up");
+    near((max.x + min.x) / 2, 0, "centred across");
+    near((max.y + min.y) / 2, 0, "centred up");
+    assert.ok(min.z > 0 && max.z - min.z < SHIELD.radiusM / 2, `in front of the hand, flat: ${min.z} to ${max.z}`);
+    dropShield(shield);
+    assert.equal(hand.getChildMeshes().length, 0);
+    scene.dispose();
+  });
+});
+
+describe("a held thing's turn", () => {
+  test("puts the blade along the hand's +y and its edge along +x, the flat facing +z", () => {
+    const blade = new Vector3(0.3, 0.8, 0.5).normalize(), edge = Vector3.Cross(blade, new Vector3(1, 0, 0)).normalize();
+    const turn = holdingOf(blade, edge, new Quaternion());
+    const along = (v: Vector3) => v.applyRotationQuaternion(turn);
+    assert.ok(Vector3.Distance(along(Vector3.Up()), blade) < 1e-6);
+    assert.ok(Vector3.Distance(along(new Vector3(1, 0, 0)), edge) < 1e-6);
+    assert.ok(Vector3.Distance(along(new Vector3(0, 0, 1)), Vector3.Cross(edge, blade)) < 1e-6);
+    const shortest = Quaternion.FromUnitVectorsToRef(Vector3.Up(), blade, new Quaternion());
+    assert.ok(Math.abs(Math.abs(Quaternion.Dot(holdingOf(blade, null, new Quaternion()), shortest)) - 1) < 1e-6,
+      "no edge: turned the shortest way from upright");
   });
 });

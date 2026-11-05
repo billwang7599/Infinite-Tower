@@ -1,8 +1,10 @@
 import {
-  Axis, Color3, Mesh, MeshBuilder, Quaternion, RawTexture, StandardMaterial, Texture, TransformNode, Vector3, VertexData,
-  type Camera, type Node, type Scene,
+  Axis, Color3, Matrix, Mesh, MeshBuilder, Quaternion, RawTexture, StandardMaterial, Texture, TransformNode, Vector3,
+  VertexData, type Camera, type Node, type Scene,
 } from "@babylonjs/core";
-import { dampFactor, wrapAngle, type Entity, type SwingData, type Vec3, type WeaponId } from "@infinite-tower/shared";
+import {
+  dampFactor, wrapAngle, type Entity, type ItemId, type SwingData, type Vec3, type WeaponId,
+} from "@infinite-tower/shared";
 import { toPicture, type BattleFrame, type Picture } from "../../gfx/look/art.js";
 import { FIXED } from "../../gfx/look/palette.js";
 import { OUTLINE, outline, Pen, Pixels, SHADOW } from "../../gfx/look/pixels.js";
@@ -133,6 +135,52 @@ export function buildBlade(scene: Scene, hand: TransformNode, look: WeaponLook, 
   return meshes;
 }
 
+const axes = [new Vector3(), new Vector3(), new Vector3()] as const, basis = new Matrix();
+
+export function holdingOf(blade: Vec3, edge: Vec3 | null, to: Quaternion): Quaternion {
+  const [x, y, z] = axes;
+  y.set(blade.x, blade.y, blade.z);
+  if (!edge) return Quaternion.FromUnitVectorsToRef(Vector3.UpReadOnly, y, to);
+  x.set(edge.x, edge.y, edge.z);
+  Vector3.CrossToRef(x, y, z);
+  Matrix.FromXYZAxesToRef(x, y, z, basis);
+  return Quaternion.FromRotationMatrixToRef(basis, to);
+}
+
+export const SHIELD = { radiusM: 0.25, standM: 0.06, thickM: 0.03, rimM: 0.025, bossM: 0.1 } as const;
+
+export interface HeldShield { item: ItemId; root: TransformNode; materials: StandardMaterial[] }
+
+export function holdShield(ctx: Pick<ArenaScene, "scene" | "sky">, hand: TransformNode, item: ItemId): HeldShield {
+  const { scene } = ctx, { radiusM, standM, thickM, rimM, bossM } = SHIELD;
+  const root = new TransformNode("shield", scene);
+  root.parent = hand;
+  root.position.z = standM;
+  root.rotation.x = Math.PI / 2;
+  const wood = colorMaterial(scene, "shield-wood", Color3.FromHexString("#7a5636"));
+  const iron = colorMaterial(scene, "shield-iron", Color3.FromHexString("#6f7378"), new Color3(0.2, 0.2, 0.2));
+  const board = MeshBuilder.CreateCylinder("shield-board",
+    { diameter: 2 * (radiusM - rimM), height: thickM, tessellation: 24 }, scene);
+  const rim = MeshBuilder.CreateTorus("shield-rim", { diameter: 2 * radiusM - rimM, thickness: rimM, tessellation: 24 },
+    scene);
+  const boss = MeshBuilder.CreateSphere("shield-boss", { diameter: bossM, segments: 6 }, scene);
+  boss.scaling.y = 0.6;
+  boss.position.y = thickM / 2;
+  board.material = wood;
+  rim.material = boss.material = iron;
+  for (const m of [board, rim, boss]) {
+    m.parent = root;
+    m.isPickable = false;
+    ctx.sky.castShadows(m);
+  }
+  return { item, root, materials: [wood, iron] };
+}
+
+export function dropShield(shield: HeldShield | null): void {
+  shield?.root.dispose();
+  for (const m of shield?.materials ?? []) m.dispose();
+}
+
 const edgeAt = new Vector3();
 
 export function bladeEdge(hand: TransformNode, look: WeaponLook): { base: Vec3; tip: Vec3 } {
@@ -187,7 +235,7 @@ const TURN_RATE = 18;
 const YAW_RATE = 15;
 /** The sprite's hand jumps from frame to frame: the hilt slides after it. */
 const HAND_FOLLOW_RATE = 30;
-const bladeDir = new Vector3(), bladeTurn = new Quaternion(), cameraRight = new Vector3();
+const bladeTurn = new Quaternion(), cameraRight = new Vector3();
 
 export interface HeldBlade {
   weapon: WeaponId;
@@ -231,7 +279,7 @@ export function dropBlade(blade: HeldBlade | null): void {
 
 export function placeBlade(
   blade: HeldBlade, camera: Camera, hand: { x: number; y: number }, yaw: number,
-  pose: { blade: Vec3; exact: boolean }, dt: number,
+  pose: { blade: Vec3; edge: Vec3 | null; exact: boolean }, dt: number,
 ): void {
   const at = blade.at ??= { ...hand }, k = dampFactor(HAND_FOLLOW_RATE, dt);
   at.x += (hand.x - at.x) * k;
@@ -241,7 +289,7 @@ export function placeBlade(
   blade.root.position.set((cameraRight.x / flat) * at.x, at.y, (cameraRight.z / flat) * at.x);
   blade.yaw += wrapAngle(yaw - blade.yaw) * dampFactor(YAW_RATE, dt);
   blade.root.rotation.y = blade.yaw;
-  Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), bladeTurn);
+  holdingOf(pose.blade, pose.edge, bladeTurn);
   const turned = blade.hand.rotationQuaternion ??= bladeTurn.clone();
   Quaternion.SlerpToRef(turned, bladeTurn, pose.exact ? 1 : dampFactor(TURN_RATE, dt), turned);
 }

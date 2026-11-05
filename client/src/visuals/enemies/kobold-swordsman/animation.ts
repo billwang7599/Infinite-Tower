@@ -3,7 +3,7 @@ import {
   Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
-import { BLADE_FROM_M, bladeEdge, cueBlade, dropCue, showCue, type BladeCue } from "../../battle/blade.js";
+import { BLADE_FROM_M, bladeEdge, cueBlade, dropCue, holdingOf, showCue, type BladeCue } from "../../battle/blade.js";
 import { fighter } from "../../battle/battle.js";
 import { buildSlash, placeSlash, type Slash } from "../../battle/slash.js";
 import {
@@ -71,7 +71,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.torso.scaling.set(1 + breath, 1, 1 + breath);
 
     const hand = nodes.swordArm.hand;
-    Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), nodes.blade);
+    holdingOf(pose.blade, pose.edge, nodes.blade);
     hand.rotationQuaternion ??= nodes.blade.clone();
     Quaternion.SlerpToRef(hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, dt),
       hand.rotationQuaternion);

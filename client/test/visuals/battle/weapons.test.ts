@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ITEMS, SCREEN_DIR, SWING_DIRS, WEAPONS, type AttackKind, type SwingData, type Vec3, type WeaponId,
+  ITEMS, SCREEN_DIR, SWING_DIRS, WEAPONS, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId,
 } from "@infinite-tower/shared";
 import {
-  glintOf, MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS,
+  GUARD_LEAN, glintOf, MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS,
 } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
@@ -96,6 +96,66 @@ describe("a held blade", () => {
   test("the wind-up starts from where the blade is held", () => {
     const from = held(wayCut("rl"));
     for (const way of SWING_DIRS) near(windup(wayCut(way), 0, from).blade, from.blade, way);
+  });
+});
+
+const AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
+const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const startOf = (way: SwingDir): Vec3 => ({ x: -SCREEN_DIR[way].x, y: -SCREEN_DIR[way].y, z: 0 });
+const planeOf = (way: SwingDir): Vec3 => cross(AHEAD, startOf(way));
+const MOST_LEAN_RAD = Math.max(...Object.values(GUARD_LEAN));
+
+describe("the blade's edge", () => {
+  test("aimed, the blade lies in its cut's plane toward where the cut starts, its edge facing the foe ahead", () => {
+    for (const way of SWING_DIRS) {
+      const { blade, edge } = held(wayCut(way, true)), plane = planeOf(way);
+      assert.ok(edge, `${way}: an edge`);
+      assert.ok(Math.abs(dot(blade, plane)) < 1e-9 && Math.abs(dot(edge, plane)) < 1e-9, `${way}: in the cut's plane`);
+      assert.ok(Math.abs(dot(blade, edge)) < 1e-9, `${way}: square to the blade`);
+      assert.ok(dot(blade, startOf(way)) > Math.cos(MOST_LEAN_RAD) - 1e-9 && blade.z > 0, `${way}: leaning ahead`);
+      assert.ok(dot(edge, AHEAD) >= Math.cos(MOST_LEAN_RAD) - 1e-9, `${way}: the edge ${dot(edge, AHEAD)} ahead`);
+    }
+  });
+
+  test("each guard leans ahead by how high its cut starts: high, level or low", () => {
+    const lean = (way: SwingDir) => Math.asin(held(wayCut(way, true)).blade.z);
+    const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
+    close(lean("tb"), GUARD_LEAN.highRad, "tb");
+    for (const way of ["lr", "rl"] as const) close(lean(way), GUARD_LEAN.sideRad, way);
+    for (const way of ["brtl", "bltr"] as const) {
+      close(lean(way), GUARD_LEAN.sideRad + (GUARD_LEAN.lowRad - GUARD_LEAN.sideRad) * Math.SQRT1_2, way);
+    }
+    for (const way of ["trbl", "tlbr"] as const) {
+      close(lean(way), GUARD_LEAN.sideRad + (GUARD_LEAN.highRad - GUARD_LEAN.sideRad) * Math.SQRT1_2, way);
+    }
+  });
+
+  test("through a swing the edge leads the blade round its cut's plane, drawn back, at the hit and past it", () => {
+    for (const way of SWING_DIRS) {
+      const cut = wayCut(way, true), plane = planeOf(way);
+      for (let turn = -0.4; turn <= 1.2; turn += 0.05) {
+        const now = strokeBlade(cut, turn), moved = sub(strokeBlade(cut, turn + 0.01).blade, now.blade);
+        assert.ok(now.edge, `${way}: an edge`);
+        assert.ok(dot(now.edge, moved) > 0.99 * Math.hypot(moved.x, moved.y, moved.z), `${way} at ${turn}: leading`);
+        assert.ok(Math.abs(dot(now.edge, plane)) < 1e-9 && Math.abs(dot(now.edge, now.blade)) < 1e-9, `${way}`);
+      }
+    }
+  });
+
+  test("winding up, it turns on from where the guard held it, still facing ahead", () => {
+    for (const way of SWING_DIRS) {
+      const cut = wayCut(way, true), from = held(cut);
+      near(windup(cut, 0, from).edge!, from.edge!, way);
+      for (const k of [0.3, 0.7, 1]) assert.ok(windup(cut, k, from).edge!.z > 0.5, `${way} at ${k}`);
+    }
+  });
+
+  test("a stab's edges are level", () => {
+    const { blade, edge } = strokeBlade(wayCut("stab", true), 0.5);
+    assert.ok(edge && Math.abs(edge.y) < 1e-9 && Math.abs(dot(edge, blade)) < 1e-9);
   });
 });
 

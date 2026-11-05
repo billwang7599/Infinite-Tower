@@ -1,6 +1,7 @@
 import type { EnemyState, Vec3 } from "@infinite-tower/shared";
 import {
-  DRAWBACK, drawnBack, pullOf, REELING_BLADE, type BladePose, type Cut, type WeaponMotion,
+  cutStart, DRAWBACK, drawnBack, edgeLeading, edgeToward, pullOf, REELING_BLADE, type BladePose, type Cut,
+  type WeaponMotion,
 } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -33,6 +34,7 @@ function coilToward(blade: Vec3): { x: number; y: number } {
 /** Where the kobold's parts head (the model eases toward them), in its own frame: +z ahead. */
 export interface KoboldPose {
   blade: Vec3;
+  edge: Vec3;
   /** The blade sweeps exactly, not eased (mid-swing). */
   bladeExact: boolean;
   hand: Vec3;
@@ -94,6 +96,7 @@ export function koboldPose(
   const coilTwist = KOBOLD_DRAWBACK.turnRad * pull * coil.x;
   return {
     ...p,
+    edge: swinging ? edgeLeading(p.blade, cutStart(cut)) : edgeToward(p.blade),
     hand: {
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,

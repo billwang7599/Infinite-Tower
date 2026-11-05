@@ -130,9 +130,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
     const share = hidden && ctx.pixel.steps === null ? fpShare(ctx.battle.view.eye, ctx.battle.blend.pos(world, e)) : 0;
     sprite.armsInView = share > 0;
-    const held = weapon && WEAPON_LOOKS[weapon], alive = health.hp > health.floor;
-    const gripped = alive && !!held?.twoHanded;
-    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, gripped, share, dt);
+    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, share, dt);
     else sprite.person.inView = null;
   } else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {

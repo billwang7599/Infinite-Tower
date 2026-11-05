@@ -2,25 +2,27 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  DEFAULT_LOOK, FIXED_DT, SCREEN_DIR, type Entity, type SwingData, type SwingDir, type Vec3, type Way,
+  DEFAULT_LOOK, FIXED_DT, SCREEN_DIR, SWING_DIRS, WEAPONS, type Entity, type GuardKind, type PlayerAction,
+  type SwingData, type SwingDir, type Vec3, type Way, type WeaponId,
 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS, insideSelf } from "../../../src/modes/battle/camera.js";
 import { orbitBack } from "../../../src/modes/orbit.js";
-import { BLADE_FROM_M, holdBlade } from "../../../src/visuals/battle/blade.js";
+import { BLADE_FROM_M, holdBlade, SHIELD } from "../../../src/visuals/battle/blade.js";
 import { ARROW_M, pullString } from "../../../src/visuals/battle/bow.js";
 import { moveBow, restingBow, type BowDraw, type BowMotion } from "../../../src/visuals/battle/bowMotion.js";
 import {
-  bowInView, FP_ARMS, FP_BOW, firstPersonArms, fpShare, holdInView, POSED_FOR, restShoulders, swungInView,
+  bowInView, FP_ARMS, FP_BOW, firstPersonArms, fpShare, guardInView, holdInView, POSED_FOR, restShoulders,
+  swungInView,
 } from "../../../src/visuals/battle/firstPerson.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 import {
-  newPerson, OFF_GRIP_M, reachArms, type PersonDrawing,
+  GUARD_SHIFT, guardShiftTime, newPerson, OFF_GRIP_M, reachArms, type PersonDrawing,
 } from "../../../src/visuals/battle/person/animation.js";
 import { buildPerson, personBuild } from "../../../src/visuals/battle/person/model.js";
 import type { Sky } from "../../../src/visuals/sky/sky.js";
 import { personPose, type PersonPose } from "../../../src/visuals/battle/person/pose.js";
 import { restInModel } from "../../../src/visuals/battle/person/skeleton.js";
-import { MOTIONS, WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
+import { GUARD_LEAN, MOTIONS, WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../fixtures/players.js";
 import { swingAt, swingSteps } from "../../fixtures/swings.js";
 
@@ -145,7 +147,7 @@ describe("first person: the arms go with the camera", () => {
           z: o.z + back.z * fp.distanceM }, at: { x: o.x - back.x, y: o.y - back.y, z: o.z - back.z },
       };
       restShoulders(person);
-      holdInView(person, view, false, 1, 0);
+      holdInView(person, view, 1, 0);
       const hand = model.joints["hand.R"].getAbsolutePosition(), forward = { x: -back.x, y: -back.y, z: -back.z };
       const right = { x: Math.cos(yaw), y: 0, z: -Math.sin(yaw) };
       const up = { x: forward.y * right.z - forward.z * right.y, y: forward.z * right.x - forward.x * right.z,
@@ -195,7 +197,7 @@ describe("first person: the drawn bow", () => {
     person.bow = aimed(pull);
     const { view, forward, seen } = viewFrom(yaw, pitch, feet);
     restShoulders(person);
-    holdInView(person, view, false, 1, 0);
+    holdInView(person, view, 1, 0);
     pullString(bow, pull, true);
     const nockAt = bow.nocked.computeWorldMatrix(true).getTranslation();
     const way = Vector3.TransformNormal(Vector3.Forward(), bow.nocked.getWorldMatrix()).normalize();
@@ -305,7 +307,7 @@ describe("first person: a sword swing", () => {
       { ...moment, side: 1, walk: still, alpha });
     p.pose = pose;
     restShoulders(p);
-    holdInView(p, view, false, 1, dt);
+    holdInView(p, view, 1, dt);
     const hand = grip.getAbsolutePosition().clone();
     const way = Vector3.TransformNormal(Vector3.Up(), grip.getWorldMatrix()).normalize();
     return { hand, way, seen: bladeSeen(hand, way) };
@@ -393,6 +395,211 @@ describe("first person: a sword swing", () => {
   });
 });
 
+const cross = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+const MOST_LEAN_RAD = Math.max(...Object.values(GUARD_LEAN));
+
+describe("first person: the guard", () => {
+  const { forward, right, up } = POSED_FOR;
+  const startIn = (way: SwingDir, r: Vec3, u: Vec3): Vec3 => {
+    const { x, y } = SCREEN_DIR[way];
+    return { x: -x * r.x - y * u.x, y: -x * r.y - y * u.y, z: -x * r.z - y * u.z };
+  };
+
+  test("aimed, the blade lies in the cut's plane through the view and its edge faces where you look, either hand", () => {
+    for (const side of [1, -1] as const) {
+      for (const way of SWING_DIRS) {
+        const g = guardInView(way, side), plane = cross(forward, startIn(way, right, up)), what = `${side} ${way}`;
+        assert.ok(Math.abs(dot(g.blade, plane)) < 1e-9 && Math.abs(dot(g.edge, plane)) < 1e-9, `${what}: in plane`);
+        assert.ok(dot(g.blade, startIn(way, right, up)) > 0, `${what}: toward where the cut starts`);
+        assert.ok(dot(g.edge, forward) >= Math.cos(MOST_LEAN_RAD) - 1e-9, `${what}: edge ${dot(g.edge, forward)}`);
+      }
+    }
+  });
+
+  test("each guard's hand is toward where its cut starts, in reach, the blade's foot in view, the crosshair clear", () => {
+    const lengthM = WEAPON_LOOKS.sword.blade.lengthM, unit = (v: Vec3) => {
+      const l = Math.hypot(v.x, v.y, v.z);
+      return { x: v.x / l, y: v.y / l, z: v.z / l };
+    };
+    for (const side of [1, -1] as const) {
+      const spots = SWING_DIRS.map((way) => onScreen(guardInView(way, side).hand));
+      const mean = { x: spots.reduce((s, p) => s + p.x, 0) / 7, y: spots.reduce((s, p) => s + p.y, 0) / 7 };
+      SWING_DIRS.forEach((way, i) => {
+        const g = guardInView(way, side), s = spots[i]!, what = `${side} ${way}`, { x, y } = SCREEN_DIR[way];
+        assert.ok(-(s.x - mean.x) * x - (s.y - mean.y) * y > 0.12, `${what}: the hand at ${s.x}, ${s.y}`);
+        assertInView(g.hand, `${what}: the hand`);
+        assertInView(along(g.hand, g.blade, BLADE_FROM_M), `${what}: the blade's foot`);
+        assertInReach(g.hand, side, what);
+        const offM = Math.abs(dot(unit(cross(forward, startIn(way, right, up))), sub(g.hand, POSED_FOR.eye)));
+        assert.ok(offM > 0.07, `${what}: the cut's plane ${offM} m from the eye, the blade a line`);
+        for (let m = BLADE_FROM_M; m <= BLADE_FROM_M + lengthM; m += 0.05) {
+          const at = onScreen(along(g.hand, g.blade, m));
+          if (at.depthM > 0.1) assert.ok(Math.hypot(at.x, at.y) > CLEAR, `${what}: over the crosshair at ${m} m`);
+        }
+      });
+    }
+  });
+
+  test("drawn, the sword's flat turns as the guard holds it, wherever the camera looks", () => {
+    const scene = new Scene(new NullEngine()), sky = { castShadows: (_m: AbstractMesh) => {} } as unknown as Sky;
+    const node = new TransformNode("player", scene), feet = { x: 2, y: 0.7, z: -1 };
+    node.position.set(feet.x, feet.y, feet.z);
+    const model = buildPerson({ scene, sky }, 1, node, BUILD);
+    model.holder.rotation.y = 0.4;
+    const ctx = { scene, sky, bows: new Map() } as unknown as ArenaScene;
+    for (const side of [1, -1] as const) {
+      const grip = model.joints[side === 1 ? "grip.R" : "grip.L"];
+      const blade = holdBlade(ctx, 1 as Entity, grip, "sword", 0);
+      const person: PersonDrawing = { ...newPerson(), model, look: DEFAULT_LOOK, bladeSide: side, blade };
+      for (const [yaw, pitch] of [[0.4, CAMERA_VIEWS.fp.lockPitchRad], [1.5, -0.6]] as const) {
+        const { view, forward: ahead } = viewFrom(yaw, pitch, feet), r = { x: Math.cos(yaw), y: 0, z: -Math.sin(yaw) };
+        const u = cross(ahead, r);
+        for (const way of SWING_DIRS) {
+          person.pose = swordPose(playerDoing("none", 1, way), null, side);
+          person.inView = null;
+          restShoulders(person);
+          holdInView(person, view, 1, 0);
+          const m = grip.getWorldMatrix(), what = `${side} ${way} at ${yaw}, ${pitch}`;
+          const b = Vector3.TransformNormal(Vector3.Up(), m).normalize(), e = Vector3.TransformNormal(Vector3.Right(), m)
+            .normalize(), plane = cross(ahead, startIn(way, r, u));
+          const off = Math.abs(dot(b, plane)) / Math.hypot(plane.x, plane.y, plane.z);
+          assert.ok(off < 0.01, `${what}: the blade ${off} out of the cut's plane`);
+          assert.ok(dot(e, ahead) >= Math.cos(MOST_LEAN_RAD) - 0.01, `${what}: the edge ${dot(e, ahead)} ahead`);
+        }
+      }
+      blade.root.dispose();
+    }
+    scene.dispose();
+  });
+});
+
+describe("first person: the block reads", () => {
+  const blocking = (guard: GuardKind, side: 1 | -1 = 1) => personPose(playerDoing("block", 1, "rl"), { swing: null },
+    MOTIONS.sword, { ...moment, side, walk: still, guard });
+  const flat = (held: { blade: Vec3; edge: Vec3 }) => cross(held.edge, held.blade);
+  const lengthM = WEAPON_LOOKS.sword.blade.lengthM;
+
+  test("one blade: across the view below the crosshair, the other hand under it, both hands in view", () => {
+    for (const side of [1, -1] as const) {
+      const p = blocking("one", side), foot = onScreen(along(p.hand, p.blade, BLADE_FROM_M));
+      const mid = onScreen(along(p.hand, p.blade, BLADE_FROM_M + lengthM / 2));
+      assert.ok(Math.abs(mid.y - foot.y) < 0.4 * Math.abs(mid.x - foot.x) && (mid.x - foot.x) * side < -0.5,
+        `${side}: from ${foot.x}, ${foot.y} to ${mid.x}, ${mid.y}`);
+      for (let m = BLADE_FROM_M; m <= BLADE_FROM_M + lengthM / 2; m += 0.05) {
+        assert.ok(onScreen(along(p.hand, p.blade, m)).y < -0.15, `${side}: below the crosshair at ${m} m`);
+      }
+      assertInView(p.hand, `${side}: the sword hand`);
+      assertInView(p.offHand, `${side}: the other hand`);
+    }
+  });
+
+  test("two blades: an X crossed below the crosshair, their points spreading out either side of it", () => {
+    for (const side of [1, -1] as const) {
+      const p = blocking("dual", side), off = p.off!;
+      const a0 = onScreen(along(p.hand, p.blade, BLADE_FROM_M)), a1 = onScreen(along(p.hand, p.blade, 0.8));
+      const b0 = onScreen(along(p.offHand, off.blade, BLADE_FROM_M)), b1 = onScreen(along(p.offHand, off.blade, 0.8));
+      const dx = (a1.x - a0.x) * (b1.y - b0.y) - (a1.y - a0.y) * (b1.x - b0.x);
+      const t = ((b0.x - a0.x) * (b1.y - b0.y) - (b0.y - a0.y) * (b1.x - b0.x)) / dx;
+      const s = ((b0.x - a0.x) * (a1.y - a0.y) - (b0.y - a0.y) * (a1.x - a0.x)) / dx;
+      const crossAt = { x: a0.x + (a1.x - a0.x) * t, y: a0.y + (a1.y - a0.y) * t };
+      assert.ok(t > 0 && t < 1 && s > 0 && s < 1, `${side}: the blades cross on screen (${t}, ${s})`);
+      assert.ok(crossAt.y < -0.1 && Math.abs(crossAt.x) < 0.15, `${side}: crossed at ${crossAt.x}, ${crossAt.y}`);
+      assert.ok(a1.x * side < -0.2 && b1.x * side > 0.2, `${side}: points out at ${a1.x} and ${b1.x}`);
+      assertInView(p.hand, `${side}: the sword hand`);
+      assertInView(p.offHand, `${side}: the other hand`);
+    }
+  });
+
+  test("a shield: raised before you facing ahead, filling the bottom of the view up to just under the crosshair", () => {
+    for (const side of [1, -1] as const) {
+      const p = blocking("shield", side), face = flat(p.off!), middle = along(p.offHand, face, SHIELD.standM);
+      assert.ok(dot(face, POSED_FOR.forward) > 0.9, `${side}: facing ahead`);
+      const top = onScreen(along(middle, p.off!.blade, SHIELD.radiusM)), at = onScreen(middle);
+      assert.ok(top.y < -0.03 && top.y > -0.3, `${side}: the rim at ${top.y}`);
+      assert.ok(Math.abs(at.x) < 0.45 && at.y < -0.35, `${side}: in the middle at ${at.x}, ${at.y}`);
+      assertInView(p.offHand, `${side}: the shield hand`);
+    }
+  });
+});
+
+describe("first person: changing guard or blocking eases, the edge kept toward the foe", () => {
+  const scene = new Scene(new NullEngine()), sky = { castShadows: (_m: AbstractMesh) => {} } as unknown as Sky;
+  const node = new TransformNode("player", scene), feet = { x: 2, y: 0.7, z: -1 };
+  node.position.set(feet.x, feet.y, feet.z);
+  const model = buildPerson({ scene, sky }, 1, node, BUILD);
+  model.holder.rotation.y = 0.4;
+  const ctx = { scene, sky, bows: new Map() } as unknown as ArenaScene;
+  const { view, forward } = viewFrom(0.4, CAMERA_VIEWS.fp.lockPitchRad, feet);
+  const upward = cross(forward, { x: Math.cos(0.4), y: 0, z: -Math.sin(0.4) });
+  const grip = model.joints["grip.R"];
+
+  type Moment = { action: PlayerAction; way: SwingDir; guard?: GuardKind };
+  function run(weapon: WeaponId, perSec: number, endTime: number, at: (t: number) => Moment) {
+    const blade = holdBlade(ctx, 1 as Entity, grip, weapon, 0), twoHanded = WEAPON_LOOKS[weapon].twoHanded;
+    const p: PersonDrawing = { ...newPerson(), model, look: DEFAULT_LOOK, bladeSide: 1, blade };
+    const frames = [];
+    for (let i = 0; i <= endTime * perSec; i++) {
+      const t = i / perSec, m = at(t);
+      p.pose = personPose(playerDoing(m.action, 1, m.way), { swing: null }, MOTIONS.sword,
+        { ...moment, side: 1, walk: still, guard: m.guard ?? "one", twoHanded });
+      restShoulders(p);
+      holdInView(p, view, 1, 1 / perSec);
+      const w = grip.getWorldMatrix(), offGrip = model.joints["grip.L"];
+      frames.push({ t, hand: grip.getAbsolutePosition().clone(), blade: Vector3.TransformNormal(Vector3.Up(), w)
+        .normalize(), edge: Vector3.TransformNormal(Vector3.Right(), w).normalize(),
+        offHand: offGrip.getAbsolutePosition().clone(),
+        offBlade: Vector3.TransformNormal(Vector3.Up(), offGrip.getWorldMatrix()).normalize() });
+    }
+    blade.root.dispose();
+    return frames;
+  }
+  const angleRad = (a: Vector3, b: Vector3) => Math.acos(Math.min(1, Vector3.Dot(a, b)));
+  const CHANGE_TIME = 0.3;
+
+  test("the shift takes about a tenth of a second, longer for a heavier weapon", () => {
+    assert.equal(guardShiftTime(WEAPONS.sword.heft), GUARD_SHIFT.time);
+    const great = guardShiftTime(WEAPONS.greatsword.heft);
+    assert.ok(great > GUARD_SHIFT.time + 0.03 && great < 2 * GUARD_SHIFT.time, `${great}`);
+  });
+
+  test("left to right, the blade swings over the top over the shift's time, its edge toward the foe all the way", () => {
+    for (const weapon of ["sword", "greatsword"] as const) {
+      const shiftTime = guardShiftTime(WEAPONS[weapon].heft);
+      const frames = run(weapon, 240, CHANGE_TIME + 0.4, (t) => ({ action: "none", way: t < CHANGE_TIME ? "lr" : "rl" }));
+      const from = frames.filter((f) => f.t < CHANGE_TIME).at(-1)!, to = frames.at(-1)!;
+      const half = frames.find((f) => f.t >= CHANGE_TIME + shiftTime / 2)!;
+      assert.ok(angleRad(half.blade, from.blade) > 0.4 && angleRad(half.blade, to.blade) > 0.4, `${weapon}: eased`);
+      const done = frames.find((f) => f.t >= CHANGE_TIME + shiftTime + 0.01)!;
+      assert.ok(angleRad(done.blade, to.blade) < 0.03, `${weapon}: there after ${shiftTime} s`);
+      const shifting = frames.filter((f) => f.t >= CHANGE_TIME && f.t <= CHANGE_TIME + shiftTime);
+      assert.ok(Math.max(...shifting.map((f) => dot(f.blade, upward))) > 0.6, `${weapon}: over the top`);
+      for (const f of frames) assert.ok(dot(f.edge, forward) > 0.5, `${weapon} at ${f.t}: the edge ${dot(f.edge, forward)}`);
+    }
+  });
+
+  test("raising and lowering the block eases, nothing jumps, whatever blocks", () => {
+    for (const guard of ["one", "dual", "shield"] as const) {
+      const script = (t: number): Moment => ({ action: t >= CHANGE_TIME && t < 2 * CHANGE_TIME ? "block" : "none",
+        way: "rl", guard });
+      const most = (perSec: number) => {
+        const frames = run("sword", perSec, 3 * CHANGE_TIME, script);
+        let turnRad = 0, handM = 0;
+        for (let i = 1; i < frames.length; i++) {
+          const a = frames[i - 1]!, b = frames[i]!;
+          turnRad = Math.max(turnRad, angleRad(b.blade, a.blade), angleRad(b.offBlade, a.offBlade));
+          handM = Math.max(handM, Vector3.Distance(b.hand, a.hand), Vector3.Distance(b.offHand, a.offHand));
+        }
+        for (const f of frames) assert.ok(dot(f.edge, forward) > 0.3, `${guard} at ${f.t}: the edge ${dot(f.edge, forward)}`);
+        return { turnRad, handM };
+      };
+      const at60 = most(60), at240 = most(240);
+      assert.ok(at240.turnRad < at60.turnRad / 2.5 + 1e-6, `${guard}: ${at60.turnRad} rad a frame at 60, ${at240.turnRad} at 240`);
+      assert.ok(at240.handM < at60.handM / 2.5 + 1e-6, `${guard}: ${at60.handM} m a frame at 60, ${at240.handM} at 240`);
+    }
+  });
+});
+
 describe("first person: leaving it", () => {
   test("the arms are in first person while the eye is in the head, back on the body before the body shows", () => {
     const fp = CAMERA_VIEWS.fp, me = { x: 1, y: 0.7, z: 2 }, eye = (m: number) => ({ x: 1, y: 0.7 + fp.orbitHeightM, z: 2 - m });
@@ -420,10 +627,10 @@ describe("first person: leaving it", () => {
     const { view } = viewFrom(0.4, CAMERA_VIEWS.fp.lockPitchRad, feet);
     const handAt = (share: number) => {
       restShoulders(person);
-      reachArms(model.joints, BUILD.look.body, 1, new Vector3(pose.hand.x, pose.hand.y, pose.hand.z), bladeTurn,
-        pose.offHand, WEAPON_LOOKS.sword);
+      reachArms(model.joints, BUILD.look.body, 1, pose.hand, bladeTurn,
+        { hand: pose.offHand, holding: Quaternion.Identity(), held: null }, WEAPON_LOOKS.sword);
       const body = model.joints["hand.R"].getAbsolutePosition().clone();
-      if (share > 0) holdInView(person, view, false, share, 0);
+      if (share > 0) holdInView(person, view, share, 0);
       return { body, shown: model.joints["hand.R"].getAbsolutePosition().clone() };
     };
     let last = handAt(1).shown;

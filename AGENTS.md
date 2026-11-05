@@ -311,10 +311,11 @@ Decided by the user:
   first person only: "sure"). Every change eases. Third person stays reachable on a dev server, for the user's A/B test:
   `?cam=shoulder` (or another preset) is the fight's view in first person's place. In first person your arms are always
   in view (the user: "first person i should be able to see my arms at all times i think, so the sword is in view a bit
-  more"): both hands sit low on the screen, the sword lower and nearer the middle than the pose's own, and the arms go
-  with the camera wherever it looks (ART.md, "first person"). The camera's numbers (`CAMERA_VIEWS` at the top of
-  `client/src/modes/battle/camera.ts`, the turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to
-  tune; dev servers try others with `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
+  more"): both hands sit below the crosshair, the sword held in the aimed way's guard (the sword's guard, below) and the
+  other hand low, and the arms go with the camera wherever it looks (ART.md, "first person"). The camera's numbers
+  (`CAMERA_VIEWS` at the top of `client/src/modes/battle/camera.ts`, the turn rates `TURN` in
+  `client/src/modes/orbit.ts`) are the agent's pick, to tune; dev servers try others with `?cam=<preset>` and `cam.*`
+  flags (ARCHITECTURE.md).
 - Seeing you're stunned (the user: "i want an indication that im stunned since we're in first person now", "maybe
   stun status effect and also stars on screen?"; the look and numbers are the agent's, seen in a headless browser,
   not hand-played). Looks only, from your hitstun: while it runs a "Stunned" tile shows last in your statuses, its
@@ -511,7 +512,18 @@ Decided by the user:
   so the sword's 0.2 s window, and heft 1.3, up in 0.1 s); two blades block with the swinging one's. A press mid-swing
   switches once that blade's done (after its live time), and a chain goes on across a switch. The Wooden shield is 2 x
   2, weight 4, worth 250c, sold and bought at Garrick's forge. A small mark either side of the aim ring shows which
-  hand swings, with two blades only. The arena's 3D people don't draw a shield yet, nor a block pose by guard.
+  hand swings, with two blades only. The arena's 3D people hold the shield (a round board) and the second blade in
+  the other hand, and block by guard (the sword's guard, below).
+- The sword's guard is realistic (the user: "sword when aiming should be more realistic. ie edge always facing the
+  enemy, and the plane that the sword makes should be parallel to the plane we're looking at"): aimed, the blade lies in
+  the plane its cut sweeps through (the cut's line across the view and the way ahead), toward where the cut starts, its
+  edge toward the foe, and through a swing the edge leads. Each way has its own guard, the sword hand toward where the
+  cut starts. Blocking is posed by what blocks (the user: "dual wield = two swords crossed in an X (SAO-style); single
+  wield = blade held across body, other hand supporting it"; a shield raised in front, the main chat's): one blade
+  across the body, the other hand under it; two crossed in an X; a shield raised before you, the sword kept in its
+  guard. A change of guard, or into or out of a block, eases over about 0.1 s, longer for a heftier weapon (about 0.15 s
+  the greatsword). Looks only: no timing or rule changed. The leans, spots and times are the agent's picks, tried in a
+  headless browser, not hand-played (ART.md, "Poses are data"; `GUARD_LEAN`, `FP_GUARD`, `BLOCK`, `GUARD_SHIFT`).
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
   40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
