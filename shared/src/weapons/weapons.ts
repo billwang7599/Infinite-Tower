@@ -57,7 +57,7 @@ export const canWield = (item: WeaponId, strength: number): boolean => strength 
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
 export const feltHeft = (weapon: Guard, strength: number): number =>
-  (weapon.heft / WEAPONS.sword.heft) * (AVERAGE_STAT / strength);
+  (weapon.heft / WEAPONS.sword.heft) * Math.sqrt(AVERAGE_STAT / strength);
 
 export type Guard = Pick<Weapon, "length" | "heft">;
 

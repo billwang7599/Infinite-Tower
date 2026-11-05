@@ -160,7 +160,11 @@ Decided by the user:
   - Felt heft is one linear rule for every weapon and guard (the user: "we should use the same felt weight going
     in"): (heft / the Basic Sword's 3) × 10 / strength, so the Basic Sword feels 1 at strength 10, 2 at 5 and 0.5 at
     20, and strength lightens a light weapon too (it replaced: under 1 a weapon felt its own heft, over it max(1, 1 +
-    (heft − 1) × 10 / strength)). Wherever heft sets a time it's the felt heft: the swing, a whiff's and a feint's
+    (heft − 1) × 10 / strength)). Then strength's part became a square root, × √(10 / strength), as damage's
+    × √(strength / 10) (the user approved; tests only, not hand-played), so strength keeps mattering at high levels
+    and a strong boss stays slow and readable instead of every weapon reaching the 0.4 s floor; the weight's part
+    stays linear, so the Basic Sword feels 1.41 at 5, 0.71 at 20 and 0.5 at 40. The Kobolds, at strength 10, are
+    unchanged. Wherever heft sets a time it's the felt heft: the swing, a whiff's and a feint's
     recovery, the guard's raise (never under 0 s, the agent's pick) and its shift as drawn. The old stick feels 0.13
     at strength 10, so every wind-up of it is at the floor and a light costs 1.7 stamina; Bram's swings with it all
     go live at the 0.4 s floor and he recovers 0.02 s (not retuned for it, the user).
@@ -651,10 +655,10 @@ Decided by the user:
   strength: felt heft (every time and stamina cost), damage (√2), the guard's raise and a parry's weight; the body's
   numbers (carry limit, pushback taken, walking) and the guard's shift as drawn keep the wielder's own. A block's
   stamina goes × 10 / that strength for every guard (`blockStaminaShare`), so a two-handed block costs half and a
-  stronger fighter blocks more cheaply; chip stays the guard's. Felt heft goes as 1 / strength (the linear rule above),
-  so two hands halve every melee weapon's, the Basic Sword's and the old stick's too: at strength 10 a Basic Sword in
-  both hands feels 0.5 (its lights and stabs at the 0.4 s floor, half the stamina), the greatsword 0.81 (0.45 s, was
-  0.9). Kept at 2× after that rule, not retuned (the user's call). So Bram hits √2 harder and winds up as at strength
+  stronger fighter blocks more cheaply; chip stays the guard's. With felt heft as 1 / √strength (above), two hands put
+  every melee weapon's × 1 / √2, the Basic Sword's and the old stick's too: at strength 10 a Basic Sword in both hands
+  feels 0.71 (its opening light at the 0.4 s floor, 0.71 of the stamina), the greatsword 1.15 (0.63 s, one-handed 0.9).
+  Kept at 2× after that rule, not retuned (the user's call). So Bram hits √2 harder and winds up as at strength
   20; the Kobolds, one-handed, are as they were. An enemy's block costs poise, unchanged. The poses are the agent's,
   tried by tests and a headless browser, not hand-played: both hands on the hilt, the off hand a hand-width under the
   sword hand (`OFF_GRIP_M`, 0.1 m), through the guard, every swing and stab and the block; it eases on and off the grip

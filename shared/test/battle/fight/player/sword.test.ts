@@ -193,7 +193,7 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
           wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy", strength);
         assert.deepEqual([two.liveAt, two.endAt], [steps(twice).liveAt, steps(twice).endAt], what);
         assert.deepEqual([one.liveAt, one.endAt], [steps(STATS.strength).liveAt, steps(STATS.strength).endAt], what);
-        assert.ok(two.liveAt <= one.liveAt && two.endAt < one.endAt && two.spent < one.spent, what);
+        assert.ok(two.liveAt <= one.liveAt && two.endAt <= one.endAt && two.spent < one.spent, what);
         assert.ok(Math.abs(two.spent - strikeCost(weapon, strike, twice)) < 1e-9, `${what}: ${two.spent}`);
         assert.ok(Math.abs(one.spent - strikeCost(weapon, strike, STATS.strength)) < 1e-9, `${what}: ${one.spent}`);
       }
