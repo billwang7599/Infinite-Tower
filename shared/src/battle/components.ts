@@ -37,6 +37,7 @@ export interface PlayerData {
   attackBuffer: number;
   dodgeBuffer: number;
   castBuffer: number;
+  dodgeCooldownSteps: number;
   perfectBlockLeft: number;
   sinceBlockPress: number;
   queued: Strike | null;

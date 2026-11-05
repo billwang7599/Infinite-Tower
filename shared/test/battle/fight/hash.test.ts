@@ -78,6 +78,7 @@ describe("a fight's hash", () => {
       }],
       ["the action's clock", (f) => { f.world.require(f.players[0]!, Player).actionTime += 0.05; }],
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
+      ["a dodge's recovery", (f) => { f.world.require(f.players[0]!, Player).dodgeCooldownSteps += 1; }],
       ["a held block", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.last = { ...p.last, block: !p.last.block };

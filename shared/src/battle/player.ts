@@ -28,11 +28,11 @@ export const PLAYER = {
   armReachM: 0.8,
 
   dodge: {
-    cost: 22,
+    cost: 30,
     duration: 0.42,
-    /** From the dodge's first step: a dodge on the step a hit lands beats it. */
-    iframeStart: 0,
-    iframeEnd: 0.32,
+    iframeStart: 0.05,
+    iframeEnd: 0.25,
+    cooldown: 0.25,
     speed: 12,
     endSpeed: 3,
   },

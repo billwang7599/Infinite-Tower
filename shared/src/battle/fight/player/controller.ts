@@ -107,6 +107,7 @@ function controlPlayer(
   readSword(t);
   if (input.dodge && !last.dodge) player.dodgeBuffer = PLAYER.inputBuffer;
   else if (!t.locked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
+  player.dodgeCooldownSteps = Math.max(0, player.dodgeCooldownSteps - 1);
   if (input.cast !== null && !skilled.held) {
     player.castQueued = input.cast;
     player.castBuffer = PLAYER.inputBuffer;
@@ -166,8 +167,8 @@ function chooseAction(t: Turn): void {
   // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
   const dodgeable = free || chanting || inBag || usingNow || player.action === "cast"
     || player.action === "beam" || player.action === "draw" || player.action === "loose";
-  if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded
-    && canPayStamina(world, e, stamina, dodgeStamina)) {
+  if (dodgeable && player.dodgeBuffer > 0 && player.dodgeCooldownSteps === 0 && dodgeStamina !== null
+    && player.grounded && canPayStamina(world, e, stamina, dodgeStamina)) {
     let dx = input.moveX, dz = input.moveZ;
     const len = Math.hypot(dx, dz);
     if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
@@ -225,7 +226,10 @@ function moveByAction({ world, e, dt, player, input, wielder, stamina, stats, mo
       const speed = moveSpeed(dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress, stats);
       v.x = dir.x * speed;
       v.z = dir.z * speed;
-      if (t >= dodge.duration) player.action = "none";
+      if (t >= dodge.duration) {
+        player.action = "none";
+        player.dodgeCooldownSteps = toSteps(dodge.cooldown);
+      }
       break;
     }
     case "cast":

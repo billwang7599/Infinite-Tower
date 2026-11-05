@@ -161,25 +161,30 @@ Decided by the user:
     within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
     the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry.
   - Blocking is the safe option, the swing parry the risky one (the user: "so our system is a blocking system and a
-    parry system. the timing for parrys also scale with/against size"): your swing parries a swing meeting it, the
-    exact reverse a full parry, within 45° of it a partial one. Whichever blade goes live first meets the other, if
-    the other's goes live within the first's window (by its blade length, as the perfect block's: sword 0.2 s); the
-    parried attack does no damage and recoils (0.8 s full, 0.5 s partial), and the parrier's swing ends with no
-    recovery. Parries deflect, they don't stun. Blades live within about 0.05 s of each other clash: both recoil the
-    base time. Stabs neither parry nor are parried. A swing's weight is its heft × √(strength / 10), × 2 a heavy, and
-    the recoil goes × the parrier's weight over the parried one's (0.5 to 2, never under 0.2 s) ("parry heavy with
-    heavy is the same effect. but parrying light with heavy should give heavy some advantage"). No stamina for being
-    parried. The Kobold parries too, by a seeded share of the swings a player starts at it, with a real swing the
-    parrying way.
+    parry system. the timing for parrys also scale with/against size"): your swing parries a swing meeting it, the exact
+    reverse a full parry, within 45° of it a partial one. Whichever blade goes live first meets the other, if the
+    other's goes live within the first's window, wider than the perfect block's so a parry is easier to time (the user:
+    "widen parry timing so its easier than block"): 0.3 s with the sword, by blade length as the perfect block's
+    (longsword ~0.38, greatsword ~0.52); the parried attack does no damage and recoils (0.8 s full, 0.5 s partial), and
+    the parrier's swing ends with no recovery. Parries deflect, they don't stun. Blades live within about 0.05 s of each
+    other clash: both recoil the base time. Stabs neither parry nor are parried. A swing's weight is its heft ×
+    √(strength / 10), × 2 a heavy, and the recoil goes × the parrier's weight over the parried one's (0.5 to 2, never
+    under 0.2 s) ("parry heavy with heavy is the same effect. but parrying light with heavy should give heavy some
+    advantage"). No stamina for being parried. The Kobold parries too, by a seeded share of the swings a player starts
+    at it, with a real swing the parrying way.
   - Blocking goes by the blade (the user: small fast blades and big slow ones play differently): the perfect window
     grows with the blocker's blade length (0.2 s × length / 1.1: sword 0.2, longsword ~0.25, greatsword ~0.35), and
     raising the guard takes time that grows with the heft its wielder feels (sword 0.05 s, greatsword ~0.15 s at
     strength 10); a hit landing while it comes up isn't blocked. Enemies raise theirs the same way. No close-range
     penalty for big weapons.
   - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); a light costs 10, a heavy
-    16, a stab 12, a dodge 22. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
+    16, a stab 12, a dodge 30. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
     costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the guard breaks,
     a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
+  - The dodge is nerfed (the user: "i also want to nerf dodge. we can still get hit when we dodge right?"): of its
+    0.42 s, only 0.05 s to 0.25 s has i-frames, so a dodge pressed as a hit lands, or a hit in its tail, still lands;
+    it costs 30 stamina; and another dodge can't start until 0.25 s after one ends (an attack or a block can). These
+    numbers are OptChat's picks, in `PLAYER.dodge`.
   - No kick. Only a heavy can be feinted (the user: "yea sure heavy only feints ... we swing heavy but can press
     shift to cancel early to mess with their timing"): block pressed in a heavy's wind-up pulls it back into the
     guard, for 10 stamina, but not in the last 0.15 s before the blade goes live. It opens no perfect block and ends
@@ -439,8 +444,10 @@ Decided by the user:
   banner, loot, the bag and saving wait for the server's result (the client may keep animating). Tunable:
   `MAX_INPUT_DELAY`, `MAX_INPUT_LEAD_TIME` (the agent's pick) and `HASH_EVERY_STEPS` in
   `shared/src/battle/netcode.ts`. Another player, later, may lag on your screen; your own character is always instant.
-- A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
-  and the server alike (`PLAYER.dodge.iframeStart` is 0).
+- A dodge's i-frames count in steps from the one it starts on (0): from step 3 (`PLAYER.dodge.iframeStart` 0.05 s)
+  up to step 15 (`iframeEnd` 0.25 s), so a dodge on the step a hit lands, or up to 2 steps before, doesn't beat it,
+  on the client and the server alike. Its recovery is counted in steps too (`dodgeCooldownSteps`), from the step the
+  dodge ends; a press during it waits like any early press (`PLAYER.inputBuffer`).
 - Skills ignore dodge i-frames, hurt invulnerability and blocks: a Bolt hits a dodging or blocking player (for now).
 - A dodge never cancels an attack, not even a light's wind-up (the user, asked if it should: "no"). A dodge (or the
   next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting the attack short,
@@ -1019,8 +1026,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   within 2.8 m and over about 73° off its facing (beside or behind it, where its slow turn lets you get), it coils
   0.75 s and sweeps its tail all round (20, knockback 10), then stands 1 s. 0.8 s after either before the next; the
   first after 1.5 s. It can't be staggered from the rise or coil to the blow. Both are body blows, so blockable, but a
-  blocked slam costs 38 stamina (a dodge 22) and its push puts you out of reach of the opening: in the bot fights a
-  dodger wins in about 39 s, a blocker in about 66 s, and one who only swings loses. No new rules: the slam reuses
+  blocked slam costs 38 stamina (a dodge 30) and its push puts you out of reach of the opening: in the bot fights a
+  dodger wins in about 37 s, a blocker in about 66 s, and one who only swings loses. No new rules: the slam reuses
   the charge's `slam` event for its thud and shake. Its tells are the rise, the eyes lighting and its groan, no
   marker. Numbers: `server/src/core/enemies/bog-lurker.ts`, the behaviour in
   `shared/src/battle/fight/behaviors/slam.ts`. Drops: its essence (worth 45) always and 2 lurker scales 70% (1 x 1,
