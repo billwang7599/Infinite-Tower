@@ -5,15 +5,14 @@ import { HYBRID } from "../../../weapons/hybrid.js";
 import type { Hand } from "../../../items/gear.js";
 import { feltHeft, isWeapon, weaponHandIn, WEAPONS } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
-import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
-import { bladeLive, endChain, endSwing } from "./swing.js";
+import { bladeLive, endChain, endSwing, strengthIn } from "./swing.js";
 
 const { swinging } = HYBRID;
 
 function heftOf(world: World, e: Entity, hand: Hand): number {
   const item = world.require(e, Wielder).hands[hand];
-  return isWeapon(item) ? feltHeft(WEAPONS[item], world.require(e, FighterStats).strength) : 1;
+  return isWeapon(item) ? feltHeft(WEAPONS[item], strengthIn(world, e)) : 1;
 }
 
 export const committed = (swing: SwingData): boolean => swing.step < (swing.whiffed ? swing.endAt : swing.liveUntil);

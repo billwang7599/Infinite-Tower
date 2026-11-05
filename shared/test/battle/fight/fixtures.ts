@@ -1,10 +1,11 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, packFor, Health,
-  LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Projectile, Sidestep, SkillAttack, Skilled, SkillObject,
-  SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
-  type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
-  type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3, type WeaponAttackDef,
+  appliedStrength, FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy,
+  packFor, Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Projectile, Sidestep,
+  SkillAttack, Skilled, SkillObject, SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS,
+  WeaponAttack, Wielder, type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData,
+  type Segment, type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3,
+  type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -92,6 +93,9 @@ export const SWORDSMAN: EnemyDef = {
   wielder: { hands: { rightHand: "sword" }, armReachM: PLAYER.armReachM },
   attacks: { weapon: swings({}) },
 };
+
+export const SWORDSMAN_STRENGTH = appliedStrength({ rightHand: null, leftHand: null, ...SWORDSMAN.wielder!.hands },
+  SWORDSMAN.stats.strength);
 
 export const GUARDIAN: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ firstDelay: 999 }) } };
 

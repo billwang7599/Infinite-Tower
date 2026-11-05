@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ActiveHit, addItem, BASE_STATS, BLESSING_FAITH, blessingsOf, Body, BOW, BURDEN, carryLimit, coreStats, copyInput,
-  drawCost, drawTime, emptyBag, emptyEquipment, FIXED_DT, gearBurden, guardOf, guardRaiseTime, Health, HYBRID,
-  IDLE_INPUT, ITEMS, maxHpOf, newCore, packFor, parryWindowTime, perfectBlockTime, Stamina, staminaMaxOf, STATUS_DEFS,
-  STRIKES, WEAPONS, Wielder, type Carried, type CoreState, type EnemyDef, type Equipment, type Faith, type GuardKind,
-  type LungeDef, type PlayerInputData, type Strike, type Vec3,
+  drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden, guardOf, guardRaiseTime, Health,
+  HYBRID, IDLE_INPUT, ITEMS, maxHpOf, newCore, packFor, parryWindowTime, perfectBlockTime, Stamina, staminaMaxOf,
+  STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type Carried, type CoreState, type EnemyDef,
+  type Equipment, type Faith, type Grip, type LungeDef, type PlayerInputData, type Strike, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type PlayerSetup } from "@infinite-tower/shared/fight";
 import { combatNumbers } from "../../../../src/ui/hud/character/combatNumbers.js";
@@ -58,7 +58,7 @@ function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
   settle(fight);
   const steps = { windup: 0, live: 0, recover: 0 };
   fight.step([idle({ attack: strike })]);
-  assert.notEqual(fight.world.require(me, Wielder).swing, null);
+  const damage = fight.world.require(me, Wielder).swing!.damage;
   for (let s = 0; fight.world.require(me, Wielder).swing !== null && s < 600; s++) {
     if (fight.world.has(me, ActiveHit)) steps.live++;
     else if (steps.live === 0) steps.windup++;
@@ -66,7 +66,7 @@ function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
     fight.step([idle()]);
   }
   const time = (count: number) => count * FIXED_DT;
-  return { windupTime: time(steps.windup), liveTime: time(steps.live), recoverTime: time(steps.recover) };
+  return { windupTime: time(steps.windup), liveTime: time(steps.live), recoverTime: time(steps.recover), damage };
 }
 
 describe("the advanced stats' weapon numbers", () => {
@@ -80,9 +80,23 @@ describe("the advanced stats' weapon numbers", () => {
         close(shown.windupTime, fought.windupTime, `${strike} wind-up`);
         close(shown.liveTime, fought.liveTime, `${strike} live`);
         close(shown.recoverTime, fought.recoverTime, `${strike} recovery`);
+        close(shown.damage, fought.damage, `${strike} damage`);
       }
     });
   }
+
+  test("a lone weapon is held in both hands: its numbers are a stronger wielder's, and say so", () => {
+    const core = newCore(), strength = coreStats(core).strength;
+    const [two] = combatNumbers(holding({ rightHand: "greatsword" }), core, {}).held;
+    const [one] = combatNumbers(holding({ rightHand: "greatsword", leftHand: "skillbook" }), core, {}).held;
+    assert.equal(two!.grip, "two");
+    assert.equal(one!.grip, "one");
+    close(two!.appliedStrength, strength * TWO_HAND_STRENGTH_FACTOR);
+    close(one!.appliedStrength, strength);
+    close(two!.feltHeft, feltHeft(WEAPONS.greatsword, strength * TWO_HAND_STRENGTH_FACTOR));
+    assert.ok(two!.strikes!.light.windupTime < one!.strikes!.light.windupTime);
+    close(two!.strikes!.light.damage, one!.strikes!.light.damage * Math.sqrt(TWO_HAND_STRENGTH_FACTOR));
+  });
 
   test("each hand holding a weapon, the right first; a swing's parry window, a bow's draw", () => {
     const core = strong(4), strength = coreStats(core).strength;
@@ -104,9 +118,10 @@ describe("the advanced stats' weapon numbers", () => {
   });
 });
 
-const GUARDED: readonly (readonly [GuardKind, Partial<Equipment>])[] = [
+const GUARDED: readonly (readonly [Grip, Partial<Equipment>])[] = [
   ["shield", { rightHand: "sword", leftHand: "wooden-shield" }],
-  ["one", { rightHand: "sword" }],
+  ["one", { rightHand: "sword", leftHand: "skillbook" }],
+  ["two", { rightHand: "sword" }],
   ["dual", { rightHand: "sword", leftHand: "sword" }],
 ];
 
@@ -162,7 +177,7 @@ describe("the advanced stats' guard, as the fight blocks", () => {
   test("a shield over a blade, else the blade in play: its kind, raise time and perfect window", () => {
     const core = newCore(), strength = coreStats(core).strength;
     const guard = (hands: Partial<Equipment>) => combatNumbers(holding(hands), core, {}).guard;
-    for (const [kind, hands] of GUARDED) assert.equal(guard(hands)!.kind, kind);
+    for (const [grip, hands] of GUARDED) assert.equal(guard(hands)!.grip, grip);
     assert.equal(guard({ leftHand: "wooden-shield" })!.kind, "shield");
     const shield = guardOf({ rightHand: "sword", leftHand: "wooden-shield" })!.guard;
     const shielded = guard({ rightHand: "sword", leftHand: "wooden-shield" })!;
@@ -177,12 +192,21 @@ describe("the advanced stats' guard, as the fight blocks", () => {
   for (const [kind, hands] of GUARDED) {
     const guard = combatNumbers(holding(hands), newCore(), {}).guard!;
 
+    if (kind === "two") {
+      test("two: a blade in both hands guards as one blade, for 1 / TWO_HAND_STRENGTH_FACTOR the stamina", () => {
+        const one = combatNumbers(holding({ rightHand: "sword", leftHand: "skillbook" }), newCore(), {}).guard!;
+        assert.equal(guard.kind, "one");
+        close(guard.blockStaminaShare, one.blockStaminaShare / TWO_HAND_STRENGTH_FACTOR);
+        close(guard.chipFraction, one.chipFraction);
+      });
+    }
+
     test(`${kind}: the chip let through and the stamina a blocked blow costs`, () => {
       const open = swungAt(hands, 0, false), shut = swungAt(hands, 0, true);
       assert.equal(open.blockCost, null);
       assert.ok(open.hpLost > 0);
       close(shut.hpLost / open.hpLost, guard.chipFraction, "chip");
-      close(shut.blockCost! / open.hpLost, guard.staminaFactor, "stamina");
+      close(shut.blockCost! / open.hpLost, guard.blockStaminaShare, "stamina");
     });
 
     test(`${kind}: it covers its arc and no more`, () => {

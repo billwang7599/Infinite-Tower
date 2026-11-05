@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeOf, toSteps,
-  wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type PlayerInputData, type Skill, type SwingDir,
+  Body, Enemy, FIXED_DT, gripOf, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeDamage, strikeOf,
+  toSteps, wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type PlayerInputData, type Skill, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -52,6 +52,17 @@ describe("the Kobold Swordsman", () => {
     assert.equal(wielder.swing!.liveAt, liveAt("kobold-blade"));
     assert.equal(liveAt("kobold-blade"), liveAt("sword"));
     assert.ok(liveAt("sword") >= liveAt("old-stick"));
+  });
+
+  test("its other hand empty, it still holds its blade in one: a one-handed wind-up and damage", () => {
+    const fight = fightWith(KOBOLD, 1), wielder = fight.world.require(fight.enemies[0]!, Wielder);
+    assert.equal(wielder.hands.leftHand, null);
+    assert.equal(gripOf(wielder.hands), "one");
+    for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
+    const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way), blade = WEAPONS["kobold-blade"];
+    const opening = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy", KOBOLD.stats.strength);
+    assert.equal(swing.liveAt, opening.liveAt);
+    assert.equal(swing.damage, strikeDamage(blade, strike, 1, KOBOLD.stats));
   });
 
   test("a player who reads it beats it, whatever its seed", () => {

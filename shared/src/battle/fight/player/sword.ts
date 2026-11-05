@@ -10,13 +10,12 @@ import { weaponHandIn, type Guard, type Weapon } from "../../../weapons/weapons.
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
-import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { canPayStamina, payStamina, spend } from "../combat.js";
 import { modsOf } from "../../statuses.js";
 import { canSwing, committed, feint } from "../weapons/commit.js";
-import { endChain, startWaySwing } from "../weapons/swing.js";
+import { endChain, startWaySwing, strengthIn } from "../weapons/swing.js";
 import { drawBow } from "./bow.js";
 import { startAction } from "./controller.js";
 
@@ -51,7 +50,7 @@ export function readSword(t: SwordTurn): void {
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   player.sinceBlockPress += dt;
   if (blockPressed) {
-    const strength = t.world.require(t.e, FighterStats).strength;
+    const strength = strengthIn(t.world, t.e);
     const rested = toSteps(player.sinceBlockPress) >= toSteps(HYBRID.block.remashTime);
     player.perfectBlockLeft = guard && !feinted && rested
       ? guardRaiseTime(guard, strength) + perfectBlockTime(guard) : 0;
@@ -97,7 +96,7 @@ export function attackOrBlock(t: SwordTurn): boolean {
   const { world, e, player, input, wielder, stamina, weapon } = t, ranged = rangedOf(weapon);
   if (ranged && drawBow(t, ranged)) return true;
   const cost = meleeOf(weapon) && player.queued !== null
-    ? strikeCost(weapon!, player.queued, world.require(e, FighterStats).strength) * modsOf(world, e).attackCostFactor
+    ? strikeCost(weapon!, player.queued, strengthIn(world, e)) * modsOf(world, e).attackCostFactor
     : 0;
   if (t.free && meleeOf(weapon) && player.attackBuffer > 0 && player.queued !== null && canSwing(wielder)
     && canPayStamina(world, e, stamina, cost)) {

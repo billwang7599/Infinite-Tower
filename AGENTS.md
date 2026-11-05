@@ -141,8 +141,8 @@ Decided by the user:
   stronger person would use a greatsword well, while a weaker person wouldn't"): a weapon's wind-up, live time,
   recovery and stamina costs go × the heft its wielder feels, players and enemies alike. Each weapon has a minimum
   strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing it, and the
-  bag screen says why. The test numbers: Basic Sword 0, longsword 6, greatsword 9. Two-handed weapons come later
-  ([plan/combat-v2.md](plan/combat-v2.md)).
+  bag screen says why. The test numbers: Basic Sword 0, longsword 6, greatsword 9. A lone weapon held in both hands
+  puts in twice the strength (below).
 - Swords are heavier (the user: "increase sword weight, swinging is too easy"; tests only, not hand-played): the
   sword, longsword and greatsword got 30% more heft, and the Kobolds' blades followed (the user: "also make their
   swords heavier too"), an enemy's recovery after a chain going × its felt heft too, as a player's does. The Kobold's
@@ -619,15 +619,24 @@ Decided by the user:
   skillbook, a shield, a second blade) makes it one-handed. The Kobolds stay one-handed (the user: "i want the kobalts
   to stay one handed"): each one's wielder data says so (`oneHanded` in its `hands`, which `gripOf` reads), so a Kobold
   grips its weapon in one hand even with the other empty. No toggle: Q does nothing with one blade. A bow keeps its own.
-  One rule, `gripOf` (`shared/src/weapons/kinds.ts`), that the guard (`guardOf`) and the poses ask. Looks only so far
-  (the strength it brings is a later PR). The poses are the agent's, tried by tests and a headless browser, not
-  hand-played: both hands on the hilt, the off hand a hand-width under the sword hand (`OFF_GRIP_M`, 0.1 m), through the
-  guard, every swing and stab and the block; it eases on and off the grip as the other hand's thing is taken up or put
-  down (over `GUARD_SHIFT`, as a change of guard) and lets go to chant, cast, write, eat or open the bag. Every hilt is
-  long enough for two hands now (`GRIP_M`, 0.3 m; the greatswords' 0.42). In third person the short arms can't follow a
-  swing round together, so the hilt's middle stays before the chest and the blade turns round it, lifted over the
-  shoulder where it would point back (`TWO_HANDED`), and both arms reach it straight, elbows out, sinking up to about 7
-  cm into a wide chest at worst.
+  One rule, `gripOf` (`shared/src/weapons/kinds.ts`), that the guard (`guardOf`), the poses and the numbers ask. Two
+  hands put twice the strength into the weapon (the user: "it increases strength applied to the weapon by 2x? that would
+  mean 1 handed sword blocks is worse"; `TWO_HAND_STRENGTH_FACTOR`, `appliedStrength`), through the same math as any
+  strength: felt heft (every time and stamina cost), damage (√2), the guard's raise and a parry's weight; the body's
+  numbers (carry limit, pushback taken, walking) and the guard's shift as drawn keep the wielder's own. A block's
+  stamina goes × 10 / that strength for every guard (`blockStaminaShare`), so a two-handed block costs half and a
+  stronger fighter blocks more cheaply; chip stays the guard's. Felt heft goes as 1 / strength (the linear rule above),
+  so two hands halve every melee weapon's, the Basic Sword's and the old stick's too: at strength 10 a Basic Sword in
+  both hands feels 0.5 (its lights and stabs at the 0.4 s floor, half the stamina), the greatsword 0.81 (0.45 s, was
+  0.9). Kept at 2× after that rule, not retuned (the user's call). So Bram hits √2 harder and winds up as at strength
+  20; the Kobolds, one-handed, are as they were. An enemy's block costs poise, unchanged. The poses are the agent's,
+  tried by tests and a headless browser, not hand-played: both hands on the hilt, the off hand a hand-width under the
+  sword hand (`OFF_GRIP_M`, 0.1 m), through the guard, every swing and stab and the block; it eases on and off the grip
+  as the other hand's thing is taken up or put down (over `GUARD_SHIFT`, as a change of guard) and lets go to chant,
+  cast, write, eat or open the bag. Every hilt is long enough for two hands now (`GRIP_M`, 0.3 m; the greatswords'
+  0.42). In third person the short arms can't follow a swing round together, so the hilt's middle stays before the chest
+  and the blade turns round it, lifted over the shoulder where it would point back (`TWO_HANDED`), and both arms reach
+  it straight, elbows out, sinking up to about 7 cm into a wide chest at worst.
 - The sword's guard is realistic (the user: "sword when aiming should be more realistic. ie edge always facing the
   enemy, and the plane that the sword makes should be parallel to the plane we're looking at"): aimed, the blade lies in
   the plane its cut sweeps through (the cut's line across the view and the way ahead), toward where the cut starts, its
@@ -874,7 +883,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   recovery, stamina) and its parry window, or a bow's draw. The guard, as the fight picks it (`guardOf`): its kind
   (Shield, One blade, Two blades), the arc it covers, raise time, perfect block, chip, chip at a wall, block stamina,
   pushback, holding and a broken guard's stagger. The dodge: stamina by burden, i-frames, length, cooldown. The body:
-  stamina regen, its pause, knockback taken (strength, steadiness and passives). Seconds to 2 decimals. No two-handed grip yet. Temporary statuses (Haste, Frenzy)
+  stamina regen, its pause, knockback taken (strength, steadiness and passives). Seconds to 2 decimals. The grip shows
+  too: a lone weapon's heading says "both hands", each weapon the strength it puts in and each strike its damage, and
+  the guard is "One blade, both hands" with its own block stamina. Temporary statuses (Haste, Frenzy)
   aren't counted.
 - The sphere HUD (the user: "just make it. assume whatever you want"; only checked in a headless browser):
   - It follows the mockups the user saw: a smoky pixel-art glass sphere, 64 pixels shown at 2x, dithered to 8 shades,

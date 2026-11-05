@@ -5,18 +5,17 @@ import {
 } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
 import { Body, Enemy, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
-import { FighterStats } from "../../stats.js";
 import { enter } from "../behaviors/common.js";
 import { faces, stagger } from "../combat.js";
 import type { FightEvent } from "../context.js";
-import { endChain, endSwing } from "./swing.js";
+import { endChain, endSwing, strengthIn } from "./swing.js";
 
 const CLASH_STEPS = toSteps(HYBRID.parry.clashTime);
 const baseTime = (kind: ParryKind) => kind === "full" ? HYBRID.parry.fullRecoilTime : HYBRID.parry.partialRecoilTime;
 
 function weightOf(world: World, e: Entity): number {
   const wielder = world.require(e, Wielder);
-  return swingWeight(weaponIn(wielder.hands)!, world.require(e, FighterStats).strength, wielder.swing?.attack === "heavy");
+  return swingWeight(weaponIn(wielder.hands)!, strengthIn(world, e), wielder.swing?.attack === "heavy");
 }
 
 const windowSteps = (world: World, e: Entity) => toSteps(parryWindowTime(weaponIn(world.require(e, Wielder).hands)!));

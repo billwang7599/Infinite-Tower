@@ -1292,7 +1292,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter; stun: a stun or stagger, ending the attack under
                        way and restarting its cooldowns; roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
-                       startWaySwing, endSwing, endChain, bladeLive; handsOf), commit.ts (what a swing holds its
+                       startWaySwing, endSwing, endChain, bladeLive; handsOf; strengthIn, the strength a fighter
+                       puts into its weapon, which every weapon number takes), commit.ts (what a swing holds its
                        wielder to, players and swordsmen alike: committed, carrySpeed, steer (the live blade's turn
                        cap), feint, canSwing (the swinging hand's recovery: its swing's, a feint's or one
                        cut short); commitSystem, after the hits: a whiff overextends, the hands' recovery
@@ -1340,14 +1341,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
                    meleeOf, rangedOf, meleeIn: what the fight branches on; dualWielding; gripOf: how the hands hold
                    (a lone melee weapon in both unless the hands say oneHanded, as the Kobolds' do; one, two blades
-                   or a shield), which the poses ask and guardOf, the hands' guard, follows), bow.ts (BOW: the bow's placeholder draw, nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
+                   or a shield), which the poses ask and guardOf, the hands' guard, follows; appliedStrength, the strength a grip puts in, TWO_HAND_STRENGTH_FACTOR), bow.ts (BOW: the bow's placeholder draw, nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
                    curve), loosedDamage, loosedSpeed, flightAfter (where an arrow is and how fast it goes some time
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
                    windupTime (a strike's by its chain), wayStepsAfter (the 0.4 s floor), strikeCost, strikeDamage,
                    guardRaiseTime, perfectBlockTime, parryWindowTime; GUARDS: the held block by guard, shield, one
-                   blade, two blades)
+                   blade, two blades; blockStaminaShare, a block's stamina by guard and strength)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; MAX_GIVE_COUNT, the admin's give, here so the client's commands read it; the

@@ -1,19 +1,18 @@
 import type { Entity, World } from "../../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
-import { guardRaiseTime, GUARDS, HYBRID, type GuardKind } from "../../../weapons/hybrid.js";
+import { blockStaminaShare, guardRaiseTime, GUARDS, HYBRID, type GuardKind } from "../../../weapons/hybrid.js";
 import { guardOf } from "../../../weapons/kinds.js";
 import {
   Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData, type BodyData,
 } from "../../components.js";
 import { PLAYER } from "../../player.js";
-import { FighterStats } from "../../stats.js";
 import { faces, knock, knockbackOf, spend, stagger } from "../combat.js";
 import type { FightContext, FightEvent } from "../context.js";
 import type { ArenaPhysics } from "../physics/arena-physics.js";
 import { modsOf } from "../../statuses.js";
 import { hurt } from "../health.js";
-import { endChain, endSwing } from "./swing.js";
+import { endChain, endSwing, strengthIn } from "./swing.js";
 
 export function facingOf(world: World, e: Entity): Vec2 {
   const player = world.get(e, Player);
@@ -25,7 +24,7 @@ export function facingOf(world: World, e: Entity): Vec2 {
 function guardUp(world: World, e: Entity, raisingTime: number): boolean {
   const guard = guardOf(world.require(e, Wielder).hands)?.guard;
   if (!guard) return false;
-  return toSteps(raisingTime) >= toSteps(guardRaiseTime(guard, world.require(e, FighterStats).strength));
+  return toSteps(raisingTime) >= toSteps(guardRaiseTime(guard, strengthIn(world, e)));
 }
 
 export function blocking(world: World, e: Entity): boolean {
@@ -102,7 +101,8 @@ function blocked(
   let broken: boolean;
   if (player) {
     const stamina = world.require(target, Stamina);
-    const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1) * guard.staminaFactor;
+    const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1)
+      * blockStaminaShare(guard, strengthIn(world, target));
     broken = stamina.value <= cost;
     spend(stamina, cost);
   } else {

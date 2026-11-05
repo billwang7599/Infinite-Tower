@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID,
-  knockbackTakenFactor, perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost,
-  toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
+  appliedStrength, AVERAGE_STAT, Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health,
+  HYBRID, knockbackTakenFactor, perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost, toSteps,
+  TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
 } from "@infinite-tower/shared";
-import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
+import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS, armed } from "../fixtures.js";
 
 // Before the describes: they run fights to find when the attacks land.
@@ -53,7 +53,8 @@ const PRESS = 40;
 const SWORD = physicalDamage(WEAPONS.sword.damage, STATS);
 const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon, STATS.strength));
 const RAISE = raiseSteps(WEAPONS.sword);
-const HOLD_STEPS = RAISE + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;
+const holdSteps = (raise: number) => raise + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;
+const HOLD_STEPS = holdSteps(RAISE);
 const holdFrom = (step: number): Script => (s) => ({ block: s >= step });
 
 describe("the held block", () => {
@@ -290,7 +291,7 @@ describe("the guard: a shield, one blade, two blades", () => {
   });
 
   for (const [kind, right, left] of [
-    ["shield", "sword", "wooden-shield"], ["one", "sword", null], ["dual", "sword", "kobold-blade"],
+    ["shield", "sword", "wooden-shield"], ["one", "sword", "skillbook"], ["dual", "sword", "kobold-blade"],
   ] as const) {
     test(`${kind}: chips and costs stamina by its guard`, () => {
       const fight = withHands(right, left);
@@ -306,6 +307,39 @@ describe("the guard: a shield, one blade, two blades", () => {
       close(pushedMps(withHands(right, left)), LIGHT_PUSH * GUARDS[kind].pushFactor, kind);
     });
   }
+
+  test("one blade in both hands costs 1 / TWO_HAND_STRENGTH_FACTOR the stamina, with one blade's chip", () => {
+    const fight = withHands("sword", null);
+    assert.ok(blockedHit(fight));
+    close(FULL_HP - hp(fight, 1), SWORD * GUARDS.one.chipFraction, "chip");
+    const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * HOLD_STEPS * FIXED_DT;
+    assert.ok(Math.abs(spent - SWORD * GUARDS.one.staminaFactor / TWO_HAND_STRENGTH_FACTOR) < 0.5, `${spent}`);
+  });
+
+  test("a stronger blocker spends less stamina, by AVERAGE_STAT / strength", () => {
+    for (const strength of [STATS.strength * 2, STATS.strength / 2]) {
+      const fight = withHands("sword", "skillbook", { strength });
+      const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword, strength)));
+      assert.ok(blockedHit(fight, holdFrom(hitAt - hold)), `${strength}`);
+      const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * hold * FIXED_DT;
+      const want = SWORD * GUARDS.one.staminaFactor * AVERAGE_STAT / strength;
+      assert.ok(Math.abs(spent - want) < 0.5, `${strength}: ${spent} vs ${want}`);
+    }
+  });
+
+  test("a two-handed guard comes up as a stronger wielder's would", () => {
+    const one = guardRaiseTime(WEAPONS.greatsword, STATS.strength);
+    const two = guardRaiseTime(WEAPONS.greatsword, appliedStrength({ rightHand: "greatsword", leftHand: null },
+      STATS.strength));
+    assert.ok(two < one, `${two} vs ${one}`);
+    const steps = (leftHand: ItemId | null) => {
+      const fight = withHands("greatsword", leftHand), e = fight.players[1]!;
+      let at = 0;
+      for (; at < 60 && !blocking(fight.world, e); at++) play(fight, 1, () => ({}), () => ({ block: true }));
+      return at;
+    };
+    assert.ok(steps(null) < steps("skillbook"), `${steps(null)} vs ${steps("skillbook")}`);
+  });
 
   test("a stronger or steadier blocker is pushed less", () => {
     for (const stats of [{ strength: 4 * STATS.strength }, { steadiness: 4 * STATS.steadiness }]) {
