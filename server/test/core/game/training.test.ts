@@ -4,6 +4,7 @@ import {
   bagCounts, emptyBag, emptyEquipment, Health, IDLE_INPUT, isSolid, type ItemCounts,
 } from "@infinite-tower/shared";
 import { initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
+import { QUEST_ORDER } from "../../../src/core/content/quests.js";
 import { ITEM_VALUES, SELL_SHARE, SHOPS } from "../../../src/core/content/shops.js";
 import { DUMMY_SPOTS, TRAINING_YIELD_SHARE } from "../../../src/core/game/training.js";
 import type { GameSession } from "../../../src/core/game/session.js";
@@ -153,13 +154,16 @@ describe("the training yard", () => {
     assert.equal(talkTo(session, link, "bram").offer?.kind, "train");
   });
 
-  test("winning the spar finishes the yard; Bram still spars after", () => {
+  test("winning the spar finishes the yard; Bram sends you on with the next quest, and still spars after", () => {
     const { session, link } = fresh({ story: onStep("spar") });
     talkTo(session, link, "bram");
     session.train();
     endFight(session, "enemy");
     session.leaveBattle();
     assert.equal(session.story.quests[QUEST]?.step, null);
+    const next = QUEST_ORDER[QUEST_ORDER.indexOf(QUEST) + 1];
+    assert.equal(offeredQuest(talkTo(session, link, "bram").offer), next);
+    session.acceptQuest(next!);
     assert.equal(talkTo(session, link, "bram").offer?.kind, "train");
   });
 

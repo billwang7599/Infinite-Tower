@@ -127,7 +127,7 @@ export interface EnemyAttacks {
 
 export const ENEMY_IDS = [
   "wild-boar", "kobold-swordsman", "kobold-greatsword", "kobold-shieldbearer", "goblin-warlock", "training-dummy",
-  "bram", "grey-wolf", "bog-lurker",
+  "bram", "grey-wolf", "bog-lurker", "chicken",
 ] as const;
 export type EnemyId = (typeof ENEMY_IDS)[number];
 

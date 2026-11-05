@@ -10,7 +10,8 @@ import { spawnActor } from "../../../src/core/overworld/parts.js";
 import { testOverworld } from "../overworld/helpers.js";
 
 const SPARRING: readonly EnemyId[] = ["training-dummy", "bram"];
-const MONSTERS = ENEMY_IDS.filter((id) => !SPARRING.includes(id));
+const LIVESTOCK: readonly EnemyId[] = ["chicken"];
+const MONSTERS = ENEMY_IDS.filter((id) => !SPARRING.includes(id) && !LIVESTOCK.includes(id));
 
 const NONE_FREE = () => false;
 const ALL_FREE = () => true;

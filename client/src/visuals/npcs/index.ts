@@ -2,6 +2,7 @@ import type { Look, NpcId } from "@infinite-tower/shared";
 import { apothecaryLook } from "./apothecary/look.js";
 import { bramLook } from "./bram/look.js";
 import { burnerLook } from "./burner/look.js";
+import { butcherLook } from "./butcher/look.js";
 import { captainLook } from "./captain/look.js";
 import { carverLook } from "./carver/look.js";
 import { changerLook } from "./changer/look.js";
@@ -52,4 +53,5 @@ export const NPC_LOOKS: Record<NpcId, NpcLook> = {
   burner: burnerLook,
   king: kingLook,
   innkeeper: innkeeperLook,
+  butcher: butcherLook,
 };

@@ -14,10 +14,10 @@ const TOWN = testMap([
   "WHHC;;;;;HHHH;;;;AHW",
   "WHHC;;;;;HHHH;;;;AHW",
   "W;;;;;;;;;;;;;;;;;;W",
-  "W;;;;;;;;;;;;;;;;;;W",
+  "W;;BBB;;;;;;;;;;;;;W",
   "WWWWWWWWWWWWWWWWWWWW",
 ], "kingdom");
-const STALLS: TileKind[] = ["foodStall", "potionStall", "changerStall", "forge"];
+const STALLS: TileKind[] = ["foodStall", "potionStall", "changerStall", "butcherStall", "forge"];
 
 function tilesOf(map: typeof TOWN, kind: TileKind): { x: number; z: number }[] {
   const { bounds: b } = map, at: { x: number; z: number }[] = [];

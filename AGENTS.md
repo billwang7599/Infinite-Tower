@@ -82,7 +82,7 @@ Decided by the user:
   controls only in what he says (no on-screen hints), and points you into town. Dying, anywhere, wakes you on the
   platform until you bind yourself to another pad (summoning pads, below). Campfires are out in the wild only: the
   town has none. The town has three shops, food, potions and a
-  blacksmith, each a keeper you trade with (money and shops, below). No enemies in the city.
+  blacksmith, each a keeper you trade with (money and shops, below). No enemies in the city but the butcher's chickens.
 - Highmere is the Empire's second city (the user picked "C": the empire's "second" city; "choose something extravagent"
   for its name; "mutlipe works" for its maps): the ancient, sacred Door City where the Maker's door first opened, held
   for the Emperor by a vassal king while the Emperor's court sits in a newer, richer capital far away. The names are the
@@ -102,6 +102,8 @@ Decided by the user:
 - The start is linear (the user: "the tutorial/start should be linear. i dont want to confuse the player as to where to
   start"): on the platform only the herald is in sight, and he sends you to Bram. Odo's and Captain Edda's quests wait
   for Bram's yard; Wenna's and Tamsin's are offered from the start (the user, asked whether they should wait: "no").
+- The butcher's chickens teach tall grass (the user: "quest progression should be after bram maybe butcher? ... kill
+  some chickens in a pen"): the main quest after Bram's yard; the Market Ward's only tall grass is his chicken pen.
 - Highmere has one summoning pad, the Castle Ward's platform (the user: "yes", over a pad of the Market Ward's own).
 - Summoning pads are respawn points (the user: "if we go near a summoning pad, we have the option to set our spawn"):
   the Interact key (E) by a pad binds you to it ("E yea"), free ("free"), on every pad ("all existing pads -- part of
@@ -1382,7 +1384,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   streets of houses round a smaller square with a statue (Tamsin in the south-west), and the avenue on south to
   the South Gate (Captain Edda), whose road runs down to the Waking Hollow. It has no pad. Two walled-up gaps wait
   for later wards: the Temple Road east to Temple Hill and a west one to the Lower Town. King Osric and Hesper only
-  talk; both wards charge Highmere's prices. Neither has an encounter table (a region's `grass` is optional).
+  talk; both wards charge Highmere's prices. Only the butcher's pen has tall grass that fights.
   Dialogue lines name keys as `{group.action}`, written out as the player's own key
   (`client/src/ui/dialogue/keys.ts`). The castle's keep is drawn only, and the land round both wards is thick castle
   wall, the city's wall; anywhere a ledge (a wall, a house, a cliff) standing between the camera and you turns

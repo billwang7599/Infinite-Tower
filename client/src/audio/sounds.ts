@@ -48,6 +48,8 @@ export const SOUNDS = {
   "lurker-rise": { variants: 2, stem: "boar-windup", volume: 1, rate: 0.6, spread: 0.05 },
   "lurker-hurt": { variants: 5, stem: "boar-hurt", volume: 0.9, rate: 0.65, spread: 0.06 },
   "lurker-death": { variants: 1, stem: "boar-death", volume: 1, rate: 0.6 },
+  "chicken-hurt": { variants: 5, stem: "boar-hurt", volume: 0.5, rate: 2.2, spread: 0.1 },
+  "chicken-death": { variants: 1, stem: "boar-death", volume: 0.6, rate: 2 },
   "cast-fire": { variants: 4, volume: 0.8, spread: 0.06 },
   "cast-magic": { variants: 5, volume: 0.8, spread: 0.06 },
   "windup-magic": { variants: 1, volume: 0.5, spread: 0.06 },
@@ -102,6 +104,7 @@ export const ENEMY_SOUNDS: Record<EnemyId, EnemySounds> = {
   "bog-lurker": { hurt: "lurker-hurt", death: "lurker-death", windup: "lurker-rise" },
   "training-dummy": { hurt: "hit-body", death: "fall", windup: null },
   bram: { hurt: "hit-body", death: "fall", windup: "draw-blade" },
+  chicken: { hurt: "chicken-hurt", death: "chicken-death", windup: null },
 };
 
 interface ElementSounds { cast: SoundName; loop: SoundName; impact: SoundName; rate: number }

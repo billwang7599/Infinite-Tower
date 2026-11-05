@@ -222,6 +222,26 @@ const scales: Draw = (pen, rand) => {
   pen.outline(OUTLINE);
 };
 
+const meat: Draw = (pen) => {
+  pen.rect(1, 1, 14, 1, WOOD.dark);
+  for (const [x, h] of [[2, 6], [7, 8], [12, 5]] as const) {
+    pen.rect(x + 1, 2, 1, 1, "#d9d2bd");
+    pen.rect(x, 3, 3, h, "#9c3b30");
+    pen.rect(x, 3, 1, h, "#c0584a");
+    pen.rect(x + 1, 3 + h - 2, 1, 2, "#e8dcc0");
+  }
+  pen.outline(OUTLINE);
+};
+
+const fence: Draw = (pen) => {
+  for (const x of [1, 13]) pen.rect(x, 1, 2, 11, WOOD.mid);
+  for (const y of [3, 7]) {
+    pen.rect(0, y, 16, 2, WOOD.mid);
+    pen.rect(0, y, 16, 1, WOOD.light);
+  }
+  pen.outline(OUTLINE);
+};
+
 const embers: Draw = (pen) => {
   for (const [x, h] of [[2, 4], [6, 6], [10, 5]] as const) {
     pen.rect(x, 8 - h, 4, h, "#e0482a");
@@ -363,6 +383,8 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   potions: { widthPx: 16, heightPx: 10, draw: potions },
   scales: { widthPx: 16, heightPx: 10, draw: scales },
   embers: { widthPx: 16, heightPx: 8, draw: embers },
+  meat: { widthPx: 16, heightPx: 12, draw: meat },
+  fence: { widthPx: 16, heightPx: 12, draw: fence },
   dummy: { widthPx: 16, heightPx: 24, draw: dummy },
   rubble: { widthPx: 24, heightPx: 18, draw: rubble },
   chips: { widthPx: 16, heightPx: 8, draw: chips },

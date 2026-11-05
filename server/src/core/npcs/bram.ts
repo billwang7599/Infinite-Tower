@@ -69,10 +69,18 @@ export const BRAM: Npc = {
           offer: { train: "bram" },
         },
         {
+          when: { canStart: "butcher-chickens" },
+          lines: [
+            "You'll do. Now go and earn your bread: Hob, the butcher, keeps a stall in the market, down through the "
+              + "castle gate. He's got work for fresh hands.",
+          ],
+          offer: { start: "butcher-chickens" },
+        },
+        {
           when: { done: QUEST },
           lines: [
-            "You'll do. The market's down through the castle gate, and the wild's past the South Gate. Come back for a "
-              + "spar whenever you like.",
+            "You'll do. Hob the butcher's in the market, down through the castle gate, and the wild's past the South "
+              + "Gate. Come back for a spar whenever you like.",
           ],
           offer: { train: "bram" },
         },

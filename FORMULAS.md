@@ -600,7 +600,8 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 - **Tall grass** (`grass` in each region's file in `server/src/core/world/regions/`, rolled in
   `server/src/core/overworld/player.ts`): every `stepDist` 1 tile walked in it, a `chance` roll (0.12 on the Grass
-  Field and in the Mistwood, 0.06 in the Waking Hollow); the enemy by weight (only boars so far). At 0.12, on average
+  Field and in the Mistwood, 0.06 in the Waking Hollow); the enemy by weight (boars; chickens in the butcher's pen).
+  At 0.12, on average
   one every 8.3 tiles (1.7 s at 5 tiles/s), and 0.88^10 = 28% of the time 10 tiles pass without one; at 0.06, one
   every 16.7 tiles (3.3 s). None for `safeTime` 2 s after a fight.
 - **Overworld enemies** come back `respawnTime` after their fight is over: the boar 8 s, the wolf 10 s, the bog lurker
