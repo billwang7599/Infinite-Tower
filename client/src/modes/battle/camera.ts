@@ -26,6 +26,8 @@ const EYE_HEIGHT_M = 0.5;
 export interface CameraTuning {
   /** Behind the player, unless the arena's edge pulls it in (never closer than MIN_DISTANCE but in first person). */
   distanceM: number;
+  /** The share of the follow's lag kept: 1 trails the body as the smoothed point does, 0 stays on it. */
+  trailShare: number;
   /** Above the player's center: where the camera orbits from, and where it looks. */
   orbitHeightM: number;
   lookHeightM: number;
@@ -47,6 +49,7 @@ const DEG = Math.PI / 180;
 const SHOULDER: CameraTuning = {
   distanceM: 5.5, orbitHeightM: 1.5, lookHeightM: 1.3, lockPitchRad: 14 * DEG, lockLookShare: 0.35, lockLookMaxM: 3,
   sideM: -1.1, lookAheadM: 0, fovRad: 0.9, minPitchRad: -PITCH.belowRad, maxPitchRad: PITCH.aboveRad, fade: false,
+  trailShare: 1,
 };
 
 const CLOSE = { ...SHOULDER, distanceM: 3 };
@@ -54,7 +57,7 @@ const CLOSE = { ...SHOULDER, distanceM: 3 };
 const FP = {
   distanceM: 0.4, orbitHeightM: EYE_HEIGHT_M, lookHeightM: EYE_HEIGHT_M, lockPitchRad: 12 * DEG, lockLookShare: 1,
   lockLookMaxM: 100, sideM: 0, lookAheadM: 1, fovRad: 75 * DEG, minPitchRad: -PITCH.firstPersonRad,
-  maxPitchRad: PITCH.firstPersonRad,
+  maxPitchRad: PITCH.firstPersonRad, trailShare: 0,
 };
 
 export type CameraView = "shoulder" | "close" | "fp";
@@ -122,7 +125,7 @@ export function blocksView(eye: Vec3, me: Vec3, meHeightM: number, target: Vec3,
 
 const EASED = [
   "distanceM", "orbitHeightM", "lookHeightM", "lockPitchRad", "lockLookShare", "lockLookMaxM", "sideM", "lookAheadM",
-  "fovRad", "minPitchRad", "maxPitchRad",
+  "fovRad", "minPitchRad", "maxPitchRad", "trailShare",
 ] as const;
 
 /** yaw, pitch: radians (orbitBack). */
@@ -131,7 +134,8 @@ export interface ArenaView { yaw: number; pitch: number; fovRad: number; eye: Ve
 export function arenaCamera(
   ctx: BattleContext, views: Record<CameraView, CameraTuning>,
 ): (fight: Fight, dt: number) => void {
-  const focus = { x: 0, y: 0, z: 0 }, lookShift = { x: 0, z: 0 }, tuning = { ...views.shoulder };
+  const focus = { x: 0, y: 0, z: 0 }, follow = { x: 0, y: 0, z: 0 }, lookShift = { x: 0, z: 0 };
+  const tuning = { ...views.shoulder };
   /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
   let followed: Fight | null = null;
 
@@ -140,10 +144,11 @@ export function arenaCamera(
     const drag = ctx.actions.lookDelta();
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
-    const p = row[2].pos;
+    const p = ctx.blend.pos(world, row[0]), lock = ctx.lock;
 
     // Follow a smoothed point on the player; freed, rotation itself is not smoothed (aiming must feel direct).
-    const target = ctx.lock === null || ctx.freeCamera !== null ? null : world.get(ctx.lock, Body)?.pos ?? null;
+    const locked = lock !== null && ctx.freeCamera === null && world.has(lock, Body);
+    const target = locked ? ctx.blend.pos(world, lock) : null;
     const fresh = fight !== followed;
     if (fresh) {
       Object.assign(focus, p);
@@ -160,12 +165,16 @@ export function arenaCamera(
     focus.x += (p.x - focus.x) * k;
     focus.y += (p.y - focus.y) * k;
     focus.z += (p.z - focus.z) * k;
+    const trail = tuning.trailShare;
+    Object.assign(follow, {
+      x: p.x + (focus.x - p.x) * trail, y: p.y + (focus.y - p.y) * trail, z: p.z + (focus.z - p.z) * trail,
+    });
 
     if (target) {
       const turn = dampFactor(LOCK_TURN_RATE, dt), goal = lockYaw(p, target);
       if (goal !== null) view.yaw = wrapAngle(view.yaw + wrapAngle(goal - view.yaw) * turn);
       view.pitch += (tuning.lockPitchRad - view.pitch) * turn;
-      const tx = target.x - focus.x, tz = target.z - focus.z;
+      const tx = target.x - follow.x, tz = target.z - follow.z;
       const share = Math.min(tuning.lockLookShare, tuning.lockLookMaxM / Math.max(1e-3, Math.hypot(tx, tz)));
       lookShift.x += (tx * share - lookShift.x) * turn;
       lookShift.z += (tz * share - lookShift.z) * turn;
@@ -180,7 +189,8 @@ export function arenaCamera(
 
     view.pitch = clamp(view.pitch, tuning.minPitchRad, tuning.maxPitchRad);
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw), back = orbitBack(view.yaw, view.pitch);
-    const ox = focus.x + fz * tuning.sideM, oy = focus.y + tuning.orbitHeightM, oz = focus.z - fx * tuning.sideM;
+    const ox = follow.x + fz * tuning.sideM, oz = follow.z - fx * tuning.sideM;
+    const oy = follow.y + tuning.orbitHeightM;
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).
     // Solve |o + g*s| = reach for the largest s along the eye's flat way g: s = b + sqrt(b² - |o|² + reach²), b = -o·g.
     const reach = fight.arena.radius - WALL_MARGIN, flat = Math.hypot(back.x, back.z);
@@ -188,11 +198,11 @@ export function arenaCamera(
     const maxFlat = b + Math.sqrt(Math.max(0, b * b - (ox * ox + oz * oz) + reach * reach));
     const nearestM = Math.min(MIN_DISTANCE, tuning.distanceM - views.fp.distanceM);
     const wallDist = clamp(maxFlat / Math.max(0.05, flat), nearestM, tuning.distanceM);
-    const dist = floorReach(oy, back.y, focus.y - row[2].centerHeight, wallDist, FLOOR_MARGIN_M);
+    const dist = floorReach(oy, back.y, follow.y - row[2].centerHeight, wallDist, FLOOR_MARGIN_M);
     Object.assign(view.eye, { x: ox + back.x * dist, y: oy + back.y * dist, z: oz + back.z * dist });
     const ahead = tuning.lookAheadM;
     Object.assign(view.at, {
-      x: ox + lookShift.x - back.x * ahead, y: focus.y + tuning.lookHeightM - back.y * ahead,
+      x: ox + lookShift.x - back.x * ahead, y: follow.y + tuning.lookHeightM - back.y * ahead,
       z: oz + lookShift.z - back.z * ahead,
     });
     view.fovRad = tuning.fovRad;

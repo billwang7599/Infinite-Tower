@@ -438,6 +438,9 @@ main.ts
   runs them with the keys' input, sends its changes, and on a hash mismatch loads the server's fight and replays
   (the bodies it moved are the frame's `corrections`, and their drawings ease over the jump; every step's events,
   replays included, are `sync.events`). (Babylon's own lockstep isn't used: it would catch up stalls a second time.)
+  The clock starts half a step in, so 60 Hz frames land mid-step, and says how far it is past the last step
+  (`Pace.alpha`): fighters are drawn, and the camera follows them, between the fight's last two steps by that much
+  (`ctx.blend`, `Blend` in `modes/battle/context.ts`), so motion is smooth at any refresh rate.
   HP and hits show at once from the client's copy, but the result is only ever the server's: the banner waits for
   `battleResult`. After its steps the mode moves the camera's orbit (`modes/battle/camera.ts`: plain numbers, since
   its yaw is also the aim) and fills the HUD's store. The lock-on is the client's (`ctx.lock`, steered by
@@ -1709,12 +1712,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          replays included); the server's outcome; stats (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
         fired.ts         FiredEffects: a frame's step events not yet taken, so a replayed step's events go off once
                          (the drawing's effects and the sound alike)
-        pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
-                         MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
+        pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's, and how far past
+                         the last step it is (alpha) (PACE_SLACK_STEPS, MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
                          time and drops, the lock, whether the camera is free (freeCamera) and its distance (zoomM,
                          first person as each fight starts), its orbit, your stun's cue, this frame's events and
-                         corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
+                         corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME; Blend
+                         (ctx.blend: each fighter's position the step before, shifted with a correction, and where
+                         it's drawn, Pace.alpha of the way on to its body; the camera and fighter() read it)
         stun.ts          Your stun as you see it, from your hitstun, once a frame: followStun (the stun it began as,
                          how strong and how shown, the camera's kick and sway; STUN_CUE; tested)
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
@@ -1726,7 +1731,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          drag or the mouse while you aim, its tilt
                          capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in
                          (the wall no nearer than MIN_DISTANCE, but in first person right in, so its eye stays inside);
-                         every change eases, the field of view and the tilt's caps too. insideSelf hides
+                         every change eases, the field of view and the tilt's caps too. It follows the player as
+                         drawn (ctx.blend), trailing as a smoothed point does in third person and fixed to the body in
+                         first person (trailShare). insideSelf hides
                          your body but its arms in first person. Dev-only flags try others in place of the shoulder
                          view (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,
                          .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and blocksView says when your
@@ -1834,9 +1841,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only
                          the target, and one blocked sparks where it struck (arrowStopped); impactPose and
                          joltOf (no Babylon: tested)
-        battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
-                         pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a dead enemy
-                         crumbling to ash and a player who left the arena fading; DISSOLVE_TIME, LEAVE_FADE_TIME),
+        battle.ts        fighter() (a fighter's node where it's drawn (ctx.blend), eased over corrections, held by a
+                         hit-stop and pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a
+                         dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
+                         LEAVE_FADE_TIME),
                          arenaStage (the scenery per arena, the camera on the mode's view plus shake and your
                          stun's kick and sway, the drops' sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution

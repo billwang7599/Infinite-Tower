@@ -319,6 +319,10 @@ Decided by the user:
   for 0.35 s or less, full from 1 s), comes in over 0.06 s and fades over the stun's last 0.25 s (half a short one),
   so it's gone, the camera level, the moment you can move. Numbers: `STUN_CUE` in
   `client/src/modes/battle/stun.ts`, `STUN_HUD` in `client/src/visuals/battle/stunned.ts`.
+- First person is the main battle view (the user: "we should optimize for first person view"): tune the camera, arms,
+  weapons and animation for it first; third person only must not look broken. Combat's smoothness and feel come
+  before how models look (the user: "whats more important is smooth and fun combat, and smooth and good animation and
+  physics").
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
