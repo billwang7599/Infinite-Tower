@@ -4,13 +4,13 @@ import { Buttons } from "./buttons.js";
 type KeyListener = (key: string, repeat: boolean) => boolean;
 
 // A text field keeps its keys but the arrows, Esc, the digits and Backspace (a skill's word search picks and undoes
-// with them), and Enter where it sends (the chat's).
+// with them), and Enter and Tab where it sends (the chat's: Tab takes a command's suggestion).
 const TEXT_FIELD_KEYS = /^(Arrow|Escape$|Digit\d$|Backspace$)/;
 
 function fieldKeeps(target: EventTarget | null, code: string): boolean {
   const field = target as Partial<HTMLInputElement> | null;
   if (!["INPUT", "TEXTAREA"].includes(field?.tagName ?? "")) return false;
-  return !TEXT_FIELD_KEYS.test(code) && !(code === "Enter" && field?.enterKeyHint === "send");
+  return !TEXT_FIELD_KEYS.test(code) && !(["Enter", "Tab"].includes(code) && field?.enterKeyHint === "send");
 }
 
 export class Keyboard extends Buttons {

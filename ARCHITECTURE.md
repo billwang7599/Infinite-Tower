@@ -161,10 +161,12 @@ main.ts
   its pixels' share of one (`WHEEL`, a notch at most; the first after a rest is a whole one), for the overworld
   camera's zoom. In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
-  stays the field's), and Enter in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw keys
-  with `captureKey`. The chat is a layer of its own, `chat`, over the overworld or the arena, while its field has
-  focus (`ui.chat`'s `focused`, which `Chat.tsx` sets on focus and blur), with only Enter (`sendChat`) and Esc
-  (`closeChat`): the browser types the text into its field, and nothing else fires. A click elsewhere takes the
+  stays the field's), and Enter and Tab in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw
+  keys with `captureKey`. The chat is a layer of its own, `chat`, over the overworld or the arena, while its field has
+  focus (`ui.chat`'s `focused`, which `Chat.tsx` sets on focus and blur), with only Enter (`sendChat`), Esc
+  (`closeChat`) and a command's suggestions (Tab or → `takeSuggestion`, ↓ ↑ `nextSuggestion` / `previousSuggestion`,
+  each left to the field when none show): the browser types the text into its field, and nothing else fires. A click
+  elsewhere takes the
   focus and the keys go back to the game, the chat staying open; / (`openChat`) or a click on the field focuses it
   again.
   Pointer input in the UI stays plain DOM events.
@@ -1055,9 +1057,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `MAX_PLAYERS` and `BEHIND_CLOUDFLARE`; `/api/servers`; a full server refusing a new player; a `ping`
   answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a saved key keeps a new default off
-  it), the keyboard (held, latched, text fields, the chat field's Enter, rebinding's raw key), where each key goes
-  (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
-  the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
+  it), the keyboard (held, latched, text fields, the chat field's Enter and Tab, rebinding's raw key), where each key
+  goes (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the
+  page, the chat holding everything but its own keys) and who has them (the chat only while its field has focus), the
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; the flicks' 7 ways, none down, no
   aim keys; the stab on K or the back side button, the block; a right click on release, a drag no attack; the wheel's
   notches), the player's pose and blade (ways, aim, block), sword trail and
@@ -1083,7 +1085,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   again leaves, Esc stays) and pace (real time's steps, catching up after a stall, a backlog dropped, ahead when late
   and back when early, lateness it caused itself not made up twice, a stall's silence not taken for lateness, old news
   ignored), the admin panel's saved settings (`ui/screens/admin/admin.test.ts`: keep inventory on by default, bad JSON
-  or another version giving the defaults, the toggles kept but no one-shot, all sent again on joining), the title's
+  or another version giving the defaults, the toggles kept but no one-shot, all sent again on joining; `act`, which
+  the panel and the commands share; where a cheat works), the chat's commands (`ui/chat/commands.test.ts`: what each
+  runs, its errors, /help, the suggestions narrowing as you type, prefix matches first), the title's
   sequence timing, the ping (its average, stale
   pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes, known
   words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a word that
@@ -1332,7 +1336,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    blade, two blades)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
-                   MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
+                   MAX_CHAT_CHARS; MAX_GIVE_COUNT, the admin's give, here so the client's commands read it; the
+                   questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
                    (Handlers<Msg> map + dispatch by `t`, the server's), api.ts (the HTTP API's types: username /
                    password rules, Credentials, AccountInfo, GameServer, ApiError), api-requests.ts (its Zod schemas;
                    server-only import), text-rules.ts (TextRules for the
@@ -1656,7 +1661,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       chat/            Chat.tsx (the chat, bottom left in both modes, above the core card: the log's last lines,
                        or, open, all of it and the field it's typed in; / opens it or focuses it again, Enter sends,
                        Esc closes; unfocused, the field is dimmed with "Press / to chat", the key read from the
-                       bindings)
+                       bindings; where the admin panel is, / opens it with "/" typed, a line starting "/" is a
+                       command, never sent as chat, its suggestions listed over the field and its answer a note in
+                       the log, red for an error), commands.ts (COMMANDS: each command's name, aliases, arguments
+                       and their options, what it runs (an `AdminAct`) and says; parseCommand, suggest, the usage
+                       /help shows)
       dialogue/        Dialogue.tsx (an NPC talking, bottom centre over the Interact button: its portrait, name and
                        the line, and with the last line an offer: Accept or Hand over, and Not now; Enter or a click
                        goes on, Esc closes), keys.ts (withKeys: a line's `{group.action}` written out as the
@@ -1695,7 +1704,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          speed set through `setDayClock`), admin.ts (its times, speeds and counts; its settings kept
                          in localStorage under one versioned key, CHEATS_KEY: the toggles, the day's speed and the give
                          count, loadCheats tolerating bad JSON, rememberCheat keeping only the toggles, and
-                         applySavedCheats, which game.ts runs on every join to a dev server in a dev build)
+                         applySavedCheats, which game.ts runs on every join to a dev server in a dev build; `act`,
+                         what a button or a chat command does: a cheat sent, the time of day or its speed set;
+                         `whyNot`, where a cheat works, which greys the buttons and refuses the commands)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
                          (camera and flick sensitivity, Auto mouse lock), AudioSection.tsx (the four volume
                          sliders), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
@@ -2274,8 +2285,10 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   modes that have it.
 - **A cheat** (dev only). A case in `CheatSchema` (`shared/src/net/client-messages.ts`), its branch in `runCheat`
   (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
-  and a button in `client/src/ui/screens/admin/AdminPanel.tsx`. A setting rather than a one-shot also goes in
-  `admin.ts`'s `TOGGLES` and `SavedCheats`, so it's kept in the browser and sent again on every join.
+  a button in `client/src/ui/screens/admin/AdminPanel.tsx` and a command in `client/src/ui/chat/commands.ts`'s
+  `COMMANDS`; if it works only in the overworld or a fight, `whyNot` in `admin.ts` says so. A setting rather than a
+  one-shot also goes in `admin.ts`'s `TOGGLES` and `SavedCheats`, so it's kept in the browser and sent again on every
+  join.
 - **Something the game says to the player.** A case in `GameEvent` (`client/src/ui/notifications/say.ts`) and its
   entry in `EVENT_MESSAGES` (TypeScript errors until you add it), its lines, each a corner notice; long wording gets
   its own file there, like battleResult.ts. Game code calls `say(ui.notifications, { kind: ... })`. Test the words in

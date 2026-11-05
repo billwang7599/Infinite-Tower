@@ -145,6 +145,13 @@ describe("Keyboard: typing in a text field", () => {
     assert.deepEqual(heard.map(([key]) => key), ["Enter"]);
   });
 
+  test("Tab counts in the chat's field too (it takes a suggestion); in any other field it's the field's", () => {
+    const { send, heard } = setup((key) => key === "Tab");
+    assert.equal(send("keydown", "Tab", { tagName: "INPUT", enterKeyHint: "send" }).defaultPrevented, true);
+    assert.equal(send("keydown", "Tab", { tagName: "INPUT" }).defaultPrevented, false);
+    assert.deepEqual(heard.map(([key]) => key), ["Tab"]);
+  });
+
   test("keys pressed anywhere else count as usual", () => {
     const { send, heard } = setup();
     send("keydown", "KeyW", { tagName: "BUTTON" });

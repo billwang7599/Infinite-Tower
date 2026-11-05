@@ -164,7 +164,10 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       });
       setMode("overworld");
       if (import.meta.env.DEV && joined.welcome.dev) {
-        applySavedCheats(localStorage, (cheat) => joined.net.send({ t: "cheat", cheat }), drawing.setDayClock);
+        applySavedCheats({
+          storage: localStorage, admin: ui.admin, send: (cheat) => joined.net.send({ t: "cheat", cheat }),
+          setDayClock: drawing.setDayClock,
+        });
       }
       lastFrameMs = performance.now();
       frameRequest = requestAnimationFrame(loop);

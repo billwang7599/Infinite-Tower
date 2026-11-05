@@ -1,4 +1,8 @@
 import type { Cheat, DayChange } from "@infinite-tower/shared";
+import type { Mode } from "../../../game/transition.js";
+import type { GameUi } from "../../context.js";
+import type { AdminState } from "../../state.js";
+import type { Store } from "../../store.js";
 
 export const DAY_TIMES = [
   { label: "Dawn", fraction: 0.2 }, { label: "Noon", fraction: 0.5 }, { label: "Dusk", fraction: 0.8 },
@@ -6,6 +10,7 @@ export const DAY_TIMES = [
 ] as const;
 
 export const DAY_SPEEDS = [1, 10, 60, 600] as const;
+export type DaySpeed = (typeof DAY_SPEEDS)[number];
 
 export const GIVE_COUNTS = [1, 5, 20] as const;
 
@@ -16,7 +21,7 @@ const TOGGLES = ["invulnerable", "keepInventory"] as const;
 type Toggle = (typeof TOGGLES)[number];
 
 export interface SavedCheats extends Record<Toggle, boolean> {
-  daySpeed: (typeof DAY_SPEEDS)[number];
+  daySpeed: DaySpeed;
   giveCount: (typeof GIVE_COUNTS)[number];
 }
 
@@ -52,10 +57,49 @@ export function rememberCheat(storage: CheatStorage, cheat: Cheat): void {
   if (cheat.kind === "invulnerable" || cheat.kind === "keepInventory") saveCheats(storage, { [cheat.kind]: cheat.on });
 }
 
-export function applySavedCheats(
-  storage: CheatStorage, send: (cheat: Cheat) => void, setDayClock: (change: DayChange) => void,
-): void {
-  const saved = loadCheats(storage);
-  for (const kind of TOGGLES) send({ kind, on: saved[kind] });
-  setDayClock({ speed: saved.daySpeed });
+export type AdminAct = { cheat: Cheat } | { dayTime: number } | { daySpeed: DaySpeed };
+
+export interface AdminOutlet {
+  storage: CheatStorage;
+  admin: Store<AdminState>;
+  send(cheat: Cheat): void;
+  setDayClock(change: DayChange): void;
+}
+
+export const outletOf = ({ ui, actions }: GameUi): AdminOutlet => ({
+  storage: localStorage, admin: ui.admin, send: (cheat) => actions.request({ t: "cheat", cheat }),
+  setDayClock: actions.setDayClock,
+});
+
+// The time of day is only drawn, so it is set here; the server does each cheat (and ignores them in production).
+export function act(to: AdminOutlet, what: AdminAct): void {
+  if ("cheat" in what) {
+    rememberCheat(to.storage, what.cheat);
+    to.send(what.cheat);
+  } else if ("dayTime" in what) {
+    to.setDayClock({ fraction: what.dayTime });
+  } else {
+    saveCheats(to.storage, { daySpeed: what.daySpeed });
+    to.setDayClock({ speed: what.daySpeed });
+    to.admin.set({ daySpeed: what.daySpeed });
+  }
+}
+
+export interface CheatPlace {
+  mode: Mode | null;
+  againstEnemies: boolean;
+}
+
+const OVERWORLD_ONLY: readonly Cheat["kind"][] = ["encounter", "completeQuest", "faith", "resetSave"];
+
+export function whyNot(kind: Cheat["kind"], at: CheatPlace): string | null {
+  if (OVERWORLD_ONLY.includes(kind) && at.mode !== "overworld") return "Only in the overworld.";
+  if (kind === "kill" && !(at.mode === "battle" && at.againstEnemies)) return "No enemy to kill here.";
+  return null;
+}
+
+export function applySavedCheats(to: AdminOutlet): void {
+  const saved = loadCheats(to.storage);
+  for (const kind of TOGGLES) to.send({ kind, on: saved[kind] });
+  act(to, { daySpeed: saved.daySpeed });
 }

@@ -1,4 +1,3 @@
-/** The server does each cheat (and ignores them in production); the time of day is only drawn, so it is set here. */
 import { useState, type ReactNode } from "react";
 import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, type Cheat } from "@infinite-tower/shared";
 import { CloseButton } from "../../components/CloseButton.js";
@@ -7,7 +6,7 @@ import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
-import { DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS, loadCheats, rememberCheat, saveCheats } from "./admin.js";
+import { act, DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS, loadCheats, outletOf, saveCheats, whyNot } from "./admin.js";
 
 const CHIP =
   "cursor-pointer rounded-sm border border-bone/20 px-2 py-0.5 enabled:hover:border-bone/50 "
@@ -15,17 +14,17 @@ const CHIP =
 const CHIP_ON = "cursor-pointer rounded-sm border border-cinnabar/70 bg-cinnabar/15 px-2 py-0.5 text-cinnabar";
 
 export function AdminPanel() {
-  const { ui: { admin, screen, battle }, input, actions: { request, setDayClock } } = useGame();
+  const game = useGame();
+  const { ui: { admin, screen, battle }, input } = game;
   const mode = useStore(screen, (s) => s.mode);
   const againstEnemies = useStore(battle, (s) => s.result === "fighting" && !s.duel);
-  const cheat = (cheat: Cheat) => {
-    rememberCheat(localStorage, cheat);
-    request({ t: "cheat", cheat });
-  };
+  const to = outletOf(game);
+  const cheat = (cheat: Cheat) => act(to, { cheat });
+  const off = (kind: Cheat["kind"]) => whyNot(kind, { mode, againstEnemies }) !== null;
   const open = useStore(admin, (s) => s.open);
   const invulnerable = useStore(admin, (s) => s.invulnerable);
   const keepInventory = useStore(admin, (s) => s.keepInventory);
-  const [speed, setSpeed] = useState(() => loadCheats(localStorage).daySpeed);
+  const speed = useStore(admin, (s) => s.daySpeed);
   const [count, setCount] = useState(() => loadCheats(localStorage).giveCount);
 
   useAction(input, ["adminPanel", "closeAdmin"], (action, repeat) => {
@@ -37,8 +36,6 @@ export function AdminPanel() {
   });
 
   if (!open) return null;
-  const inOverworld = mode === "overworld";
-  const canKill = mode === "battle" && againstEnemies;
   return (
     <aside
       id="admin-panel"
@@ -53,7 +50,8 @@ export function AdminPanel() {
       </header>
       <Section title="Time of day">
         {DAY_TIMES.map(({ label, fraction }) => (
-          <button key={label} type="button" {...NO_FOCUS} className={CHIP} onClick={() => setDayClock({ fraction })}>
+          <button key={label} type="button" {...NO_FOCUS} className={CHIP}
+            onClick={() => act(to, { dayTime: fraction })}>
             {label}
           </button>
         ))}
@@ -61,7 +59,7 @@ export function AdminPanel() {
       <Section title="Day speed">
         {DAY_SPEEDS.map((s) => (
           <button key={s} type="button" {...NO_FOCUS} className={s === speed ? CHIP_ON : CHIP}
-            onClick={() => { setSpeed(s); saveCheats(localStorage, { daySpeed: s }); setDayClock({ speed: s }); }}>
+            onClick={() => act(to, { daySpeed: s })}>
             {s}×
           </button>
         ))}
@@ -78,19 +76,19 @@ export function AdminPanel() {
         <button type="button" id="admin-heal" {...NO_FOCUS} className={CHIP} onClick={() => cheat({ kind: "heal" })}>
           Heal
         </button>
-        <button type="button" id="admin-reset-save" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+        <button type="button" id="admin-reset-save" {...NO_FOCUS} className={CHIP} disabled={off("resetSave")}
           onClick={() => cheat({ kind: "resetSave" })}>
           Reset my save
         </button>
       </Section>
       <Section title="Fight">
-        <button type="button" id="admin-kill" {...NO_FOCUS} className={CHIP} disabled={!canKill}
+        <button type="button" id="admin-kill" {...NO_FOCUS} className={CHIP} disabled={off("kill")}
           onClick={() => cheat({ kind: "kill" })}>
           Kill enemy
         </button>
         <span className="basis-full" />
         {ENEMY_IDS.map((enemy) => (
-          <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={off("encounter")}
             onClick={() => { admin.set({ open: false }); cheat({ kind: "encounter", enemy }); }}>
             {enemy}
           </button>
@@ -107,14 +105,14 @@ export function AdminPanel() {
         </button>
       </Section>
       <Section title="Quests (overworld)">
-        <button type="button" id="admin-complete-quest" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+        <button type="button" id="admin-complete-quest" {...NO_FOCUS} className={CHIP} disabled={off("completeQuest")}
           onClick={() => cheat({ kind: "completeQuest" })}>
           Complete current quest
         </button>
       </Section>
       <Section title="Faith (overworld)">
         {GODS.map((god) => (
-          <button key={god} type="button" data-faith={god} {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          <button key={god} type="button" data-faith={god} {...NO_FOCUS} className={CHIP} disabled={off("faith")}
             onClick={() => cheat({ kind: "faith", god })}>
             {GOD_NAMES[god]}
           </button>

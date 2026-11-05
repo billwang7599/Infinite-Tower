@@ -1494,7 +1494,8 @@ In the game on a dev server, F1 opens the admin panel: the time of day and its s
 (on by default), heal, a core step up or down, completing the current quest, resetting your save, a fight with any
 enemy, killing the enemy you're fighting (F2 too), items into the bag, faith with a god. Mid-fight all but the fights,
 the quest, the reset and faith work. Its settings (the toggles, the day's speed, the give count) are kept in the
-browser and sent again on every join.
+browser and sent again on every join. The same cheats are chat commands (/ opens the chat with "/" typed; `/help`
+lists them, e.g. `/give boar-meat 5`, `/god`, `/encounter kobold-swordsman`, `/kill`), suggested as you type.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
