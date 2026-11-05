@@ -1837,8 +1837,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a fill light so dark looks keep their colour), head.ts (faceTexels: the chibi's eyes and mouth,
                          a nose and blush, painted on the head's front; hairTexels; HAIR_STYLES, each a shell cut round
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
-                         each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
-                         into over KEY_EASE_TIME and held; a bow carried at the side (BOW_CARRY) and drawn side-on,
+                         each action's keys as joint rotations by joint name; personPose, pose to pose, most of each
+                         key at once (KEY_EASE_TIME), the rest crept over the gap; swingArc, a swing's arc drawn
+                         between the fight's steps (SWING_ARC); a bow carried at the side (BOW_CARRY) and drawn side-on,
                          held out clear of the body and head (BOW_DRAWN), the string hand back by the draw; LANDING,
                          the knees giving; no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
@@ -1879,10 +1880,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          state); unless &player3d=0, every one of them (you, a duel's rival, Bram) a 3D person (person/)
         firstPerson.ts   Your arms in first person: firstPersonArms pulls the hands toward spots low on the screen and
                          leans the blade ahead (FP_ARMS; the pose's own, the model's frame), posed for a fixed
-                         first-person view (POSED_FOR); a bow is placed from the eye instead (bowInView, FP_BOW:
-                         carried low, or raised with the drawn arrow along the view, the string hand on the nock);
-                         holdInView reaches them there and carries both arms with the real camera, so they're in
-                         view wherever it looks; restShoulders puts them back (tested)
+                         first-person view (POSED_FOR); a sword swing is drawn from the eye (swungInView, FP_SWING:
+                         across the screen, through its middle on the hit); a bow is placed from the eye instead
+                         (bowInView, FP_BOW: carried low, or raised with the drawn arrow along the view, the string
+                         hand on the nock); holdInView eases them (a swing takes over from where they were, the arm
+                         carried back after), reaches them there, fpShare of the way from the body's own by the eye's
+                         distance from the head, and carries both arms with the real camera, so they're in view
+                         wherever it looks; restShoulders puts them back (tested)
         bowMotion.ts     A bow's draw as shown: bowDrawOf (the fighter's draw, from the shared drawnShare, or its
                          loose), moveBow easing a person's BowMotion each frame (raised or carried, the string
                          hand's pull, its flick off the string, the string ringing past the brace once loosed;
@@ -2324,7 +2328,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Your stun's cue: its strength by length, fades, the camera's kick and sway (`STUN_CUE`); the stars and vignette (`STUN_HUD`) | top of `client/src/modes/battle/stun.ts`; top of `client/src/visuals/battle/stunned.ts` |
 | Arena camera feel, locked and not | `CAMERA_VIEWS` (first person, and the shoulder view a dodge zooms out to) and the dev-only `CAMERA_PRESETS` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
-| Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |
+| Where your hands and blade sit in first person; how far from the head the eye takes them back to the body | `FP_ARMS` (`fade`) in `client/src/visuals/battle/firstPerson.ts` |
+| A sword swing in first person: how far back it's cocked and past the end it goes, the hand's swing, the ends' lift and lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
+| The 3D person's swing arc: drawn back, past the end, how hard it drives into the hit, the wind-up's take-over; how quickly a pose's key is reached and the rest crept | `SWING_ARC`, `KEY_EASE_TIME` in `client/src/visuals/battle/person/pose.ts` |
 | Where the bow, the drawn arrow and both hands sit in first person, carried and drawn, and the loose's flick and kick | `FP_BOW` in `client/src/visuals/battle/firstPerson.ts` |
 | How quickly a bow is raised, the string hand follows the draw and flicks off, and how the loosed string rings | `BOW_MOTION` in `client/src/visuals/battle/bowMotion.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |
