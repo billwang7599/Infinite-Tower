@@ -209,8 +209,12 @@ swings are timed by the same functions as a player's, from its weapon and the st
 (`weaponAttackSystem`, `fight/behaviors/weapon.ts`): a chain's first swing and a counter are openings, each next one
 is chained on from the last way (`chainKind`), and its next swing waits for the last one's recovery (a whiff's too).
 Its def holds only pacing: the cooldown between chains, chain lengths, shares and chances. **The Kobold** (its weapon
-attack, `server/src/core/enemies/kobold-swordsman.ts`) holds its blade in one hand, its hands `oneHanded`: the
-one-handed table's Kobold blade, its chained lights the Basic Sword's; the Kobold Greatsword the greatsword's. It
+attack, `server/src/core/enemies/kobold-swordsman.ts`) holds its blade in one hand, its hands `oneHanded`, at strength
+8 (`stats.strength`, all three Kobolds): its Kobold blade feels 1.12, so an opening light winds up 0.63 s and a heavy
+1.03, chained lights 0.45, 0.53 and 0.67 s, a stab 0.5; live 0.15 / 0.17 s, recovering 0.12 / 0.28 s; a light deals
+12.52 + 1.79, a heavy 25.04 + 3.58, a stab 7.16 (each × √0.8). The Kobold Greatsword's blade feels 1.81: 1.02 /
+1.67 s, chained 0.72, 0.87 and 1.08, a stab 0.82; live 0.23 / 0.27, recovering 0.18 / 0.47; a light 16.99 + 4.47, a
+heavy 33.99 + 8.94, a stab 8.94. It
 won't parry a swing it could only meet by winding up under the 0.4 s floor. It blocks walking up (from 0.3 s in), and
 perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`). It feints 20% of its
 heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back into its block, ends the chain and
@@ -364,12 +368,12 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
   or blocked perfectly recoils `HYBRID.counter.recoilTime` 0.25 s: the 0.4 s floor less a Basic Sword's 0.1 s guard
   raise, with a step to spare.
 
-Example: a sword heavy fully parrying a sword light: weights 6 and 3, the light recoils 0.8 × 2 = 1.6 s; a light
-partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A one-handed sword light fully parrying a Kobold blade's light (the
-same weight, 3): the Kobold recoils 0.8 s; a two-handed one (4.24) 0.8 × 1.41 = 1.13 s. The Kobold's blade parrying
-a Basic Sword light that went live too late: the player recoils 0.25 s (free 17 steps on, the systems' order adding
-two), and its counter, a light opening (0.56 s), goes live 35 steps after the parry: 18 steps (0.3 s) to raise the
-guard (6 one-handed, 2 in both hands) or dodge; a stab counter (0.45 s) leaves 11.
+Example: a sword heavy fully parrying a sword light: weights 6 and 3, the light recoils 0.8 × 2 = 1.6 s; a light partly
+parrying a heavy: 0.5 × 0.5 = 0.25 s. A one-handed sword light fully parrying a Kobold blade's light (weights 3 and, at
+the Kobold's strength 8, 2.68): the Kobold recoils 0.8 × 1.12 = 0.89 s; a two-handed one (4.24) 0.8 × 1.58 = 1.26 s. The
+Kobold's blade parrying a Basic Sword light that went live too late: the player recoils 0.25 s (free 17 steps on, the
+systems' order adding two), and its counter, a light opening (0.63 s), goes live 39 steps after the parry: 22 steps
+(0.37 s) to raise the guard (6 one-handed, 2 in both hands) or dodge; a stab counter (0.5 s) leaves 14.
 
 ## Poise and stagger (enemies)
 
@@ -553,7 +557,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 60, 8, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
 | Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | slash + blunt: light 14 + 2, heavy 28 + 4; stab 8 | light 19 + 5, heavy 38 + 10; stab 10 (about 1.6 × as slow) | light 14 + 2, heavy 28 + 4; stab 8 | staff 5; Bolt Fire 8 + 10 burning | blunt: light 4.24, heavy 8.49 (both hands) |
+| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | slash + blunt (strength 8): light 12.52 + 1.79, heavy 25.04 + 3.58; stab 7.16 | light 16.99 + 4.47, heavy 33.99 + 8.94; stab 8.94 (about 1.6 × as slow) | light 12.52 + 1.79, heavy 25.04 + 3.58; stab 7.16 | staff 5; Bolt Fire 8 + 10 burning | blunt: light 4.24, heavy 8.49 (both hands) |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -569,9 +573,9 @@ Each in `server/src/core/enemies/<id>.ts`.
   (0.75 s) and sweeps its tail all round (live 0.2 s), then stands 1 s. 0.8 s after either before the next; the
   first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 30).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
-  heavy 30% of the time, each timed as a player's swing with its blade (Swords: an opening 0.57 s, chained ones
-  0.4-0.6, a heavy 0.36 s more, recovering 0.1 s), creeping up at a quarter of its walk while winding up and carried
-  at 4 m/s while live, as a player (the body, under the sword); then 1.2 s before the next chain;
+  heavy 30% of the time, each timed as a player's swing with its blade at its strength 8 (Swords: an opening 0.63 s,
+  chained ones 0.45-0.67, a heavy's opening 1.03, recovering 0.12 s), creeping up at a quarter of its walk while
+  winding up and carried at 4 m/s while live, as a player (the body, under the sword); then 1.2 s before the next chain;
   first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
   perfect-blocks 30% of a player's swings (rolled as each starts) and counters (Swing parries, Counters). A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
@@ -580,9 +584,10 @@ Each in `server/src/core/enemies/<id>.ts`.
   blade (it has no times of its own). A chain of 1 or 2, 1.5 s before the next; walking up it blocks from 0.2 s in,
   perfect-blocks 20% of a player's swings and never parries (its blade still meets a crossing blade as anyone's does).
   Its guard is its poise: 60, back 8 a second, so 5 blocked lights or 3 heavies in a row stagger it for 0.8 s. In the
-  bot fights (seeds 1-10) a reader wins every one at full HP, and so does one who blocks its swings and presses
-  heavies only in its openings; pressing whenever it isn't swinging wins 7 with heavies and every one with lights,
-  with about a third of the HP left; one who only swings or only blocks loses every one.
+  bot fights (seeds 1-10) a reader wins every one at full HP; one who only swings wins 3 (none with the Kobolds at
+  strength 10), and one who only blocks loses every one. Measured at strength 10 and not rerun: one who blocks its
+  swings and presses heavies only in its openings won every one at full HP; pressing whenever it isn't swinging won 7
+  with heavies and every one with lights, with about a third of the HP left.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, the old stick swung as a player's in
   both hands (the table: felt 0.09, so every swing, a heavy's too, live at the 0.4 s floor, recovering 0.02 s),
   then 1.8 s before the next chain; first after 2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings,
