@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { ActiveHit, type PlayerInputData } from "@infinite-tower/shared";
+import { ActiveHit, emptyBag, emptyEquipment, packFor, Wielder, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, BOAR, busy, CASTER, dumpState, enemy, IDLE, input, player } from "./fixtures.js";
 
@@ -105,5 +105,24 @@ describe("a fight's whole state", () => {
       }
       assert.equal(dumpState(copy), dumpState(original), `loaded at ${at}`);
     }
+  });
+});
+
+describe("the hand that swings", () => {
+  const dual = () => new Fight({ arena: ARENA, enemies: [enemy(BOAR, BOAR_AT)], players: [player(PLAYER_AT, {
+    gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null),
+      equipment: { ...emptyEquipment(), rightHand: "sword", leftHand: "kobold-blade" } },
+  })] });
+
+  test("is in the saved state and its hash, and loads back", () => {
+    const fight = dual(), copy = dual();
+    fight.step([input({ switchHand: true })]);
+    fight.step([IDLE]);
+    copy.step([IDLE]);
+    copy.step([IDLE]);
+    assert.notEqual(fight.hash(), copy.hash());
+    copy.load(wire(fight.save()));
+    assert.equal(copy.world.require(copy.players[0]!, Wielder).hands.active, "leftHand");
+    assert.equal(copy.hash(), fight.hash());
   });
 });

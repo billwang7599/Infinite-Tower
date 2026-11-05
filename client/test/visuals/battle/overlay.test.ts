@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
-import { AVERAGE_STAT, BOW, drawTime, loosedSpeed, WEAPONS, type PlayerAction } from "@infinite-tower/shared";
+import {
+  AVERAGE_STAT, BOW, drawTime, loosedSpeed, WEAPONS, type Hand, type ItemId, type PlayerAction,
+} from "@infinite-tower/shared";
 import {
   AIM_HUD, aimHud, aimLayout, meterSpan, onScreen, ringLights, wedgeOf,
 } from "../../../src/visuals/battle/overlay.js";
@@ -37,6 +39,16 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
 
   test("the ring shows the aim with a sword out, standing, while the fight goes on", () => {
     assert.deepEqual(aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", true).ring, { lit: 4, stab: false });
+  });
+
+  test("with a blade in each hand it shows which one swings; otherwise no hand", () => {
+    const hud = (rightHand: ItemId | null, leftHand: ItemId | null, active: Hand) =>
+      aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", true, null, AVERAGE_STAT, false,
+        { rightHand, leftHand, active }).hand;
+    assert.equal(hud("sword", "longsword", "leftHand"), "leftHand");
+    assert.equal(hud("sword", "longsword", "rightHand"), "rightHand");
+    assert.equal(hud("sword", "wooden-shield", "rightHand"), null);
+    assert.equal(hud("sword", "skillbook", "rightHand"), null);
   });
 
   test("no ring with no sword in hand, once down, or once the fight is decided", () => {
@@ -102,7 +114,7 @@ describe("the draw meter, in the ring's place while a bow is in hand", () => {
 
   test("with a bow in hand it shows, and the ring doesn't", () => {
     const { meter, ...rest } = hud("none", 0);
-    assert.deepEqual(rest, { ring: null, crosshair: false, dot: false });
+    assert.deepEqual(rest, { ring: null, crosshair: false, dot: false, hand: null });
     assert.equal(meter?.share, 0);
     near(meter?.minShare, speedShare(MIN));
   });

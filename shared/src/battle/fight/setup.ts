@@ -83,7 +83,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, last: copyInput(IDLE_INPUT), attackBuffer: 0, dodgeBuffer: 0,
-    castBuffer: 0, dodgeCooldownSteps: 0, perfectBlockLeft: 0, sinceBlockPress: HYBRID.block.remashTime, queued: null,
+    castBuffer: 0, dodgeCooldownSteps: 0, perfectBlockLeft: 0, sinceBlockPress: HYBRID.block.remashTime,
+    handSwitchQueued: false, queued: null,
     castQueued: null, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
@@ -162,7 +163,8 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   }
   if (def.sidestep) world.add(e, Sidestep, { def: def.sidestep, dir: { x: 0, z: 0 } });
   if (def.wielder) {
-    world.add(e, Wielder, wielder({ rightHand: null, leftHand: null, ...def.wielder.hands }, def.wielder.armReachM));
+    const hands = { rightHand: null, leftHand: null, active: "rightHand" as const, ...def.wielder.hands };
+    world.add(e, Wielder, wielder(hands, def.wielder.armReachM));
   }
   world.add(e, Health, fresh(def.maxHp));
   world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius, heightM: def.heightM ?? 2 * def.radius });

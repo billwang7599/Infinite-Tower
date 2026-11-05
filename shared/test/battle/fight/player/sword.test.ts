@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage,
-  Player, Stamina, strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
+  Player, Stamina, strikeCost, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -176,5 +176,64 @@ describe("a feint", () => {
     assert.ok(!late.fight.events.some((e) => e.type === "feint"));
     const last = blockAt("heavy", lastFeintStep);
     assert.equal(last.wielder.swing, null);
+  });
+});
+
+describe("two blades: the switch-hand key picks the one that swings", () => {
+  const holding = (rightHand: ItemId | null, leftHand: ItemId | null) => new Fight({
+    arena: { ...ARENA, radius: 40 },
+    players: [player({ x: 0, y: 0.05, z: 0 }, {
+      gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand,
+      leftHand } },
+    })],
+    enemies: [enemy({ ...STATUE, maxHp: 100_000 }, { x: 0, y: 0.05, z: NEAR })],
+  });
+  const wielderOf = (fight: Fight) => fight.world.require(fight.players[0]!, Wielder);
+  const tap = (fight: Fight, over: Partial<PlayerInputData> = {}) => {
+    fight.step([input({ locked: 0, switchHand: true, ...over })]);
+    fight.step([input({ locked: 0 })]);
+  };
+  const lightDamage = (fight: Fight) => {
+    fight.step([input({ locked: 0, way: "lr", attack: "light" })]);
+    return wielderOf(fight).swing?.damage ?? null;
+  };
+
+  test("the right hand swings first; a tap of the key swings the left's blade, another the right's", () => {
+    const fight = holding("sword", "kobold-blade");
+    assert.equal(wielderOf(fight).hands.active, "rightHand");
+    tap(fight);
+    assert.equal(wielderOf(fight).hands.active, "leftHand");
+    assert.equal(lightDamage(fight), physicalDamage(WEAPONS["kobold-blade"].damage, STATS));
+    const back = holding("sword", "kobold-blade");
+    tap(back);
+    tap(back);
+    assert.equal(lightDamage(back), physicalDamage(SWORD.damage, STATS));
+  });
+
+  test("does nothing without a blade in each hand", () => {
+    for (const [right, left] of [["sword", "skillbook"], ["sword", "wooden-shield"], [null, "sword"]] as const) {
+      const fight = holding(right, left);
+      tap(fight);
+      assert.equal(wielderOf(fight).hands.active, "rightHand", `${right} ${left}`);
+    }
+  });
+
+  test("pressed mid-swing, it switches once that blade is done, not before", () => {
+    const fight = holding("sword", "kobold-blade");
+    fight.step([input({ locked: 0, way: "lr", attack: "light" })]);
+    const swing = wielderOf(fight).swing!;
+    tap(fight);
+    assert.equal(wielderOf(fight).hands.active, "rightHand");
+    assert.equal(wielderOf(fight).swing, swing);
+    while (wielderOf(fight).swing && wielderOf(fight).swing!.step < swing.liveUntil) {
+      fight.step([input({ locked: 0 })]);
+    }
+    fight.step([input({ locked: 0 })]);
+    assert.equal(wielderOf(fight).hands.active, "leftHand");
+  });
+
+  test("with a shield in one hand, the other hand's blade swings", () => {
+    const fight = holding("wooden-shield", "sword");
+    assert.equal(lightDamage(fight), physicalDamage(SWORD.damage, STATS));
   });
 });

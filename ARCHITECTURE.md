@@ -478,7 +478,8 @@ main.ts
   (`fight/weapons/defend.ts`): in front of the target, a weapon in its
   perfect block's window costs the attacker stamina and staggers it (`stagger`: a player's "stagger" action in
   hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
-  enemy's poise), the guard breaking when it runs out; a body blow is only blocked, pushing the defender back.
+  enemy's poise), by the hands' guard (`guardOf`: a shield, one blade or two; `GUARDS`), the guard breaking when it
+  runs out; a body blow is only blocked, pushing the defender back.
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is each weapon item's `weapon` component in `ITEMS`,
   gathered by `shared/src/weapons/weapons.ts` into `WEAPONS` (each weapon by item id: its `kind`, the moveset it swings
@@ -1227,8 +1228,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer, one step in four
                        parts: chooseAction, moveByAction, moveGearInBag, refillStamina; a press is what's held now
-                       and wasn't in `Player.last`, the input the last step ran with; no sword in hand,
-                       no attacks or block; no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
+                       and wasn't in `Player.last`, the input the last step ran with; with a blade in each hand
+                       `switchHand` turns `hands.active`, once the blade in play is done; no sword in hand,
+                       no attacks, and no block without a shield or a weapon;
+                       no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
                        aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
                        / heavy / stab
                        on the old momentum chains, the held block; a ranged weapon hands off to bow.ts), bow.ts
@@ -1293,16 +1296,18 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
-                   heft and minStrength, a bow's powerMps; feltHeft, canWield, twoHanded, weaponIn, weaponItemIn;
+                   heft and minStrength, a bow's powerMps; feltHeft, canWield, twoHanded, weaponIn, weaponItemIn,
+                   weaponHandIn (the hand that swings: the active one's weapon first, Hands.active);
                    AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
-                   meleeOf, rangedOf, meleeIn: what the fight branches on), bow.ts (BOW: the bow's placeholder draw,
-                   nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
+                   meleeOf, rangedOf, meleeIn: what the fight branches on; dualWielding, guardOf: the hands'
+                   guard), bow.ts (BOW: the bow's placeholder draw, nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
                    curve), loosedDamage, loosedSpeed, flightAfter (where an arrow is and how fast it goes some time
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
-                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime, parryWindowTime)
+                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime, parryWindowTime;
+                   GUARDS: the held block by guard, shield, one blade, two blades)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1742,9 +1747,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          place, third person for an A/B test (cameraTuning: ?cam=shoulder, close, high, both or fp,
                          &cam.dist, .height, .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and
                          blocksView says when your fighter hides the target (cam.fade)
-        lock.ts          The lock-on, always on: steerLock (Q switches to the enemy nearest where the camera points
-                         but the target, pointedFoe; lock closest; the camera freed keeps the target, and as it ends,
-                         or the target dies, the lock goes to inViewFoe, in the picture nearest its middle, else the
+        lock.ts          The lock-on, always on: steerLock (lock closest; the camera freed keeps the target, and as
+                         it ends, or the target dies, the lock goes to inViewFoe, in the picture nearest its middle, else the
                          old target, else the closest), lockYaw (the way to face it), no Babylon: tested
         aim.ts           The player's aim, no Babylon: AIMING (the actions that aim: a bow drawn or loosed, a chant,
                          a cast, a Beam), freeCamera (a pan, or the mouse's while aiming or your arrow flies),
@@ -2249,7 +2253,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
-| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
+| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
 | Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share; a body blow's push and the hitstun it gives a player | `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |

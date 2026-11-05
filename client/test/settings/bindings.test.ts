@@ -87,9 +87,10 @@ describe("ACTIONS and helpers", () => {
     assert.ok(!names.some((name) => name.startsWith("aim") || name === "kick" || name === "feint"), names.join());
   });
 
-  test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it", () => {
+  test("the arena: Q switches hands, right Shift locks the closest, the arrows turn the camera", () => {
     const battle = new KeyBindings().get().battle;
-    assert.deepEqual(battle.lockOn, ["KeyQ"]);
+    assert.deepEqual(battle.switchHand, ["KeyQ"]);
+    assert.ok(!("lockOn" in battle));
     assert.deepEqual(battle.lockClosest, ["ShiftRight"]);
     assert.deepEqual(battle.turnLeft, ["ArrowLeft"]);
     assert.deepEqual(battle.turnRight, ["ArrowRight"]);

@@ -29,14 +29,24 @@ export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null
 export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
-export const feltHeft = (weapon: Weapon, strength: number): number =>
+export const feltHeft = (weapon: Guard, strength: number): number =>
   1 + (weapon.heft - 1) * (AVERAGE_STAT / strength);
 
-/** The right hand's first. */
-export const weaponItemIn = (hands: Record<Hand, ItemId | null>): WeaponId | null =>
-  isWeapon(hands.rightHand) ? hands.rightHand : isWeapon(hands.leftHand) ? hands.leftHand : null;
+export type Guard = Pick<Weapon, "length" | "heft">;
 
-export function weaponIn(hands: Record<Hand, ItemId | null>): Weapon | null {
+export type Hands = Record<Hand, ItemId | null> & { active?: Hand };
+
+export function weaponHandIn(hands: Hands): Hand | null {
+  const first = hands.active ?? "rightHand", other = first === "rightHand" ? "leftHand" : "rightHand";
+  return isWeapon(hands[first]) ? first : isWeapon(hands[other]) ? other : null;
+}
+
+export const weaponItemIn = (hands: Hands): WeaponId | null => {
+  const hand = weaponHandIn(hands);
+  return hand && (hands[hand] as WeaponId);
+};
+
+export function weaponIn(hands: Hands): Weapon | null {
   const item = weaponItemIn(hands);
   return item && WEAPONS[item];
 }

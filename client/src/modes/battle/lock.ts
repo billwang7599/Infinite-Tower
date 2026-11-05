@@ -48,12 +48,8 @@ export function steerLock(
   foes: readonly Foe[], view: View, from: Vec3,
 ): Entity | null {
   const alive = foes.some((f) => f.e === target) ? target : null;
-  let lock = alive !== null && (free || !wasFree) ? alive : inViewFoe(foes, view) ?? alive ?? closestFoe(foes, from);
-  for (const action of pressed) {
-    if (action === "lockOn") lock = pointedFoe(foes.filter((f) => f.e !== lock), view) ?? lock;
-    else if (action === "lockClosest") lock = closestFoe(foes, from);
-  }
-  return lock;
+  const lock = alive !== null && (free || !wasFree) ? alive : inViewFoe(foes, view) ?? alive ?? closestFoe(foes, from);
+  return pressed.includes("lockClosest") ? closestFoe(foes, from) : lock;
 }
 
 export function lockYaw(from: Vec3, to: Vec3): number | null {

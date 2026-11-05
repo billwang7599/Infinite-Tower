@@ -463,6 +463,22 @@ function featheredHat(px: Pixels): void {
   plume.shade(both(feather, speckle(2, 3, 4)), BASE);
 }
 
+function shield(px: Pixels): void {
+  const wood = new Pen(px, 0), face = ellipse(16, 16, 14, 14);
+  wood.fill(face, ink("root", BASE));
+  wood.shade(both(face, (x, _y) => x % 6 === 0), DEEP);
+  wood.shade(litEdge(face, 2), LIGHT);
+  wood.shade(darkEdge(face, 2), SHADOW);
+  const rim = new Pen(px, 1), hoop = minus(face, ellipse(16, 16, 12.5, 12.5));
+  rim.fill(hoop, ink("steel", BASE));
+  rim.shade(litEdge(hoop, 1), LIGHT);
+  rim.shade(darkEdge(hoop, 1), SHADOW);
+  const boss = ellipse(16, 16, 4, 4);
+  rim.fill(boss, ink("steel", BASE));
+  rim.shade(darkEdge(boss, 1), SHADOW);
+  rim.fill(ellipse(14.8, 14.8, 1, 1), ink("steel", SHINE));
+}
+
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
@@ -475,7 +491,7 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "sigil-of-the-last-breath": sigil("wisp"), "sigil-of-the-red-blade": sigil("gold"),
   "sigil-of-the-first-door": sigil("blood"), "canvas-backpack": backpack, "wool-cap": cap, "leather-belt": belt,
   "copper-ring": ring, "braided-bracelet": bracelet, "feathered-hat": featheredHat, "training-bow": trainingBow,
-  arrow, "training-quiver": quiver,
+  arrow, "training-quiver": quiver, "wooden-shield": shield,
 };
 
 const drawn = new Map<ItemId, Picture>();

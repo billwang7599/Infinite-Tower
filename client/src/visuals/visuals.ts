@@ -1,6 +1,6 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, heldIn, Player, Projectile, regionAt, SkillObject, weaponItemIn, Wielder, type DayChange, type EnemyId,
+  Enemy, Player, Projectile, regionAt, SkillObject, weaponHandIn, Wielder, type DayChange, type EnemyId,
   type Entity,
   type Hand, type Look, type NpcId, type SkillObjectKind, type Theme, type World,
 } from "@infinite-tower/shared";
@@ -162,7 +162,7 @@ export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanv
 
   const paintHeld = (look: Pick<PlayerLook<unknown>, "hold" | "finish">, was: Painted, fight: Fight, e: Entity) => {
     const { hands } = fight.world.require(e, Wielder);
-    const item = weaponItemIn(hands), hand = (item && heldIn(hands, item)) || null;
+    const hand = weaponHandIn(hands);
     if (fight === was?.fight && hand === was.hand) return was;
     look.hold(hand);
     look.finish();

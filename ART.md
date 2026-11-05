@@ -140,7 +140,8 @@ old stick, the swords, the skillbook, each monster's essence (one bead, in six c
 (one stone disc with a rune ring, glowing in its tier's colour), a canvas backpack, a wool cap, a leather belt, a
 copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left), a
 sheaf of three arrows and a training quiver (a leather tube on end with a brass band and a strap, three fletchings over
-its mouth; the three are placeholders, admin give only). The sprites draw nothing worn (the arena's 3D people wear
+its mouth; the three are placeholders, admin give only), and a wooden shield (oak boards in an iron rim with a boss;
+not drawn in the arena yet). The sprites draw nothing worn (the arena's 3D people wear
 it, below); the sword shows in the arena as a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the
 arena's frames are painted without it.
 The blade's faces are `SWORD`'s blade drawn to the blade's length with square pixels, its dark outline shaded instead

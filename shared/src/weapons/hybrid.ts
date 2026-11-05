@@ -1,7 +1,7 @@
 import { AVERAGE_STAT, physicalDamage, type Stats } from "../battle/stats.js";
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
-import { feltHeft, type AttackKind, type AttackSteps, type HitShape, type Weapon } from "./weapons.js";
+import { feltHeft, type AttackKind, type AttackSteps, type Guard, type HitShape, type Weapon } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
 // from its first letters' side; facing each other, one fighter's left is the other's right (`mirrorWay`).
@@ -90,13 +90,13 @@ export const HYBRID = {
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
 
-export const perfectBlockTime = (weapon: Weapon): number =>
+export const perfectBlockTime = (weapon: Guard): number =>
   HYBRID.block.perfectTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
 export const parryWindowTime = (weapon: Weapon): number =>
   HYBRID.parry.windowTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
-export const guardRaiseTime = (weapon: Weapon, strength: number): number =>
+export const guardRaiseTime = (weapon: Guard, strength: number): number =>
   HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft;
 
 export type ParryKind = "full" | "partial";
@@ -151,3 +151,11 @@ export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): nu
 
 export const strikeDamage = (weapon: Weapon, strike: Strike, power: number, stats: Stats): number =>
   physicalDamage(weapon.damage * HYBRID[strike].damageFactor * power, stats);
+
+export type GuardKind = "shield" | "one" | "dual";
+
+export const GUARDS = {
+  shield: { minDot: 0, chipFraction: 0.08, staminaFactor: 0.6, pushFactor: 0.6 },
+  one: { minDot: HYBRID.block.minDot, chipFraction: HYBRID.block.chipFraction, staminaFactor: 1, pushFactor: 1 },
+  dual: { minDot: HYBRID.block.minDot, chipFraction: 0.32, staminaFactor: 1.35, pushFactor: 1.2 },
+} as const satisfies Record<GuardKind, Record<"minDot" | "chipFraction" | "staminaFactor" | "pushFactor", number>>;

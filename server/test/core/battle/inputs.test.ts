@@ -128,3 +128,14 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.lateness(28), { lateSteps: -2, heardStep: 30 }, "early");
   });
 });
+
+describe("InputTimeline: switching hands", () => {
+  test("a tap of the switch-hand key that came late still runs, on the next step", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    timeline.receive(7, [at(3, { ...WALK, switchHand: true }), at(4, WALK)], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, switchHand: true });
+    assert.deepEqual(timeline.take(7), WALK);
+  });
+});

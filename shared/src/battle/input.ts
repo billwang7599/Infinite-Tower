@@ -21,6 +21,7 @@ export interface PlayerInputData {
   dodge: boolean;
   way: SwingDir | null;
   block: boolean;
+  switchHand: boolean;
   /** Pressed: the skill only on the step its cast key goes down, and `castHeld` while the key stays down after. */
   cast: Skill | null;
   castHeld: boolean;
@@ -47,22 +48,24 @@ export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, aimAt: { x: 0, y: 0, z: 0 }, jump: false, attack: null, attackHeld: false,
-  dodge: false, way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null,
-  locked: null, bag: false, gear: null, use: null,
+  dodge: false, way: null, block: false, switchHand: false, cast: null, castHeld: false, chant: false,
+  chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
   moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, aimAt: { ...i.aimAt }, jump: i.jump, attack: i.attack,
-  attackHeld: i.attackHeld, dodge: i.dodge, way: i.way, block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant,
-  chantWords: i.chantWords, write: i.write, locked: i.locked, bag: i.bag, gear: i.gear, use: i.use,
+  attackHeld: i.attackHeld, dodge: i.dodge, way: i.way, block: i.block, switchHand: i.switchHand, cast: i.cast,
+  castHeld: i.castHeld, chant: i.chant, chantWords: i.chantWords, write: i.write, locked: i.locked, bag: i.bag,
+  gear: i.gear, use: i.use,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ
   && a.aimAt.x === b.aimAt.x && a.aimAt.y === b.aimAt.y && a.aimAt.z === b.aimAt.z && a.jump === b.jump
   && a.attack === b.attack && a.attackHeld === b.attackHeld && a.dodge === b.dodge && a.way === b.way && a.block === b.block
-  && a.cast === b.cast && a.castHeld === b.castHeld && a.chant === b.chant && a.chantWords === b.chantWords
+  && a.switchHand === b.switchHand && a.cast === b.cast && a.castHeld === b.castHeld && a.chant === b.chant
+  && a.chantWords === b.chantWords
   && a.write === b.write && a.locked === b.locked && a.bag === b.bag && a.gear === b.gear && a.use === b.use;
 
 /** Decimals the move and the aim keep on the wire: 0.001 of a direction is far below what anyone can aim. */

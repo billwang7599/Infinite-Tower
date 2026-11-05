@@ -1,6 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Vec2 } from "../../../core/math.js";
-import type { Equipment } from "../../../items/gear.js";
+import type { Equipment, Hand } from "../../../items/gear.js";
 import { HYBRID, strikeDamage, strikeOf, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { meleeOf } from "../../../weapons/kinds.js";
 import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
@@ -8,8 +8,8 @@ import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../comp
 import { FighterStats } from "../../stats.js";
 import { addHit } from "../combat.js";
 
-export const handsOf = (equipment: Equipment): WielderData["hands"] =>
-  ({ rightHand: equipment.rightHand, leftHand: equipment.leftHand });
+export const handsOf = (equipment: Equipment, active: Hand = "rightHand"): WielderData["hands"] =>
+  ({ rightHand: equipment.rightHand, leftHand: equipment.leftHand, active });
 
 export const bladeLive = (swing: SwingData): boolean => swing.step >= swing.liveAt && swing.step < swing.liveUntil;
 
