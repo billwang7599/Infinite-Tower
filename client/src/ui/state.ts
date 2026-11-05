@@ -48,7 +48,6 @@ export interface YouState {
   faith: Faith;
   gear: Gear;
   using: UseSpot | null;
-  wins: number;
 }
 
 export interface OverworldHudState {
@@ -195,7 +194,7 @@ export class UiState {
   readonly creation = new Store<CreationState>({ open: false });
   readonly panel = new Store<PanelState>({ open: null, widthPx: 0 });
   readonly you = new Store<YouState>({
-    character: null, core: null, faith: {}, using: null, wins: 0,
+    character: null, core: null, faith: {}, using: null,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

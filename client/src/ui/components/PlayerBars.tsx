@@ -21,7 +21,7 @@ export function PlayerBars({ hpFraction, staminaFraction, hp, hpMax }: PlayerBar
           </span>
         )}
       </div>
-      <Bar fraction={staminaFraction} fill="from-stamina to-stamina-dark" className="h-2 w-[70%]" />
+      <Bar fraction={staminaFraction} fill="from-stamina to-stamina-dark" className="h-2" />
     </div>
   );
 }

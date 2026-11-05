@@ -120,7 +120,7 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
       prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
       hud.set({ regionName: "…" });
-      you.set({ wins: welcome.wins, character: welcome.character, faith: welcome.faith });
+      you.set({ character: welcome.character, faith: welcome.faith });
       vitals = welcome.vitals;
       gear = welcome.gear;
       setCore(welcome.core);
@@ -174,7 +174,6 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
       });
       // Applied while you're still in the arena, so what's used or absorbed there after a win counts on top of it.
       joinedNet.on("battleResult", (msg) => {
-        you.set({ wins: msg.wins });
         setGear(msg.gear);
         setCore(msg.core);
         setVitals(msg.vitals);
