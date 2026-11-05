@@ -97,7 +97,7 @@ export function wholeRuns(map: WorldMap, chunk: Rect, kind: TileKind): Rect[] {
   return blocksTouching(map, chunk, kind).map(boundsOf).filter((r) => middleIn(r, chunk));
 }
 
-const middleIn = (r: Rect, chunk: Rect) => {
+export const middleIn = (r: Rect, chunk: Rect) => {
   const x = r.x + r.w / 2, z = r.z + r.h / 2;
   return x >= chunk.x && x < chunk.x + chunk.w && z >= chunk.z && z < chunk.z + chunk.h;
 };

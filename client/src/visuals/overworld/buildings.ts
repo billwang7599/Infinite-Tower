@@ -1,9 +1,9 @@
 import { Color3, Mesh, StandardMaterial, VertexData, type Scene } from "@babylonjs/core";
-import { seededRandom, type WorldMap } from "@infinite-tower/shared";
+import { seededRandom, tileAt, type Rect, type WorldMap } from "@infinite-tower/shared";
 import { pixelCanvas } from "../sprites.js";
 import type { Pen } from "./props.js";
-import type { Ledge } from "./scenery.js";
-import { crenelsOf, SIGNS, type House, type RoofKind, type Side, type WallKind } from "./town.js";
+import { castleTopAt, type Ledge } from "./scenery.js";
+import { crenelsOf, sideOut, SIGNS, type House, type RoofKind, type Side, type WallKind } from "./town.js";
 
 type V = readonly [number, number, number];
 
@@ -21,14 +21,14 @@ const WALL_CELL: Record<WallKind, number> = { timber: CELL.timber, stone: CELL.s
 const ROOF_CELL: Record<RoofKind, number> = { red: CELL.red, slate: CELL.slate, brown: CELL.brown, green: CELL.green };
 
 const HOUSE = {
-  plinthY: 0.35, plinthOut: 0.05, eaveOut: 0.32, gableOut: 0.22, roofThick: 0.14,
-  door: { w: 0.9, h: 1.6, frame: 0.1, out: 0.09 }, window: { w: 0.56, h: 0.72, apart: 1.7 },
+  plinthY: 0.35, plinthOut: 0.05, eaveOut: 0.32, gableOut: 0.22, roofThick: 0.14, ridgeIn: 0.02,
+  capY: 0.14, capOut: 0.06, door: { w: 0.9, h: 1.6, frame: 0.1, out: 0.09 }, window: { w: 0.56, h: 0.72, apart: 1.7 },
 };
 // × the sky's ambient, under the lit colour's clamp: faces in shade keep their own colour, sunlit ones don't change.
 const SHADE_FILL = 1.2;
 const LAMP = { postY: 2.15, lanternY: 2.6 };
-/** `pierW` tiles beside the way, `out` past the wall's faces; `lintelY` from the arch's top down to its spring. */
-const GATE = { pierW: 1.2, out: 0.35, lintelY: 1.9 };
+/** `pierW` tiles beside the way, `out` past the wall's faces, `jambIn` into the way; `lintelY` from the arch's top to its spring. */
+const GATE = { pierW: 1.2, out: 0.35, jambIn: 0.12, lintelY: 1.9 };
 const WALL = { plinthY: 0.5, plinthOut: 0.09, merlonW: 0.55, merlonY: 0.6, parapetY: 0.22, depth: 0.42, bannerEvery: 7 };
 
 class Geo {
@@ -37,23 +37,33 @@ class Geo {
   readonly uv: number[] = [];
   readonly idx: number[] = [];
 
-  // The atlas can't wrap, so a face is cut where its picture repeats.
   quad(o: V, u: V, v: V, cell: number, out: V, stretch = false): void {
-    const lu = len(u), lv = len(v), cu = stretch ? [0, 1] : cuts(lu), cv = stretch ? [0, 1] : cuts(lv);
-    for (let a = 0; a + 1 < cu.length; a++) {
-      for (let b = 0; b + 1 < cv.length; b++) {
-        const [u0, u1, v0, v1] = [cu[a]!, cu[a + 1]!, cv[b]!, cv[b + 1]!];
-        const s1 = stretch ? 1 : ((u1 - u0) * lu) / CELL_TILES, t1 = stretch ? 1 : ((v1 - v0) * lv) / CELL_TILES;
-        const at = (fu: number, fv: number) => add(add(o, scale(u, fu)), scale(v, fv));
-        this.poly([at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)], [[0, 0], [s1, 0], [s1, t1], [0, t1]], cell, out);
+    const corners: V[] = [o, add(o, u), add(add(o, u), v), add(o, v)];
+    if (stretch) this.poly(corners, [[0, 0], [1, 0], [1, 1], [0, 1]], cell, out);
+    else this.face(corners, o, norm(u), norm(v), cell, out);
+  }
+
+  // The atlas can't wrap, so a face is cut where its picture repeats.
+  face(points: V[], o: V, u: V, v: V, cell: number, out: V): void {
+    const at = points.map((p): Mapped => ({ p, s: dot(sub(p, o), u) / CELL_TILES, t: dot(sub(p, o), v) / CELL_TILES }));
+    const from = (k: "s" | "t") => Math.floor(Math.min(...at.map((q) => q[k]))), to = (k: "s" | "t") => Math.max(...at.map((q) => q[k]));
+    for (let a = from("s"); a < to("s"); a++) {
+      for (let b = from("t"); b < to("t"); b++) {
+        const piece = cutAt(cutAt(cutAt(cutAt(at, "s", a, 1), "s", a + 1, -1), "t", b, 1), "t", b + 1, -1);
+        if (areaOf(piece) < MIN_PIECE) continue;
+        this.poly(piece.map((q) => q.p), piece.map((q) => [q.s - a, q.t - b]), cell, out);
       }
     }
   }
 
   poly(points: V[], st: [number, number][], cell: number, out: V): void {
-    // Across the diagonals, so a gable's piece with one corner on another still has a normal.
-    const [p0, p1, p2, p3] = points as [V, V, V, V?];
-    let n = norm(p3 ? cross(sub(p2, p0), sub(p3, p1)) : cross(sub(p2, p0), sub(p1, p0)));
+    // Newell's normal, so a gable's piece with one corner on another still has one.
+    let n: V = [0, 0, 0];
+    points.forEach((p, k) => {
+      const q = points[(k + 1) % points.length]!;
+      n = add(n, [(p[1] - q[1]) * (p[2] + q[2]), (p[2] - q[2]) * (p[0] + q[0]), (p[0] - q[0]) * (p[1] + q[1])]);
+    });
+    n = norm(len(n) > 1e-12 ? n : out);
     if (dot(n, out) < 0) n = scale(n, -1);
     const base = this.pos.length / 3, col = cell % CELLS_ACROSS, row = Math.floor(cell / CELLS_ACROSS);
     points.forEach((p, k) => {
@@ -62,17 +72,21 @@ class Geo {
       this.nrm.push(...n);
       this.uv.push((col + clampIn(s)) / CELLS_ACROSS, 1 - (row + 1 - clampIn(t)) / CELLS_ACROSS);
     });
-    this.idx.push(base, base + 1, base + 2);
-    if (points.length === 4) this.idx.push(base, base + 2, base + 3);
+    for (let k = 1; k + 1 < points.length; k++) this.idx.push(base, base + k, base + k + 1);
   }
 
-  box(lo: V, hi: V, side: number, top: number | null = null, stretch = false): void {
+  box(
+    lo: V, hi: V, side: number, top: number | null = null, stretch = false, bottom: number | null = null,
+    skipFacing: V | null = null,
+  ): void {
     const [x0, y0, z0] = lo, [x1, y1, z1] = hi, w = x1 - x0, h = y1 - y0, d = z1 - z0;
-    this.quad([x0, y0, z0], [w, 0, 0], [0, h, 0], side, [0, 0, -1], stretch);
-    this.quad([x1, y0, z1], [-w, 0, 0], [0, h, 0], side, [0, 0, 1], stretch);
-    this.quad([x0, y0, z1], [0, 0, -d], [0, h, 0], side, [-1, 0, 0], stretch);
-    this.quad([x1, y0, z0], [0, 0, d], [0, h, 0], side, [1, 0, 0], stretch);
+    const sides: [V, V, V][] = [
+      [[x0, y0, z0], [w, 0, 0], [0, 0, -1]], [[x1, y0, z1], [-w, 0, 0], [0, 0, 1]],
+      [[x0, y0, z1], [0, 0, -d], [-1, 0, 0]], [[x1, y0, z0], [0, 0, d], [1, 0, 0]],
+    ];
+    for (const [o, u, out] of sides) if (!skipFacing || dot(out, skipFacing) < 0.5) this.quad(o, u, [0, h, 0], side, out, stretch);
     if (top !== null) this.quad([x0, y1, z0], [w, 0, 0], [0, 0, d], top, [0, 1, 0], stretch);
+    if (bottom !== null) this.quad([x0, y0, z1], [w, 0, 0], [0, 0, -d], bottom, [0, -1, 0], stretch);
   }
 
   ring(x: number, z: number, sides: number, r0: number, y0: number, r1: number, y1: number, cell: number, inward = false): void {
@@ -108,16 +122,27 @@ const scale = (a: V, k: number): V => [a[0] * k, a[1] * k, a[2] * k];
 const dot = (a: V, b: V) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const len = (a: V) => Math.hypot(a[0], a[1], a[2]);
 const norm = (a: V): V => scale(a, 1 / (len(a) || 1));
-const cross = (a: V, b: V): V => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 // Kept off the cell's edge so nearest sampling never takes the neighbour's pixels.
 const clampIn = (s: number) => Math.min(0.995, Math.max(0.005, s));
 
-function cuts(length: number): number[] {
-  const at = [0];
-  for (let d = CELL_TILES; d < length - 1e-6; d += CELL_TILES) at.push(d / length);
-  at.push(1);
-  return at;
+interface Mapped { p: V; s: number; t: number }
+const MIN_PIECE = 1e-6;
+
+function cutAt(poly: Mapped[], k: "s" | "t", edge: number, keep: 1 | -1): Mapped[] {
+  const out: Mapped[] = [], inside = (q: Mapped) => (q[k] - edge) * keep >= 0;
+  poly.forEach((q, i) => {
+    const r = poly[(i + 1) % poly.length]!;
+    if (inside(q)) out.push(q);
+    if (inside(q) !== inside(r)) {
+      const f = (edge - q[k]) / (r[k] - q[k]);
+      out.push({ p: add(q.p, scale(sub(r.p, q.p), f)), s: q.s + (r.s - q.s) * f, t: q.t + (r.t - q.t) * f });
+    }
+  });
+  return out;
 }
+
+const areaOf = (poly: Mapped[]) =>
+  Math.abs(poly.reduce((sum, q, i) => { const r = poly[(i + 1) % poly.length]!; return sum + q.s * r.t - r.s * q.t; }, 0)) / 2;
 
 /** `l` along the ridge, `s` across it, from the house's middle. */
 interface Frame { at(l: number, y: number, s: number): V; dir(l: number, y: number, s: number): V }
@@ -146,35 +171,108 @@ function onFace(g: Geo, f: Face, at: number, y: number, w: number, h: number, pr
   g.quad(o, scale(f.along, w), [0, h, 0], cell, f.out, true);
 }
 
-function outOfFace(g: Geo, f: Face, at: number, y: number, w: number, h: number, back: number, front: number, cell: number): void {
+function outOfFace(
+  g: Geo, f: Face, at: number, y: number, w: number, h: number, back: number, front: number, cell: number, stretch = true,
+): void {
   const a = add(add(f.mid, scale(f.along, at - w / 2)), scale(f.out, back)), b = add(add(f.mid, scale(f.along, at + w / 2)), scale(f.out, front));
-  g.box([Math.min(a[0], b[0]), y, Math.min(a[2], b[2])], [Math.max(a[0], b[0]), y + h, Math.max(a[2], b[2])], cell, cell, true);
+  const lo: V = [Math.min(a[0], b[0]), y, Math.min(a[2], b[2])], hi: V = [Math.max(a[0], b[0]), y + h, Math.max(a[2], b[2])];
+  g.box(lo, hi, cell, cell, stretch, null, back === 0 ? scale(f.out, -1) : null);
 }
 
-function buildHouse(g: Geo, ledge: Ledge, h: House): void {
-  const wallCell = WALL_CELL[h.walls], { rect } = ledge;
-  const p = HOUSE.plinthOut;
-  g.box([rect.x - p, 0, rect.z - p], [rect.x + rect.w + p, HOUSE.plinthY, rect.z + rect.h + p], CELL.plinth, CELL.plinth);
-  g.box([rect.x, HOUSE.plinthY, rect.z], [rect.x + rect.w, h.wallY, rect.z + rect.h], wallCell, h.roof ? null : CELL.trim);
+const SIDES: readonly Side[] = ["south", "north", "east", "west"];
+
+interface Edge { side: Side; ns: boolean; count: number; base: number; outside(i: number): [number, number]; inside(i: number): [number, number] }
+
+function edgeOf(rect: Rect, side: Side): Edge {
+  const { x, z } = rect, x1 = x + rect.w, z1 = z + rect.h, ns = side === "north" || side === "south";
+  return {
+    side, ns, count: ns ? rect.w : rect.h, base: ns ? x : z,
+    outside: (i) => (ns ? [x + i, side === "north" ? z1 : z - 1] : [side === "east" ? x1 : x - 1, z + i]),
+    inside: (i) => (ns ? [x + i, side === "north" ? z1 - 1 : z] : [side === "east" ? x1 - 1 : x, z + i]),
+  };
+}
+
+function runsOf(count: number, on: (i: number) => boolean): [number, number][] {
+  const runs: [number, number][] = [];
+  for (let i = 0; i < count; i++) {
+    if (!on(i)) continue;
+    let end = i + 1;
+    while (end < count && on(end)) end++;
+    runs.push([i, end]);
+    i = end;
+  }
+  return runs;
+}
+
+const INWARD: Record<Side, V> = { south: [0, 0, 1], north: [0, 0, -1], east: [-1, 0, 0], west: [1, 0, 0] };
+
+function slab(
+  g: Geo, rect: Rect, side: Side, a0: number, a1: number, y0: number, y1: number, back: number, front: number, cell: number,
+): void {
+  const x1 = rect.x + rect.w, z1 = rect.z + rect.h, against = back === 0 ? INWARD[side] : null;
+  if (side === "north") g.box([a0, y0, z1 + back], [a1, y1, z1 + front], cell, cell, false, null, against);
+  else if (side === "south") g.box([a0, y0, rect.z - front], [a1, y1, rect.z - back], cell, cell, false, null, against);
+  else if (side === "east") g.box([x1 + back, y0, a0], [x1 + front, y1, a1], cell, cell, false, null, against);
+  else g.box([rect.x - front, y0, a0], [rect.x - back, y1, a1], cell, cell, false, null, against);
+}
+
+function sideFace(g: Geo, rect: Rect, side: Side, a0: number, a1: number, y0: number, y1: number, cell: number): void {
+  const x1 = rect.x + rect.w, z1 = rect.z + rect.h, up: V = [0, y1 - y0, 0];
+  if (side === "south") g.quad([a0, y0, rect.z], [a1 - a0, 0, 0], up, cell, [0, 0, -1]);
+  else if (side === "north") g.quad([a1, y0, z1], [a0 - a1, 0, 0], up, cell, [0, 0, 1]);
+  else if (side === "east") g.quad([x1, y0, a0], [0, 0, a1 - a0], up, cell, [1, 0, 0]);
+  else g.quad([rect.x, y0, a1], [0, 0, a0 - a1], up, cell, [-1, 0, 0]);
+}
+
+function bands(
+  g: Geo, rect: Rect, y0: number, y1: number, out: number, cell: number, open: (x: number, z: number) => boolean,
+): void {
+  for (const e of SIDES.map((side) => edgeOf(rect, side))) {
+    const outside = (i: number) => open(...e.outside(i)), inside = (i: number) => open(...e.inside(i));
+    for (const [i, end] of runsOf(e.count, outside)) {
+      const a0 = e.base + i + (e.ns ? (inside(i - 1) ? -out : 0) : (outside(i - 1) ? 0 : out));
+      const a1 = e.base + end + (e.ns ? (inside(end) ? out : 0) : (outside(end) ? 0 : -out));
+      slab(g, rect, e.side, a0, a1, y0, y1, 0, out, cell);
+    }
+  }
+}
+
+function buildHouse(g: Geo, map: WorldMap, ledge: Ledge, h: House): void {
+  const wallCell = WALL_CELL[h.walls], { rect } = ledge, x1 = rect.x + rect.w, z1 = rect.z + rect.h;
+  const next = (x: number, z: number) => tileAt(map, x + 0.5, z + 0.5);
+  const open = (x: number, z: number) => next(x, z) !== "house" && next(x, z) !== "castleWall";
+  const shared = (side: Side) => sideOut(rect, side).every(([x, z]) => next(x, z) === "house");
+  bands(g, rect, 0, HOUSE.plinthY, HOUSE.plinthOut, CELL.plinth, open);
+  g.box([rect.x, HOUSE.plinthY, rect.z], [x1, h.wallY, z1], wallCell);
   if (!h.roof || !h.ridge) {
-    g.box([rect.x - 0.06, h.wallY, rect.z - 0.06], [rect.x + rect.w + 0.06, h.wallY + 0.14, rect.z + rect.h + 0.06], CELL.trim, CELL.trim);
+    g.box([rect.x, h.wallY, rect.z], [x1, h.wallY + HOUSE.capY, z1], CELL.trim, CELL.trim);
+    bands(g, rect, h.wallY, h.wallY + HOUSE.capY, HOUSE.capOut, CELL.trim, open);
     return;
   }
   const alongX = h.ridge === "x", f = frameOf(ledge, alongX), L = (alongX ? rect.w : rect.h) / 2, S = (alongX ? rect.h : rect.w) / 2;
   const rise = ledge.topY - h.wallY, slope = rise / S;
-  for (const end of [-1, 1]) gable(g, f, end * L, S, h.wallY, rise, wallCell);
-  const eave = S + HOUSE.eaveOut, eaveY = h.wallY - HOUSE.eaveOut * slope, lo = L + HOUSE.gableOut, t = HOUSE.roofThick;
-  const roofCell = ROOF_CELL[h.roof];
+  const endSide = (end: number): Side => (alongX ? (end < 0 ? "west" : "east") : end < 0 ? "south" : "north");
+  const [lo, hi] = [-1, 1].map((end) => end * (L + (shared(endSide(end)) ? 0 : HOUSE.gableOut))) as [number, number];
+  for (const end of [-1, 1]) {
+    const wall = facesOf(ledge).find((face) => face.side === endSide(end))!;
+    const from = add(add(wall.mid, scale(wall.along, -wall.width / 2)), [0, HOUSE.plinthY, 0]);
+    const triangle: V[] = [f.at(end * L, h.wallY, -S), f.at(end * L, h.wallY, S), f.at(end * L, ledge.topY, 0)];
+    g.face(triangle, from, wall.along, [0, 1, 0], wallCell, wall.out);
+  }
+  const t = HOUSE.roofThick, roofCell = ROOF_CELL[h.roof];
+  const eaveSide = (side: number): Side => (alongX ? (side < 0 ? "south" : "north") : side < 0 ? "east" : "west");
   for (const side of [-1, 1]) {
-    const o = f.at(-lo * side, eaveY + t, eave * side), u = f.dir(2 * lo * side, 0, 0), v = f.dir(0, rise + HOUSE.eaveOut * slope, -eave * side);
-    g.quad(o, u, v, roofCell, f.dir(0, 1, side));
-    g.quad(f.at(-lo * side, eaveY, eave * side), u, [0, t, 0], CELL.trim, f.dir(0, 0, side));
-    for (const end of [-1, 1]) {
-      const edge = f.at(lo * end, eaveY, eave * side), top = f.at(lo * end, ledge.topY, 0);
-      g.poly([edge, top, add(top, [0, t, 0]), add(edge, [0, t, 0])], [[0, 0], [1, 0], [1, 1], [0, 1]], CELL.trim, f.dir(end, 0, 0));
+    const over = shared(eaveSide(side)) ? 0 : HOUSE.eaveOut, eave = S + over, eaveY = h.wallY - over * slope;
+    const [la, lb] = side > 0 ? [lo, hi] : [hi, lo], u = f.dir(lb - la, 0, 0), v = f.dir(0, ledge.topY - eaveY, -eave * side);
+    g.quad(f.at(la, eaveY + t, eave * side), u, v, roofCell, f.dir(0, 1, side));
+    g.quad(f.at(la, eaveY, eave * side), u, v, roofCell, f.dir(0, -1, -side));
+    g.quad(f.at(la, eaveY, eave * side), u, [0, t, 0], CELL.trim, f.dir(0, 0, side));
+    for (const l of [lo, hi]) {
+      const edge = f.at(l, eaveY, eave * side), top = f.at(l, ledge.topY, 0);
+      g.poly([edge, top, add(top, [0, t, 0]), add(edge, [0, t, 0])], [[0, 0], [1, 0], [1, 1], [0, 1]], CELL.trim, f.dir(Math.sign(l), 0, 0));
     }
   }
-  const ridgeLo = f.at(-lo, ledge.topY + t * 0.6, -0.13), ridgeHi = f.at(lo, ledge.topY + t + 0.1, 0.13);
+  const ridgeLo = f.at(lo + HOUSE.ridgeIn, ledge.topY + t * 0.6, -0.13), ridgeHi = f.at(hi - HOUSE.ridgeIn, ledge.topY + t + 0.1, 0.13);
   g.box(minOf(ridgeLo, ridgeHi), maxOf(ridgeLo, ridgeHi), CELL.ridge, CELL.ridge);
   const rand = seededRandom(rect.x * 31 + rect.z * 977);
   if (h.chimney) {
@@ -185,7 +283,7 @@ function buildHouse(g: Geo, ledge: Ledge, h: House): void {
     g.box(minOf(ca, cb), maxOf(ca, cb), CELL.plinth, CELL.trim);
   }
   for (const face of facesOf(ledge)) {
-    decorate(g, face, h, rand);
+    if (!shared(face.side)) decorate(g, face, h, rand);
     if (h.use === "barracks") barracksFace(g, face, h);
     if (h.use === "kitchen") kitchenFace(g, face, h);
   }
@@ -222,21 +320,6 @@ function kitchenFace(g: Geo, face: Face, h: House): void {
     const p = along(at, 0.4);
     g.ring(p[0], p[2], 8, r, 0, r, 0.62, CELL.planter);
     g.disc(p[0], p[2], 8, r, 0.62, CELL.trim);
-  }
-}
-
-function gable(g: Geo, f: Frame, l: number, S: number, wallY: number, rise: number, cell: number): void {
-  const at: number[] = [0];
-  for (let s = CELL_TILES; s < S - 1e-6; s += CELL_TILES) at.push(s, -s);
-  at.push(S, -S);
-  at.sort((a, b) => a - b);
-  const top = (s: number) => wallY + rise * (1 - Math.abs(s) / S);
-  for (let k = 0; k + 1 < at.length; k++) {
-    const s0 = at[k]!, s1 = at[k + 1]!, w = (s1 - s0) / CELL_TILES;
-    g.poly(
-      [f.at(l, wallY, s0), f.at(l, wallY, s1), f.at(l, top(s1), s1), f.at(l, top(s0), s0)],
-      [[0, 0], [w, 0], [w, (top(s1) - wallY) / CELL_TILES], [0, (top(s0) - wallY) / CELL_TILES]], cell, f.dir(Math.sign(l), 0, 0),
-    );
   }
 }
 
@@ -279,7 +362,7 @@ function decorate(g: Geo, face: Face, h: House, rand: () => number): void {
       }
       if (h.flowers && (r === 1 || rows.length === 1)) {
         outOfFace(g, face, at, y - 0.27, win.w + 0.1, 0.2, 0.02, 0.24, CELL.planter);
-        onFace(g, face, at, y - 0.07, win.w + 0.06, 0.16, 0.13, CELL.bloom);
+        onFace(g, face, at, y - 0.07, win.w + 0.06, 0.16, 0.18, CELL.bloom);
       }
     }
   }
@@ -289,19 +372,37 @@ const minOf = (a: V, b: V): V => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Ma
 const maxOf = (a: V, b: V): V => [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.max(a[2], b[2])];
 
 function buildWall(g: Geo, map: WorldMap, ledge: Ledge): void {
-  const { rect, topY } = ledge, p = WALL.plinthOut, x1 = rect.x + rect.w, z1 = rect.z + rect.h;
-  g.box([rect.x, 0, rect.z], [x1, topY, z1], CELL.ashlar, CELL.walk);
-  g.box([rect.x - p, 0, rect.z - p], [x1 + p, WALL.plinthY, z1 + p], CELL.plinth);
-  g.box([rect.x - p * 0.6, topY - 0.3, rect.z - p * 0.6], [x1 + p * 0.6, topY - 0.12, z1 + p * 0.6], CELL.plinth);
+  const { rect, topY } = ledge, lower = (than: number) => (x: number, z: number) => castleTopAt(map, x, z) < than;
+  const bare = (x: number, z: number) => lower(WALL.plinthY)(x, z) && tileAt(map, x + 0.5, z + 0.5) !== "house";
+  for (const e of SIDES.map((side) => edgeOf(rect, side))) {
+    for (const [i, end] of runsOf(e.count, (i) => lower(topY)(...e.outside(i)))) {
+      sideFace(g, rect, e.side, e.base + i, e.base + end, 0, topY, CELL.ashlar);
+    }
+  }
+  g.quad([rect.x, topY, rect.z], [rect.w, 0, 0], [0, 0, rect.h], CELL.walk, [0, 1, 0]);
+  bands(g, rect, 0, WALL.plinthY, WALL.plinthOut, CELL.plinth, bare);
+  bands(g, rect, topY - 0.3, topY - 0.12, WALL.plinthOut * 0.6, CELL.plinth, lower(topY));
   const crenels = ledge.crowned ? everyEdge(ledge) : crenelsOf(map, rect);
+  const crenelled = new Set(crenels.map(({ x, z, side }) => `${x},${z},${side}`));
+  const atCorner = (x: number, z: number) => crenelled.has(`${x},${z},north`) || crenelled.has(`${x},${z},south`);
+  const y1 = topY + WALL.parapetY;
+  for (const e of SIDES.map((side) => edgeOf(rect, side))) {
+    const on = (i: number) => crenelled.has(`${e.inside(i)},${e.side}`);
+    for (const [i, end] of runsOf(e.count, on)) {
+      const a0 = e.base + i + (!e.ns && atCorner(...e.inside(i)) ? WALL.depth : 0);
+      const a1 = e.base + end - (!e.ns && atCorner(...e.inside(end - 1)) ? WALL.depth : 0);
+      slab(g, rect, e.side, a0, a1, topY, y1, -WALL.depth, 0, CELL.ashlar);
+    }
+  }
   for (const { x, z, side } of crenels) {
-    const face = facesOf({ rect: { x, z, w: 1, h: 1 }, topY })[["south", "north", "east", "west"].indexOf(side)]!;
-    outOfFace(g, face, 0, topY, 1, WALL.parapetY, -WALL.depth, 0, CELL.ashlar);
-    outOfFace(g, face, 0, topY + WALL.parapetY, WALL.merlonW, WALL.merlonY, -WALL.depth, 0, CELL.ashlar);
+    const face = facesOf({ rect: { x, z, w: 1, h: 1 }, topY }).find((f) => f.side === side)!;
+    if (side === "north" || side === "south" || !atCorner(x, z)) {
+      outOfFace(g, face, 0, y1, WALL.merlonW, WALL.merlonY, -WALL.depth, 0, CELL.ashlar, false);
+    }
     const hash = Math.abs(x * 73 + z * 31) % WALL.bannerEvery;
     if (hash === 0 && topY >= 3) {
       onFace(g, face, 0, topY - 2.3, 0.75, 1.9, 0.04, CELL.banner);
-      outOfFace(g, face, 0, topY - 0.42, 0.95, 0.05, 0, 0.1, CELL.iron);
+      outOfFace(g, face, 0, topY - 0.42, 0.8, 0.05, 0, 0.1, CELL.iron);
     }
     if (topY > 4 && hash === 3) onFace(g, face, 0, topY - 2.4, 0.14, 0.8, 0.01, CELL.slit);
   }
@@ -341,13 +442,16 @@ function buildLamp(g: Geo, ledge: Ledge): void {
 function buildGate(g: Geo, ledge: Ledge): void {
   const { rect, topY } = ledge, alongX = rect.w > rect.h || (rect.w === rect.h && rect.h === 1);
   const span = alongX ? rect.w : rect.h, f = frameOf(ledge, alongX), half = span / 2, d = 0.5 + GATE.out;
-  const archY = Math.max(2.4, topY - GATE.lintelY);
-  const box = (l0: number, l1: number, y0: number, y1: number, s0: number, s1: number, side: number, top: number | null) => {
+  const archY = Math.max(2.4, topY - GATE.lintelY), way = half - GATE.jambIn;
+  const box = (
+    l0: number, l1: number, y0: number, y1: number, s0: number, s1: number, side: number, top: number | null,
+    bottom: number | null = null,
+  ) => {
     const a = f.at(l0, y0, s0), b = f.at(l1, y1, s1);
-    g.box(minOf(a, b), maxOf(a, b), side, top, false);
+    g.box(minOf(a, b), maxOf(a, b), side, top, false, bottom);
   };
   for (const end of [-1, 1]) {
-    const inner = end * half, outer = end * (half + GATE.pierW);
+    const inner = end * way, outer = end * (half + GATE.pierW);
     box(Math.min(inner, outer), Math.max(inner, outer), 0, topY, -d, d, CELL.ashlar, CELL.walk);
     box(Math.min(inner, outer) - 0.06, Math.max(inner, outer) + 0.06, 0, 0.6, -d - 0.06, d + 0.06, CELL.plinth, CELL.plinth);
     for (const k of [0, 1]) {
@@ -362,12 +466,12 @@ function buildGate(g: Geo, ledge: Ledge): void {
       box(l - 0.14, l + 0.14, 1.5, 1.9, side * (d + 0.14), side * (d + 0.42), CELL.lantern, CELL.iron);
     }
   }
-  box(-half, half, archY, topY, -d + 0.05, d - 0.05, CELL.ashlar, CELL.walk);
+  box(-way, way, archY, topY, -d + 0.05, d - 0.05, CELL.ashlar, CELL.walk);
   const steps = 6;
   for (let i = 0; i < steps; i++) {
-    const l0 = -half + (span * i) / steps, l1 = -half + (span * (i + 1)) / steps, mid = (l0 + l1) / 2 / half;
+    const l0 = -way + (2 * way * i) / steps, l1 = -way + (2 * way * (i + 1)) / steps, mid = (l0 + l1) / 2 / way;
     const drop = (1 - Math.sqrt(Math.max(0, 1 - mid * mid))) * Math.min(1.4, archY * 0.4);
-    box(l0, l1, archY - Math.min(1.4, archY * 0.4) + drop, archY, -d + 0.05, d - 0.05, CELL.ashlar, null);
+    box(l0, l1, archY - Math.min(1.4, archY * 0.4) + drop, archY, -d + 0.05, d - 0.05, CELL.ashlar, null, CELL.ashlar);
   }
   box(-half - 0.05, half + 0.05, archY - 0.12, archY + 0.1, -d - 0.04, d + 0.04, CELL.plinth, CELL.plinth);
   for (let l = -half + 0.25; l < half; l += 0.42) box(l - 0.035, l + 0.035, archY - 0.45, archY, -0.04, 0.04, CELL.iron, null);
@@ -428,7 +532,7 @@ export function townArt(scene: Scene): TownArt {
   return {
     build(map, ledge, name) {
       const g = new Geo();
-      if (ledge.look === "house" && ledge.house) buildHouse(g, ledge, ledge.house);
+      if (ledge.look === "house" && ledge.house) buildHouse(g, map, ledge, ledge.house);
       else if (ledge.look === "castle") buildWall(g, map, ledge);
       else if (ledge.look === "column") buildColumn(g, ledge);
       else if (ledge.look === "plinth") buildPlinth(g, ledge);

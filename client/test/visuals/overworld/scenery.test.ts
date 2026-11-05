@@ -228,6 +228,15 @@ describe("the castle's barracks and kitchen", () => {
     }
     assert.equal(new Set(CASTLE_HALLS.map((h) => h.use)).size, CASTLE_HALLS.length);
   });
+
+  test("each piece of the keep is built once, whole, by the chunk holding its middle, so no battlement runs along a chunk's edge", () => {
+    const reach = { x: -48, z: 16, w: 96, h: 48 }, keep = (c: Rect) => chunkScenery(CASTLE, c).ledges.filter((l) => l.crowned);
+    const chunks = Array.from({ length: (reach.w / 16) * (reach.h / 16) }, (_, i) =>
+      ({ x: reach.x + (i % (reach.w / 16)) * 16, z: reach.z + Math.floor(i / (reach.w / 16)) * 16, w: 16, h: 16 }));
+    const whole = keep(reach).map((l) => l.rect).sort(byCorner);
+    assert.ok(whole.some((r) => r.w > 16));
+    assert.deepEqual(chunks.flatMap(keep).map((l) => l.rect).sort(byCorner), whole);
+  });
 });
 
 const byCorner = (a: Rect, b: Rect) => a.x - b.x || a.z - b.z;

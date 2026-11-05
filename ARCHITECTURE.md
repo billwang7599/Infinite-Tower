@@ -1956,8 +1956,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          awning, the forge a hearth ledge) with their goods on top, lamp posts and gate arches as
                          ledges, statues as props, the
                          cut stone as terraces stepping up toward the quarry's edge and on past it (TERRACE), the
-                         Castle Ward's keep (KEEP) and the training yard's dummies; groundY, isTall, hidesWalker; no
-                         Babylon: tested
+                         Castle Ward's keep (KEEP, each piece whole in the chunk holding its middle) and the training
+                         yard's dummies; groundY, isTall, hidesWalker, castleTopAt; no Babylon: tested
         town.ts          The town's layout rules, no Babylon: houseLedges (a block of house tiles cut into houses,
                          LOT_TILES, each a House picked by its corner: walls, roof, ridge, height, the door on the
                          side facing the street, chimney, sign, flowers, lantern; one tile thick, a roofless wall;
@@ -1974,7 +1974,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          lantern), castle walls (plinth, string course, crenellated parapet, banners, arrow
                          slits), hall columns, statue plinths, the tiered fountain (its water a mesh of its own),
                          lamp posts, gate arches and the barracks' and kitchen's extras; SHADE_FILL, the faces'
-                         fill in shade
+                         fill in shade. A face's picture is cut where it repeats, counted from the face's corner, so
+                         a gable carries on its wall's; walls, plinths and bands are drawn only along sides open to
+                         the air (bands), none overhangs the next house in a row and a gate's jambs stand into the
+                         way, so no two faces ever lie over each other (tested)
         terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the town's buildings
                          (buildings.ts), the water's by region
                          theme, the campfire's frames, and each prop's mesh that a chunk's thin instances copy
