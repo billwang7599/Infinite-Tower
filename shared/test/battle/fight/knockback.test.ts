@@ -128,7 +128,9 @@ describe("a hit that lands does damage only (the user: \"Hits do damage only\")"
   });
 
   test("no stun-lock: a boar under a stream of lights still bites, again and again", () => {
-    const boar: EnemyDef = { ...BOAR, knockbackFactor: 1, poise: 10_000, attacks: { lunge: BOAR.attacks.lunge! } };
+    const boar: EnemyDef = {
+      ...BOAR, maxHp: 10_000, knockbackFactor: 1, poise: 10_000, attacks: { lunge: BOAR.attacks.lunge! },
+    };
     const fight = fightAt(boar, at(0, IN_REACH_M));
     const me = fight.players[0]!, it = fight.enemies[0]!;
     let bites = 0;

@@ -86,12 +86,12 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, HP 10 more 
 - **Grit** (uncommon): + 4 strength and + 4 vitality on the core's stats (40 more HP at the start).
 - **Embers** (rare): burning does you no harm (`burnTakenFactor` 0); each weapon hit you land sets the foe burning 3
   per second for 3 s (`weaponBurnPerSec`, `EMBERS.burnTime`), on again from 3 s at the next hit: 9 a hit on top of
-  the sword's 9.
+  the sword's 16.
 - **Last Breath** (epic): an attack or a dodge with too little stamina is paid for, the part you lack × 0.5 HP
   (`hpPerStaminaShort`). At 0 stamina only if your HP is more than that: a light (10) costs 5 HP, a dodge (30) 15.
   Paying never takes your last HP.
 - **Red Blade** (legendary): your weapon hits heal 25% of the damage they deal (`weaponLifesteal`), on top of any
-  lifesteal; a sword's 9 heals 2.25.
+  lifesteal; a sword's 16 heals 4.
 - **The First Door** (unique): once a fight, a blow that would bring you to 0 HP leaves you at 1 (`FIRST_DOOR`) and
   takes no damage at all for 2 s (`openedDoor`, damage taken × 0).
 - **Carving** (`CARVE_PRICES`, `server/src/core/content/shops.ts`), by the sigil's rarity, copper and essences of any
@@ -106,7 +106,7 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, HP 10 more 
 - **Blessed** while faith with a god ≥ 100, for each god that has a blessing; no cap.
 - **Faith:** + a quest step's `reward.faith` (Kaelith 20 from each of three quests, Haldis 30, Brannoc 30), or + 25
   from the admin panel (`FAITH_CHEAT`, `server/src/core/game/cheats.ts`). Never lost yet.
-- **Kaelith's Edge:** damage dealt × 1.1 (a sword's 9 does 9.9). **Brannoc's Anvil:** damage taken × 0.9, pushback
+- **Kaelith's Edge:** damage dealt × 1.1 (a sword's 16 does 17.6). **Brannoc's Anvil:** damage taken × 0.9, pushback
   × 0.5. **Haldis's Hearth:** stamina refill × 1.2.
 
 ## Weapon attacks
@@ -143,11 +143,11 @@ hard.
   another line 1, a perpendicular 0.5), at most 4, and both hands' is lost on a gap, a dodge, a block, a cast, the
   chant, the bag, a hit taken or being blocked perfectly.
 - **A weapon's damage** (`weaponDamage`) comes in three types, slash, stab and blunt, each a whole number. Its swing is
-  `DAMAGE_PER_HEFT` 3 × heft × quality (1 for every weapon so far), and its profile (`DAMAGE_PROFILES`) splits it:
+  `DAMAGE_PER_HEFT` 5 × heft × quality (1 for every weapon so far), and its profile (`DAMAGE_PROFILES`) splits it:
   slash and blunt as shares of the swing, stab as a fraction of it, each rounded. A sword slash 0.9, blunt 0.1, stab
   0.55; the longsword, the thrusting sword, stab 0.7; a greatsword slash 0.8, blunt 0.2, stab 0.4. Two are off the
   rule by their own `baseDamage` (what the profile splits instead): the old stick, 3, all blunt, stab a third; and the
-  bow, 12, all stab (it's ranged).
+  bow, 20, all stab (it's ranged).
 - **A strike's damage** (`strikeDamage`): a swing deals the weapon's slash and its blunt as two damages, a heavy both
   × 2; a stab deals only its stab. A swing × (1 + 0.25 × momentum, ×2 at most); a stab × (1 + 0.5 × momentum) and
   spends that hand's. Each type × √(strength / 10) and taken on its own (Damage taken). **Stamina:** a light 13, a
@@ -175,11 +175,11 @@ times in seconds, as the fight's steps round them):
 | Weapon | Heft (felt) | Slash + blunt (light / heavy), stab | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
 |---|---|---|---|---|---|---|
 | Old stick | 0.385 (0.13) | 0 + 3 / 0 + 6, 1 | 0.4 / 0.4 | 0.02 / 0.02 | 0.02 / 0.03 | 1.7 / 2.7 / 2.1 |
-| Basic Sword | 3 (1) | 8 + 1 / 16 + 2, 5 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
-| Longsword | 3.57 (1.19) | 10 + 1 / 20 + 2, 7 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
-| Greatsword | 4.86 (1.62) | 12 + 3 / 24 + 6, 6 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
-| Kobold blade | 3 (1) | 8 + 1 / 16 + 2, 5 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
-| Kobold greatsword | 4.86 (1.62) | 12 + 3 / 24 + 6, 6 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
+| Basic Sword | 3 (1) | 14 + 2 / 28 + 4, 8 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
+| Longsword | 3.57 (1.19) | 16 + 2 / 32 + 4, 12 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
+| Greatsword | 4.86 (1.62) | 19 + 5 / 38 + 10, 10 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
+| Kobold blade | 3 (1) | 14 + 2 / 28 + 4, 8 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
+| Kobold greatsword | 4.86 (1.62) | 19 + 5 / 38 + 10, 10 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
 
 The Basic Sword's chained lights: the reverse 0.4 s, another line 0.48 s, a perpendicular one 0.6 s; its stab 0.45 s.
 The longsword's 0.48, 0.57, 0.72 and 0.53 s; the greatsword's 0.65, 0.78, 0.97 and 0.73 s.
@@ -189,9 +189,9 @@ The same at strength 10 held in both hands (strength 20 put in, so each felt hef
 | Weapon | Felt heft | Slash + blunt (light / heavy), stab | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
 |---|---|---|---|---|---|---|
 | Old stick | 0.06 | 0 + 4.24 / 0 + 8.49, 1.41 | 0.4 / 0.4 | 0.02 / 0.02 | 0 / 0.02 | 0.8 / 1.3 / 1 |
-| Basic Sword | 0.5 | 11.31 + 1.41 / 22.63 + 2.83, 7.07 | 0.4 / 0.47 | 0.07 / 0.08 | 0.05 / 0.13 | 6.5 / 10.5 / 8 |
-| Longsword | 0.6 | 14.14 + 1.41 / 28.28 + 2.83, 9.9 | 0.4 / 0.55 | 0.08 / 0.08 | 0.07 / 0.15 | 7.7 / 12.5 / 9.5 |
-| Greatsword | 0.81 | 16.97 + 4.24 / 33.94 + 8.49, 8.49 | 0.45 / 0.75 | 0.1 / 0.12 | 0.08 / 0.22 | 10.5 / 17 / 13 |
+| Basic Sword | 0.5 | 19.8 + 2.83 / 39.6 + 5.66, 11.31 | 0.4 / 0.47 | 0.07 / 0.08 | 0.05 / 0.13 | 6.5 / 10.5 / 8 |
+| Longsword | 0.6 | 22.63 + 2.83 / 45.25 + 5.66, 16.97 | 0.4 / 0.55 | 0.08 / 0.08 | 0.07 / 0.15 | 7.7 / 12.5 / 9.5 |
+| Greatsword | 0.81 | 26.87 + 7.07 / 53.74 + 14.14, 14.14 | 0.45 / 0.75 | 0.1 / 0.12 | 0.08 / 0.22 | 10.5 / 17 / 13 |
 
 Two-handed, the Basic Sword's and the longsword's chained lights and stabs are all at the 0.4 s floor; the
 greatsword's 0.4, 0.4, 0.48 and 0.4 s.
@@ -215,11 +215,12 @@ heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back
 waits its 1.2 s cooldown.
 
 Example: a Basic Sword light (one-handed) from the left, then down from the top left, then from the left again (another
-line each time): wind-ups 0.57, 0.48 and 0.48 s; momentum 1, then 2; damage 8 + 1, 10 + 1.25 and 12 + 1.5 (slash +
-blunt). A stab next deals 5 × (1 + 0.5 × 2) = 10 stab and spends it. Three reverses instead would build only 0.5
-(damage 9, 9.56, 10.13 in all), at 0.4 s each. The Basic Sword's swing, 3 × 3 = 9, splits into slash 8.1 and blunt
-0.9, rounded 8 and 1, its stab 9 × 0.55 = 4.95, 5; the longsword's, 3 × 3.57 = 10.71, into 10 and 1, its stab 7.497,
-7. Held in both hands, every type is × √2 through the strength: a light 11.31 + 1.41, a stab 7.07.
+line each time): wind-ups 0.57, 0.48 and 0.48 s; momentum 1, then 2; damage 14 + 2, 17.5 + 2.5 and 21 + 3 (slash +
+blunt). A stab next deals 8 × (1 + 0.5 × 2) = 16 stab and spends it. Three reverses instead would build only 0.5
+(damage 16, 17, 18 in all), at 0.4 s each. The Basic Sword's swing, 5 × 3 = 15, splits into slash 13.5 and blunt
+1.5, rounded 14 and 2 (halves round up, so it deals 16), its stab 15 × 0.55 = 8.25, 8; the longsword's, 5 × 3.57 =
+17.85, into 16.07 and 1.79, so 16 and 2, its stab 12.495, 12. Held in both hands, every type is × √2 through the
+strength: a light 19.8 + 2.83, a stab 11.31.
 
 ## Bows (placeholder)
 
@@ -231,7 +232,7 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
   a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%.
 - **Nocking:** after loosing, `nock.quiverTime` 0.3 s before the next draw if the quiver holds an arrow, else
   `nock.bagTime` 0.8 s. A quiver's one cell holds 60 arrows (`holds.stackSize`; a bag cell 20); they're shot first.
-- **Damage** = each type of the bow's (`weaponDamage`: its `baseDamage` 12, all stab, off the melee rule) ×
+- **Damage** = each type of the bow's (`weaponDamage`: its `baseDamage` 20, all stab, off the melee rule) ×
   (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
 - **Speed** = the bow's `powerMps` × (t² + 2t) / 3, t the share drawn (at most 1): Minecraft's draw curve
   (`drawnPower`, which the draw meter shows).
@@ -246,8 +247,8 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
   can't. Poise 10 on an enemy, knockback 0.07 × its speed (pushing a guard: Hits and pushback); blocked like a light
   (below). Stuck, it lies `stuckTime` 2 s.
 
-Example: the Training bow (12 stab, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
-60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 12 at
+Example: the Training bow (20 stab, 60 m/s) let go at once (a share of 0.25) deals 20 × (0.3 + 0.7 × 0.25) = 9.5 at
+60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 20 at
 60 m/s. A full draw loosed level drops 7 cm by 5 m, 0.28 m by 10 m, 0.74 m by 16 m (the arena's middle to its wall),
 1.8 m by 25 m and 3.1 m by 32 m (wall to wall), and from chest height lands 17.5 m off.
 
@@ -330,12 +331,12 @@ An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `d
   Sword 0.38 s at strength 10) before that hand can swing again, the guard held meanwhile; a swordsman's feint too (no
   parry or counter in it). Lights and stabs can't be feinted.
 
-Example (both one-handed, strength 10): blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword
-heavy 36 stamina and 3.6 HP; held in both hands, the blocker spends 4.5 and 18. A two-handed attacker's light is 11.31
-slash + 1.41 blunt, 12.73 in all: 12.73 stamina and 2.55 HP to a one-handed blocker, 6.36 to a two-handed one; a
+Example (both one-handed, strength 10): blocked held, a sword light costs the blocker 16 stamina and 3.2 HP, a sword
+heavy 64 stamina and 6.4 HP; held in both hands, the blocker spends 8 and 32. A two-handed attacker's light is 19.8
+slash + 2.83 blunt, 22.63 in all: 22.63 stamina and 4.53 HP to a one-handed blocker, 11.31 to a two-handed one; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
-5.4 stamina and 0.72 HP; with two blades 12.15 stamina and 2.88 HP. Backed flat against the wall, the light chips
-3.6 HP (shield 1.44); with 10 cm behind, a heavy's 19 cm slide loses about half, so about 1.5 × its 3.6.
+9.6 stamina and 1.28 HP; with two blades 21.6 stamina and 5.12 HP. Backed flat against the wall, the light chips
+6.4 HP (shield 2.56); with 10 cm behind, a heavy's 19 cm slide loses about half, so about 1.5 × its 6.4.
 
 ## Swing parries
 
@@ -550,7 +551,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 60, 8, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
 | Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | slash + blunt: light 8 + 1, heavy 16 + 2; stab 5 | light 12 + 3, heavy 24 + 6; stab 6 (about 1.6 × as slow) | light 8 + 1, heavy 16 + 2; stab 5 | staff 5; Bolt Fire 8 + 10 burning | blunt: light 4.24, heavy 8.49 (both hands) |
+| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | slash + blunt: light 14 + 2, heavy 28 + 4; stab 8 | light 19 + 5, heavy 38 + 10; stab 10 (about 1.6 × as slow) | light 14 + 2, heavy 28 + 4; stab 8 | staff 5; Bolt Fire 8 + 10 burning | blunt: light 4.24, heavy 8.49 (both hands) |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -577,9 +578,9 @@ Each in `server/src/core/enemies/<id>.ts`.
   blade (it has no times of its own). A chain of 1 or 2, 1.5 s before the next; walking up it blocks from 0.2 s in,
   perfect-blocks 20% of a player's swings and never parries (its blade still meets a crossing blade as anyone's does).
   Its guard is its poise: 60, back 8 a second, so 5 blocked lights or 3 heavies in a row stagger it for 0.8 s. In the
-  bot fights (10 seeds) a reader wins every one at full HP; one who blocks its swings and presses heavies into its
-  shield loses 9 pressing whenever it can and 4 pressing only in its openings; one who presses lights, only swings or
-  only blocks loses every one.
+  bot fights (seeds 1-10) a reader wins every one at full HP, and so does one who blocks its swings and presses
+  heavies only in its openings; pressing whenever it isn't swinging wins 7 with heavies and every one with lights,
+  with about a third of the HP left; one who only swings or only blocks loses every one.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, the old stick swung as a player's in
   both hands (the table: felt 0.06, so every swing, a heavy's too, live at the 0.4 s floor, recovering 0 to 0.02 s),
   then 1.8 s before the next chain; first after 2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings,

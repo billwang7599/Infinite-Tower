@@ -15,6 +15,7 @@ const SWORDSMAN = ENEMIES["kobold-swordsman"].def;
 
 const PERFECT_LEAD_STEPS = 6;
 const SEEDS = [1, 2, 3, 1234, 99999];
+const TALLY_SEEDS = Array.from({ length: 20 }, (_, i) => i + 1);
 
 function reader(fight: Fight): PlayerInputData {
   const at = fight.world.require(fight.players[0]!, Body).pos;
@@ -70,15 +71,14 @@ describe("the Kobold Shieldbearer", () => {
   });
 
   test("spends more of a fight behind its guard than the Swordsman, and perfect-blocks now and then", () => {
-    let perfect = 0, blocked = 0;
     for (const seed of SEEDS) {
       const it = play(SHIELDBEARER, seed, reader), swordsman = play(SWORDSMAN, seed, reader);
       const [its, theirs] = [it.blockingShare, swordsman.blockingShare];
       assert.ok(its > theirs + 0.04, `seed ${seed}: ${its.toFixed(2)} of it, the Swordsman ${theirs.toFixed(2)}`);
       assert.ok(it.perfect > 0, `seed ${seed}: no perfect block`);
-      perfect += it.perfect;
-      blocked += it.blocked;
     }
+    const runs = TALLY_SEEDS.map((seed) => play(SHIELDBEARER, seed, reader));
+    const perfect = runs.reduce((n, it) => n + it.perfect, 0), blocked = runs.reduce((n, it) => n + it.blocked, 0);
     assert.ok(perfect < blocked, `${perfect} perfect, ${blocked} plain`);
   });
 
