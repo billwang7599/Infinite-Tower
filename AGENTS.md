@@ -148,7 +148,7 @@ Decided by the user:
   swords heavier too"), an enemy's recovery after a chain going × its felt heft too, as a player's does. The Kobold's
   opening swing winds up 1.43 s (was 1.1), a chained one 0.58 s (0.45), and it recovers 0.65 s (0.5); the Kobold
   Greatsword's 2.32 s (1.76), 0.95 s (0.72) and 1.05 s (0.5). Then combat v2 put the swords' weight in new units
-  (below).
+  (below), and later enemies came to swing by the player's math ("Enemies swing by the player's math", below).
 - Combat v2, Phase 1, the swing model (the user's decisions 4-6 and the spec's per-hand rule, in
   [plan/combat-v2.md](plan/combat-v2.md); tests only, not hand-played):
   - The sword is the Basic Sword (its stored id still `sword`), the measure of weight: heft 1 at strength 10. Every
@@ -161,9 +161,9 @@ Decided by the user:
     enemy's. The Basic Sword at any strength: the reverse 0.4 s, another line 0.48, a perpendicular 0.6, an opening
     or after a stab 0.56, a heavy's opening 0.92, the stab 0.45; live 0.13 s, recovering 0.1 s. The Hybrid's costs
     and times are the Basic Sword's (a light 13 stamina, a heavy 21, a stab 16, its guard up in 0.1 s), so its
-    stamina and guard didn't change. The Kobolds' and Bram's wind-ups and recoveries are as before (their defs carry
-    the old blade weight); their heavies' extra is 0.36 s × felt heft now, so a Kobold's heavy is 0.1 s quicker, the
-    Kobold Greatsword's 0.15 s. A Kobold won't parry a swing it could only meet by winding up under the floor.
+    stamina and guard didn't change. The Kobolds' and Bram's own wind-ups and recoveries were kept then (their defs
+    carried the old blade weight); they're gone since ("Enemies swing by the player's math", below). A Kobold won't
+    parry a swing it could only meet by winding up under the floor.
   - Momentum pays in damage only (+25% a point, ×2 at most; a stab cashes it for +50% a point); it no longer
     shortens a wind-up. Gains: the reverse +0.25, another line +1, a perpendicular +0.5, at most 4.
   - Each hand keeps its own chain and momentum, and its own recovery: a hand can't swing until its recovery is over.
@@ -177,6 +177,18 @@ Decided by the user:
   slam) waits its whole cooldown once the stun is over, then a Kobold opens with its full first wind-up. Hits still
   don't stun enemies: poise is their stagger meter. A skill's cooldown already runs from the cast, so it's unchanged.
   `stun` in `shared/src/battle/fight/behaviors/common.ts`.
+- Enemies swing by the player's math (the user: "arent wind up tables just calculated though from stats? nobody should
+  have any special preset table that differs from the math. so if we need to nerf anything, it would be the weapons
+  they use or their stats."; tests only, not hand-played): a swordsman (the Kobold, the Kobold Greatsword, Bram) winds
+  up, swings and recovers through the player's functions, from its weapon and strength (`windupTime`, `chainKind`,
+  `wayStepsAfter`, so × `feltHeft`): a chain's first swing and a counter are openings, each next one chained on from
+  the last way, and its next swing waits for its last one's recovery (a whiff's longer one too), as a player's. Its
+  def keeps only pacing: the cooldown between chains, the first delay, chain lengths, heavy and feint shares, the
+  block's react time, perfect-block and parry chances, and the reach it starts from. The defs' `windup`,
+  `chainWindup` and `recover` (with their × 1.3 from the heavier swords) are gone. At strength 10: the Kobold opens
+  in 0.57 s (was 1.43), chains in 0.4-0.6 (0.58), recovers 0.1 s (0.65) before its 1.2 s cooldown; the Kobold
+  Greatsword 0.9 (2.32), 0.65-0.97 (0.95), 0.17 (1.05); Bram 0.43 (1.3), 0.4-0.47 (0.6), 0.08 (0.7). Momentum
+  still doesn't add to an enemy's damage. Beasts' attacks (the boar, the wolf, the lurker) keep their own timings.
 - A swordsman's counter can be met (the user: "we both get stunned when i parry, but after that, they immediately
   swing which makes reaction hard (they dont have the recovery/wind up)", picking a real wind-up and the cooldown
   gate, then "nobody should have any special preset table that differs from the math"; the numbers are the agent's,
@@ -907,10 +919,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     swings the meeting way (light) so its blade goes live 5 steps before the player's; after any parry it counters, as
     after a perfect block ("A swordsman's counter can be met", above). Sounds and shows as a
     perfect block does (the clang, the hold, sparks); a clash bounces both with sparks.
-  - The Kobold (the Greatsword too): a swing winds up 1.43 s, chained ones 0.58 s (its old, approved 1.1 and 0.45 ×
-    the heavier blade), a heavy 0.36 s more; any of the 7 swings or the stab, never the same twice running, 30%
-    heavies, chains of 2 or 3; 0.65 s of recovery after a chain, then its cooldown; each time × its blade's felt heft
-    (1 for the Kobold blade, 1.62 for the Kobold greatsword). Stunned, it waits its cooldown and
+  - The Kobold (the Greatsword too): its swings are timed as a player's with its blade ("Enemies swing by the
+    player's math", above); any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2
+    or 3, then its cooldown. Stunned, it waits its cooldown and
     starts a fresh chain. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
     the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
     counters. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
@@ -1349,10 +1360,10 @@ them; treat them as changeable, and still ask before deciding new ones):
     are down, and the quest's step still counts that one win. A dummy takes no damage from anything and never
     attacks; it falls once a light, a heavy and a stab have each landed (a mark on it lights for each). Bram spars
     alone.
-  - Bram spars by the Kobold's rules, kinder (`server/src/core/enemies/bram.ts`): 60 HP, the old stick, wind-ups of
-    1.3 s (0.6 chained), chains of 1 or 2, 20% heavies, no feints, 10% perfect blocks, no parries, poise 60. Only a
-    won spar does the step; a lost one can be tried again at once, and after the quest he spars whenever asked. In
-    the arena he's drawn as a person (his NPC look on the player's sprite), sounding as a body hit and a fall.
+  - Bram spars by the Kobold's rules, kinder (`server/src/core/enemies/bram.ts`): 60 HP, the old stick swung as a player
+    swings it (0.43 s an opening), chains of 1 or 2, 20% heavies, no feints, 10% perfect blocks, no parries, poise 60.
+    Only a won spar does the step; a lost one can be tried again at once, and after the quest he spars whenever asked.
+    In the arena he's drawn as a person (his NPC look on the player's sprite), sounding as a body hit and a fall.
   - The dummy and Bram aren't monsters: no essence, no overworld actor.
   - A dev account `user` (password `user`) is seeded too, to try the start on.
 - The starting area (the user: "go make more content… you can also add more quests and create a proper starting

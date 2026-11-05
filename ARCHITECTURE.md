@@ -499,7 +499,8 @@ main.ts
   strength. Heft is measured against the Basic Sword's 1, and `wayStepsAfter` holds every wind-up, a player's or an
   enemy's, to `CHAIN.minWindupTime`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
   hand holds, its arm reach and the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
-  when, what and which way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
+  when, what and which way (a swing's wind-up by `windupTime` and `chainKind` for both), and call `startWaySwing`
+  (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
   the same way, raising its hitbox exactly while it's live. What a swing does to its wielder's body is one module for
   both, `fight/weapons/commit.ts`: the player's controller and the weapon attack ask it how fast the swing carries
   them (`carrySpeed`), turn a live blade through `steer`, wait while it's `committed`, and feint through `feint`;
@@ -948,7 +949,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   keeping early inputs for their own steps and dropping ones too far ahead, a silent client's fight going on (and still
   lost at the time limit), lateness, `battleSync` on asking and as it's decided; dodging a bite k steps before it lands,
   on time, 150 ms late and too late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the
-  Kobold's attack the same way; the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and
+  Kobold's attack the same way; the Kobold as tuned, its wind-ups a player's with its blade, beaten by a player who
+  perfect-blocks and
   punishes whatever its seed, beating one who only holds a block and mostly one who only swings, and a swordsman's
   counter after its blade parries a late answer landing only once a guard raised then is up (`enemies/kobold-swordsman.test.ts`);
   the wolf beaten by a player who sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most
@@ -2325,7 +2327,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint and its recovery, the clash's stagger, the lunge, the walk while swinging, the live blade's turn cap, a whiff's overextension; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
 | Pushback (only blocks push; a hit that lands only hurts): how hard a light, heavy and stab push a guard, an arrow's push by its speed, a body blow's, Air's push; how much each fighter takes; a blocked hit's share and its chip against the wall; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`, `GUARDS` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
-| A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
+| A swordsman: its chains, cooldown, when it blocks, how often it perfect-blocks, parries and feints a heavy; its poise (its wind-ups and recovery are its weapon's, as a player's: `CHAIN`, `HYBRID`) | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit, knockback taken | `shared/src/battle/stats.ts` |

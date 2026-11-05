@@ -159,8 +159,8 @@ By weapon, at strength 10, an opening swing (light / heavy; times in seconds, as
 | Basic Sword | 1 | 9 / 18 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
 | Longsword | 1.19 | 11 / 22 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
 | Greatsword | 1.62 | 16 / 32 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
-| Kobold blade | 1 | 14 / 28 | (its own, below) | 0.13 / 0.15 | (its own) | none |
-| Kobold greatsword | 1.62 | 14 / 28 | (its own, below) | 0.22 / 0.25 | (its own) | none |
+| Kobold blade | 1 | 14 / 28 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
+| Kobold greatsword | 1.62 | 14 / 28 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
 
 The Basic Sword's chained lights: the reverse 0.4 s, another line 0.48 s, a perpendicular one 0.6 s; its stab 0.45 s.
 The longsword's 0.48, 0.57, 0.72 and 0.53 s; the greatsword's 0.65, 0.78, 0.97 and 0.73 s.
@@ -169,15 +169,16 @@ Example: a greatsword (heft 1.62) feels 1.31 at strength 20, 1.62 at 10 and 1.69
 winds up 0.73, 0.9 or 0.95 s and costs 17, 21.1 or 22 stamina. The Basic Sword feels 1 at any strength: 0.57 s for 13
 stamina. The old stick feels its 0.77 to everyone: 0.43 s, its reverse, other line and stab held at the 0.4 s floor.
 
-An enemy's swing deals the same damage, costs no stamina and holds its body by the same rules (the body, above).
-**The Kobold** (its weapon
-attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.43 s after it starts, the next
-ones 0.58 s (a heavy 0.36 s more), and 0.65 s of recovery after a chain, all × its blade's felt heft (1 with the
-Kobold blade; the Kobold greatsword's 1.62 makes them 2.32, 0.95 and 1.05 s). It won't parry a swing it could only
-meet by winding up under the 0.4 s floor. It blocks walking up (from 0.3 s
-in), and perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`). It feints 20%
-of its heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back into its block, ends the
-chain and waits its 1.2 s cooldown.
+An enemy's swing deals the same damage, costs no stamina and holds its body by the same rules (the body, above). Its
+swings are timed by the same functions as a player's, from its weapon and strength (`weaponAttackSystem`,
+`fight/behaviors/weapon.ts`): a chain's first swing and a counter are openings, each next one is chained on from the
+last way (`chainKind`), and its next swing waits for the last one's recovery (a whiff's too). Its def holds only pacing:
+the cooldown between chains, chain lengths, shares and chances. **The Kobold** (its weapon attack,
+`server/src/core/enemies/kobold-swordsman.ts`): the table's Kobold blade, its chained lights the Basic Sword's; the
+Kobold Greatsword the greatsword's. It won't parry a swing it could only meet by winding up under the 0.4 s floor. It
+blocks walking up (from 0.3 s in), and perfect-blocks 30% of the swings a player starts at it while walking up
+(`perfectBlockChance`). It feints 20% of its heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls
+back into its block, ends the chain and waits its 1.2 s cooldown.
 
 Example: a Basic Sword light from the left, then down from the top left, then from the left again (another line each
 time): wind-ups 0.57, 0.48 and 0.48 s; momentum 1, then 2; damage 9, 11.25 and 13.5. A stab next deals 9 × 1.25 × 2
@@ -342,8 +343,8 @@ live 35 steps after the parry: 18 steps (0.3 s) to raise the guard (6) or dodge;
 
 Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword lights 0.5 s apart: 36 − 3 × 12 + 8 × 1
 = 8 after three, so the next staggers it; two heavies and a light (24 + 24) do it on the second. A Kobold blocked
-perfectly mid-chain recoils 0.4 s, waits its 1.2 s cooldown, then winds up a fresh chain's first swing (1.43 s): its
-next blade is live 3.03 s after the block.
+perfectly mid-chain recoils 0.4 s, waits its 1.2 s cooldown, then winds up a fresh chain's first swing (0.57 s): its
+next blade is live 2.17 s after the block.
 
 ## Stun and invulnerability (players)
 
@@ -518,15 +519,15 @@ Each in `server/src/core/enemies/<id>.ts`.
   (0.75 s) and sweeps its tail all round (live 0.2 s), then stands 1 s. 0.8 s after either before the next; the
   first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 30).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
-  heavy 30% of the time; its first goes live 1.43 s after it starts and the rest 0.58 s (a heavy 0.36 s more), × its
-  blade's felt heft, creeping up at a quarter of its walk while winding up and carried at 4 m/s while live, as a
-  player (the body, under the sword); then 0.65 s to recover (× the heft too) and 1.2 s more before the next chain;
+  heavy 30% of the time, each timed as a player's swing with its blade (Swords: an opening 0.57 s, chained ones
+  0.4-0.6, a heavy 0.36 s more, recovering 0.1 s), creeping up at a quarter of its walk while winding up and carried
+  at 4 m/s while live, as a player (the body, under the sword); then 1.2 s before the next chain;
   first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
   perfect-blocks 30% of a player's swings (rolled as each starts) and counters (Swing parries, Counters). A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
-- **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, its first live 1.3 s after it
-  starts and the rest 0.6 s, 0.7 s to recover and 1.8 s more (his def's 1.69, 0.78 and 0.91 × the old stick's
-  0.77); first after 2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings, never parries, never feints.
+- **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, the old stick swung as a player's
+  (the table: 0.43 s an opening, 0.4-0.47 chained, recovering 0.08 s), then 1.8 s before the next chain; first after
+  2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings, never parries, never feints.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and
   Split 1 in 4, each rolled on its own.

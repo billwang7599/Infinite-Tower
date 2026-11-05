@@ -16,9 +16,8 @@ export const BRAM: Enemy = {
     staggerTime: 0.8,
     attacks: {
       weapon: {
-        triggerDist: 2.4, windup: 1.69, chainWindup: 0.78, recover: 0.91, minChain: 1, maxChain: 2,
-        heavyShare: 0.2, heavyFeintShare: 0, cooldown: 1.8, firstDelay: 2, blockReactTime: 0.35,
-        perfectBlockChance: 0.1, parryChance: 0,
+        triggerDist: 2.4, minChain: 1, maxChain: 2, heavyShare: 0.2, heavyFeintShare: 0, cooldown: 1.8, firstDelay: 2,
+        blockReactTime: 0.35, perfectBlockChance: 0.1, parryChance: 0,
       },
     },
     wielder: { hands: { rightHand: "old-stick" }, armReachM: PLAYER.armReachM },
