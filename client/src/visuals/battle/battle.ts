@@ -4,9 +4,10 @@ import {
   type Reaction, type Theme, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../../modes/components.js";
 import { showArena } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
-import { impactPose } from "./impact.js";
+import { hitStopDone, hitStopKickRad, impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 
@@ -74,12 +75,9 @@ export function fighter<S>(name: string, own: {
       const impact = f.ctx.impacts.get(e), hit = impact && impactPose(impact);
       if (impact) impact.ageMs += dt * 1000;
       if (hit?.done) f.ctx.impacts.delete(e);
-      if (hit?.frozen) {
-        // Held where it is: it eases after its body once the stop is over.
-        const at = f.node.position;
-        Object.assign(offset, { x: at.x - pos.x, y: at.y - pos.y, z: at.z - pos.z });
-        return;
-      }
+      const stop = f.ctx.hitStops.get(e);
+      if (stop && hitStopDone(stop)) f.ctx.hitStops.delete(e);
+      else if (stop) stop.ageMs += dt * 1000;
       const jolt = hit?.offset ?? { x: 0, y: 0, z: 0 }, sinkM = dissolving ? DISSOLVE_SINK_M * gone : 0;
       f.node.position.set(pos.x + offset.x + jolt.x, pos.y + offset.y + jolt.y - sinkM, pos.z + offset.z + jolt.z);
       own.frame(f.drawing, world, e, dt);
@@ -102,6 +100,7 @@ export function fighter<S>(name: string, own: {
       f.node.dispose();
       f.ctx.nodes.delete(f.e);
       f.ctx.impacts.delete(f.e);
+      f.ctx.hitStops.delete(f.e);
     },
   };
 }
@@ -164,6 +163,7 @@ export function arenaStage(ctx: ArenaScene): {
       }
       ctx.shake = 0;
       ctx.impacts.clear();
+      ctx.hitStops.clear();
     },
     frame(dt) {
       ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
@@ -173,7 +173,9 @@ export function arenaStage(ctx: ArenaScene): {
         eye.x + (Math.random() - 0.5) * s, eye.y + (Math.random() - 0.5) * s, eye.z + (Math.random() - 0.5) * s,
       );
       ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
-      ctx.camera.rotation.x += ctx.battle.stun.pitchRad;
+      const me = ctx.battle.fight?.world.first(LocalPlayer)?.[0];
+      const stop = me === undefined ? undefined : ctx.hitStops.get(me);
+      ctx.camera.rotation.x += ctx.battle.stun.pitchRad + hitStopKickRad(stop);
       ctx.camera.rotation.z = ctx.battle.stun.rollRad;
       ctx.camera.fov = ctx.battle.view.fovRad;
       ctx.sky.frame(Date.now(), ctx.camera.position);

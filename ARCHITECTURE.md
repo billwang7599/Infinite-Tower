@@ -188,8 +188,9 @@ main.ts
   3D humanoid's arms, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst, a weapon hit's hit-stop and jolt, a blocked blade's bounce
   and sparks, a perfect block's); each fires once per step and event (`FiredEffects`, `modes/battle/fired.ts`), so
-  a step replayed after a resync doesn't fire it again. Hit-stop is drawing only (`visuals/battle/impact.ts`): the
-  fight runs on, the two fighters' drawings hold still for the weapon's `hitStopMs` and then ease after their bodies.
+  a step replayed after a resync doesn't fire it again. Hit-stop is drawing only and local (`visuals/battle/impact.ts`):
+  the fight and every body run on, and only the attacker's swing is drawn held for `HIT_STOP_MS`, then eased back into
+  the fight's (`heldSwing`, which the 3D person's and the Kobolds' drawings read).
   The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
   (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled` fighter is doing is drawn the same: the
   circle at its feet while it chants or winds up, and its going: a dead enemy lies `DISSOLVE_DELAY_TIME`, then
@@ -1877,17 +1878,18 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          person the way round that keeps the blade in front, held as the target moves),
                          for the body and first person alike; a bow's string pulled to the off hand, the hair
                          swung by the head's motion; with &steps only that many times a second)
-        impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
-                         blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
-                         sparks (parried), and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only
-                         the target, and one blocked sparks where it struck (arrowStopped); impactPose and
-                         joltOf (no Babylon: tested)
-        battle.ts        fighter() (a fighter's node where it's drawn (ctx.blend), eased over corrections, held by a
-                         hit-stop and pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a
+        impact.ts        Weapon impacts, drawing only: the attacker's local hit-stop on contact (its swing held
+                         HIT_STOP_MS, then eased back into the fight's: heldSwing; the camera's touch of a kick for
+                         your own: hitStopKickRad), a hit's jolt of the target the blade's way, a blocked blade's
+                         bounce and sparks (strike, clash), a perfect block's bounce and shower of sparks (parried),
+                         and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only the target, and
+                         one blocked sparks where it struck (arrowStopped); impactPose and joltOf (no Babylon: tested)
+        battle.ts        fighter() (a fighter's node where it's drawn (ctx.blend), eased over corrections, pushed by
+                         a jolt, its hit-stop's clock, its reactions' bursts, any skilled fighter's chant circle, a
                          dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
                          LEAVE_FADE_TIME),
-                         arenaStage (the scenery per arena, the camera on the mode's view plus shake and your
-                         stun's kick and sway, the drops' sacks after a win)
+                         arenaStage (the scenery per arena, the camera on the mode's view plus shake, your
+                         stun's kick and sway and your hit-stop's kick, the drops' sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
                          centre while you fight with a sword, a bow's draw meter there instead (filling with the
@@ -1964,7 +1966,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          draw-back before it drives (DRAWBACK,
                          pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
                          Kobolds' and the players'; a bow's rest and guard); WEAPON_LOOKS, by weapon: its 3D blade
-                         (size, colour, art), its hit-stop and a bow's brace and draw. No Babylon: tested
+                         (size, colour, art) and a bow's brace and draw. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a perfect block's, a broken guard's
                          flash), the chant's and wind-up's
@@ -2339,7 +2341,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
-| Hit-stop by weapon (drawing only: the fight never pauses for it); the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
+| Hit-stop (drawing only and local: the fight never pauses for it): how long the attacker's swing holds, how long it takes to catch up, your camera's kick; the hit's jolt and a blocked blade's bounce; a perfect block's bounce, a broken guard's jolt | `HIT_STOP_MS`, `HIT_STOP_EASE_MS`, `HIT_STOP_KICK_RAD` and the rest at the top of `client/src/visuals/battle/impact.ts` |
 | Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
 | Chunks: how far round you they're sent, held, drawn (in detail, and past what's seen), built ahead and kept built, the build budget and which build first, the edge's fog and the plain ground under the world, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SEEN_MARGIN_TILES`, `NEAR_TILES`, `AHEAD_TILES`, `HIDE_MARGIN_TILES`, `DROPPED_TILES`, `AHEAD_BIAS_TILES`, `MUST_BUILD_TILES`, `BUILD_BUDGET_MS`, `FOG_FADE_M`, `SKIRT`, `SKY_BLEND_TILES`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | How far from a walking player monsters stay awake | `AWAKE_TILES` in `server/src/core/overworld/sleep.ts` |

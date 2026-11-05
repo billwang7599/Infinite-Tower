@@ -165,7 +165,6 @@ export interface WeaponLook {
   blade: { lengthM: number; widthM: number; color: string };
   art: Art | null;
   twoHanded: boolean;
-  hitStopMs: number;
   bow?: BowLook;
 }
 export interface BowLook { braceM: number; drawM: number; string: string }
@@ -176,26 +175,22 @@ const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.le
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
   "old-stick": {
     blade: { lengthM: lengthOf("old-stick"), widthM: 0.07, color: "#7a5a3a" }, art: null, twoHanded: false,
-    hitStopMs: 50,
   },
-  sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false, hitStopMs: 60 },
+  sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false },
   "kobold-blade": {
-    blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false, hitStopMs: 60,
+    blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false,
   },
   longsword: {
     blade: { lengthM: lengthOf("longsword"), widthM: 0.105, color: "#c9d1d8" }, art: SWORD, twoHanded: false,
-    hitStopMs: 90,
   },
   greatsword: {
     blade: { lengthM: lengthOf("greatsword"), widthM: 0.15, color: "#b4bcc4" }, art: SWORD, twoHanded: true,
-    hitStopMs: 130,
   },
   "kobold-greatsword": {
     blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.16, color: "#8f9196" }, art: SWORD, twoHanded: true,
-    hitStopMs: 130,
   },
   "training-bow": {
     blade: { lengthM: lengthOf("training-bow"), widthM: 0.04, color: "#9a7448" }, art: null, twoHanded: true,
-    hitStopMs: 40, bow: { braceM: 0.14, drawM: 0.3, string: "#e6dcc0" },
+    bow: { braceM: 0.14, drawM: 0.3, string: "#e6dcc0" },
   },
 };

@@ -483,9 +483,14 @@ Decided by the user:
   (the swing's `liveUntil`; after a chain's last attack, the next attack waits for its recovery too). If the player
   can't dodge then (no stamina, overloaded, in the air), the press runs out like any early press
   (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes first.
-- Nothing pauses the fight (the user: "nothing should ever pause the whole fight"): hit-stop (by weapon; 140 ms on a
-  perfect block or a parry), the hit's jolt and the sparks are drawing only, and the fight runs on through them. To
-  tune: `hitStopMs` in `WEAPON_LOOKS` and the top of `client/src/visuals/battle/impact.ts`.
+- Nothing pauses the fight (the user: "nothing should ever pause the whole fight"). Hit-stop is local (combat v2,
+  the user: "the attacker's blade and a touch of camera stop for ~50 ms on contact"): on a weapon's contact (a hit, a
+  blocked hit, a parry, both blades in a parry) the attacker's blade and arms are drawn held where they were for 50 ms
+  (`HIT_STOP_MS`, any weapon), then catch up with the fight's swing over 100 ms with no jump (a swing the fight ended,
+  blocked or parried, eases back as any swing's end does); your own contact dips the camera a touch (0.34°) for the
+  stop and settles it back. Nothing else holds: the fight, every body, the target (its jolt starts at once) and
+  everyone else run on. The hit's jolt and the sparks are drawing only too. To tune: the top of
+  `client/src/visuals/battle/impact.ts`.
 - A player's hits knock enemies back (the user, asked if they should: "balance it"; the numbers are the agent's, not
   hand-played): a light a little (4 m/s, about 0.3 m on a Kobold, about what the swing's own step closes), a stab
   more (6), a heavy most (8, about 1.2 m), whatever the blade; an arrow by its speed; Air as before. A heavier enemy

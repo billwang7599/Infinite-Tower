@@ -8,7 +8,7 @@ import type { BattleContext } from "../../modes/battle/context.js";
 import type { PlayerLook } from "../characters.js";
 import { createSky, type Sky } from "../sky/sky.js";
 import type { HeldBow } from "./bow.js";
-import type { Impact } from "./impact.js";
+import type { HitStop, Impact } from "./impact.js";
 import { createMaterials, type Materials } from "./materials.js";
 import { pixelFlags, pixelPost, type PixelFlags } from "./pixel.js";
 import { createSkillKit, type SkillKit } from "./skills.js";
@@ -25,6 +25,7 @@ export interface ArenaScene {
   /** Camera shake amplitude, decaying. Hard hits add to it. */
   shake: number;
   impacts: Map<Entity, Impact>;
+  hitStops: Map<Entity, HitStop>;
   battle: BattleContext;
   pixel: PixelFlags;
   tuning: CameraTuning;
@@ -49,7 +50,8 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
     scene, camera, sky, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
-    nodes: new Map(), looks: new Map(), bows: new Map(), shake: 0, impacts: new Map(), battle, pixel, tuning,
+    nodes: new Map(), looks: new Map(), bows: new Map(), shake: 0, impacts: new Map(), hitStops: new Map(), battle,
+    pixel, tuning,
   };
 }
 
