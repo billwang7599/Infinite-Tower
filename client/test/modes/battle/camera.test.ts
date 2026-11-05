@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
-import { Body, Player, World, type Entity, type Vec3 } from "@infinite-tower/shared";
-import type { Fight } from "@infinite-tower/shared/fight";
+import { before, describe, test } from "node:test";
+import {
+  BASE_STATS, Body, copyInput, emptyBag, emptyEquipment, IDLE_INPUT, maxHpOf, newCore, packFor, Player, PLAYER,
+  staminaMaxOf, World, type EnemyDef, type Entity, type Vec3,
+} from "@infinite-tower/shared";
+import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../../../src/modes/components.js";
+import { CROSSHAIR_MIN_M, playerAim } from "../../../src/modes/battle/aim.js";
 import type { BattleContext } from "../../../src/modes/battle/context.js";
 import {
   arenaCamera, blocksView, CAMERA_PRESETS, CAMERA_VIEWS, cameraTuning, FLOOR_MARGIN_M, insideSelf, steerZoom, ZOOM,
@@ -369,6 +373,62 @@ describe("first person", () => {
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
     for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
     near(Math.atan2(view.at.x - view.eye.x, view.at.z - view.eye.z), Math.atan2(3, 4), "toward the target");
+  });
+});
+
+describe("first person pressed against the arena's wall", () => {
+  before(() => initPhysics());
+  const RADIUS_M = 10;
+  const STATUE: EnemyDef = {
+    id: "wild-boar", name: "Statue", maxHp: 100, stats: BASE_STATS, radius: 0.5, walkSpeed: 0, turnRate: 0,
+    poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+  };
+
+  function walkedToWall(angle: number): Fight {
+    const fight = new Fight({
+      arena: { id: "test", radius: RADIUS_M, look: "forest-clearing" },
+      players: [{
+        at: { x: 0, y: 0.05, z: 0 }, vitals: { hp: maxHpOf(BASE_STATS), stamina: staminaMaxOf(BASE_STATS) },
+        stats: BASE_STATS, core: newCore(), burden: "light", book: [],
+        gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: emptyEquipment() },
+      }],
+      enemies: [{ def: STATUE, at: { x: -6 * Math.sin(angle), y: 0.05, z: -6 * Math.cos(angle) }, yaw: 0 }],
+    });
+    const out = { ...copyInput(IDLE_INPUT), moveX: Math.sin(angle), moveZ: Math.cos(angle) };
+    for (let s = 0; s < 180; s++) fight.step([out]);
+    fight.world.add(fight.players[0]!, LocalPlayer, true);
+    return fight;
+  }
+
+  function centreLineMeets(eye: Vec3, at: Vec3): Vec3 {
+    const length = Math.hypot(at.x - eye.x, at.y - eye.y, at.z - eye.z);
+    const d = { x: (at.x - eye.x) / length, y: (at.y - eye.y) / length, z: (at.z - eye.z) / length };
+    const A = d.x * d.x + d.z * d.z, B = eye.x * d.x + eye.z * d.z, C = eye.x * eye.x + eye.z * eye.z - RADIUS_M ** 2;
+    const t = Math.min(d.y < 0 ? eye.y / -d.y : Infinity, (-B + Math.sqrt(B * B - A * C)) / A);
+    return { x: eye.x + d.x * t, y: eye.y + d.y * t, z: eye.z + d.z * t };
+  }
+
+  test("whichever way you look, the eye stays inside, and the aim is the spot the crosshair shows", () => {
+    for (const angle of [0, 1, 2.5, 4]) {
+      const fight = walkedToWall(angle), me = fight.world.require(fight.players[0]!, Body).pos;
+      const wallAngle = Math.atan2(me.x, me.z);
+      assert.ok(Math.hypot(me.x, me.z) > RADIUS_M - PLAYER.radius - 0.05, `not at the wall: ${JSON.stringify(me)}`);
+      const { ctx } = arena(me, null, RADIUS_M), view = ctx.view;
+      Object.assign(ctx, { zoomM: CAMERA_VIEWS.fp.distanceM, freeCamera: "aim" });
+      const camera = arenaCamera(ctx, CAMERA_VIEWS);
+      for (const turned of [Math.PI, 0.75 * Math.PI, 0.5 * Math.PI, -0.5 * Math.PI, 0]) {
+        for (const pitchDeg of [-80, -40, -10, 0, 20, 80]) {
+          Object.assign(view, { yaw: wallAngle + turned, pitch: pitchDeg * DEG });
+          for (let i = 0; i < 10; i++) camera(fight, FRAME_TIME);
+          const what = `at ${angle}, turned ${turned}, pitch ${pitchDeg}`;
+          assert.ok(Math.hypot(view.eye.x, view.eye.z) < RADIUS_M, `${what}: eye ${JSON.stringify(view.eye)}`);
+          const spot = centreLineMeets(view.eye, view.at);
+          if ((spot.x - me.x) * Math.sin(view.yaw) + (spot.z - me.z) * Math.cos(view.yaw) < CROSSHAIR_MIN_M) continue;
+          const { at } = playerAim(ctx, [], me, RADIUS_M).aim;
+          for (const axis of ["x", "y", "z"] as const) near(at[axis], spot[axis], `${what}: aim ${axis}`, 1e-6);
+        }
+      }
+    }
   });
 });
 
