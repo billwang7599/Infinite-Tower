@@ -43,7 +43,7 @@ Swinging:
 - Heft scales every time and stamina cost, felt through the wielder's strength (one rule for every weapon and guard,
   strength's part a square root, as for damage). Any weapon at any strength, only slower. A weapon's reach is the
   wielder's arm reach plus its length.
-- A lone melee weapon is held in both hands, putting twice the strength in, through the same math; anything in the
+- A lone melee weapon is held in both hands, putting 1.5× the strength in, through the same math; anything in the
   other hand makes it one-handed. The Kobolds stay one-handed. No toggle.
 - Weapon damage is typed: slash, stab and blunt from one rule by heft, split by the weapon's profile. A swing deals its
   slash and blunt, a stab only its stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The old

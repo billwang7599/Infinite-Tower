@@ -183,24 +183,24 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
     return { spent, liveAt: swing.liveAt, endAt: swing.endAt, damage: swing.damage };
   }
 
-  test("every melee blade, the Basic Sword and the Old Stick too, swings and costs as at twice the strength", () => {
-    const twice = STATS.strength * TWO_HAND_STRENGTH_FACTOR;
+  test("every melee blade, the Basic Sword and the Old Stick too, swings and costs as at the grip's strength", () => {
+    const gripped = STATS.strength * TWO_HAND_STRENGTH_FACTOR;
     for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
       for (const strike of ["light", "heavy", "stab"] as const) {
         const weapon = WEAPONS[item], what = `${item} ${strike}`;
         const one = swingWith(item, "skillbook", strike), two = swingWith(item, null, strike);
         const steps = (strength: number) =>
           wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy", strength);
-        assert.deepEqual([two.liveAt, two.endAt], [steps(twice).liveAt, steps(twice).endAt], what);
+        assert.deepEqual([two.liveAt, two.endAt], [steps(gripped).liveAt, steps(gripped).endAt], what);
         assert.deepEqual([one.liveAt, one.endAt], [steps(STATS.strength).liveAt, steps(STATS.strength).endAt], what);
         assert.ok(two.liveAt <= one.liveAt && two.endAt <= one.endAt && two.spent < one.spent, what);
-        assert.ok(Math.abs(two.spent - strikeCost(weapon, strike, twice)) < 1e-9, `${what}: ${two.spent}`);
+        assert.ok(Math.abs(two.spent - strikeCost(weapon, strike, gripped)) < 1e-9, `${what}: ${two.spent}`);
         assert.ok(Math.abs(one.spent - strikeCost(weapon, strike, STATS.strength)) < 1e-9, `${what}: ${one.spent}`);
       }
     }
   });
 
-  test("the Basic Sword feels as at twice the strength, and hits each type √TWO_HAND_STRENGTH_FACTOR as hard", () => {
+  test("the Basic Sword feels as at the grip's strength, and hits each type √TWO_HAND_STRENGTH_FACTOR as hard", () => {
     assert.ok(feltHeft(SWORD, STATS.strength * TWO_HAND_STRENGTH_FACTOR) < feltHeft(SWORD, STATS.strength));
     for (const strike of ["light", "heavy", "stab"] as const) {
       const one = swingWith("sword", "skillbook", strike), two = swingWith("sword", null, strike);

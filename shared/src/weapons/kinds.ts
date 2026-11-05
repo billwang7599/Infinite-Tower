@@ -52,7 +52,7 @@ export function gripOf(hands: Hands): Grip | null {
   return meleeIn(hands) && !hands.oneHanded && !hands[hand === "rightHand" ? "leftHand" : "rightHand"] ? "two" : "one";
 }
 
-export const TWO_HAND_STRENGTH_FACTOR = 2;
+export const TWO_HAND_STRENGTH_FACTOR = 1.5;
 
 export const appliedStrength = (hands: Hands, strength: number): number =>
   gripOf(hands) === "two" ? strength * TWO_HAND_STRENGTH_FACTOR : strength;
