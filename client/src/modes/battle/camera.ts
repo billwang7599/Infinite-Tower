@@ -1,8 +1,7 @@
 import { Body, clamp, damp, dampFactor, Player, wrapAngle, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
-import type { Polled } from "../../core/actions.js";
 import { LocalPlayer } from "../components.js";
-import { floorReach, orbitBack, PITCH, turnBy, zoomBy } from "../orbit.js";
+import { floorReach, orbitBack, PITCH, turnBy } from "../orbit.js";
 import type { BattleContext } from "./context.js";
 import { lockYaw } from "./lock.js";
 
@@ -15,7 +14,7 @@ const FOLLOW_RATE = 12;
 const WALL_MARGIN = 0.4;
 /** Locked: how quickly the camera swings round behind the player to the target, and tilts to its pitch. */
 const LOCK_TURN_RATE = 12;
-/** How quickly the camera eases between framings: locking on or off, or changing the locked view (see dampFactor). */
+/** How quickly the camera eases between framings: locking on or off, a dodge's zoom out and back (see dampFactor). */
 const VIEW_EASE_RATE = 6;
 /** cam.fade: how near (on the ground) the line from the eye to the target your fighter goes see-through. */
 const FADE_RADIUS_M = 0.45;
@@ -46,13 +45,13 @@ export interface CameraTuning {
 
 const DEG = Math.PI / 180;
 
+// Over the left shoulder, For Honor style, as the sprite's guard holds the blade up on its right.
 const SHOULDER: CameraTuning = {
   distanceM: 5.5, orbitHeightM: 1.5, lookHeightM: 1.3, lockPitchRad: 14 * DEG, lockLookShare: 0.35, lockLookMaxM: 3,
   sideM: -1.1, lookAheadM: 0, fovRad: 0.9, minPitchRad: -PITCH.belowRad, maxPitchRad: PITCH.aboveRad, fade: false,
   trailShare: 1,
 };
 
-const CLOSE = { ...SHOULDER, distanceM: 3 };
 // A little behind the eyes and looking a little down, so your own arms and blade are in view, not at your face.
 const FP = {
   distanceM: 0.4, orbitHeightM: EYE_HEIGHT_M, lookHeightM: EYE_HEIGHT_M, lockPitchRad: 12 * DEG, lockLookShare: 1,
@@ -60,34 +59,12 @@ const FP = {
   maxPitchRad: PITCH.firstPersonRad, trailShare: 0,
 };
 
-export type CameraView = "shoulder" | "close" | "fp";
+export const CAMERA_VIEWS: Record<"shoulder" | "fp", CameraTuning> = { shoulder: SHOULDER, fp: { ...SHOULDER, ...FP } };
 
-// For Honor style: over the left shoulder, as the sprite's guard holds the blade up on its right. Zoomed, the shoulder
-// view's at any distance from close out to ZOOM.maxM; nearer than close is first person.
-export const CAMERA_VIEWS: Record<CameraView, CameraTuning> = {
-  shoulder: SHOULDER, close: CLOSE, fp: { ...SHOULDER, ...FP },
-};
-
-export const ZOOM = { maxM: 8 } as const;
-
-/** The camera's distance after V (the next view in) and the wheel; first person is `fp.distanceM`. */
-export function steerZoom(
-  zoomM: number, { pressed, zoom }: Pick<Polled, "pressed" | "zoom">, views: Record<CameraView, CameraTuning>,
-): number {
-  const { shoulder, close, fp } = views;
-  let next = zoomM;
-  if (pressed.includes("cycleView")) {
-    next = [shoulder, close, fp].find((v) => v.distanceM < next)?.distanceM ?? shoulder.distanceM;
-  }
-  if (zoom > 0) next = next < close.distanceM ? close.distanceM : zoomBy(next, zoom, close.distanceM, ZOOM.maxM);
-  else if (zoom < 0) next = next > close.distanceM ? zoomBy(next, zoom, close.distanceM, ZOOM.maxM) : fp.distanceM;
-  return next;
-}
-
-// Dev-only presets to try against each other (`?cam=<name>`), in place of the shoulder view.
+// Dev-only (`?cam=<name>`): the fight's view in place of first person, to try third person against it.
 export const CAMERA_PRESETS = {
   shoulder: SHOULDER,
-  close: CLOSE,
+  close: { distanceM: 3 },
   high: { distanceM: 9, lookHeightM: 1, lockPitchRad: 40 * DEG, lockLookShare: 0.45 },
   both: { distanceM: 9, lockPitchRad: 26 * DEG, lockLookShare: 0.5, lockLookMaxM: 20, fovRad: 60 * DEG },
   fp: FP,
@@ -99,16 +76,16 @@ const FLAGS: [string, keyof CameraTuning, number][] = [
   ["cam.side", "sideM", 1], ["cam.fov", "fovRad", DEG],
 ];
 
-export function cameraTuning(search: string): Record<CameraView, CameraTuning> {
+export function cameraTuning(search: string): CameraTuning {
   const params = new URLSearchParams(search), name = params.get("cam") ?? "";
-  const preset = Object.hasOwn(CAMERA_PRESETS, name) ? CAMERA_PRESETS[name as keyof typeof CAMERA_PRESETS] : null;
-  const shoulder: CameraTuning = { ...CAMERA_VIEWS.shoulder, ...preset };
+  const preset = Object.hasOwn(CAMERA_PRESETS, name) ? CAMERA_PRESETS[name as keyof typeof CAMERA_PRESETS] : FP;
+  const tuning: CameraTuning = { ...SHOULDER, ...preset };
   for (const [flag, key, scale] of FLAGS) {
     const raw = params.get(flag), value = Number(raw);
-    if (raw && Number.isFinite(value)) (shoulder[key] as number) = value * scale;
+    if (raw && Number.isFinite(value)) (tuning[key] as number) = value * scale;
   }
-  if (params.has("cam.fade")) shoulder.fade = true;
-  return { ...CAMERA_VIEWS, shoulder };
+  if (params.has("cam.fade")) tuning.fade = true;
+  return tuning;
 }
 
 export const insideSelf = (eye: Vec3, me: Vec3): boolean =>
@@ -131,11 +108,9 @@ const EASED = [
 /** yaw, pitch: radians (orbitBack). */
 export interface ArenaView { yaw: number; pitch: number; fovRad: number; eye: Vec3; at: Vec3 }
 
-export function arenaCamera(
-  ctx: BattleContext, views: Record<CameraView, CameraTuning>,
-): (fight: Fight, dt: number) => void {
+export function arenaCamera(ctx: BattleContext, fightView: CameraTuning): (fight: Fight, dt: number) => void {
   const focus = { x: 0, y: 0, z: 0 }, follow = { x: 0, y: 0, z: 0 }, lookShift = { x: 0, z: 0 };
-  const tuning = { ...views.shoulder };
+  const tuning = { ...fightView };
   /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
   let followed: Fight | null = null;
 
@@ -156,8 +131,7 @@ export function arenaCamera(
       followed = fight;
     }
     const dodging = world.get(row[0], Player)?.action === "dodge";
-    const zoomM = dodging ? Math.max(ctx.zoomM, views.shoulder.distanceM) : ctx.zoomM;
-    const goal = zoomM < views.close.distanceM ? views.fp : { ...views.shoulder, distanceM: zoomM };
+    const goal = dodging && fightView.distanceM < SHOULDER.distanceM ? SHOULDER : fightView;
     for (const key of EASED) {
       tuning[key] = fresh ? goal[key] : damp(tuning[key], goal[key], VIEW_EASE_RATE, dt);
     }
@@ -196,7 +170,7 @@ export function arenaCamera(
     const reach = fight.arena.radius - WALL_MARGIN, flat = Math.hypot(back.x, back.z);
     const b = flat > 0 ? -(ox * back.x + oz * back.z) / flat : 0;
     const maxFlat = b + Math.sqrt(Math.max(0, b * b - (ox * ox + oz * oz) + reach * reach));
-    const nearestM = Math.min(MIN_DISTANCE, tuning.distanceM - views.fp.distanceM);
+    const nearestM = Math.min(MIN_DISTANCE, tuning.distanceM - FP.distanceM);
     const wallDist = clamp(maxFlat / Math.max(0.05, flat), nearestM, tuning.distanceM);
     const dist = floorReach(oy, back.y, follow.y - row[2].centerHeight, wallDist, FLOOR_MARGIN_M);
     Object.assign(view.eye, { x: ox + back.x * dist, y: oy + back.y * dist, z: oz + back.z * dist });
