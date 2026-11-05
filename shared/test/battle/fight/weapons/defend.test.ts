@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor,
-  perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost,
+  AVERAGE_STAT, Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID,
+  knockbackTakenFactor, perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost,
   toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -192,8 +192,8 @@ describe("blocking by the blade", () => {
   const hit = (events: FightEvent[]) => events.some((e) => e.type === "hit");
   const perfect = (events: FightEvent[]) => events.some((e) => e.type === "block" && e.perfect);
 
-  test("a weightless blade's guard comes up in the listed time, the sword's perfect window as listed", () => {
-    assert.equal(guardRaiseTime({ ...WEAPONS.sword, heft: 1 }, STATS.strength), HYBRID.block.raiseTime);
+  test("the Basic Sword's guard comes up in the listed time at average strength, its perfect window as listed", () => {
+    assert.equal(guardRaiseTime(WEAPONS.sword, AVERAGE_STAT), HYBRID.block.raiseTime);
     close(perfectBlockTime(WEAPONS.sword), HYBRID.block.perfectTime, "window");
   });
 
@@ -211,7 +211,15 @@ describe("blocking by the blade", () => {
 
   test("a stronger wielder raises a heavy blade quicker", () => {
     const strong = guardRaiseTime(WEAPONS.greatsword, STATS.strength * 2);
-    assert.ok(strong < guardRaiseTime(WEAPONS.greatsword, STATS.strength) && strong > HYBRID.block.raiseTime);
+    assert.ok(strong < guardRaiseTime(WEAPONS.greatsword, STATS.strength) && strong > 0);
+  });
+
+  test("no guard comes up in less than no time, however light it feels, so none cuts into the perfect window", () => {
+    for (const strength of [AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
+      for (const weapon of ["old-stick", "sword"] as const) {
+        assert.ok(guardRaiseTime(WEAPONS[weapon], strength) >= 0, `${weapon} ${strength}`);
+      }
+    }
   });
 
   test("the perfect window grows with the blade's length", () => {

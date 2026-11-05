@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  Body, DEFAULT_LOOK, FIXED_DT, Health, LOOK_OPTIONS, newWielder, Player, PLAYER, WAYS, Wielder, World, type Entity,
-  type Look, type PlayerData, type SwingData, type WeaponId,
+  BASE_STATS, Body, DEFAULT_LOOK, FighterStats, FIXED_DT, Health, LOOK_OPTIONS, newWielder, Player, PLAYER, WAYS,
+  Wielder, World, type Entity, type Look, type PlayerData, type SwingData, type WeaponId,
 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
 import { orbitBack } from "../../../../src/modes/orbit.js";
@@ -227,6 +227,7 @@ describe("switching hands with a blade in each", () => {
     world.add(e, Player, playerDoing("none", 0, "lr"));
     world.add(e, Body, { pos: { ...feet }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.8, collider: 0 });
     world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, FighterStats, BASE_STATS);
     const wielder = world.add(e, Wielder,
       newWielder({ rightHand: "sword", leftHand: "sword", active: "rightHand" }, PLAYER.armReachM));
     const p = newPerson(), swing = swingAt("light", "lr", 0);
@@ -277,6 +278,7 @@ describe("a hit-stop on a 3D person: its arms and blade hold, then go on with no
     const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
     world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
     world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, FighterStats, BASE_STATS);
     const wielder = world.add(e, Wielder, newWielder({ rightHand: "sword", leftHand: null, active: "rightHand" }, 0.7));
     const blend = { alpha: 1 }, hitStops = new Map<Entity, HitStop>();
     const ctx = { scene, sky, bows: new Map(), looks: new Map([[e, { current: DEFAULT_LOOK }]]),

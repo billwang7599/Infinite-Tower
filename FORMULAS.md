@@ -113,11 +113,11 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, HP 10 more 
 
 `CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`, with
 each weapon's numbers in its `weapon` (`ITEMS`); the rules in `fight/player/sword.ts` and `fight/weapons/`. A weapon's
-heft is measured against the Basic Sword's, 1 (the stored id is still `sword`). Damage goes × √(strength / 10), and
-every time and stamina cost × the heft the wielder feels (`feltHeft`): a weapon under 1 feels its own heft to
-everyone; one of 1 or more feels 1 + (heft − 1) × 10 / strength, so strength 10 feels it as it is, 20 half the
-extra, 5 twice it, and no strength takes it under 1. Below a weapon's `minStrength` it can't be wielded at all
-(Basic Sword 0, longsword 6, greatsword 9; the Kobolds' blades as theirs).
+heft is on one scale with the Basic Sword's, 3 (the stored id is still `sword`; the shield and the bow weigh 3 too).
+Damage goes × √(strength / 10), and every time and stamina cost × the heft the wielder feels (`feltHeft`): (heft /
+the Basic Sword's 3) × 10 / strength, one linear rule for every weapon and guard, light ones too, so the Basic Sword
+feels 1 at strength 10, 2 at 5 and 0.5 at 20. Below a weapon's `minStrength` it can't be wielded at all (Basic Sword
+0, longsword 6, greatsword 9; the Kobolds' blades as theirs).
 
 - **Wind-up** (press to the blade going live): a light `CHAIN.startupTime` by how it follows the last swing of the
   same hand (an opening or after a stab 0.56 s, the reverse 0.4 s, another line 0.48 s, a perpendicular one 0.6 s), ÷
@@ -153,21 +153,22 @@ it recovers 0.1 s; whiffed, 0.1 + 0.2 = 0.3 s, carried another 0.45 m.
 
 By weapon, at strength 10, an opening swing (light / heavy; times in seconds, as the fight's steps round them):
 
-| Weapon | Heft | Damage | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
+| Weapon | Heft (felt) | Damage | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
 |---|---|---|---|---|---|---|
-| Old stick | 0.77 | 5 / 10 | 0.43 / 0.72 | 0.1 / 0.12 | 0.08 / 0.2 | 10 / 16.2 / 12.3 |
-| Basic Sword | 1 | 9 / 18 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
-| Longsword | 1.19 | 11 / 22 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
-| Greatsword | 1.62 | 16 / 32 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
-| Kobold blade | 1 | 14 / 28 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
-| Kobold greatsword | 1.62 | 14 / 28 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
+| Old stick | 0.385 (0.13) | 3 / 6 | 0.4 / 0.4 | 0.02 / 0.02 | 0.02 / 0.03 | 1.7 / 2.7 / 2.1 |
+| Basic Sword | 3 (1) | 9 / 18 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
+| Longsword | 3.57 (1.19) | 11 / 22 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
+| Greatsword | 4.86 (1.62) | 16 / 32 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
+| Kobold blade | 3 (1) | 14 / 28 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
+| Kobold greatsword | 4.86 (1.62) | 14 / 28 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
 
 The Basic Sword's chained lights: the reverse 0.4 s, another line 0.48 s, a perpendicular one 0.6 s; its stab 0.45 s.
 The longsword's 0.48, 0.57, 0.72 and 0.53 s; the greatsword's 0.65, 0.78, 0.97 and 0.73 s.
 
-Example: a greatsword (heft 1.62) feels 1.31 at strength 20, 1.62 at 10 and 1.69 at 9 (its least): an opening light
-winds up 0.73, 0.9 or 0.95 s and costs 17, 21.1 or 22 stamina. The Basic Sword feels 1 at any strength: 0.57 s for 13
-stamina. The old stick feels its 0.77 to everyone: 0.43 s, its reverse, other line and stab held at the 0.4 s floor.
+Example: a greatsword (heft 4.86) feels 0.81 at strength 20, 1.62 at 10 and 1.8 at 9 (its least): an opening light
+winds up 0.45, 0.9 or 1 s and costs 10.5, 21.1 or 23.4 stamina. The Basic Sword feels 0.5, 1 or 2 at 20, 10 or 5: an
+opening light 0.4 s (the floor), 0.57 or 1.12 s, for 6.5, 13 or 26 stamina. The old stick (heft 0.385) feels 0.13
+at 10: every wind-up, a heavy's too, held at the 0.4 s floor.
 
 An enemy's swing deals the same damage, costs no stamina and holds its body by the same rules (the body, above). Its
 swings are timed by the same functions as a player's, from its weapon and strength (`weaponAttackSystem`,
@@ -266,7 +267,7 @@ only a guard that blocks it.
   blocks for the hands; else a melee weapon in each is two blades, else one weapon is one blade. The held block's
   chip, its stamina and its push go by it: shield 8% chip, stamina × 0.6, push × 0.6, covering 90° either side;
   one blade the numbers above; two blades 32% chip, stamina × 1.35, push × 1.2. The perfect window and raise time
-  take the shield's own length and heft (the Wooden shield: 1.1, so 0.2 s, and heft 1, up in 0.1 s), or the
+  take the shield's own length and heft (the Wooden shield: 1.1, so 0.2 s, and heft 3, up in 0.1 s), or the
   swinging blade's.
 - **Pushed back** (Hits and pushback, above): a sword light 2.4 m/s with one blade, a heavy 4.8, a stab 3.6; movement
   only, never a lock.
@@ -274,9 +275,9 @@ only a guard that blocks it.
   × 1 + (2 − 1) × the share stopped (`pinnedShare` in `defend.ts`, swept by the physics). Players and enemies alike.
   Body blows chip nothing, so nothing more.
 - **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.1 s +
-  `raiseTimePerHeft` 0.22 s × (felt heft − 1) after the press (`guardRaiseTime`): Basic Sword 0.1 at any strength,
-  longsword 0.14, greatsword 0.24 s at strength 10 (0.12 and 0.17 s at 20); the old stick 0.05 s. An enemy's rises
-  after its `blockReactTime`.
+  `raiseTimePerHeft` 0.22 s × (felt heft − 1) after the press, never under 0 (`guardRaiseTime`): Basic Sword 0.1,
+  longsword 0.14, greatsword 0.24 s at strength 10 (0, 0.01 and 0.06 s at 20; 0.32 s for the Basic Sword at 5); the
+  old stick 0 (instant). An enemy's rises after its `blockReactTime`.
 - **Perfect block:** the window opens as the guard comes up and lasts `perfectTime` 0.2 s × blade length /
   `perfectAtLengthM` 1.1 (`perfectBlockTime`): sword 0.2, longsword 0.25, greatsword 0.35 s. A weapon landing in it
   (even with block let go again) is stopped with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina
@@ -287,8 +288,8 @@ only a guard that blocks it.
 - **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
   pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
   the next 0.5 s's) and ends the chain. Then the blade recovers `feint.recoverTime` 0.38 s × felt heft (the Basic
-  Sword 0.38 s) before that hand can swing again, the guard held meanwhile; a swordsman's feint too (no parry or
-  counter in it). Lights and stabs can't be feinted.
+  Sword 0.38 s at strength 10) before that hand can swing again, the guard held meanwhile; a swordsman's feint too (no
+  parry or counter in it). Lights and stabs can't be feinted.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
@@ -305,7 +306,7 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
   blade length / `block.perfectAtLengthM` 1.1, `parryWindowTime`: sword 0.3, longsword 0.38, greatsword 0.52 s, wider
   than the perfect block's, and while its swing lasts) and it parries; or it goes live up to the attacker's window
   after, and the attacker's blade parries it. Within `clashTime` 0.05 s of each other: a clash.
-- **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy.
+- **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy (raw heft: only the ratio counts).
 - **Recoil** of the parried: base (`fullRecoilTime` 0.8 s, `partialRecoilTime` 0.5 s) × clamp(parrier's weight /
   parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both
   `clashStaggerTime` 0.3 s, whatever the ways and weights. Parried by an enemy that counters, `counter.recoilTime`
@@ -318,9 +319,9 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
   or blocked perfectly recoils `HYBRID.counter.recoilTime` 0.25 s: the 0.4 s floor less a Basic Sword's 0.1 s guard
   raise, with a step to spare.
 
-Example: a sword heavy fully parrying a sword light: weights 2 and 1, the light recoils 0.8 × 2 = 1.6 s; a light
+Example: a sword heavy fully parrying a sword light: weights 6 and 3, the light recoils 0.8 × 2 = 1.6 s; a light
 partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kobold blade's light (the same weight,
-1): the Kobold recoils 0.8 s. The Kobold's blade parrying a Basic Sword light that went live too late: the player
+3): the Kobold recoils 0.8 s. The Kobold's blade parrying a Basic Sword light that went live too late: the player
 recoils 0.25 s (free 17 steps on, the systems' order adding two), and its counter, a light opening (0.56 s), goes
 live 35 steps after the parry: 18 steps (0.3 s) to raise the guard (6) or dodge; a stab counter (0.45 s) leaves 11.
 
@@ -534,8 +535,9 @@ Each in `server/src/core/enemies/<id>.ts`.
   shield loses 9 pressing whenever it can and 4 pressing only in its openings; one who presses lights, only swings or
   only blocks loses every one.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, the old stick swung as a player's
-  (the table: 0.43 s an opening, 0.4-0.47 chained, recovering 0.08 s), then 1.8 s before the next chain; first after
-  2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings, never parries, never feints.
+  (the table: felt 0.13, so every swing, a heavy's too, live at the 0.4 s floor, recovering 0.02 s), then 1.8 s
+  before the next chain; first after 2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings, never
+  parries, never feints.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and
   Split 1 in 4, each rolled on its own.

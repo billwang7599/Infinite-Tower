@@ -496,7 +496,7 @@ main.ts
   the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and momentum (`CHAIN`, `MOMENTUM`), the strikes and the block
   (`HYBRID`), the hit shapes (`wayShape`: one reach from the wielder's own arm reach plus the weapon's length, the arc
   by line), and `wayStepsAfter`, `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's
-  strength. Heft is measured against the Basic Sword's 1, and `wayStepsAfter` holds every wind-up, a player's or an
+  strength. Heft is measured against the Basic Sword's 3, and `wayStepsAfter` holds every wind-up, a player's or an
   enemy's, to `CHAIN.minWindupTime`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
   hand holds, its arm reach and the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
   when, what and which way (a swing's wind-up by `windupTime` and `chainKind` for both), and call `startWaySwing`
@@ -1844,8 +1844,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        WEAPON_LOOKS); kobold-shieldbearer/ the same, its sprite.ts drawing a shield, its build
                        a little bulkier and blue-clothed, the 3D shield (holdShield) in its other hand, carried and raised by
                        guard.ts's carryPose and guardPose; a Kobold raises guard.ts's block stance while the fight has
-                       its block up (`blocking`), eased in and out over GUARD_SHIFT by heft (Bram's comes with the
-                       person);
+                       its block up (`blocking`), eased in and out over GUARD_SHIFT by felt heft at its strength
+                       (Bram's comes with the person);
                        training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark
                        lit for each kind of strike landed; sprite.ts); bram/ (only sprite.ts: in a fight he's drawn
                        as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
@@ -1905,7 +1905,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          or grip.L (handSide: a bow always in the left, a shield always the other hand) and a second
                          blade or a shield on the other (placeHeld; switching hands, each blade stays in its hand);
                          easeArms, the arms eased to the pose (a swing by its set, a change of guard or block, or of
-                         hands even mid-swing, over GUARD_SHIFT by heft, a near half turn over the top, in first
+                         hands even mid-swing, over GUARD_SHIFT by felt heft, a near half turn over the top, in first
                          person the way round that keeps the blade in front, held as the target moves),
                          for the body and first person alike; a bow's string pulled to the off hand, the hair
                          swung by the head's motion; with &steps only that many times a second)
@@ -2406,7 +2406,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Where each way's guard holds the sword hand in first person | `FP_GUARD` in `client/src/visuals/battle/firstPerson.ts` |
 | How far a guard's blade leans ahead (high, level, low) | `GUARD_LEAN` in `client/src/visuals/battle/weapons.ts` |
 | The block's poses by what blocks (one blade, two, a shield), for people and enemies; where a Kobold's are measured from; where a second blade or a shield is carried | `BLOCK`, `OFF_CARRY` in `client/src/visuals/battle/guard.ts`; `KOBOLD_GUARD_FIT` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
-| How long a change of guard, or into or out of a block, takes by heft (an enemy's block too) | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
+| How long a change of guard, or into or out of a block, takes by felt heft (an enemy's block too) | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
 | The 3D shield's size and where it sits on the hand | `SHIELD` in `client/src/visuals/battle/blade.ts` |
 | A sword swing in first person: how long it's wound up and carried past the end (the hand drawn back, the blade eased in at the side, `sideRad`), the hand's swing, an upright cut's lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
 | The 3D person's swing arc: drawn back, past the end, how hard it drives into the hit, the wind-up's take-over; how quickly a pose's key is reached and the rest crept | `SWING_ARC`, `KEY_EASE_TIME` in `client/src/visuals/battle/person/pose.ts` |
