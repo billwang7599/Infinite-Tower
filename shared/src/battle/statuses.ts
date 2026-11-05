@@ -1,4 +1,6 @@
 import type { Entity, World } from "../core/ecs.js";
+import { BLESSINGS, type BlessingGod } from "../soul/blessings.js";
+import { INSCRIPTIONS, type InscriptionId } from "../soul/inscriptions.js";
 import { Statuses } from "./components.js";
 
 export interface StatMods {
@@ -104,6 +106,10 @@ export function applyStatus(on: StatusOn[], status: Status, time: number | null,
   found.amount = amount;
   return found;
 }
+
+export const passivesOf = (inscriptions: readonly InscriptionId[], blessings: readonly BlessingGod[]): StatusOn[] => [
+  ...inscriptions.map((id) => INSCRIPTIONS[id].status), ...blessings.map((god) => BLESSINGS[god].status),
+].map((status) => ({ status, left: null, time: null, stacks: 1, amount: 0 }));
 
 export function endStatus(on: StatusOn[], status: Status): void {
   const i = on.findIndex((o) => o.status === status);

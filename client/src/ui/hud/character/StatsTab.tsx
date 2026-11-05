@@ -1,14 +1,17 @@
 import { useState } from "react";
 import {
   carryLimit, coreName, coreStats, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, placePoint, pointsLeft,
-  SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type Character, type CoreState,
-  type ShownStat, type Stats,
+  SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type Carried, type Character,
+  type CoreState, type Faith, type ShownStat, type Stats,
 } from "@infinite-tower/shared";
 import { EngravedFrame } from "../../components/EngravedFrame.js";
 import { LookPicture } from "../../components/LookPicture.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { RealmSeal } from "../RealmSeal.js";
+import { AdvancedStats } from "./AdvancedStats.js";
 import { CHART_RADIUS_PX, CHART_RINGS, chartMax, chartPoints, LABEL_RADIUS_PX } from "./chart.js";
+import { STAT_TABS, type StatTab } from "./panelTabs.js";
+import { Tabs } from "./Tabs.js";
 
 const times = (factor: number) => `×${factor.toFixed(2)}`;
 
@@ -140,11 +143,25 @@ function StatChart({ core, byFire, statPoint }: ChartProps) {
 
 interface StatsTabProps extends ChartProps {
   character: Character | null;
+  gear: Carried;
+  faith: Faith;
 }
 
-export function StatsTab({ character, core, byFire, statPoint }: StatsTabProps) {
+export function StatsTab({ character, core, byFire, statPoint, gear, faith }: StatsTabProps) {
+  const [shown, show] = useState<StatTab>("basic");
   return (
-    <div className="flex h-full gap-6">
+    <div className="flex h-full flex-col">
+      <Tabs id="stat-tabs" tabs={STAT_TABS} shown={shown} show={show} small />
+      {shown === "basic"
+        ? <BasicStats character={character} core={core} byFire={byFire} statPoint={statPoint} />
+        : <AdvancedStats gear={gear} core={core} faith={faith} />}
+    </div>
+  );
+}
+
+function BasicStats({ character, core, byFire, statPoint }: ChartProps & { character: Character | null }) {
+  return (
+    <div className="flex min-h-0 flex-1 gap-6">
       <div className="flex w-[140px] shrink-0 flex-col gap-2">
         {character && (
           <EngravedFrame>

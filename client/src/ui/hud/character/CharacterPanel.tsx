@@ -24,6 +24,7 @@ export function CharacterPanel({ close, shownWidth }: PanelProps) {
   const byFire = useStore(hud, (s) => s.byFire);
   const character = useStore(you, (s) => s.character);
   const faith = useStore(you, (s) => s.faith);
+  const gear = useStore(you, (s) => s.gear);
   const [shown, show] = useState<CharacterTab>("stats");
   return (
     <PanelFrame
@@ -33,7 +34,11 @@ export function CharacterPanel({ close, shownWidth }: PanelProps) {
       <Tabs id="character-tabs" tabs={CHARACTER_TABS} shown={shown} show={show} />
       {core && (
         <div id={`character-${shown}`} role="tabpanel" style={{ height: BODY_HEIGHT_PX }}>
-          {shown === "stats" && <StatsTab character={character} core={core} byFire={byFire} statPoint={statPoint} />}
+          {shown === "stats" && (
+            <StatsTab
+              character={character} core={core} byFire={byFire} statPoint={statPoint} gear={gear} faith={faith}
+            />
+          )}
           {shown === "core" && <CoreTab core={core} />}
           {shown === "relationships" && <RelationshipsTab faith={faith} />}
         </div>

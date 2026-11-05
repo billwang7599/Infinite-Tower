@@ -4,7 +4,7 @@
  */
 import { PLAYER } from "../battle/player.js";
 import { carryLimit, moveSpeed, type Stats } from "../battle/stats.js";
-import { gearWeight, type Gear } from "./gear.js";
+import { gearWeight, type Carried, type Gear } from "./gear.js";
 
 export const BURDEN = { overloadedAt: 1.2, heavyDodgeCost: 1.3, overloadedPace: 0.5 } as const;
 
@@ -15,7 +15,7 @@ export function burdenOf(weight: number, limit: number): Burden {
   return weight > limit ? "heavy" : "light";
 }
 
-export const gearBurden = (gear: Gear, stats: Stats): Burden => burdenOf(gearWeight(gear), carryLimit(stats));
+export const gearBurden = (gear: Carried, stats: Stats): Burden => burdenOf(gearWeight(gear), carryLimit(stats));
 
 export const walkPace = (burden: Burden): number => burden === "overloaded" ? BURDEN.overloadedPace : 1;
 

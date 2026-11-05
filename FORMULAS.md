@@ -322,9 +322,9 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 `PLAYER` and the player's controller (`fight/player/controller.ts`).
 
 - The bar is 15 × the stamina stat (150). It refills at `staminaRegenPerSec` 45 × stamina recovery / 10 a second
-  (× 1.5 while Charged), from `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging, casting,
-  blocking or staggered, but while standing, walking, chanting, writing or in the bag. Empty to full:
-  0.6 + 150 / 45 = 3.9 s. It doesn't refill on the overworld.
+  × the statuses' `staminaRegenFactor` (1.5 while Charged, 1.2 with Haldis's blessing), from `staminaRegenDelay`
+  0.6 s after an action ends: not while attacking, dodging, casting, blocking or staggered, but while standing,
+  walking, chanting, writing or in the bag. Empty to full: 0.6 + 150 / 45 = 3.9 s. It doesn't refill on the overworld.
 - Any stamina above 0 starts an attack or a dodge; its cost may take the bar down to 0. A skill needs its whole cost
   to start, and pays it on release.
 

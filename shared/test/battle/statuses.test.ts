@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  applyStatus, cleanse, maxStacksOf, modsFrom, NO_MODS, STATUS_DEFS, stacksOf, statusOn, timeLeft, type StatusOn,
+  applyStatus, BLESSINGS, cleanse, INSCRIPTIONS, maxStacksOf, modsFrom, NO_MODS, passivesOf, STATUS_DEFS, stacksOf,
+  statusOn, timeLeft, type StatusOn,
 } from "@infinite-tower/shared";
 
 const close = (actual: number, expected: number) =>
@@ -64,6 +65,18 @@ describe("what statuses do to stats", () => {
     applyStatus(permanent, "bloodrage", null);
     assert.deepEqual(modsFrom(permanent), modsFrom(timed));
   });
+});
+
+test("a character's passives: each inscription's and blessing's status, permanent, one stack", () => {
+  const on = passivesOf(["grit", "embers"], ["brannoc", "haldis"]);
+  assert.deepEqual(on.map((o) => o.status), [
+    INSCRIPTIONS.grit.status, INSCRIPTIONS.embers.status, BLESSINGS.brannoc.status, BLESSINGS.haldis.status,
+  ]);
+  for (const { status, stacks } of on) {
+    assert.equal(timeLeft(on, status), Infinity, status);
+    assert.equal(stacks, 1, status);
+  }
+  assert.deepEqual(passivesOf([], []), []);
 });
 
 test("cleansing takes off harmful timed statuses only", () => {

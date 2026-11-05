@@ -90,6 +90,11 @@ export const HYBRID = {
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
 
+export function windupTime(strike: Strike, kind: ChainKind, momentum: number): number {
+  if (strike === "stab") return CHAIN.stabStartupTime;
+  return startupTime(kind, momentum) + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
+}
+
 export const perfectBlockTime = (weapon: Guard): number =>
   HYBRID.block.perfectTime * weapon.length / HYBRID.block.perfectAtLengthM;
 

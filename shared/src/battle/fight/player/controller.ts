@@ -287,7 +287,7 @@ function refillStamina({ dt, player, stamina, stats, mods }: Turn): void {
   if (!STILL.includes(player.action)) stamina.regenDelay = PLAYER.staminaRegenDelay;
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else {
-    const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * mods.staminaRegenFactor;
+    const regenPerSec = staminaRegenPerSec(stats, mods.staminaRegenFactor);
     stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
   }
 }

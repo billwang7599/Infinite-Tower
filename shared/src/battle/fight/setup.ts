@@ -6,8 +6,7 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import type { CoreState } from "../../soul/core.js";
-import { BLESSINGS, type BlessingGod } from "../../soul/blessings.js";
-import { INSCRIPTIONS } from "../../soul/inscriptions.js";
+import type { BlessingGod } from "../../soul/blessings.js";
 import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
@@ -21,7 +20,7 @@ import type {
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
-import type { Status, StatusOn } from "../statuses.js";
+import { passivesOf } from "../statuses.js";
 import { chargeAttackSystem } from "./behaviors/charge.js";
 import { lungeAttackSystem } from "./behaviors/lunge.js";
 import { circleAgain, pounceAttackSystem } from "./behaviors/pounce.js";
@@ -65,8 +64,6 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
-const permanent = (status: Status): StatusOn => ({ status, left: null, time: null, stacks: 1, amount: 0 });
-
 const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
 
@@ -98,11 +95,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
   world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius, heightM: PLAYER.height });
-  const passives = [
-    ...setup.core.inscriptions.map((id) => INSCRIPTIONS[id].status),
-    ...(setup.blessings ?? []).map((god) => BLESSINGS[god].status),
-  ];
-  world.add(e, Statuses, { ...noStatuses(), on: passives.map((status) => permanent(status)) });
+  world.add(e, Statuses, { ...noStatuses(), on: passivesOf(setup.core.inscriptions, setup.blessings ?? []) });
   return e;
 }
 

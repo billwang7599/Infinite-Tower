@@ -78,7 +78,8 @@ describe("the core's stats in a fight", () => {
     };
     const plain = refilled(STATS.staminaRecovery), quick = refilled(2 * STATS.staminaRecovery);
     assert.ok(plain > 0);
-    close(quick, plain * staminaRegenPerSec(1, { ...STATS, staminaRecovery: 2 * STATS.staminaRecovery }), 1e-3);
+    const regen = (staminaRecovery: number) => staminaRegenPerSec({ ...STATS, staminaRecovery }, 1);
+    close(quick, plain * (regen(2 * STATS.staminaRecovery) / regen(STATS.staminaRecovery)), 1e-3);
   });
 
   test("agility speeds walking by its fourth root", () => {

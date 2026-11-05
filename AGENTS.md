@@ -714,6 +714,16 @@ them; treat them as changeable, and still ask before deciding new ones):
     (dashed) and the stat's effect now and after; hovering a stat shows what it does under the chart (the list's
     lines are gone otherwise).
   - The character panel is wider for it: 680 px now, with tabs (below).
+- Advanced stats (the user: "in stats page, we should have an advanced stats, which shows these numbers (time it
+  takes to swing given some weight of sword, 1 hand, two hands), blocks etc."; the rows and layout are the agent's,
+  checked in a headless browser, not hand-played): the Stats tab's Advanced sub-tab shows the fight's own numbers
+  for your gear, stats, inscriptions and blessings, worked out by the functions the fight uses, never a copy. For
+  each hand holding a weapon: its weight, heft and felt heft, a chain's first light, heavy and stab (wind-up, live,
+  recovery, stamina) and its parry window, or a bow's draw. The guard, as the fight picks it (`guardOf`): its kind
+  (Shield, One blade, Two blades), the arc it covers, raise time, perfect block, chip, block stamina, pushback,
+  holding and a broken guard's stagger. The dodge: stamina by burden, i-frames, length, cooldown. The body: stamina
+  regen, its pause, knockback taken. Seconds to 2 decimals. No two-handed grip yet. Temporary statuses (Haste, Frenzy)
+  aren't counted.
 - The sphere HUD (the user: "just make it. assume whatever you want"; only checked in a headless browser):
   - It follows the mockups the user saw: a smoky pixel-art glass sphere, 64 pixels shown at 2x, dithered to 8 shades,
     lit from the top left, its glass clearing realm by realm. Each realm's light has its own shape and colour: Yan a
@@ -959,7 +969,8 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The character panel's tabs (the user: "a relationship tab. and faith is one of the tabs", "a bigger view of the
   core with the ring stuff and engravings within a tab", "make the character state menu bigger"; the layout is the
   agent's, checked in a headless browser at 1366x768 and 1920x1080, not hand-played): 680 px wide, the same height on
-  every tab, clicked with the mouse (no keys). Stats: the portrait, the step and free points beside a bigger chart.
+  every tab, clicked with the mouse (no keys). Stats: the portrait, the step and free points beside a bigger chart
+  (its Basic sub-tab; Advanced below).
   Core: the sphere at 5x with its rings, and the rings listed with their rarity, what each does and the slots used.
   Relationships has sub-tabs, only Gods for now: all twelve gods, each with a faith bar to 100 and their blessing's
   effect once it's on. NPC relationships aren't decided, so there's no tab for them. The panel opens on Stats.
