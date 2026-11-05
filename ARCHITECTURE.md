@@ -1863,7 +1863,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          hand targets round the torso by reachArms and reachWith (reachRound), the 3D blade on grip.R
                          or grip.L (handSide: a bow always in the left, a shield always the other hand) and a second
                          blade or a shield on the other (placeHeld); easeArms, the arms eased to the pose (a swing by
-                         its set, a change of guard or block over GUARD_SHIFT by heft, a near half turn over the top),
+                         its set, a change of guard or block over GUARD_SHIFT by heft, a near half turn over the top,
+                         in first person the way round that keeps the blade in front, held as the target moves),
                          for the body and first person alike; a bow's string pulled to the off hand, the hair
                          swung by the head's motion; with &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
@@ -2357,7 +2358,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The block's poses by what blocks (one blade, two, a shield); where a second blade or a shield is carried | `BLOCK`, `OFF_CARRY` in `client/src/visuals/battle/person/pose.ts` |
 | How long a change of guard, or into or out of a block, takes by heft | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
 | The 3D shield's size and where it sits on the hand | `SHIELD` in `client/src/visuals/battle/blade.ts` |
-| A sword swing in first person: how far back it's cocked and past the end it goes, the hand's swing, the ends' lift and lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
+| A sword swing in first person: how long it's wound up and carried past the end (the hand drawn back, the blade eased in at the side, `sideRad`), the hand's swing, an upright cut's lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
 | The 3D person's swing arc: drawn back, past the end, how hard it drives into the hit, the wind-up's take-over; how quickly a pose's key is reached and the rest crept | `SWING_ARC`, `KEY_EASE_TIME` in `client/src/visuals/battle/person/pose.ts` |
 | Where the bow, the drawn arrow and both hands sit in first person, carried and drawn, and the loose's flick and kick | `FP_BOW` in `client/src/visuals/battle/firstPerson.ts` |
 | How quickly a bow is raised, the string hand follows the draw and flicks off, and how the loosed string rings | `BOW_MOTION` in `client/src/visuals/battle/bowMotion.ts` |

@@ -34,7 +34,7 @@ export const FP_GUARD = {
 
 export const FP_SWING = {
   hand: { x: 0.08, y: -0.4, depthM: 0.62 }, sweepM: 0.08, pushM: 0.08, stabPushM: 0.12, aimDepthM: 1.6,
-  backRad: 0.6, heavyBackRad: 0.9, overRad: 0.7, liftShare: 0.3, outShare: 0.35,
+  backRad: 0.6, heavyBackRad: 0.9, overRad: 0.7, outShare: 0.35, sideRad: 0.3,
   returnTime: 0.2,
 } as const;
 
@@ -95,16 +95,24 @@ export function guardInView(way: SwingDir, side: 1 | -1): { hand: Vec3; blade: V
   return { hand, blade: toModel(held.blade), edge: toModel(held.edge!) };
 }
 
+// Past the side the blade would turn back through the head, so it eases in toward the side instead.
+const turnInView = (arcRad: number): number => {
+  const easeRad = FP_SWING.sideRad;
+  return arcRad < easeRad ? easeRad * Math.exp(arcRad / easeRad - 1)
+    : arcRad > Math.PI - easeRad ? Math.PI - easeRad * Math.exp((Math.PI - arcRad) / easeRad - 1) : arcRad;
+};
+
 export function swungInView(
   swing: SwingData, alpha: number, side: 1 | -1,
 ): { hand: Vec3; holding: Quaternion; set: number } {
   const stab = swing.way === "stab", cut = wayCut(swing.way), { hand: at, sweepM, aimDepthM } = FP_SWING;
   const backRad = stab ? Math.PI / 2 : swing.attack === "heavy" ? FP_SWING.heavyBackRad : FP_SWING.backRad;
   const { set, arcRad } = swingArc(swing, alpha, backRad, stab ? Math.PI / 2 : FP_SWING.overRad);
-  const c = Math.cos(arcRad), s = Math.sin(arcRad), pushM = stab ? FP_SWING.stabPushM : FP_SWING.pushM;
+  const turnRad = turnInView(arcRad), c = Math.cos(turnRad), s = Math.sin(turnRad);
+  const pushM = stab ? FP_SWING.stabPushM : FP_SWING.pushM;
   const hand = {
     x: side * at.x * TAN * at.depthM - cut.x * sweepM * c, y: at.y * TAN * at.depthM - cut.y * sweepM * c,
-    z: at.depthM + pushM * s,
+    z: at.depthM + pushM * Math.sin(arcRad),
   };
   const aim = unit({ x: -hand.x, y: -hand.y, z: aimDepthM - hand.z });
   let blade: Vec3, flat: Vec3;
@@ -116,10 +124,9 @@ export function swungInView(
     const ahead = unit(lerp({ x: 0, y: 0, z: 1 }, aim, smoothstep(-backRad, Math.PI / 2, arcRad)));
     const way = { x: cut.x, y: cut.y, z: 0 }, onWay = dot(way, ahead);
     const across = unit({ x: way.x - ahead.x * onWay, y: way.y - ahead.y * onWay, z: way.z - ahead.z * onWay });
-    const ends = 1 - Math.max(0, s), lift = FP_SWING.liftShare * Math.abs(cut.x) * ends;
-    const out = side * FP_SWING.outShare * Math.max(0, Math.abs(cut.y) - Math.abs(cut.x)) * ends;
+    const out = side * FP_SWING.outShare * Math.max(0, Math.abs(cut.y) - Math.abs(cut.x)) * (1 - s);
     blade = unit({
-      x: ahead.x * s - across.x * c + out, y: ahead.y * s - across.y * c + lift, z: ahead.z * s - across.z * c,
+      x: ahead.x * s - across.x * c + out, y: ahead.y * s - across.y * c, z: ahead.z * s - across.z * c,
     });
     const face = cross(across, ahead), off = dot(face, blade);
     flat = unit({ x: face.x - blade.x * off, y: face.y - blade.y * off, z: face.z - blade.z * off });
@@ -211,7 +218,7 @@ export function holdInView(p: PersonDrawing, view: ArenaView, share: number, dt:
   } else if (p.pose) {
     const want = swordInView(p);
     shown = p.inView = easeArms(p.inView, want, { key: heldKey(p.pose), side, swung: want.swung,
-      shiftTime: shiftTimeOf(p), returnTime: FP_SWING.returnTime, dt });
+      shiftTime: shiftTimeOf(p), returnTime: FP_SWING.returnTime, dt, ahead: POSED_FOR.forward });
   } else return;
   const pole = (s: 1 | -1) => {
     const { x, y, z } = lerp(ARM_POLE, FP_ARMS.pole, share);

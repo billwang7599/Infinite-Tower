@@ -535,6 +535,9 @@ Decided by the user:
   guard. A change of guard, or into or out of a block, eases over about 0.1 s, longer for a heftier weapon (about 0.15 s
   the greatsword). Looks only: no timing or rule changed. The leans, spots and times are the agent's picks, tried in a
   headless browser, not hand-played (ART.md, "Poses are data"; `GUARD_LEAN`, `FP_GUARD`, `BLOCK`, `GUARD_SHIFT`).
+  In first person the blade never goes behind your head (the user: "sword animation weird. ie when swing, it rotates
+  back through my head"): a swing turns it out to the side and no further, and going into a swing, from one into the
+  next or back to the guard it turns the way round that stays in front.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
   40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
