@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   blankSkillbook, releaseTime, emptyBag, packFor, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, Skilled,
-  type PlayerInputData, type Skill, type Vec3, type Word,
+  type Skill, type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -27,10 +27,6 @@ const flatPos = (fight: Fight) => {
   const { x, z } = bodyOf(fight, fight.players[0]!).pos;
   return { x, z };
 };
-
-function stepWhile(fight: Fight, action: string, next: PlayerInputData, seconds = 3): void {
-  for (let i = 0; i < seconds / FIXED_DT && playerOf(fight).action === action; i++) fight.step([next]);
-}
 
 describe("chanting", () => {
   test("the chant input opens the chant; while it's open the player can't move", () => {
@@ -68,19 +64,6 @@ describe("chanting", () => {
     assert.equal(playerOf(fight).action, "cast");
     run(fight, releaseTime(BOLT_FIRE));
     assert.equal(shots(fight), 1);
-  });
-
-  test("a hit that stuns breaks it off, and it stays shut until the chant is asked for again", () => {
-    const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
-    fight.step([CHANT]);
-    assert.equal(playerOf(fight).action, "chant");
-    stepWhile(fight, "chant", CHANT);
-    assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
-    run(fight, 1.5, () => CHANT);
-    assert.notEqual(playerOf(fight).action, "chant");
-    fight.step([IDLE]);
-    fight.step([CHANT]);
-    assert.equal(playerOf(fight).action, "chant");
   });
 
   test("a sword hit only hurts: the chant goes on", () => {
@@ -203,13 +186,14 @@ describe("the chant's words, in the fight", () => {
     assert.deepEqual(words(fight).words, ["bolt", "fire"]);
   });
 
-  test("a hit that stuns loses them", () => {
+  test("a hit only hurts: the chant keeps them", () => {
     const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
     fight.step([CHANT]);
     fight.step([chanting("bolt", "fire")]);
-    stepWhile(fight, "chant", CHANT);
-    assert.equal(words(fight).chanting, false);
-    assert.deepEqual(words(fight).words, []);
+    run(fight, 1.2, () => chanting("bolt", "fire"));
+    assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
+    assert.equal(words(fight).chanting, true);
+    assert.deepEqual(words(fight).words, ["bolt", "fire"]);
   });
 
   test("released, they're gone", () => {
@@ -282,14 +266,14 @@ describe("writing a page in a fight", () => {
     assert.deepEqual(playerOf(fight).book, blankSkillbook());
   });
 
-  test("a hit that stuns cancels it", () => {
+  test("a hit only hurts: the page is still written", () => {
     const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
     fight.step([CHANT]);
     fight.step([write(2, NOVA_WATER)]);
     assert.equal(playerOf(fight).action, "write");
     run(fight, SAVE_IN_FIGHT_TIME + 0.2, () => CHANT);
     assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
-    assert.deepEqual(playerOf(fight).book, blankSkillbook());
+    assert.deepEqual(playerOf(fight).book[2], NOVA_WATER);
   });
 
   test("saved mid-write and loaded into another fight, it finishes the same", () => {

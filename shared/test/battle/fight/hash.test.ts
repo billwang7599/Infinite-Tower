@@ -117,7 +117,7 @@ describe("a fight's hash", () => {
       ["the charge's cooldown", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).cooldown += 0.05; }],
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
-        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, attack: null,
+        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, poiseDamage: 0, attack: null,
         way: null, alreadyHit: new Set<number>(),
       }); }],
     ];

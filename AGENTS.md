@@ -198,7 +198,9 @@ Decided by the user:
     (`fight/weapons/commit.ts`); the whiff's and the cap's numbers are the agent's ("The Hybrid sword", below).
   - Defence is one button (Sekiro's): holding block (Shift) stops any hit from the front, chipping 20% of it. Pressed
     within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
-    the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry.
+    the attacker loses stamina and recoils 0.4 s. A press within 0.5 s of the last gets no perfect window (no
+    mashing; the agent's pick for combat v2, kept at 0.5: over the sword's 0.3 s raise and window, so no mash holds
+    one open, and short enough to press again for each swing of a chain). No tap parry.
   - Blocking is the safe option, the swing parry the risky one (the user: "so our system is a blocking system and a
     parry system. the timing for parrys also scale with/against size"): your swing parries a swing meeting it, the exact
     reverse a full parry, within 45° of it a partial one. Whichever blade goes live first meets the other, if the
@@ -217,10 +219,11 @@ Decided by the user:
     raising the guard takes time that grows with the heft its wielder feels (sword 0.1 s, greatsword ~0.24 s at
     strength 10); a hit landing while it comes up isn't blocked. Enemies raise theirs the same way. No close-range
     penalty for big weapons.
-  - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); with the Basic Sword a light
-    costs 13, a heavy 21, a stab 16; a dodge 30. Holding block drains it slowly and it doesn't refill while blocking.
-    A blocked hit costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the
-    guard breaks, a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
+  - Stamina is a player's only bar (no player poise): 100 to start (10 a stamina point; combat v2, was 150); with the
+    Basic Sword a light costs 13, a heavy 21, a stab 16; a dodge 30. Holding block drains it slowly and it doesn't
+    refill while blocking. A blocked hit costs its damage (a heavy twice) × the guard's stamina factor; one that takes
+    the last of it breaks the guard, a stagger of 0.8 s (earned by the attacker). Enemies keep their poise as a hidden
+    stagger meter. A save with more stamina than the bar loads cut to it.
   - The dodge is nerfed (the user: "i also want to nerf dodge. we can still get hit when we dodge right?"): of its
     0.42 s, only 0.05 s to 0.25 s has i-frames, so a dodge pressed as a hit lands, or a hit in its tail, still lands;
     it costs 30 stamina; and another dodge can't start until 0.25 s after one ends (an attack or a block can). These
@@ -476,8 +479,9 @@ Decided by the user:
 - The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
   with its own physics world and fixed steps, for any number of players and enemies, so the server and the browser
   run the same fight on the same inputs. Fighters are moved by code, not pushed by forces, so the
-  controls stay tight. An enemy shoves a player; a player's body can't push an enemy (their hits knock it back,
-  below); dodging, knocked back or dead, a player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
+  controls stay tight. An enemy shoves a player; a player's body can't push an enemy (nor can a landed hit, below);
+  dodging, staggered or dead, a player passes through enemies. Projectiles, when they come, are ray or shape casts,
+  not physics bodies.
 - The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The browser runs
   the whole fight itself too (you and the enemies) and shows it at once, so the boar reacts without lag; it sends
   only its inputs, each tagged with the fight step it's for. The server runs them on those steps: an input up to
@@ -507,12 +511,15 @@ Decided by the user:
   stop and settles it back. Nothing else holds: the fight, every body, the target (its jolt starts at once) and
   everyone else run on. The hit's jolt and the sparks are drawing only too. To tune: the top of
   `client/src/visuals/battle/impact.ts`.
-- A player's hits knock enemies back (the user, asked if they should: "balance it"; the numbers are the agent's, not
-  hand-played): a light a little (4 m/s, about 0.3 m on a Kobold, about what the swing's own step closes), a stab
-  more (6), a heavy most (8, about 1.2 m), whatever the blade; an arrow by its speed; Air as before. A heavier enemy
-  takes less (the boar 0.7 of it, the bog lurker 0.3, a training dummy none), and none mid-blow (armored). It never
-  lifts or stuns, so the enemy fights on and no chain of hits locks it, and the wall stops it. A weapon landing on a
-  player still only hurts; one into a held block pushes (below). Numbers: FORMULAS.md, "Knockback".
+- Hits do damage only (combat v2, the user's decision, replacing a player's hits knocking enemies back: "Hits do
+  damage only. A hit with the guard down: no knockback, no stun, then the existing 0.6 s post-hit invulnerability.
+  This protects the player from being looped. Enemies still stagger when their poise breaks"): a weapon, an arrow or
+  a body blow that lands hurts and does nothing more, on players and enemies alike: no knockback, no lift, no stun,
+  and a player's momentum chain breaks. An enemy staggers only when its poise breaks, never from one hit. So a hit no
+  longer breaks off a chant, a cast's wind-up, writing or the bag (a body blow did through its stun; eating still
+  stops), and a player's toughness and Bulwark's stun share have nothing to shorten for now. Air still blows. To keep
+  the bots' result that one who only swings at the grey wolf mostly loses, its bite is 15 (was 14; the agent's
+  pick). Numbers: FORMULAS.md, "Hits and pushback".
 - Blocks push you back, and the wall makes them cost (the user: "we should get knocked back on blocks? and once we
   cant get knocked back anymore ie we're backed against a wall, we take double the pass through damage or some scale.
   and knockback resistance is scaled by strength and some hidden knockback resistance stat"): any hit into a held
@@ -523,10 +530,14 @@ Decided by the user:
   stat, 10 at the start and +1 a step like the others; enemies keep their own `knockbackFactor`. The curve, the
   clamp and the slide's estimate are the agent's picks (tests only, not hand-played): `KNOCKBACK_TAKEN` in
   `shared/src/battle/stats.ts`, `pinnedChipFactor` in `HYBRID.block`. The Advanced stats show knockback taken (with
-  strength and steadiness) and the chip at a wall; strength's line on the chart says it too.
+  strength and steadiness) and the chip at a wall; strength's line on the chart says it too. The push is movement
+  only (the user: "it must never lock controls... you can always act while pinned"): sliding back, or pinned to the
+  wall, you can turn, step, keep blocking, attack or dodge on the very next step, and against a wall a chain that
+  drains the guard only earns the 0.8 s guard break, after which you can walk out. An enemy that blocks is pushed by
+  the same rule and keeps acting (the user: "block pushback applies to enemies too").
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
-  fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, with no
-  stun or knockback (the boar's still stun). It drops only its essence. It holds its own Kobold blade (the sword's
+  fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, as every hit
+  that lands. It drops only its essence. It holds its own Kobold blade (the sword's
   length, 14 damage), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
@@ -1133,7 +1144,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight
   it circles 4.5 m off (3.2 m/s round, its walk in or out), then after 1.2 s plus up to 1.6 s (seeded; 1 s plus the
   same at the start) crouches 0.6 s with a growl, tracking you until 0.2 s before it leaps (13 m/s for 0.35 s, from
-  within 6.5 m), biting 14 within 1 m (a body blow: blocked, never perfectly; knockback 6). It then stands open
+  within 6.5 m), biting 15 within 1 m (a body blow: blocked, never perfectly; knockback 6). It then stands open
   0.45 s if the bite met you (taken or blocked) or 1.1 s if it met nobody, and hops back 2.4 m. It can't be staggered
   from the crouch to the landing, so swinging at it while it commits only trades. Its tells are the crouch, the
   growl and its eyes lighting, no marker. Numbers: `server/src/core/enemies/grey-wolf.ts`, the behaviour in
@@ -1152,7 +1163,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   0.75 s and sweeps its tail all round (20, knockback 10), then stands 1 s. 0.8 s after either before the next; the
   first after 1.5 s. It can't be staggered from the rise or coil to the blow. Both are body blows, so blockable, but a
   blocked slam costs 38 stamina (a dodge 30) and its push puts you out of reach of the opening: in the bot fights a
-  dodger wins in about 40 s, a blocker in about 63 s, and one who only swings loses. No new rules: the slam reuses
+  dodger wins in about 44 s, a blocker in about 74 s, and one who only swings loses. No new rules: the slam reuses
   the charge's `slam` event for its thud and shake. Its tells are the rise, the eyes lighting and its groan, no
   marker. Numbers: `server/src/core/enemies/bog-lurker.ts`, the behaviour in
   `shared/src/battle/fight/behaviors/slam.ts`. Drops: its essence (worth 45) always and 2 lurker scales 70% (1 x 1,

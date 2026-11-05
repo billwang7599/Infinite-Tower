@@ -12,7 +12,7 @@ import {
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
-import { FighterStats, HP_REGEN_PAUSE_TIME, knockbackTakenFactor, stunTime } from "../stats.js";
+import { FighterStats, HP_REGEN_PAUSE_TIME, knockbackTakenFactor } from "../stats.js";
 import { applyStatus, modsOf } from "../statuses.js";
 import { EMBERS } from "../../soul/inscriptions.js";
 import type { FightContext, FightEvent } from "./context.js";
@@ -26,14 +26,10 @@ import { endChain, endSwing } from "./weapons/swing.js";
 export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
 const MIN_ANGLE_CHECK_DIST = 0.3;
-/** A hit player loses control for this long, plus a little more the harder they're knocked back. */
-const HITSTUN_TIME = 0.25;
-const HITSTUN_PER_KNOCKBACK = 0.02;
 
 export interface HitSpec extends HitShape {
   damage: number;
   knockback?: number;
-  lift?: number;
   poiseDamage?: number;
   attack?: AttackKind | null;
   way?: Way | null;
@@ -42,8 +38,7 @@ export interface HitSpec extends HitShape {
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
   world.add(e, ActiveHit, {
     dirX, dirZ, range: attack.range, minDot: attack.minDot, damage: attack.damage, knockback: attack.knockback ?? 0,
-    lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null,
-    way: attack.way ?? null, alreadyHit: new Set(),
+    poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null, way: attack.way ?? null, alreadyHit: new Set(),
   });
 }
 
@@ -59,13 +54,12 @@ export function faces(from: Vec3, dir: Vec2, to: Vec3, minDot: number): boolean 
   return dist <= MIN_ANGLE_CHECK_DIST || (dx * dir.x + dz * dir.z) / dist >= minDot;
 }
 
-/** Sets `vel` moving `body` away from `from` at `speed` (m/s), plus `lift`. */
-export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0, along?: Vec2): void {
+export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, along?: Vec2): void {
   const dx = body.x - from.x, dz = body.z - from.z, dist = Math.hypot(dx, dz);
   let x = dist > 0.01 ? dx / dist : (along?.x ?? 0), z = dist > 0.01 ? dz / dist : (along?.z ?? 1);
   if (along) { x = x * 0.5 + along.x * 0.5; z = z * 0.5 + along.z * 0.5; }
   const len = Math.hypot(x, z) || 1;
-  Object.assign(vel, { x: (x / len) * speed, y: lift, z: (z / len) * speed });
+  Object.assign(vel, { x: (x / len) * speed, y: 0, z: (z / len) * speed });
 }
 
 export function knockbackOf(world: World, e: Entity, speed: number): number {
@@ -119,8 +113,7 @@ export function dodging(world: World, e: Entity): boolean {
 export function land(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
 ): void {
-  const player = world.get(target, Player);
-  if (player) hitPlayer(world, events, attacker, hit, target, player, at);
+  if (world.has(target, Player)) hitPlayer(world, events, attacker, hit, target, at);
   else hitEnemy(world, events, attacker, hit, target, at);
 }
 
@@ -166,23 +159,12 @@ export function stagger(world: World, e: Entity, time: number): void {
 }
 
 function hitPlayer(
-  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData,
-  at?: Vec3,
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
 ): void {
-  const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health);
   const dealt = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
-  if (hit.attack === null) {
-    const stun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
-    const mods = modsOf(world, target), speed = knockbackOf(world, target, hit.knockback);
-    health.hitstun = stunTime(stun, world.require(target, FighterStats)) * mods.stunTimeFactor;
-    if (mods.knockbackFactor > 0) knock(body.pos, from, body.vel, speed, hit.lift, { x: hit.dirX, z: hit.dirZ });
-  }
-  if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag", "use"].includes(player.action)) {
-    breakOff(player, world.require(target, Skilled));
-  }
   endChain(world.require(target, Wielder));
   lifesteal(world, attacker, dealt, hit.attack !== null);
   burnOnHit(world, attacker, target, hit);
@@ -212,8 +194,6 @@ function hitEnemy(
   const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
-  const speed = knockbackOf(world, target, hit.knockback), body = world.require(target, Body);
-  if (speed > 0) knock(body.pos, world.require(attacker, Body).pos, body.vel, speed, 0, { x: hit.dirX, z: hit.dirZ });
   lifesteal(world, attacker, damage, hit.attack !== null);
   burnOnHit(world, attacker, target, hit);
   events.push({

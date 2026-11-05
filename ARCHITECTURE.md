@@ -459,11 +459,11 @@ main.ts
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
-  back), and dodging, knocked back or dead, a player passes through; anyone passes through a dead enemy. Knockback
-  is a velocity too (`knock` in `fight/combat.ts`): an enemy's body blows on a player, a player's hits on an enemy,
-  and any hit into a held block, scaled by `knockbackOf` (an enemy's `knockbackFactor`, none while it's armored; a
-  player's `knockbackTakenFactor`, by strength and steadiness; statuses); the wall stops it like any move, and a
-  knocked enemy is never stunned by it. Rapier simulates nothing itself
+  back), and dodging, staggered or dead, a player passes through; anyone passes through a dead enemy. A hit that
+  lands only hurts (`land` in `fight/combat.ts`); pushback is a velocity too (`knock`): any hit into a held block, a
+  player's or an enemy's (`blocked` in `fight/weapons/defend.ts`), and Air, scaled by `knockbackOf` (an enemy's
+  `knockbackFactor`, none while it's armored; a player's `knockbackTakenFactor`, by strength and steadiness;
+  statuses). The wall stops it like any move, and it never takes control away. Rapier simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
@@ -554,8 +554,9 @@ main.ts
   player still, with or without the skillbook; a skill on none of the player's pages (`book`, from the setup), or any
   skill with no book in hand, starts only from it. Writing a page (`write`, from the chant, book in hand) is the
   "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
-  `pageWritten` event), and the server saves that book with the result. A stun breaks either off, and so does a
-  dodge; it reopens only once the input is let go (`brokenOff`), and the client closes its popup when it sees that.
+  `pageWritten` event), and the server saves that book with the result. A stun breaks either off (a hit doesn't: it
+  only hurts), and so does a dodge; it reopens only once the input is let go (`brokenOff`), and the client closes its
+  popup when it sees that.
   A stun while chanting also loses the chant's words (a dodge keeps them), for any chanter: an enemy stunned,
   or staggered is broken off the same way (`cantCast`).
   The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
@@ -865,12 +866,14 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   backpack or a quiver on and off, only arrows in a quiver, stowing into and out of each, a bow taking both hands, each
   slot and the cosmetics), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
-  byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
-  each way's reach and
-  shape by line and no hit-stop in the fight (`combat.test.ts`), a player's hits knocking enemies back
-  (`knockback.test.ts`: by strike, an arrow by its speed, Air, less for a heavier enemy, never mid-blow, through the
-  wall, into the air or into a stun-lock; a blocked hit's pushback, and its chip doubled against the wall; none on a
-  player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
+  byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), each way's
+  reach and shape by line and no hit-stop in the fight (`combat.test.ts`), hits doing damage only and blocks pushing
+  (`knockback.test.ts`: a light, a stab, a heavy and an arrow moving and stunning no enemy, a stagger only on a broken
+  poise, a body blow on a player only hurting then the hurt invulnerability, the momentum chain broken by a hit, no
+  stun-lock, Air still blowing; an enemy's block pushing it by its factor and the strike, sliding as it swings, its
+  chip doubled against the wall; a player pushed on open ground or pinned to the wall turning, stepping, blocking,
+  attacking or dodging on the very next step, and under a chain at the wall always dodging out until the earned guard
+  break, then walking out), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
   quickest, damage building but never speed, lost to a gap, a dodge or a block, spent by a stab; a hand's recovery;
   two blades, each hand's own chain and recovery, the other swinging while the first recovers; the heavy; each
   strike's stamina; the feint and its recovery, on the hand that swung), a swing's hold on the body
@@ -901,11 +904,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   stamina and burden costs; no second dodge until its recovery is over, a press in it waiting, attacks and blocks not
   held back), and a dodge pressed during an attack waiting for its blade (on any step of it, once, ahead of a buffered
   attack, through a save and a rollback). Skills (`shared/test/battle/fight/skills/`): the wind-up, its cost at release,
-  waiting behind a swing, cancelled by a dodge or a hit; the chant (held still, broken off by a stun or a dodge but
-  not a sword hit, the only way to cast a skill on no page, needing no book; its words in the fight: kept by a dodge,
-  lost to a stun or a release); an enemy that chants word by word, releases, quick-casts and is broken off by a stun
+  waiting behind a swing, cancelled by a dodge but not a hit; the chant (held still, broken off by a dodge but not a
+  hit, the only way to cast a skill on no page, needing no book; its words in the fight: kept by a dodge or a hit,
+  lost to a release); an enemy that chants word by word, releases, quick-casts and is broken off by a stun
   (`skilled.test.ts`) and writing a page in it (its time, standing still,
-  cancelled by a stun or closing, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
+  cancelled by closing but not a hit, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included); an invulnerable player
   taking no damage, its flag in the state and hash. Where a fighter aims (`aim.test.ts`: at a locked foe's middle,
@@ -924,12 +927,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   from in front and not behind, a perfect block, a dodge; exact through a save, and in the hash). Eating in a
   fight (`player/use.test.ts`): healed and one
   used up once its `useTime` is up, held still, not at full HP or with the bag shut, stopped (nothing eaten) by
-  closing the bag, a dodge, a hit that only hurts or one that stuns, and through a save; and the shared rule
+  closing the bag, a dodge or a hit, and through a save; and the shared rule
   (`items/using.test.ts`, any consumable's time and effects coming from its item). The core in a fight
   (`player/absorb.test.ts`: essence absorbed in its time, held still, stopped by a hit with the essence kept, a
   breakthrough growing the stats and bars at once, a whole core refusing it, through a save) and the stats it gives
-  (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger, strength
-  and steadiness on a blow's knockback, stamina
+  (`core-stats.test.ts`: defense and special defense, toughness on an enemy's stagger, stamina
   recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()` first.
   Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
@@ -1238,7 +1240,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      FightOutcome, FightEvent), aim.ts (aimOf: where a fighter aims, at a living lock-on's middle
                      or along its aim at its spot; the bow, skills and the sidestep ask it; foeAlong: the foe nearest
                      a way, for an unlocked Follow Bolt), combat.ts (addHit,
-                     hits in an arc, the weapon's defence asked first, stagger, knockback, the hit timers),
+                     hits in an arc, the weapon's defence asked first, a landed hit's damage only, stagger, knock
+                     and knockbackOf for the block's push and Air, the hit timers),
                      outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
@@ -2319,7 +2322,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint and its recovery, the clash's stagger, the lunge, the walk while swinging, the live blade's turn cap, a whiff's overextension; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
-| Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share and its chip against the wall; a body blow's push and the hitstun it gives a player; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
+| Pushback (only blocks push; a hit that lands only hurts): how hard a light, heavy and stab push a guard, an arrow's push by its speed, a body blow's, Air's push; how much each fighter takes; a blocked hit's share and its chip against the wall; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`, `GUARDS` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |

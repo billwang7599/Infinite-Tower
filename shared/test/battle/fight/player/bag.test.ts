@@ -160,19 +160,14 @@ describe("the bag in a fight", () => {
     assert.equal(handsOf(fight).leftHand, "skillbook");
   });
 
-  test("a hit that stuns closes it, and it stays shut until the bag is asked for again", () => {
+  test("a hit only hurts: the bag stays open", () => {
     const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
     fight.step([BAG]);
     assert.equal(playerOf(fight).action, "bag");
-    for (let i = 0; i < 3 / FIXED_DT && playerOf(fight).action === "bag"; i++) fight.step([BAG]);
-    assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
-    assert.equal(playerOf(fight).brokenOff, true);
     run(fight, 1.5, () => BAG);
-    assert.notEqual(playerOf(fight).action, "bag");
-    fight.step([IDLE]);
-    assert.equal(playerOf(fight).brokenOff, false);
-    fight.step([BAG]);
+    assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
     assert.equal(playerOf(fight).action, "bag");
+    assert.equal(playerOf(fight).brokenOff, false);
   });
 
   test("a dodge closes it and dodges, and it doesn't reopen on its own", () => {

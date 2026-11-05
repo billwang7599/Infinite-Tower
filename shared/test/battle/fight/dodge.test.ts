@@ -18,7 +18,7 @@ const SNAPPER: EnemyDef = {
   attacks: {
     lunge: {
       triggerDist: 3, range: 8, minDot: -1, windup: 0.4, active: FIXED_DT / 2, recover: 0.5, speed: 0,
-      damage: 10, knockback: 0, lift: 0, cooldown: 99, firstDelay: 0,
+      damage: 10, knockback: 0, cooldown: 99, firstDelay: 0,
     },
   },
 };

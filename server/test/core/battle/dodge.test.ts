@@ -25,7 +25,7 @@ const SNAPPER: EnemyDef = {
   attacks: {
     lunge: {
       ...BOAR.attacks.lunge!, triggerDist: 3, range: 8, minDot: -1, active: FIXED_DT / 2, speed: 0,
-      damage: BITE_DAMAGE, knockback: 0, lift: 0, cooldown: 99, firstDelay: 0,
+      damage: BITE_DAMAGE, knockback: 0, cooldown: 99, firstDelay: 0,
     },
   },
 };

@@ -115,7 +115,7 @@ function blocked(
   let pinned = 0;
   if (speed > 0) {
     const body = world.require(target, Body), from = world.require(attacker, Body).pos;
-    knock(body.pos, from, body.vel, speed, 0, { x: hit.dirX, z: hit.dirZ });
+    knock(body.pos, from, body.vel, speed, { x: hit.dirX, z: hit.dirZ });
     pinned = pinnedShare(world, physics, target, body);
   }
   if (hit.attack !== null) {

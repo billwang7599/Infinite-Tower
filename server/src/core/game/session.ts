@@ -97,7 +97,6 @@ export class GameSession {
     private readonly overworldOf: () => Overworld,
     private readonly others: Others,
   ) {
-    this.vitals = saved.vitals;
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
@@ -111,6 +110,8 @@ export class GameSession {
     this.faith = saved.faith;
     this.pad = wakeRegion(saved.pad);
     this.soul = saved.core;
+    // Saves from when the bar was bigger.
+    this.vitals = { ...saved.vitals, stamina: Math.min(saved.vitals.stamina, staminaMaxOf(this.stats)) };
   }
 
   /** Its weight sets how fast they walk the overworld. */

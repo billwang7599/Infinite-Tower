@@ -157,6 +157,22 @@ describe("the perfect block", () => {
     assert.ok(events.some((e) => e.type === "block" && !e.perfect));
   });
 
+  test("mashed, a press every few steps up to the hit, it never opens a window", () => {
+    for (const every of [2, 6, toSteps(HYBRID.block.remashTime) - 1]) {
+      const fight = pvp();
+      const events = play(fight, hitAt + 1, (s) => ({ attack: s === PRESS ? "light" : null }),
+        (s) => ({ block: s % every !== 0 }));
+      assert.ok(!events.some((e) => e.type === "block" && e.perfect), `a press every ${every} steps`);
+    }
+  });
+
+  test("a press a whole lockout after the last opens a window again", () => {
+    const fight = pvp(), second = hitAt - RAISE - 1;
+    const events = play(fight, hitAt + 1, (s) => ({ attack: s === PRESS ? "light" : null }),
+      (s) => ({ block: s === second - toSteps(HYBRID.block.remashTime) || s >= second }));
+    assert.ok(events.some((e) => e.type === "block" && e.perfect));
+  });
+
   test("a swing answered by a swing that isn't at a parry angle isn't blocked: both land", () => {
     const fight = pvp();
     const events = play(fight, hitAt + 30, (s) => ({ way: "lr", attack: s === PRESS ? "light" : null }),

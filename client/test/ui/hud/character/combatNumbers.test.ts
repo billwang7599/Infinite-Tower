@@ -22,7 +22,7 @@ const STATUE: EnemyDef = {
 };
 const BITE: LungeDef = {
   triggerDist: 2.8, range: 2.6, minDot: 0.35, windup: 0.3, active: 0.18, recover: 0.5, speed: 6, damage: 10,
-  knockback: 8, lift: 3, cooldown: 99, firstDelay: 0,
+  knockback: 8, cooldown: 99, firstDelay: 0,
 };
 const BITER: EnemyDef = { ...STATUE, turnRate: 3, attacks: { lunge: BITE } };
 const ORIGIN: Vec3 = { x: 0, y: 0.05, z: 0 };
@@ -140,23 +140,23 @@ function swungAt(hands: Partial<Equipment>, angleDeg: number, guarding: boolean)
   return { hpLost: hpBefore - health.hp, blockCost };
 }
 
-function bitten(gear: Carried, core: CoreState, guarding: boolean): number {
+function pushedBlocking(gear: Carried, core: CoreState): number {
   const fight = new Fight({
     arena: ARENA, players: [setupOf(gear, core)],
     enemies: [{ def: BITER, at: { x: 0, y: 0.05, z: 1.6 }, yaw: Math.PI }],
   });
   const me = fight.players[0]!, body = fight.world.require(me, Body);
   for (let s = 0; s < 120; s++) {
-    fight.step([idle({ block: guarding })]);
+    fight.step([idle({ block: true })]);
     const struck = fight.events.some((e) => (e.type === "hit" || e.type === "block") && e.target === me);
     if (struck) {
-      assert.equal(block(fight, 0) !== undefined, guarding);
+      assert.notEqual(block(fight, 0), undefined);
       return Math.hypot(body.vel.x, body.vel.z);
     }
   }
-  return assert.fail("never bitten");
+  return assert.fail("never struck");
 }
-const pushedGuarding = (hands: Partial<Equipment>) => bitten(holding(hands), newCore(), true);
+const pushedGuarding = (hands: Partial<Equipment>) => pushedBlocking(holding(hands), newCore());
 
 describe("the advanced stats' guard, as the fight blocks", () => {
   test("a shield over a blade, else the blade in play: its kind, raise time and perfect window", () => {
@@ -234,11 +234,11 @@ describe("the advanced stats' body numbers", () => {
     );
   });
 
-  test("strength and the core's steps (steadiness) shrink the knockback you take, as a bite knocks you", () => {
-    const gear = holding({});
+  test("strength and the core's steps (steadiness) shrink the knockback you take, as a blocked bite pushes you", () => {
+    const gear = holding({ rightHand: "sword" }), push = BITE.knockback * HYBRID.block.pushbackFactor;
     for (const core of [newCore(), strong(30), { ...newCore(), steps: 9 }]) {
       const shown = combatNumbers(gear, core, {}).knockbackTakenFactor;
-      close(bitten(gear, core, false), BITE.knockback * shown, `${core.steps} steps`);
+      close(pushedBlocking(gear, core), push * shown, `${core.steps} steps`);
     }
     assert.ok(combatNumbers(gear, strong(30), {}).knockbackTakenFactor < 1);
     assert.ok(combatNumbers(gear, { ...newCore(), steps: 9 }, {}).knockbackTakenFactor < 1);

@@ -205,7 +205,6 @@ export interface ActiveHitData {
   way: Way | null;
   damage: number;
   knockback: number;
-  lift: number;
   poiseDamage: number;
   alreadyHit: Set<Entity>;
 }
