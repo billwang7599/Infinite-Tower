@@ -3,9 +3,9 @@ import { before, describe, test } from "node:test";
 import {
   bagCounts, emptyBag, emptyEquipment, Health, IDLE_INPUT, isSolid, type ItemCounts,
 } from "@infinite-tower/shared";
-import { initPhysics } from "@infinite-tower/shared/fight";
+import { initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ITEM_VALUES, SELL_SHARE, SHOPS } from "../../../src/core/content/shops.js";
-import { TRAINING_YIELD_SHARE } from "../../../src/core/game/training.js";
+import { DUMMY_SPOTS, TRAINING_YIELD_SHARE } from "../../../src/core/game/training.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
@@ -22,12 +22,26 @@ const fresh = (saved: Partial<PlayerSave> = {}) =>
 
 const onStep = (step: string | null) => ({ quests: { [QUEST]: { step, kills: 0 } }, flags: [] });
 
-function endFight(session: GameSession, loser: "player" | "enemy"): void {
+function knockDown(session: GameSession, loser: "player" | "enemy", count = Infinity): void {
   const fight = session.battle!.room.fight;
-  const e = loser === "player" ? fight.players[0]! : fight.enemies[0]!;
-  const health = fight.world.require(e, Health);
-  health.hp = health.floor;
-  health.regenDelay = 1;
+  for (const e of (loser === "player" ? fight.players : fight.enemies).slice(0, count)) {
+    const health = fight.world.require(e, Health);
+    health.hp = health.floor;
+    health.regenDelay = 1;
+  }
+}
+
+function runSteps(session: GameSession, steps: number): void {
+  for (let i = 0; i < steps && !session.battle!.over; i++) {
+    const step = session.battle!.room.fight.steps + 1;
+    session.battleInput(step, [{ step, ...IDLE_INPUT }]);
+    tick(session);
+  }
+}
+
+function endFight(session: GameSession, loser: "player" | "enemy"): void {
+  knockDown(session, loser);
+  const fight = session.battle!.room.fight;
   for (let i = 0; i < 5 && !session.battle!.over; i++) {
     const step = fight.steps + 1;
     session.battleInput(step, [{ step, ...IDLE_INPUT }]);
@@ -79,8 +93,8 @@ describe("the training yard", () => {
     const before = { vitals: { ...session.vitals }, carried: carried(session), wins: session.wins };
     session.train();
     const { room } = session.battle!;
-    assert.equal(room.fight.enemies.length, 1);
-    assert.equal(room.setup.enemies[0]!.def.id, "training-dummy");
+    assert.equal(room.fight.enemies.length, DUMMY_SPOTS.length);
+    assert.ok(room.setup.enemies.every((e) => e.def.id === "training-dummy"));
     assert.equal(room.setup.yieldAt, TRAINING_YIELD_SHARE);
     assert.equal(room.refusal, "spar");
     endFight(session, "enemy");
@@ -90,6 +104,31 @@ describe("the training yard", () => {
     assert.deepEqual(session.vitals, before.vitals);
     assert.deepEqual(carried(session), before.carried);
     assert.equal(session.wins, before.wins);
+  });
+
+  test("Bram sets up three dummies in a row ahead, the middle one nearest, and all must fall", () => {
+    const { session, link } = fresh({ story: onStep("dummy") });
+    talkTo(session, link, "bram");
+    session.train();
+    const { setup } = session.battle!.room;
+    assert.equal(DUMMY_SPOTS.length, 3);
+    assert.deepEqual(setup.enemies.map((e) => e.at), DUMMY_SPOTS);
+    const dist = (at: { x: number; z: number }) => Math.hypot(at.x - PLAYER_START.x, at.z - PLAYER_START.z);
+    for (const at of DUMMY_SPOTS) assert.ok(at.z > PLAYER_START.z, "ahead of the player");
+    assert.ok(dist(DUMMY_SPOTS[1]!) < dist(DUMMY_SPOTS[0]!) && dist(DUMMY_SPOTS[1]!) < dist(DUMMY_SPOTS[2]!));
+    knockDown(session, "enemy", 2);
+    runSteps(session, 5);
+    assert.equal(session.battle!.over, false, "two down, one standing");
+    endFight(session, "enemy");
+    assert.equal(link.last("battleResult").won, true);
+    assert.equal(session.story.quests[QUEST]?.step, "spar");
+  });
+
+  test("Bram spars alone", () => {
+    const { session, link } = fresh({ story: onStep("spar") });
+    talkTo(session, link, "bram");
+    session.train();
+    assert.equal(session.battle!.room.setup.enemies.length, 1);
   });
 
   test("losing the spar loses nothing: no death, no drops, the same HP, and Bram will go again", () => {

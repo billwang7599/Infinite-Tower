@@ -57,7 +57,7 @@ What's built so far:
   Hollis moves on to the Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player
   sees him where their own story puts him).
 - **The training yard:** you start with nothing. The herald sends you to Bram, who gives you an old stick, then has
-  you knock down a straw dummy (a light swing, a heavy and a stab) and spar with him. His fights are spars: whoever
+  you knock down three straw dummies (a light swing, a heavy and a stab each) and spar with him. His fights are spars: whoever
   is down to a tenth of their HP yields, nobody can join, and nothing is lost or gained but the quest.
 - **Quests:** NPCs offer quests at the end of what they say (Accept or Not now), and hand over what a step asks
   for the same way. Steps ask you to gather items, hand them over, go somewhere, talk to someone or win fights against

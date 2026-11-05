@@ -1016,7 +1016,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   in production. The training yard
   (`training.test.ts`): the herald sending a new avatar to Bram, the old stick given once (at once when the quest is
   taken from him), the dummy and spar fights started only from his talk, unjoinable, costing nothing won or lost, and
-  moving the quest only when won. Highmere (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King
+  moving the quest only when won; three dummies in a row ahead, won only once all are down, Bram alone. Highmere (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King
   Osric (naming the Empire, offering nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with
   no pad, at Highmere's prices, with the keepers and the Gilded Door's keeper (who only talks), between the castle and
   the road down to the Waking Hollow; a broad way straight from the castle gate past the fountain to the South Gate,
