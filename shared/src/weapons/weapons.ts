@@ -32,7 +32,6 @@ export interface Weapon {
   /** The blade (m), or a bow's stave: a swing's reach and a guard's perfect window grow with it. */
   length: number;
   heft: number;
-  minStrength: number;
   profile: DamageProfile;
   quality?: number;
   baseDamage?: number;
@@ -53,7 +52,6 @@ export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
 })) as WeaponItems;
 
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
-export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
 export const feltHeft = (weapon: Guard, strength: number): number =>

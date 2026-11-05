@@ -72,9 +72,10 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("boar-meat")).damage, null);
   });
 
-  test("a weapon that needs strength says how much", () => {
-    assert.ok(itemInfo(stack("greatsword")).effect?.endsWith(`Needs ${WEAPONS.greatsword.minStrength} strength.`));
-    assert.ok(!itemInfo(stack("sword")).effect?.includes("strength"));
+  test("no weapon asks for strength: any can be wielded, only heavier to the weak", () => {
+    for (const item of ["sword", "greatsword"] as const) {
+      assert.ok(!itemInfo(stack(item)).effect?.includes("strength"), item);
+    }
   });
 
   test("gives its rarity", () => {

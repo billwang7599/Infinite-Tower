@@ -119,8 +119,8 @@ Damage goes × √(strength / 10), and every time and stamina cost × the heft t
 the Basic Sword's 3) × √(10 / strength), one rule for every weapon and guard, light ones too, so the Basic Sword
 feels 1 at strength 10, 1.41 at 5, 0.71 at 20 and 0.5 at 40: strength keeps mattering high up, and a strong
 fighter's heavy blade stays slower than a light one instead of every weapon reaching the 0.4 s floor. Weight stays
-linear. Below a weapon's `minStrength` it can't be wielded at all (Basic Sword
-0, longsword 6, greatsword 9; the Kobolds' blades as theirs).
+linear. Any weapon can be wielded at any strength, only heavier: at strength 1 the Basic Sword feels 3.16 and the
+greatsword 5.12, its opening light winding up 2.87 s.
 
 The strength in every weapon number here (felt heft, so every time and stamina cost; damage; the guard's raise; a
 block's stamina; a parry's weight) is the grip's (`appliedStrength` in `kinds.ts`): a melee weapon with nothing in the
@@ -198,7 +198,7 @@ The same at strength 10 held in both hands (strength 20 put in, so each felt hef
 Two-handed, the chained lights (the reverse, another line, a perpendicular) and the stab: the Basic Sword's 0.4, 0.4,
 0.42 and 0.4 s; the longsword's 0.4, 0.4, 0.5 and 0.4 s; the greatsword's 0.45, 0.55, 0.68 and 0.52 s.
 
-Example: a greatsword (heft 4.86) feels 1.15 at strength 20, 1.62 at 10 and 1.71 at 9 (its least): an opening light
+Example: a greatsword (heft 4.86) feels 1.15 at strength 20, 1.62 at 10 and 1.71 at 9: an opening light
 winds up 0.63, 0.9 or 0.95 s and costs 14.9, 21.1 or 22.2 stamina. The Basic Sword feels 0.71, 1 or 1.41 at 20, 10 or
 5: an opening light 0.4 s (the floor), 0.57 or 0.8 s, for 9.2, 13 or 18.4 stamina. The old stick (heft 0.385) feels 0.13
 at 10: every wind-up, a heavy's too, held at the 0.4 s floor. Held in both hands each is as at twice the strength:

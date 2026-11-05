@@ -3,7 +3,7 @@ import { before, describe, test } from "node:test";
 import {
   AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, packFor, Player,
   REST_RANGE_TILES,
-  useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
+  useSteps, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
@@ -289,18 +289,16 @@ describe("equipment", () => {
     assert.equal(saves.at(-1)?.bag.items[0]?.item, "sword");
   });
 
-  test("a weapon goes into a hand only with its minimum strength; the server answers with the gear as it is", () => {
-    const need = WEAPONS.greatsword.minStrength;
-    for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
-      const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
-      const equipment = { ...armed(), rightHand: null };
-      const bag = bagOf(["greatsword", 1, 0, 0]);
-      const { session, link } = startSession({ saved: { core, equipment, bag } });
-      assert.equal(session.stats.strength, strength);
-      session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
-      assert.equal(session.gear.equipment.rightHand, held, `${strength}`);
-      assert.deepEqual(link.last("gear")?.gear, session.gear);
-    }
+  test("a weapon goes into a hand whatever the strength; the server answers with the gear as it is", () => {
+    const strength = 1;
+    const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
+    const equipment = { ...armed(), rightHand: null };
+    const bag = bagOf(["greatsword", 1, 0, 0]);
+    const { session, link } = startSession({ saved: { core, equipment, bag } });
+    assert.equal(session.stats.strength, strength);
+    session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
+    assert.equal(session.gear.equipment.rightHand, "greatsword");
+    assert.deepEqual(link.last("gear")?.gear, session.gear);
   });
 
   test("arrows moved into a worn quiver are saved there", (t) => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, canWield, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, feltHeft, ITEMS, WEAPON_KINDS, weaponDamage,
+  AVERAGE_STAT, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, feltHeft, ITEMS, WEAPON_KINDS, weaponDamage,
   weaponIn, weaponItemIn, WEAPONS, type Damage, type Weapon,
 } from "@infinite-tower/shared";
 
@@ -62,15 +62,6 @@ describe("the arsenal", () => {
     const stick = WEAPONS["old-stick"], felt = (strength: number) => feltHeft(stick, strength);
     assert.ok(felt(AVERAGE_STAT) < 1);
     assert.ok(felt(AVERAGE_STAT / 2) > felt(AVERAGE_STAT) && felt(AVERAGE_STAT) > felt(AVERAGE_STAT * 2));
-  });
-
-  test("a weapon can be wielded from its minimum strength up, not below", () => {
-    for (const [id, weapon] of Object.entries(WEAPONS)) {
-      assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength), true, id);
-      if (weapon.minStrength > 0) assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength - 1), false, id);
-    }
-    assert.ok(WEAPONS.greatsword.minStrength > WEAPONS.longsword.minStrength);
-    assert.ok(WEAPONS.longsword.minStrength > WEAPONS.sword.minStrength);
   });
 });
 

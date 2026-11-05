@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, emptyBag, FIXED_DT, Health, packFor, Player, SAVE_IN_FIGHT_TIME, WEAPONS, Wielder, type Bag, type Carried,
-  type GearMove, type Skill, type Vec3,
+  addItem, emptyBag, FIXED_DT, Health, packFor, Player, SAVE_IN_FIGHT_TIME, wayStepsAfter, WEAPONS, Wielder, windupTime,
+  type Bag, type Carried, type GearMove, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -96,9 +96,8 @@ describe("the bag in a fight", () => {
     assert.equal(gear.equipment.rightHand, null);
   });
 
-  test("a weapon too heavy for the player's strength stays in the bag", () => {
-    const need = WEAPONS.greatsword.minStrength;
-    const weakling = (strength: number) => new Fight({
+  test("any strength can wield the greatsword; a weaker wielder only swings it slower", () => {
+    const wielder = (strength: number) => new Fight({
       arena: ARENA, enemies: [enemy(STATUE, at(0, 6))],
       players: [player(at(0, -4), {
         stats: { ...STATS, strength },
@@ -106,13 +105,20 @@ describe("the bag in a fight", () => {
           pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: null } },
       })],
     });
-    for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
-      const fight = weakling(strength);
+    const windupSteps = (strength: number) => {
+      const fight = wielder(strength);
       run(fight, 0.3);
       moveInBag(fight, { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false });
-      assert.equal(playerOf(fight).gear.equipment.rightHand, held, `${strength}`);
-      assert.equal(handsOf(fight).rightHand, held, `${strength}`);
-    }
+      assert.equal(playerOf(fight).gear.equipment.rightHand, "greatsword", `${strength}`);
+      assert.equal(handsOf(fight).rightHand, "greatsword", `${strength}`);
+      run(fight, 0.5);
+      fight.step([input({ locked: 0, way: "tb", attack: "light" })]);
+      const swing = fight.world.require(fight.players[0]!, Wielder).swing!;
+      const expected = wayStepsAfter(WEAPONS.greatsword, windupTime("light", "opening"), false, strength).liveAt;
+      assert.equal(swing.liveAt, expected, `${strength}`);
+      return swing.liveAt;
+    };
+    assert.ok(windupSteps(1) > windupSteps(STATS.strength));
   });
 
   test("the skillbook put away, the chant still opens: it needs no book", () => {
