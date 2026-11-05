@@ -186,7 +186,7 @@ export class UiState {
     phase: "checking", error: null, username: null, servers: [], pickedSocket: null,
   });
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
-  /** The notices in the corner and the banner in the centre; game code reaches them through `say`. */
+  /** The notices in the corner; game code reaches them through `say`. */
   readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly admin = new Store<AdminState>({ open: false, invulnerable: false });

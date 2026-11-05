@@ -1,4 +1,4 @@
-/** What the game says about a fight's result once the player is back from the arena (the arena has its banner). */
+/** What the game says about a fight's result once the player is back from the arena (the arena says only who won). */
 import { coreName, itemDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 
 export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "lost" | "duel" | "spar" | "core" | "coreLost">;
