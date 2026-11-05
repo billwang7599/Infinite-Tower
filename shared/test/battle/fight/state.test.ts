@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { ActiveHit, emptyBag, emptyEquipment, packFor, Wielder, type PlayerInputData } from "@infinite-tower/shared";
+import {
+  ActiveHit, Body, emptyBag, emptyEquipment, packFor, Wielder, type PlayerInputData,
+} from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, BOAR, busy, CASTER, dumpState, enemy, IDLE, input, player } from "./fixtures.js";
 
@@ -67,7 +69,10 @@ describe("a fight's whole state", () => {
     // Find a step with a live swing that has hit the boar.
     let found = false;
     while (!found && fight.steps < 2000) {
-      fight.step([busy(fight.steps + 1)]);
+      const me = fight.world.require(fight.players[0]!, Body).pos;
+      const boar = fight.world.require(fight.enemies[0]!, Body).pos;
+      const dx = boar.x - me.x, dz = boar.z - me.z, d = Math.hypot(dx, dz) || 1;
+      fight.step([{ ...busy(fight.steps + 1), aimX: dx / d, aimZ: dz / d }]);
       const hit = fight.world.get(fight.players[0]!, ActiveHit);
       found = !!hit && hit.alreadyHit.size > 0;
     }

@@ -19,7 +19,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [inscriptions.md](inscriptions.md): permanent passives carved into the core, one build per player | partly built |
 | [rarity.md](rarity.md): item and inscription rarity, and unique things only one player can hold | tiers, treasure and uniques built; notices and pile glow next |
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
-| [weapons.md](weapons.md): the arsenal and the sword (built); the Kobolds' AI and weapons from parts next | being built |
+| [combat-v2.md](combat-v2.md): sword combat v2, the spec and the user's decisions; Phase 1 (one sword duel) | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
 | [art-lab.md](art-lab.md): the art lab (sprites, tiles, animations built): what's open, a level editor maybe later | later |
 | [overworld-2d.md](overworld-2d.md): the flat 2D overworld, archived at a git tag, and what bringing it back takes | archived |

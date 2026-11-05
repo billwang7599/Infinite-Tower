@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor,
+  Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor,
   perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost,
   toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
 } from "@infinite-tower/shared";
@@ -106,7 +106,7 @@ describe("the held block", () => {
 
   test("doesn't cover the back", () => {
     const fight = pvp();
-    const events = play(fight, 70, (s) => ({ attack: s === PRESS ? "light" : null }),
+    const events = play(fight, landsAt(PRESS) + 5, (s) => ({ attack: s === PRESS ? "light" : null }),
       () => ({ block: true, aimZ: 1, locked: null }));
     assert.ok(events.some((e) => e.type === "hit"));
   });
@@ -134,10 +134,11 @@ describe("the perfect block", () => {
     }
   });
 
-  test("the blocker gets in first: its light lands before the attacker can act", () => {
+  test("the blocker gets in first: its light lands before the attacker's next swing could", () => {
     const fight = pvp();
     play(fight, hitAt, (s) => ({ attack: s === PRESS ? "light" : null }), holdFrom(hitAt - RAISE - 2));
-    const events = play(fight, 30, () => ({}), (s) => ({ attack: s === hitAt + 1 ? "light" : null }));
+    const soonest = toSteps(HYBRID.block.perfectRecoilTime + CHAIN.minWindupTime);
+    const events = play(fight, soonest, () => ({}), (s) => ({ attack: s === hitAt + 1 ? "light" : null }));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[0]));
   });
 

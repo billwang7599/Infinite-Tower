@@ -47,41 +47,38 @@ export function chainKind(last: Way | null, next: SwingDir): ChainKind {
 }
 
 export const CHAIN = {
-  startupTime: { opening: 0.35, reverse: 0.25, other: 0.3, perpendicular: 0.45 } satisfies Record<ChainKind, number>,
-  minStartupTime: 0.25,
-  stabStartupTime: 0.3,
-  activeTime: 0.1,
-  recoverTime: 0.08,
+  startupTime: { opening: 0.56, reverse: 0.4, other: 0.48, perpendicular: 0.6 } satisfies Record<ChainKind, number>,
+  stabStartupTime: 0.45,
+  // Applied after heft and swiftness: no attack is ever quicker to read than this.
+  minWindupTime: 0.4,
+  activeTime: 0.13,
+  recoverTime: 0.1,
   gapTime: 0.25,
 } as const;
 
 export const MOMENTUM = {
-  gain: { opening: 0, reverse: 1, other: 0.5, perpendicular: 0.25 } satisfies Record<ChainKind, number>,
+  gain: { opening: 0, reverse: 0.25, other: 1, perpendicular: 0.5 } satisfies Record<ChainKind, number>,
   max: 4,
   damagePerPoint: 0.25,
   maxDamage: 2,
-  speedPerPoint: 0.1,
   stabBonusPerPoint: 0.5,
 } as const;
 
 export const momentumDamage = (momentum: number): number =>
   Math.min(MOMENTUM.maxDamage, 1 + momentum * MOMENTUM.damagePerPoint);
 
-export const startupTime = (kind: ChainKind, momentum: number): number => Math.max(
-  CHAIN.minStartupTime, CHAIN.startupTime[kind] * (1 - Math.min(momentum, MOMENTUM.max) * MOMENTUM.speedPerPoint));
-
 export const HYBRID = {
-  light: { cost: 10, damageFactor: 1, poiseDamage: 12, knockbackSpeed: 4 },
+  light: { cost: 13, damageFactor: 1, poiseDamage: 12, knockbackSpeed: 4 },
   heavy: {
-    extraTime: 0.35, activeTime: 0.12, recoverTime: 0.2, cost: 16, damageFactor: 2, poiseDamage: 24, knockbackSpeed: 8,
+    extraTime: 0.36, activeTime: 0.15, recoverTime: 0.26, cost: 21, damageFactor: 2, poiseDamage: 24, knockbackSpeed: 8,
   },
-  stab: { cost: 12, damageFactor: 1.25, poiseDamage: 18, knockbackSpeed: 6 },
+  stab: { cost: 16, damageFactor: 1.25, poiseDamage: 18, knockbackSpeed: 6 },
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
-    perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17, pinnedChipFactor: 2,
+    perfectRecoilTime: 0.4, raiseTime: 0.1, raiseTimePerHeft: 0.22, pinnedChipFactor: 2,
   },
-  feint: { cutoffTime: 0.15, cost: 10, recoverTime: 0.3 },
+  feint: { cutoffTime: 0.15, cost: 10, recoverTime: 0.38 },
   parry: {
     windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05,
     clashStaggerTime: 0.3, minRatio: 0.5, maxRatio: 2, heavyWeightFactor: 2,
@@ -90,9 +87,9 @@ export const HYBRID = {
   swinging: { lungeSpeed: 4, moveFactor: 0.25, liveTurnRadPerSec: 3, whiffRecoverTime: 0.2, whiffCarrySpeed: 1.5 },
 } as const;
 
-export function windupTime(strike: Strike, kind: ChainKind, momentum: number): number {
+export function windupTime(strike: Strike, kind: ChainKind): number {
   if (strike === "stab") return CHAIN.stabStartupTime;
-  return startupTime(kind, momentum) + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
+  return CHAIN.startupTime[kind] + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
 }
 
 export const perfectBlockTime = (weapon: Guard): number =>
@@ -145,10 +142,10 @@ const DRAW_SHARE = 0.6;
 export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean, strength: number): AttackSteps {
   const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
   const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-  const heft = feltHeft(weapon, strength);
-  const liveAt = toSteps(windup * heft), liveUntil = liveAt + toSteps(live * heft);
+  const heft = feltHeft(weapon, strength), finalWindup = Math.max(CHAIN.minWindupTime, windup * heft);
+  const liveAt = toSteps(finalWindup), liveUntil = liveAt + toSteps(live * heft);
   const endAt = liveUntil + toSteps(recover * heft);
-  return { driveAt: toSteps(windup * heft * DRAW_SHARE), liveAt, liveUntil, endAt };
+  return { driveAt: toSteps(finalWindup * DRAW_SHARE), liveAt, liveUntil, endAt };
 }
 
 export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): number =>

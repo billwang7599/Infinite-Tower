@@ -15,7 +15,7 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "light", way: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
-  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, whiffed: false,
+  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, whiffed: false, hand: "rightHand",
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -84,10 +84,10 @@ describe("a fight's hash", () => {
         p.last = { ...p.last, block: !p.last.block };
       }],
       ["a swing's way", (f) => { f.world.require(f.players[0]!, Wielder).swing = { ...SWING, way: "brtl" }; }],
-      ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).combo = "lr"; }],
-      ["the chain's momentum", (f) => { f.world.require(f.players[0]!, Wielder).momentum += 0.5; }],
+      ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).chains.rightHand.combo = "lr"; }],
+      ["the chain's momentum", (f) => { f.world.require(f.players[0]!, Wielder).chains.leftHand.momentum += 0.5; }],
+      ["a hand's recovery", (f) => { f.world.require(f.players[0]!, Wielder).chains.leftHand.recoverSteps += 1; }],
       ["the time left to chain", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
-      ["a feint's recovery", (f) => { f.world.require(f.players[0]!, Wielder).feintRecoverSteps += 1; }],
       ["the aimed way", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.way = p.way === "tb" ? "lr" : "tb";

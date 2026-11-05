@@ -34,9 +34,9 @@ export interface CombatNumbers {
 
 const HANDS: readonly Hand[] = ["rightHand", "leftHand"];
 
-// A chain's first strike: later ones in a chain wind up quicker.
+// A chain's first strike: later ones wind up by how they follow the last.
 function strikeNumbers(weapon: Weapon, moves: MeleeMoves, strike: Strike, strength: number): StrikeNumbers {
-  const steps = moves.steps(weapon, windupTime(strike, "opening", 0), strike === "heavy", strength);
+  const steps = moves.steps(weapon, windupTime(strike, "opening"), strike === "heavy", strength);
   return {
     windupTime: steps.liveAt * FIXED_DT, liveTime: (steps.liveUntil - steps.liveAt) * FIXED_DT,
     recoverTime: (steps.endAt - steps.liveUntil) * FIXED_DT, stamina: strikeCost(weapon, strike, strength),

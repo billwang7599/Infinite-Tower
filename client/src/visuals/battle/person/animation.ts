@@ -66,7 +66,7 @@ export interface ShownArms extends HeldArms {
 // Each turn's target as last turned toward, its sign the way round, so that way holds as the target moves.
 type Toward = Partial<Record<"holding" | "offHolding", Quaternion>>;
 
-export const GUARD_SHIFT = { time: 0.1, timePerHeft: 0.08 } as const;
+export const GUARD_SHIFT = { time: 0.1, timePerHeft: 0.1 } as const;
 export const guardShiftTime = (heft: number): number =>
   GUARD_SHIFT.time + Math.max(0, heft - WEAPONS.sword.heft) * GUARD_SHIFT.timePerHeft;
 

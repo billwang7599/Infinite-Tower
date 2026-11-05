@@ -32,15 +32,29 @@ describe("the arsenal", () => {
     }
   });
 
-  test("strength scales a weapon's heft: the average feels it as it is, twice that half the extra, half twice", () => {
+  test("the Basic Sword is the measure: heft 1, felt as 1 at any strength", () => {
+    assert.equal(WEAPONS.sword.heft, 1);
+    for (const strength of [1, AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2, 100]) {
+      assert.equal(feltHeft(WEAPONS.sword, strength), 1, `${strength}`);
+    }
+  });
+
+  test("strength scales a heavier weapon's heft: 10 feels it as is, 20 half the extra, 5 twice", () => {
     const { heft } = WEAPONS.greatsword;
     assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT), heft);
     assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT * 2), 1 + (heft - 1) / 2);
     assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT / 2), 1 + (heft - 1) * 2);
-    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
-      assert.equal(feltHeft(WEAPONS["old-stick"], strength), 1, `${strength}`);
+  });
+
+  test("no strength makes a weapon feel lighter than the Basic Sword or than itself", () => {
+    for (const strength of [AVERAGE_STAT, AVERAGE_STAT * 10, 1000]) {
+      assert.ok(feltHeft(WEAPONS.greatsword, strength) >= 1, `${strength}`);
     }
-    assert.ok(feltHeft(WEAPONS.sword, AVERAGE_STAT * 2) < feltHeft(WEAPONS.sword, AVERAGE_STAT));
+    const light = WEAPONS["old-stick"];
+    assert.ok(light.heft < 1);
+    for (const strength of [1, AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
+      assert.equal(feltHeft(light, strength), light.heft, `${strength}`);
+    }
   });
 
   test("a weapon can be wielded from its minimum strength up, not below", () => {

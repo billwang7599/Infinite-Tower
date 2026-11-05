@@ -2,7 +2,9 @@ import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { toSteps } from "../../../core/time.js";
-import { HYBRID, isSwing, lastFeintStep, parryWay, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
+import {
+  CHAIN, HYBRID, isSwing, lastFeintStep, parryWay, WAYS, type Strike, type Way,
+} from "../../../weapons/hybrid.js";
 import { meleeIn } from "../../../weapons/kinds.js";
 import { feltHeft, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
@@ -52,11 +54,11 @@ function swingStarts(world: World, enemy: EnemyData, target: Entity): boolean {
 function parry(
   world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, theirs: SwingData,
 ): boolean {
-  const heft = feltHeft(weapon, world.require(e, FighterStats).strength);
-  const windupTime = (theirs.liveAt - PARRY_LEAD_STEPS) * FIXED_DT / heft;
-  if (!isSwing(theirs.way) || windupTime <= 0) return false;
+  const liveIn = theirs.liveAt - PARRY_LEAD_STEPS;
+  if (!isSwing(theirs.way) || liveIn < toSteps(CHAIN.minWindupTime)) return false;
   attack.swingsLeft = 0;
-  windUp(world, e, enemy, attack, weapon, windupTime, parryWay(theirs.way));
+  const heft = feltHeft(weapon, world.require(e, FighterStats).strength);
+  windUp(world, e, enemy, attack, weapon, liveIn * FIXED_DT / heft, parryWay(theirs.way));
   return true;
 }
 

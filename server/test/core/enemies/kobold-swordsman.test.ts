@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, HYBRID, IDLE_INPUT, wayStepsAfter, WEAPONS, Wielder, type EnemyDef,
+  Body, Enemy, feltHeft, FIXED_DT, Health, HYBRID, IDLE_INPUT, wayStepsAfter, WEAPONS, Wielder, type EnemyDef,
   type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
@@ -13,6 +13,7 @@ before(() => initPhysics());
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
 
 const PERFECT_LEAD_STEPS = 6;
+const SEEDS = [1, 2, 3, 1234, 99999];
 
 function reader(fight: Fight): PlayerInputData {
   const at = fight.world.require(fight.players[0]!, Body).pos;
@@ -40,12 +41,13 @@ const play = (seed: number, next: (fight: Fight) => PlayerInputData) => {
 };
 
 describe("the Kobold Swordsman", () => {
-  test("winds up its swings as long as it used to: the first a long tell, the ones after it shorter", () => {
-    assert.equal(KOBOLD.attacks.weapon!.windup, 1.1);
-    assert.equal(KOBOLD.attacks.weapon!.chainWindup, 0.45);
+  test("winds up as long as it did with its heavier blade: the first a long tell, the ones after it shorter", () => {
+    const felt = feltHeft(WEAPONS["kobold-blade"], KOBOLD.stats.strength), def = KOBOLD.attacks.weapon!;
+    assert.ok(Math.abs(def.windup * felt - 1.43) < 0.01, `${def.windup * felt}`);
+    assert.ok(Math.abs(def.chainWindup * felt - 0.58) < 0.01, `${def.chainWindup * felt}`);
   });
 
-  test("its blade is as heavy as a sword, so its first swing winds up slower than the def's seconds", () => {
+  test("its blade weighs as the Basic Sword: its first swing winds up the def's seconds, slower than a stick's", () => {
     const fight = fightWith(KOBOLD, 1), wielder = fight.world.require(fight.enemies[0]!, Wielder);
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     assert.equal(wielder.swing?.step, 1);
@@ -57,7 +59,7 @@ describe("the Kobold Swordsman", () => {
   });
 
   test("a player who reads it beats it, whatever its seed", () => {
-    for (const seed of [1, 2, 3, 1234, 99999]) {
+    for (const seed of SEEDS) {
       const { fight, hp } = play(seed, reader);
       assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
       assert.ok(hp > FULL.hp / 4, `seed ${seed}: ${hp} HP left`);
@@ -69,9 +71,11 @@ describe("the Kobold Swordsman", () => {
     assert.equal(fight.outcome.state, "lost");
   });
 
-  test("a player who only swings at it loses", () => {
-    const { fight } = play(1, (f) => ({ ...reader(f), block: false, attack: f.steps % 2 === 0 ? "light" : null }));
-    assert.equal(fight.outcome.state, "lost");
+  test("a player who only swings at it mostly loses", () => {
+    const masher = (f: Fight): PlayerInputData =>
+      ({ ...reader(f), block: false, attack: f.steps % 2 === 0 ? "light" : null });
+    const lost = SEEDS.filter((seed) => play(seed, masher).fight.outcome.state === "lost").length;
+    assert.ok(lost > SEEDS.length / 2, `lost ${lost} of ${SEEDS.length}`);
   });
 
   test("its own blade never drops: only its essence, besides treasure", () => {

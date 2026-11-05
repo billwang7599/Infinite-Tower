@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, PLAYER, type PlayerInputData } from "@infinite-tower/shared";
+import {
+  AVERAGE_STAT, Body, Enemy, FIXED_DT, Health, IDLE_INPUT, PLAYER, Stamina, strikeCost, WEAPONS, type PlayerInputData,
+} from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { SHOPS } from "../../../src/core/content/shops.js";
@@ -28,11 +30,14 @@ const comingDown = (fight: Fight) => {
 };
 const rising = (fight: Fight) => ["slamWindup", "sweepWindup", "slam", "sweep"].includes(sizeUp(fight).lurker.state);
 
+// Outside its recovery, swings only with a dodge's stamina to spare.
 function cutAt(fight: Fight): PlayerInputData {
-  const { dist, aimed } = sizeUp(fight);
-  const far = dist > 2.2;
+  const { lurker, dist, aimed } = sizeUp(fight);
+  const far = dist > 2.2, stamina = fight.world.require(fight.players[0]!, Stamina).value;
+  const spare = lurker.state !== "approach"
+    || stamina >= PLAYER.dodge.cost + strikeCost(WEAPONS.sword, "light", AVERAGE_STAT);
   return { ...aimed, moveX: far ? aimed.aimX : 0, moveZ: far ? aimed.aimZ : 0,
-    attack: fight.steps % 2 === 0 ? "light" : null };
+    attack: spare && fight.steps % 2 === 0 ? "light" : null };
 }
 
 function dodger(fight: Fight): PlayerInputData {

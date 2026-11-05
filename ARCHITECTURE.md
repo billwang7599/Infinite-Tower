@@ -467,8 +467,10 @@ main.ts
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
-  player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on the
-  old momentum chains (`Wielder.combo`, `comboTime`, `momentum`), and holds a block (the `block` action, draining
+  player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on
+  momentum chains kept per hand (`Wielder.chains`: each hand's last way, momentum and the recovery left from a swing
+  the other hand cut short; `comboTime` the gap either hand may chain within; `SwingData.hand` the hand swinging; a
+  hand recovering can't swing), and holds a block (the `block` action, draining
   stamina in the controller), whose press raises the guard in a time by the blade's felt heft (`guardRaiseTime`) and
   opens a perfect block's window by its length (`perfectBlockTime`, `perfectBlockLeft`); pressed in a heavy's wind-up it
   feints instead (`readSword`, the `feint` event). A swordsman's brain is its `WeaponAttack`'s
@@ -494,8 +496,9 @@ main.ts
   the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and momentum (`CHAIN`, `MOMENTUM`), the strikes and the block
   (`HYBRID`), the hit shapes (`wayShape`: one reach from the wielder's own arm reach plus the weapon's length, the arc
   by line), and `wayStepsAfter`, `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's
-  strength. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach and
-  the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
+  strength. Heft is measured against the Basic Sword's 1, and `wayStepsAfter` holds every wind-up, a player's or an
+  enemy's, to `CHAIN.minWindupTime`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
+  hand holds, its arm reach and the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
   when, what and which way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
   the same way, raising its hitbox exactly while it's live. What a swing does to its wielder's body is one module for
   both, `fight/weapons/commit.ts`: the player's controller and the weapon attack ask it how fast the swing carries
@@ -868,16 +871,18 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`knockback.test.ts`: by strike, an arrow by its speed, Air, less for a heavier enemy, never mid-blow, through the
   wall, into the air or into a stun-lock; a blocked hit's pushback, and its chip doubled against the wall; none on a
   player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
-  quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina; the
-  feint and its recovery), a swing's hold on the body (`weapons/commit.test.ts`, a player and a swordsman alike: the
-  quarter-pace walk, the live carry, a whiff's longer recovery and carry with presses waiting it out, the live blade's
-  turn cap and its hit turning with it), the defences (`weapons/defend.test.ts`: the held block, any way in front,
-  stamina and the chip, a heavy's double cost, running out breaking it, its slow drain, not the back; the perfect
-  block, in the window, the attacker's lost stamina and recoil, getting in first, too early, mashing; no parry by a
-  swing; the guard rising by heft and the window by blade length; the push by guard, less for a stronger or steadier
-  blocker; the chip doubled backed against the wall, part of it with part of the room, none extra in the open), the
-  swordsman (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its
-  perfect block and the swing after, chains by its seed and through a save, its landed hits only hurting, a stagger or a
+  quickest, damage building but never speed, lost to a gap, a dodge or a block, spent by a stab; a hand's recovery;
+  two blades, each hand's own chain and recovery, the other swinging while the first recovers; the heavy; each
+  strike's stamina; the feint and its recovery, on the hand that swung), a swing's hold on the body
+  (`weapons/commit.test.ts`, a player and a swordsman alike: the quarter-pace walk, the live carry, a whiff's longer
+  recovery and carry with presses waiting it out, the live blade's turn cap and its hit turning with it), the defences
+  (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double cost, running
+  out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost stamina and
+  recoil, getting in first, too early, mashing; no parry by a swing; the guard rising by heft and the window by blade
+  length; the push by guard, less for a stronger or steadier blocker; the chip doubled backed against the wall, part
+  of it with part of the room, none extra in the open), the swordsman (`behaviors/weapon.test.ts` and
+  `kobold.test.ts`: ways never twice running, its block costing poise, its perfect block and the swing after, chains
+  by its seed and through a save, its landed hits only hurting, a stagger or a
   perfect block's recoil dropping its chain and its answer for its whole cooldown and a fresh opening wind-up, its
   recovery by heft), every attack's cooldown restarting after a stagger (`behaviors/brain.test.ts`: the boar's bite
   and charge, the wolf's leap, the lurker's slam), the wolf
@@ -942,7 +947,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   lost at the time limit), lateness, `battleSync` on asking and as it's decided; dodging a bite k steps before it lands,
   on time, 150 ms late and too late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the
   Kobold's attack the same way; the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and
-  punishes whatever its seed, beating one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`);
+  punishes whatever its seed, beating one who only holds a block and mostly one who only swings (`enemies/kobold-swordsman.test.ts`);
   the wolf beaten by a player who sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most
   who only run at it swinging, its drops, the forge buying them and its spawns (`enemies/grey-wolf.test.ts`); the bog
   lurker beaten by a player who dodges and cuts back, more slowly by one who blocks, beating one who only swings, its
@@ -1254,7 +1259,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
                        aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
                        / heavy / stab
-                       on the old momentum chains, the held block; a ranged weapon hands off to bow.ts), bow.ts
+                       on each hand's momentum chain and recovery, the held block; a ranged weapon hands off to
+                       bow.ts), bow.ts
                        (drawBow: the light attack held draws, let go looses an arrow (the quiver's first) at the
                        draw's speed, straight at aimOf's spot, or locked on in the arc onto the target (straight at
                        it out of reach); no block while drawing),
@@ -1282,8 +1288,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), commit.ts (what a swing holds its
                        wielder to, players and swordsmen alike: committed, carrySpeed, steer (the live blade's turn
-                       cap), feint and its recovery (canSwing); commitSystem, after the hits: a whiff
-                       overextends), defend.ts (defend: the perfect
+                       cap), feint, canSwing (the swinging hand's recovery: its swing's, a feint's or one
+                       cut short); commitSystem, after the hits: a whiff overextends, the hands' recovery
+                       counts down), defend.ts (defend: the perfect
                        block, the held block and its stamina or poise, its push and the chip raised against the
                        wall (pinnedShare), a projectile's `Shot` too; blocking, facingOf),
                        parry.ts (parries: a swing parried by a swing, or two clashing; the recoil by the swings'
@@ -1331,7 +1338,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
-                   windupTime (a strike's by its chain and momentum), wayStepsAfter, strikeCost, strikeDamage,
+                   windupTime (a strike's by its chain), wayStepsAfter (the 0.4 s floor), strikeCost, strikeDamage,
                    guardRaiseTime, perfectBlockTime, parryWindowTime; GUARDS: the held block by guard, shield, one
                    blade, two blades)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),

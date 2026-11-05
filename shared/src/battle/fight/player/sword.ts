@@ -6,7 +6,7 @@ import {
   windupTime, type ChainKind, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeOf, rangedOf } from "../../../weapons/kinds.js";
-import type { Guard, Weapon } from "../../../weapons/weapons.js";
+import { weaponHandIn, type Guard, type Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -45,7 +45,7 @@ export function readSword(t: SwordTurn): void {
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
-  } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
+  } else if (!locked && canSwing(wielder)) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
   const blockPressed = input.block && !player.last.block;
   const feinted = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
@@ -58,7 +58,7 @@ export function readSword(t: SwordTurn): void {
     player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
     player.sinceBlockPress += dt;
   }
-  if (wielder.combo !== null) {
+  if (wielder.comboTime > 0) {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);
   }
@@ -72,24 +72,26 @@ export function readSword(t: SwordTurn): void {
 
 function strike(t: SwordTurn, strike: Strike): void {
   const { world, e, player, input, wielder, weapon } = t;
-  if (!(wielder.combo !== null && wielder.comboTime > 0)) endChain(wielder);
+  const hand = weaponHandIn(wielder.hands)!, chain = wielder.chains[hand], last = wielder.swing;
+  if (wielder.comboTime <= 0) endChain(wielder);
+  if (last && last.hand !== hand) wielder.chains[last.hand].recoverSteps = last.endAt - last.step;
   const way: Way = strike === "stab" ? "stab" : player.way ?? UNAIMED;
   let kind: ChainKind = "opening", power: number;
   if (way === "stab") {
-    power = 1 + wielder.momentum * MOMENTUM.stabBonusPerPoint;
-    endChain(wielder);
+    power = 1 + chain.momentum * MOMENTUM.stabBonusPerPoint;
+    Object.assign(chain, { combo: null, momentum: 0 });
   } else {
-    kind = chainKind(wielder.combo, way);
-    wielder.momentum = Math.min(MOMENTUM.max, wielder.momentum + MOMENTUM.gain[kind]);
-    wielder.combo = way;
-    power = momentumDamage(wielder.momentum);
+    kind = chainKind(chain.combo, way);
+    chain.momentum = Math.min(MOMENTUM.max, chain.momentum + MOMENTUM.gain[kind]);
+    chain.combo = way;
+    power = momentumDamage(chain.momentum);
   }
-  let windup = windupTime(strike, kind, wielder.momentum);
+  let windup = windupTime(strike, kind);
   const imbue = imbueOf(world, e)?.[1];
   if (imbue) windup /= shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
   startWaySwing(world, e, weapon!, strike, way, windup, power, { x: input.aimX, z: input.aimZ });
-  if (wielder.combo !== null) wielder.comboTime = wielder.swing!.endAt * FIXED_DT + CHAIN.gapTime;
+  wielder.comboTime = wielder.swing!.endAt * FIXED_DT + CHAIN.gapTime;
 }
 
 export function attackOrBlock(t: SwordTurn): boolean {
