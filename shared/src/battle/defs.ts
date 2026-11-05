@@ -82,7 +82,6 @@ export interface WeaponAttackDef {
   triggerDist: number;
   windup: number;
   chainWindup: number;
-  speed: number;
   recover: number;
   minChain: number;
   maxChain: number;

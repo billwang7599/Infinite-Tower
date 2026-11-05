@@ -171,14 +171,17 @@ describe("a swing parried by a swing", () => {
     assert.ok(stabbing.hits.length > 0);
   });
 
-  test("blades meeting at once clash: both recoil the base time, nobody is hurt", () => {
-    for (const lead of [0, CLASH, -CLASH]) {
-      const r = exchange({ way: "lr", answer: "lr", lead });
-      assert.ok(r.parry?.type === "parry" && r.parry.clash, `${lead}`);
-      assert.equal(r.hits.length, 0, `${lead}`);
-      close(r.hitstun[0], HYBRID.parry.fullRecoilTime, `${lead} first`);
-      close(r.hitstun[1], HYBRID.parry.fullRecoilTime, `${lead} second`);
+  test("blades live within the clash time of each other clash: both stagger briefly, nobody is hurt", () => {
+    for (const [way, answer] of [["lr", "lr"], ["lr", "tlbr"]] as const) {
+      for (const lead of [0, CLASH, -CLASH]) {
+        const r = exchange({ way, answer, lead });
+        assert.ok(r.parry?.type === "parry" && r.parry.clash, `${answer} ${lead}`);
+        assert.equal(r.hits.length, 0, `${answer} ${lead}`);
+        close(r.hitstun[0], HYBRID.parry.clashStaggerTime, `${answer} ${lead} first`);
+        close(r.hitstun[1], HYBRID.parry.clashStaggerTime, `${answer} ${lead} second`);
+      }
     }
+    assert.ok(HYBRID.parry.clashStaggerTime < HYBRID.parry.partialRecoilTime, "briefer than any parry's recoil");
   });
 });
 

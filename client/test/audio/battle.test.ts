@@ -22,7 +22,7 @@ const SWORDED: EnemyDef = {
   ...STANDER, wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },
   attacks: {
     weapon: {
-      triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
+      triggerDist: 0, windup: 9, chainWindup: 9, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
       heavyFeintShare: 0, cooldown: 99, firstDelay: 99, blockReactTime: 0, perfectBlockChance: 0, parryChance: 0,
     },
   },

@@ -175,6 +175,11 @@ Decided by the user:
   - Every swing reaches as far, 1.15 × (arm reach + blade), about 2.2 m with the sword; the stab 1.75 ×.
   - Lights wind up readably: 0.35 s an opening swing, 0.25 a reverse, 0.45 a perpendicular, 0.3 any other; a heavy
     0.35 s more. Momentum never takes a wind-up under 0.25 s. A heavy has no hyperarmor.
+  - The body (combat spec v2, the user's: "a whiffed committed swing overextends you ... the natural punish for
+    throwing wildly"): you walk at 25% while attacking, wind-up through recovery, and a live blade carries you forward
+    at 4 m/s. A swing that whiffs overextends you: carried further and a longer recovery. A live blade's turn is capped,
+    enough to drag a little for timing, never a spin. Players and swordsmen alike, through the same code
+    (`fight/weapons/commit.ts`); the whiff's and the cap's numbers are the agent's ("The Hybrid sword", below).
   - Defence is one button (Sekiro's): holding block (Shift) stops any hit from the front, chipping 20% of it. Pressed
     within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
     the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry.
@@ -185,7 +190,8 @@ Decided by the user:
     "widen parry timing so its easier than block"): 0.3 s with the sword, by blade length as the perfect block's
     (longsword ~0.38, greatsword ~0.52); the parried attack does no damage and recoils (0.8 s full, 0.5 s partial), and
     the parrier's swing ends with no recovery. Parries deflect, they don't stun. Blades live within about 0.05 s of each
-    other clash: both recoil the base time. Stabs neither parry nor are parried. A swing's weight is its heft ×
+    other clash: both stagger briefly (combat spec v2; 0.3 s whatever the ways and weights, the agent's pick, was the
+    parry's base recoil). Stabs neither parry nor are parried. A swing's weight is its heft ×
     √(strength / 10), × 2 a heavy, and the recoil goes × the parrier's weight over the parried one's (0.5 to 2, never
     under 0.2 s) ("parry heavy with heavy is the same effect. but parrying light with heavy should give heavy some
     advantage"). No stamina for being parried. The Kobold parries too, by a seeded share of the swings a player starts
@@ -206,8 +212,10 @@ Decided by the user:
   - No kick. Only a heavy can be feinted (the user: "yea sure heavy only feints ... we swing heavy but can press
     shift to cancel early to mess with their timing"): block pressed in a heavy's wind-up pulls it back into the
     guard, for 10 stamina, but not in the last 0.15 s before the blade goes live. It opens no perfect block and ends
-    the chain. A light or a stab can't be feinted. The Kobold feints about 1 in 5 of its heavies ("sure add kobald
-    feint"), told only by sound and its blade snapping back to its guard.
+    the chain, and the blade then recovers before it can swing again (spec v2: "it costs enough, with enough recovery,
+    that it's a tool and not spam"; 0.3 s × felt heft, the agent's pick). A light or a stab can't be feinted. The
+    Kobold feints about 1 in 5 of its heavies ("sure add kobald feint"), told only by sound and its blade snapping back
+    to its guard.
   - The old momentum, with the old numbers: the reverse swing chains quickest, a perpendicular one slowest; a chain
     builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
   - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
@@ -814,6 +822,16 @@ them; treat them as changeable, and still ask before deciding new ones):
     damage (×2 at most) and 10% sooner (never under 0.25 s); a stab adds 50% per point and spends it. A swing down from
     the top has no reverse. An attack chains if it starts during the last one or within 0.25 s of its end; a dodge, a
     block, a cast, the chant, the bag, a hit taken or a perfect block against it breaks it.
+  - The body (numbers in `HYBRID.swinging`, rules in `fight/weapons/commit.ts`): a whiff is a swing whose live time
+    met no one, out of reach or dodged (a blocked, parried or clashing one ends anyway). It recovers 0.2 s × felt heft
+    longer (`whiffRecoverTime`; a sword light at strength 10: 0.37 s in all, not 0.1), carried forward at 1.5 m/s
+    (`whiffCarrySpeed`) all through its recovery, about 0.55 m on top of the live blade's 0.53; until it ends nothing
+    else starts, not a dodge, a swing, a block or a hand switch, and a press waits for it. A chain's gap counts from
+    that later end. A live blade turns toward the aim (locked on, the target; a swordsman's, its target) at most
+    3 rad/s (`liveTurnRadPerSec`): a sword light's 23°, a greatsword light's 37°; its hit and the carry turn with it.
+    The wind-up isn't steered: a player's swing keeps the way it was pressed until it goes live (a swordsman keeps
+    tracking at its own 2.5 rad/s). A swordsman now creeps up at 25% of its walk up while winding up and recovering
+    (it stood still) and is carried at 4 m/s while live (the Kobold's own 3 m/s and Bram's 2.6 are gone).
   - The held block covers 140° in front and walks at 40%; held, it drains 5 stamina a second. A blocked hit costs a
     player its damage in stamina (a heavy twice), chips 20% (a stab too), and stops the blade with no recoil: the
     attacker may chain on. A body blow (the boar's) chips nothing. Either pushes back 60% of its knockback (blocks
@@ -852,7 +870,10 @@ them; treat them as changeable, and still ask before deciding new ones):
     block press, so a press within 0.5 s after it gets no perfect window either; a player needs some stamina left
     to feint, as for any attack. The Kobold pulls a feinted heavy back at the latest it may (0.15 s before it would go
     live), straight into its held block; its chain ends there, it pays no stamina (its swings cost none), and it waits
-    its cooldown (1.2 s, with no recovery) before its next chain. A feint sounds as a quick, high blade-draw.
+    its cooldown (1.2 s, with no chain recovery) before its next chain. The feint's recovery (`recoverTime` 0.3 s ×
+    felt heft: 0.38 s with a sword at strength 10) holds back any swing, a player's or a swordsman's, the guard held
+    meanwhile; a Kobold's cooldown is longer, so for it only a parry or an answer waits. It's counted per fighter, not
+    per hand. A feint sounds as a quick, high blade-draw.
   - Drawn: the sprite takes the drawn swing nearest each way (the diagonals from below the side ones, the stab the
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the

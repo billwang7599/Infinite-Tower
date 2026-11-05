@@ -80,8 +80,8 @@ const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e ==
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const { swing, combo, comboTime, momentum, hands } = wielder;
-  return { swing: copySwing(swing), combo, comboTime, momentum, active: hands.active };
+  const { swing, combo, comboTime, momentum, feintRecoverSteps, hands } = wielder;
+  return { swing: copySwing(swing), combo, comboTime, momentum, feintRecoverSteps, active: hands.active };
 }
 
 const partOf = (world: World, e: Entity, kind: Part) => world.get(e, PARTS[kind]);

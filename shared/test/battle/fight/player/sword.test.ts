@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage,
+  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, feltHeft, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage,
+  physicalDamage,
   Player, Stamina, strikeCost, toSteps, wayStepsAfter, WEAPONS, Wielder, type ItemId, type PlayerInputData,
   type Strike, type SwingDir,
 } from "@infinite-tower/shared";
@@ -153,6 +154,18 @@ describe("a feint", () => {
     const holdCost = HYBRID.block.holdStaminaPerSec * FIXED_DT;
     assert.ok(Math.abs(fight.world.require(me, Stamina).value - (stamina - HYBRID.feint.cost - holdCost)) < 1e-9);
     assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
+  });
+
+  test("leaves the blade recovering, by its felt heft: the guard held, no swing until it's over", () => {
+    const { fight, me, wielder } = blockAt("heavy", () => 1), feintAt = fight.steps;
+    const recover = toSteps(HYBRID.feint.recoverTime * feltHeft(SWORD, AVERAGE_STAT));
+    let press: Strike = "light";
+    while (wielder.swing === null && fight.steps < feintAt + 3 * recover) {
+      assert.equal(fight.world.require(me, Player).action, "block");
+      press = press === "light" ? "heavy" : "light";
+      fight.step([input({ locked: 0, way: "lr", block: true, attack: press })]);
+    }
+    assert.equal(fight.steps - feintAt, recover);
   });
 
   test("opens no perfect block and ends the chain", () => {

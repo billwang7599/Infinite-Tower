@@ -6,16 +6,18 @@ import { HYBRID, isSwing, lastFeintStep, parryWay, WAYS, type Strike, type Way }
 import { meleeIn } from "../../../weapons/kinds.js";
 import { feltHeft, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
-import { FighterStats } from "../../stats.js";
+import { FighterStats, type Stats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
-import { bladeLive, startWaySwing } from "../weapons/swing.js";
+import { canSwing, carrySpeed, committed, feint as feintSwing, steer } from "../weapons/commit.js";
+import { startWaySwing } from "../weapons/swing.js";
+import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.8;
 /** Keeps turning toward the target while winding up, this fast. */
 const WINDUP_TURN_RAD_PER_SEC = 2.5;
-const STEP_ACCEL = 40;
+const SWINGING = new Set(["weaponWindup", "weapon", "weaponRecover"]);
 // Its parrying blade goes live this long before the player's: past a clash, inside the window.
 const PARRY_LEAD_STEPS = toSteps(HYBRID.parry.clashTime) + 2;
 
@@ -59,27 +61,37 @@ function parry(
 }
 
 function feint(world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, events: FightEvent[]): void {
+  feintSwing(world, e, events);
   enter(world, e, enemy, "approach");
   enemy.stateTime = attack.def.blockReactTime;
   Object.assign(attack, { feint: false, swingsLeft: 0, cooldown: attack.def.cooldown });
-  events.push({ type: "feint", by: e });
+}
+
+function moveWhileSwinging(enemy: EnemyData, swing: SwingData | null, stats: Stats): void {
+  const move = enemy.move, carry = swing && carrySpeed(swing);
+  if (swing && carry !== null) {
+    Object.assign(move, { dirX: swing.dir.x, dirZ: swing.dir.z, speed: carry, accel: Infinity });
+  } else move.speed = approachSpeed(enemy, stats) * HYBRID.swinging.moveFactor;
 }
 
 export function weaponAttackSystem(events: FightEvent[]): System {
   return (world, dt) => {
-    for (const [e, attack, enemy, wielder] of world.query(WeaponAttack, Enemy, Wielder)) {
-      const def = attack.def, sense = enemy.sense, move = enemy.move, swing = wielder.swing;
-      const weapon = meleeIn(wielder.hands), target = sense.target;
+    for (const [e, attack, enemy, wielder, stats] of world.query(WeaponAttack, Enemy, Wielder, FighterStats)) {
+      const def = attack.def, sense = enemy.sense, swing = wielder.swing;
+      const weapon = meleeIn(wielder.hands), ready = weapon && canSwing(wielder), target = sense.target;
       attack.cooldown -= dt;
       if (target !== null && swingStarts(world, enemy, target)) {
         attack.perfectBlockRead = roll(enemy) < def.perfectBlockChance;
         const theirs = world.require(target, Wielder).swing!;
-        if (weapon && !attack.perfectBlockRead && def.parryChance > 0 && enemy.state === "approach"
-          && roll(enemy) < def.parryChance && parry(world, e, enemy, attack, weapon, theirs)) continue;
+        if (ready && !attack.perfectBlockRead && def.parryChance > 0 && enemy.state === "approach"
+          && roll(enemy) < def.parryChance && parry(world, e, enemy, attack, weapon, theirs)) {
+          moveWhileSwinging(enemy, wielder.swing, stats);
+          continue;
+        }
       }
       switch (enemy.state) {
         case "approach": {
-          if (!weapon || !sense.targetAlive || target === null) break;
+          if (!ready || !sense.targetAlive || target === null) break;
           if (attack.riposte) {
             Object.assign(attack, { riposte: false, swingsLeft: 0 });
             windUp(world, e, enemy, attack, weapon, def.chainWindup);
@@ -101,14 +113,17 @@ export function weaponAttackSystem(events: FightEvent[]): System {
             break;
           }
           if (enemy.state === "weaponWindup") Object.assign(enemy, { state: "weapon", stateTime: 0 });
-          if (swing && bladeLive(swing)) { move.speed = def.speed; move.accel = STEP_ACCEL; }
-          if (swing && swing.step < swing.liveUntil) break;
+          if (swing) {
+            steer(world, e, swing, { x: Math.sin(sense.toYaw), z: Math.cos(sense.toYaw) }, dt);
+            enemy.yaw = Math.atan2(swing.dir.x, swing.dir.z);
+            if (committed(swing)) break;
+          }
           if (weapon && attack.swingsLeft > 0) {
             attack.swingsLeft--;
             windUp(world, e, enemy, attack, weapon, def.chainWindup);
           } else {
             // Not `enter`: the blade recovers.
-            const recover = def.recover * (weapon ? feltHeft(weapon, world.require(e, FighterStats).strength) : 1);
+            const recover = def.recover * (weapon ? feltHeft(weapon, stats.strength) : 1);
             Object.assign(enemy, { state: "weaponRecover", stateTime: 0, duration: recover });
             attack.cooldown = recover + def.cooldown;
           }
@@ -117,6 +132,7 @@ export function weaponAttackSystem(events: FightEvent[]): System {
           if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");
           break;
       }
+      if (SWINGING.has(enemy.state)) moveWhileSwinging(enemy, wielder.swing, stats);
     }
   };
 }

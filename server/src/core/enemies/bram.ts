@@ -16,7 +16,7 @@ export const BRAM: Enemy = {
     staggerTime: 0.8,
     attacks: {
       weapon: {
-        triggerDist: 2.4, windup: 1.3, chainWindup: 0.6, speed: 2.6, recover: 0.7, minChain: 1, maxChain: 2,
+        triggerDist: 2.4, windup: 1.3, chainWindup: 0.6, recover: 0.7, minChain: 1, maxChain: 2,
         heavyShare: 0.2, heavyFeintShare: 0, cooldown: 1.8, firstDelay: 2, blockReactTime: 0.35,
         perfectBlockChance: 0.1, parryChance: 0,
       },

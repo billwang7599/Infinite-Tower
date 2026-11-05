@@ -95,6 +95,24 @@ describe("a swordsman", () => {
     assert.ok(feints > 0 && feints >= heavies - 1, `${feints} of ${heavies}`);
   });
 
+  test("a feint leaves its blade recovering, by its felt heft: no parry until it's over, as a player's", () => {
+    const recover = toSteps(HYBRID.feint.recoverTime * feltHeft(WEAPONS.sword, STATS.strength));
+    const parriedAfter = (wait: number) => {
+      const { fight, it } = play(kobold({ heavyShare: 1, heavyFeintShare: 1, parryChance: 1 }), 0);
+      while (!fight.events.some((e) => e.type === "feint" && e.by === it)) fight.step([input({ locked: 0 })]);
+      const feintAt = fight.steps;
+      let parried = false;
+      while (fight.steps < feintAt + wait + 30) {
+        const s = fight.steps + 1;
+        fight.step([input({ locked: 0, way: "lr", attack: s === feintAt + wait ? "light" : null })]);
+        parried ||= fight.events.some((e) => e.type === "parry" && e.by === it);
+      }
+      return parried;
+    };
+    assert.equal(parriedAfter(1), false, "pressed at once");
+    assert.equal(parriedAfter(recover), true, "pressed once it's over");
+  });
+
   test("feints only some heavies, by the fight's seed, and never with no share", () => {
     const count = (share: number) => {
       const { events, it } = play(kobold({ heavyShare: 1, heavyFeintShare: share, cooldown: 0.2 }), 1500);

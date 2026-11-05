@@ -81,13 +81,13 @@ export const HYBRID = {
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
     perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17, pinnedChipFactor: 2,
   },
-  feint: { cutoffTime: 0.15, cost: 10 },
+  feint: { cutoffTime: 0.15, cost: 10, recoverTime: 0.3 },
   parry: {
-    windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05, minRatio: 0.5,
-    maxRatio: 2, heavyWeightFactor: 2,
+    windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05,
+    clashStaggerTime: 0.3, minRatio: 0.5, maxRatio: 2, heavyWeightFactor: 2,
   },
-  /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
-  swinging: { lungeSpeed: 4, moveFactor: 0.25 },
+  // Speeds in m/s.
+  swinging: { lungeSpeed: 4, moveFactor: 0.25, liveTurnRadPerSec: 3, whiffRecoverTime: 0.2, whiffCarrySpeed: 1.5 },
 } as const;
 
 export function windupTime(strike: Strike, kind: ChainKind, momentum: number): number {

@@ -494,15 +494,18 @@ main.ts
   strength. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach and
   the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
   when, what and which way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
-  the same way, raising its hitbox exactly while it's live. Ending an action or an enemy state (`enter`) ends its swing
-  (`endSwing`). The visuals draw the blade from the swing's steps and its way. What a kind does is data, `MOVES` in
-  `shared/src/weapons/kinds.ts`: a melee kind (the sword) carries its hit shapes and timings, a ranged kind (the bow,
-  a placeholder: AGENTS.md's "Bows") its ammo, draw, nock times and projectile (`BOW` in `weapons/bow.ts`); a bow's
-  power is its item's (`powerMps`), and a kind in `TWO_HANDED` (`weapons.ts`) leaves the other hand empty (`moveGear`
-  sends it to the bag). The fight asks `meleeOf` / `rangedOf`, never a kind's name: only a melee weapon swings or aims
-  a way, and a ranged one in hand turns the light attack into a draw while the input's `attackHeld` stays true
-  (`fight/player/bow.ts`), loosing a `Projectile` entity at the draw's speed (`loosedSpeed`) where the fighter aims
-  (`aimOf`, below), the quiver's arrows first. `projectileSystem`
+  the same way, raising its hitbox exactly while it's live. What a swing does to its wielder's body is one module for
+  both, `fight/weapons/commit.ts`: the player's controller and the weapon attack ask it how fast the swing carries
+  them (`carrySpeed`), turn a live blade through `steer`, wait while it's `committed`, and feint through `feint`;
+  `commitSystem`, run right after `combatSystem`, overextends a swing whose live time met no one. Ending an action or an
+  enemy state (`enter`) ends its swing (`endSwing`). The visuals draw the blade from the swing's steps and its way.
+  What a kind does is data, `MOVES` in `shared/src/weapons/kinds.ts`: a melee kind (the sword) carries its hit shapes
+  and timings, a ranged kind (the bow, a placeholder: AGENTS.md's "Bows") its ammo, draw, nock times and projectile
+  (`BOW` in `weapons/bow.ts`); a bow's power is its item's (`powerMps`), and a kind in `TWO_HANDED` (`weapons.ts`)
+  leaves the other hand empty (`moveGear` sends it to the bag). The fight asks `meleeOf` / `rangedOf`, never a kind's
+  name: only a melee weapon swings or aims a way, and a ranged one in hand turns the light attack into a draw while the
+  input's `attackHeld` stays true (`fight/player/bow.ts`), loosing a `Projectile` entity at the draw's speed
+  (`loosedSpeed`) where the fighter aims (`aimOf`, below), the quiver's arrows first. `projectileSystem`
   (`fight/weapons/projectile.ts`, after the combat system) moves each along the exact path of its
   velocity, drag and gravity (`flightAfter`, `weapons/bow.ts`) and sweeps the step against every foe's upright
   cylinder (`Fighter.radius`, `heightM`), the floor and the wall, with plain math; one that meets a foe goes through
@@ -862,14 +865,16 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`knockback.test.ts`: by strike, an arrow by its speed, Air, less for a heavier enemy, never mid-blow, through the
   wall, into the air or into a stun-lock; a blocked hit's pushback, and its chip doubled against the wall; none on a
   player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
-  quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina),
-  the defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double
-  cost, running out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost
-  stamina and recoil, getting in first, too early, mashing; no parry by a swing; the guard rising by heft and the
-  window by blade length; the push by guard, less for a stronger or steadier blocker; the chip doubled backed against
-  the wall, part of it with part of the room, none extra in the open), the swordsman
-  (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
-  block and the swing after, chains by its seed and through a save, its landed hits only hurting, a stagger or a
+  quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina; the
+  feint and its recovery), a swing's hold on the body (`weapons/commit.test.ts`, a player and a swordsman alike: the
+  quarter-pace walk, the live carry, a whiff's longer recovery and carry with presses waiting it out, the live blade's
+  turn cap and its hit turning with it), the defences (`weapons/defend.test.ts`: the held block, any way in front,
+  stamina and the chip, a heavy's double cost, running out breaking it, its slow drain, not the back; the perfect
+  block, in the window, the attacker's lost stamina and recoil, getting in first, too early, mashing; no parry by a
+  swing; the guard rising by heft and the window by blade length; the push by guard, less for a stronger or steadier
+  blocker; the chip doubled backed against the wall, part of it with part of the room, none extra in the open), the
+  swordsman (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its
+  perfect block and the swing after, chains by its seed and through a save, its landed hits only hurting, a stagger or a
   perfect block's recoil dropping its chain and its answer for its whole cooldown and a fresh opening wind-up, its
   recovery by heft), every attack's cooldown restarting after a stagger (`behaviors/brain.test.ts`: the boar's bite
   and charge, the wolf's leap, the lurker's slam), the wolf
@@ -1270,7 +1275,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter; stun: a stun or stagger, ending the attack under
                        way and restarting its cooldowns; roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
-                       startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
+                       startWaySwing, endSwing, endChain, bladeLive; handsOf), commit.ts (what a swing holds its
+                       wielder to, players and swordsmen alike: committed, carrySpeed, steer (the live blade's turn
+                       cap), feint and its recovery (canSwing); commitSystem, after the hits: a whiff
+                       overextends), defend.ts (defend: the perfect
                        block, the held block and its stamina or poise, its push and the chip raised against the
                        wall (pinnedShare), a projectile's `Shot` too; blocking, facingOf),
                        parry.ts (parries: a swing parried by a swing, or two clashing; the recoil by the swings'
@@ -2288,7 +2296,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
-| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
+| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint and its recovery, the clash's stagger, the lunge, the walk while swinging, the live blade's turn cap, a whiff's overextension; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
 | Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share and its chip against the wall; a body blow's push and the hitstun it gives a player; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |

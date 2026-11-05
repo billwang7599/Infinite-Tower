@@ -15,7 +15,7 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "light", way: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
-  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12,
+  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, whiffed: false,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -87,6 +87,7 @@ describe("a fight's hash", () => {
       ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).combo = "lr"; }],
       ["the chain's momentum", (f) => { f.world.require(f.players[0]!, Wielder).momentum += 0.5; }],
       ["the time left to chain", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
+      ["a feint's recovery", (f) => { f.world.require(f.players[0]!, Wielder).feintRecoverSteps += 1; }],
       ["the aimed way", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.way = p.way === "tb" ? "lr" : "tb";
@@ -158,6 +159,7 @@ describe("a fight's hash", () => {
       ["its damage", (s) => { s.damage += 1; }],
       ["its poise damage", (s) => { s.poiseDamage += 1; }],
       ["when it draws back", (s) => { s.driveAt += 1; }],
+      ["whether it whiffed", (s) => { s.whiffed = !s.whiffed; }],
     ];
     for (const [who, newFight] of [["the player's", busyFight], ["the swordsman's", swordFight]] as const) {
       for (const [what, change] of swingChanges) {

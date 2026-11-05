@@ -49,8 +49,8 @@ export function parries(world: World, events: FightEvent[], attacker: Entity, hi
   // The weapon system has run this step, so the swing's clock is one on.
   const sinceLive = mine.step - 1 - mine.liveAt;
   if (Math.abs(sinceLive) <= CLASH_STEPS) {
-    recoil(world, attacker, baseTime(kind));
-    recoil(world, target, baseTime(kind));
+    recoil(world, attacker, HYBRID.parry.clashStaggerTime);
+    recoil(world, target, HYBRID.parry.clashStaggerTime);
     events.push({ type: "parry", by: target, target: attacker, clash: true });
   } else if (sinceLive > 0 && sinceLive <= windowSteps(world, target)) deflected(world, events, target, attacker, kind);
   else if (sinceLive < 0 && -sinceLive <= windowSteps(world, attacker)) deflected(world, events, attacker, target, kind);
