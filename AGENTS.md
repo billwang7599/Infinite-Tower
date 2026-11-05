@@ -613,6 +613,21 @@ Decided by the user:
   the other hand, and block by guard (the sword's guard, below). A switch eases both hands into their new places as
   a change of guard does (the user: "duel wield makes it so when switching hands the other hand teleports into
   position").
+- A lone blade is held in both hands (the user: "the two handed sword is just when only 1 sword is equipped, it auto
+  sets that as two hands. the animation/grip poses should change"): a melee weapon with nothing in the other hand is
+  gripped two-handed, players and enemies alike (Bram holds one blade, so he does too); anything in the other hand (a
+  skillbook, a shield, a second blade) makes it one-handed. The Kobolds stay one-handed (the user: "i want the kobalts
+  to stay one handed"): each one's wielder data says so (`oneHanded` in its `hands`, which `gripOf` reads), so a Kobold
+  grips its weapon in one hand even with the other empty. No toggle: Q does nothing with one blade. A bow keeps its own.
+  One rule, `gripOf` (`shared/src/weapons/kinds.ts`), that the guard (`guardOf`) and the poses ask. Looks only so far
+  (the strength it brings is a later PR). The poses are the agent's, tried by tests and a headless browser, not
+  hand-played: both hands on the hilt, the off hand a hand-width under the sword hand (`OFF_GRIP_M`, 0.1 m), through the
+  guard, every swing and stab and the block; it eases on and off the grip as the other hand's thing is taken up or put
+  down (over `GUARD_SHIFT`, as a change of guard) and lets go to chant, cast, write, eat or open the bag. Every hilt is
+  long enough for two hands now (`GRIP_M`, 0.3 m; the greatswords' 0.42). In third person the short arms can't follow a
+  swing round together, so the hilt's middle stays before the chest and the blade turns round it, lifted over the
+  shoulder where it would point back (`TWO_HANDED`), and both arms reach it straight, elbows out, sinking up to about 7
+  cm into a wide chest at worst.
 - The sword's guard is realistic (the user: "sword when aiming should be more realistic. ie edge always facing the
   enemy, and the plane that the sword makes should be parallel to the plane we're looking at"): aimed, the blade lies in
   the plane its cut sweeps through (the cut's line across the view and the way ahead), toward where the cut starts, its

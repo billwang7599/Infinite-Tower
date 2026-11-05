@@ -52,7 +52,8 @@ function play(def: EnemyDef, seed: number, next: (fight: Fight) => PlayerInputDa
 
 describe("the Kobold Shieldbearer", () => {
   test("is a Kobold with a kobold blade and a shield, so it guards as a shield does", () => {
-    assert.deepEqual(SHIELDBEARER.wielder?.hands, { rightHand: "kobold-blade", leftHand: "wooden-shield" });
+    const { rightHand, leftHand } = SHIELDBEARER.wielder!.hands;
+    assert.deepEqual([rightHand, leftHand], ["kobold-blade", "wooden-shield"]);
     assert.equal(guardOf({ rightHand: "kobold-blade", leftHand: "wooden-shield" })?.kind, "shield");
     assert.equal(SHIELDBEARER.wielder?.armReachM, SWORDSMAN.wielder?.armReachM);
   });

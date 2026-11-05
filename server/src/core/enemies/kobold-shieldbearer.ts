@@ -20,7 +20,7 @@ export const KOBOLD_SHIELDBEARER: Enemy = {
         perfectBlockChance: 0.2, parryChance: 0,
       },
     },
-    wielder: { hands: { rightHand: "kobold-blade", leftHand: "wooden-shield" }, armReachM: 0.8 },
+    wielder: { hands: { rightHand: "kobold-blade", leftHand: "wooden-shield", oneHanded: true }, armReachM: 0.8 },
   },
   drops: [{ item: "kobold-shieldbearer-essence", chance: 1, count: 1 }],
   treasure: { uncommon: 0.05, rare: 0.015, epic: 0.004, legendary: 0.001, unique: 0.0002 },

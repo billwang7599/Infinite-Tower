@@ -16,6 +16,7 @@ import type { ArenaScene } from "./scene.js";
 import { glintOf, WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
 
 export const BLADE_FROM_M = 0.14;
+export const GRIP_M = 0.3;
 const THICKNESS_SHARE = 0.35;
 const TEXTURE_LEVEL = 1.15;
 const STEEL_GLOW = 0.2;
@@ -117,7 +118,7 @@ export function buildBlade(scene: Scene, hand: TransformNode, look: WeaponLook, 
     m.material = material;
     return m;
   };
-  const gripM = look.twoHanded ? 0.42 : 0.2, art = bladeArt(look), blade = bladeMesh(scene, look, art);
+  const gripM = look.gripM ?? GRIP_M, art = bladeArt(look), blade = bladeMesh(scene, look, art);
   blade.material = materials.steel;
   if (art) materials.steel.diffuseTexture = bladeTexture(scene, look, art);
   // Against the arena's dark floor its shaded side would vanish.

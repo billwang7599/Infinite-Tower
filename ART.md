@@ -335,16 +335,23 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     ahead), toward where the cut starts and leaning ahead by how high that is (`GUARD_LEAN`), its edge toward the
     foe (`edgeToward`); through a swing the edge leads it round that plane (`edgeLeading`); a stab's edges are level.
     Blocking is posed by what blocks (`BLOCK`, `guardPose` in `battle/guard.ts`): one blade held across the body,
-    edge out, the other hand under it (a two-handed blade's too); two crossed in an X above the hands, edges out, a
-    blade's width apart where they cross; a shield raised before the chest, facing the foe, the sword kept in its
-    guard. A change of guard, or into or out of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's or
-    the shield's felt heft), a near half turn going over the top rather than under; a swing still takes over by its own
-    timing (`easeArms` in `animation.ts`). An enemy blocks in the same stance (Bram as a person; the Kobolds' own rig
-    through `guardPose`, its spots measured lower and further out, `KOBOLD_GUARD_FIT`, to clear the snout and the
+    edge out, the other hand under it (held in both hands, both on its grip); two crossed in an X above the hands,
+    edges out, a blade's width apart where they cross; a shield raised before the chest, facing the foe, the sword kept
+    in its guard. A change of guard, or into or out of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's
+    or the shield's felt heft), a near half turn going over the top rather than under; a swing still takes over by its
+    own timing (`easeArms` in `animation.ts`). An enemy blocks in the same stance (Bram as a person; the Kobolds' own
+    rig through `guardPose`, its spots measured lower and further out, `KOBOLD_GUARD_FIT`, to clear the snout and the
     leaning chest; the Kobold Shieldbearer carries its shield by `carryPose` and raises it), raised while the fight
     has its block up and eased in and out over the same `GUARD_SHIFT`.
     Switching hands with a blade in each eases both hands to their new places over the same time, mid-swing too,
     each blade staying in its hand.
+    A lone blade is held in both hands (`gripOf`): the off hand on the grip a hand-width under the sword hand
+    (`OFF_GRIP_M`), through the guard, every swing and the block, eased on and off it over the same time as the
+    other hand's thing is put down or taken up, and let go to chant, cast, write, eat or open the bag. The body's arms
+    are too short to follow a swing round together, so there the hilt's middle stays before the chest, turning with it,
+    and the blade turns round it, lifted over the shoulder where it would point back (`TWO_HANDED`); both arms reach
+    the hilt straight, elbows out, and where the off hand falls short the hilt moves to it (`holdHilt`). The Kobolds
+    stay one-handed (`oneHanded` in their wielder data).
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
     as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps). Each key is reached mostly at
@@ -370,7 +377,7 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     are placeholders, like the bow (AGENTS.md's "Bows").
     In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
     in view: posed for a fixed first-person view, the other hand pulled most of the way toward a spot low on the
-    screen left of the middle (right of it for the left hand); a two-handed grip stays on the weapon. The aimed way's
+    screen left of the middle (right of it for the left hand), or on the grip under the sword hand. The aimed way's
     guard is placed from the eye (`FP_GUARD`): the sword hand toward where the cut starts (the top guard's right of
     the crosshair under it, the sides' out low, the low ones' out at the bottom), off the line through the middle that
     way so a little of the blade's flat shows past its edge, the blade in the cut's plane through the view and its
@@ -396,8 +403,9 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     Others, and you in third person, see the pose as it is.
   - **Arms go round the body** (`reachRound` in `arm.ts`, the enemies' arms too): bent to reach the pose's hands, a
     hand aimed inside the torso comes out onto it, a held blade's line is kept off it, the elbow swings out as little
-    as keeps the arm clear, and a hand the arm can't reach round the body (the bow's string, a two-handed grip far
-    across) stops short, out in front of the shoulder.
+    as keeps the arm clear, and a hand the arm can't reach round the body (the bow's string) stops short, out in front
+    of the shoulder. A two-handed grip is the exception: both arms reach the hilt straight, and may sink a little into
+    the chest.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

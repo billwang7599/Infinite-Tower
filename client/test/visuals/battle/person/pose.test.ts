@@ -190,22 +190,36 @@ describe("the 3D player's guard and block", () => {
   const blocking = (guard: "one" | "dual" | "shield", side: 1 | -1 = 1, twoHanded = false) =>
     pose(playerDoing("block", 1, "rl"), null, { side, guard, twoHanded });
 
-  test("one blade blocks held across the body, its edge out, the other hand under it, a two-handed grip too", () => {
+  test("one blade blocks held across the body, its edge out, the other hand under it, or with it on the grip", () => {
     const lengthM = WEAPON_LOOKS.sword.blade.lengthM;
     for (const side of [1, -1] as const) {
       for (const twoHanded of [false, true]) {
         const p = blocking("one", side, twoHanded), what = `${side}${twoHanded ? " two-handed" : ""}`;
         assert.ok(Math.abs(p.blade.x) > 0.85 && p.blade.x * side < 0, `${what}: across, toward the other side`);
-        assert.ok(p.hand.x * side > 0 && p.hand.z > 0.15, `${what}: the sword hand out ahead on its own side`);
         assert.ok(p.edge && dot(p.edge, FORWARD) > 0.8, `${what}: the edge toward the foe`);
+        assert.deepEqual(p.held, { way: "rl", block: "one" });
+        assert.equal(p.gripped, twoHanded, `${what}: on the grip`);
+        if (twoHanded) {
+          assert.ok(Math.abs(p.hand.x) < BUILD.shoulderM && p.hand.z > 0.15, `${what}: the hilt before the chest`);
+          continue;
+        }
+        assert.ok(p.hand.x * side > 0 && p.hand.z > 0.15, `${what}: the sword hand out ahead on its own side`);
         const ta = dot(sub(p.offHand, p.hand), p.blade), m = length(sub(p.offHand, along(p.hand, p.blade, ta)));
         assert.ok(ta > BLADE_FROM_M + 0.1 && ta < BLADE_FROM_M + lengthM / 2, `${what}: the other hand ${ta} m along`);
         assert.ok(m < 0.07 && p.offHand.y < along(p.hand, p.blade, ta).y, `${what}: under the blade, ${m} m off`);
-        assert.equal(p.gripped, false, `${what}: off the grip`);
-        assert.deepEqual(p.held, { way: "rl", block: "one" });
       }
     }
-    assert.equal(pose(playerDoing("none", 1, "rl"), null, { guard: "one", twoHanded: true }).gripped, true);
+  });
+
+  test("a blade alone is held in both hands, but the off hand lets go to chant, cast, write, eat or rummage", () => {
+    for (const action of ["none", "attack", "block", "dodge", "stagger"] as const) {
+      assert.equal(pose(playerDoing(action, 0.5), null, { guard: "one", twoHanded: true }).gripped, true, action);
+    }
+    for (const action of ["chant", "cast", "beam", "write", "use", "bag"] as const) {
+      assert.equal(pose(playerDoing(action, 0.5), null, { guard: "one", twoHanded: true }).gripped, false, action);
+    }
+    assert.equal(pose(playerDoing("none", 0.5), null, { guard: "one" }).gripped, false, "one-handed");
+    assert.equal(pose(playerDoing("none", 0.5), null, { twoHanded: true, alive: false }).gripped, false, "down");
   });
 
   test("two blades block crossed in an X, edges out, meeting above the hands without passing through", () => {

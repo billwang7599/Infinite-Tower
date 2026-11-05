@@ -1338,8 +1338,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    weaponHandIn (the hand that swings: the active one's weapon first, Hands.active);
                    AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
-                   meleeOf, rangedOf, meleeIn: what the fight branches on; dualWielding, guardOf: the hands'
-                   guard), bow.ts (BOW: the bow's placeholder draw, nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
+                   meleeOf, rangedOf, meleeIn: what the fight branches on; dualWielding; gripOf: how the hands hold
+                   (a lone melee weapon in both unless the hands say oneHanded, as the Kobolds' do; one, two blades
+                   or a shield), which the poses ask and guardOf, the hands' guard, follows), bow.ts (BOW: the bow's placeholder draw, nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, drawnPower (Minecraft's draw
                    curve), loosedDamage, loosedSpeed, flightAfter (where an arrow is and how fast it goes some time
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
@@ -1901,7 +1902,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
                          tested), animation.ts (framePerson: the model built again when the look or what's worn
                          changes, the gait from the ground speed, the pose on the joints, both arms bent to the pose's
-                         hand targets round the torso by reachArms and reachWith (reachRound), the 3D blade on grip.R
+                         hand targets round the torso by reachArms and reachWith (reachRound), or straight onto one
+                         hilt held in both (reachBoth, holdHilt, eased by the pose's grip), the 3D blade on grip.R
                          or grip.L (handSide: a bow always in the left, a shield always the other hand) and a second
                          blade or a shield on the other (placeHeld; switching hands, each blade stays in its hand);
                          easeArms, the arms eased to the pose (a swing by its set, a change of guard or block, or of
@@ -2264,7 +2266,7 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
 - **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },
   armReachM }`) gives it a `Wielder`; a `weapon` attack makes it fight like the Kobold, or its own AI calls
   `startSwing` (`fight/weapons/swing.ts`) with the attack's kind, side and place in its chain. The weapon system does
-  the rest. A 3D model draws its blade from `WEAPON_LOOKS` (two-handed or not) and moves it with its weapon kind's
+  the rest. A 3D model draws its blade from `WEAPON_LOOKS` and moves it with its weapon kind's
   `MOTIONS` row, in the hand of an arm from `visuals/battle/arm.ts`; its pose puts the hand and turns the body ahead of
   the blade. Hand the arm its body's lofts (`ArmLook.body`) and `poseArm` the blade, and the arm and blade go round the
   body.

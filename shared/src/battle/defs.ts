@@ -6,6 +6,7 @@ import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 import type { Modifier, Segment, SkillElement } from "../skills/skill.js";
 import type { Stats } from "./stats.js";
+import type { Hands } from "../weapons/weapons.js";
 
 /** Damage is at strength 10. */
 export interface AttackDef {
@@ -148,7 +149,7 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   attacks: EnemyAttacks;
-  wielder?: { hands: Partial<Record<Hand, ItemId>>; armReachM: number };
+  wielder?: { hands: Partial<Record<Hand, ItemId>> & Pick<Hands, "oneHanded">; armReachM: number };
   sidestep?: SidestepDef;
   keepAway?: { nearM: number; farM: number };
   resist?: Partial<Record<SkillElement, number>>;

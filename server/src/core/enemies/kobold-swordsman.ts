@@ -23,7 +23,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
         firstDelay: 1.5, blockReactTime: 0.3, perfectBlockChance: 0.3, parryChance: 0.15,
       },
     },
-    wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },
+    wielder: { hands: { rightHand: "kobold-blade", oneHanded: true }, armReachM: 0.8 },
     sidestep: { chance: 0.6, reactTime: 0.25, leadTime: 0.1, speed: 8, stepTime: 0.3 },
   },
   // Its own blade never drops.

@@ -55,6 +55,7 @@ const ARM_SAMPLES = 4;
 const BLADE_STEP_M = 0.05;
 /** Of the arm's length, ahead of the shoulder: where a hand goes that can't get round the body. */
 const SAFE_REACH = 0.7;
+const SAFE_SEARCH_STEPS = 10;
 
 const toPart: Matrix[] = [];
 const local = new Vector3(), shoulderAt = new Vector3(), targetAt = new Vector3(), poleAt = new Vector3();
@@ -183,7 +184,7 @@ export function reachRound(
     goal.copyFrom(targetAt);
     ahead.normalizeToRef(safe).scaleInPlace(reachOf(bones) * SAFE_REACH).addInPlace(shoulderAt);
     let near = 0, far = 1;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < SAFE_SEARCH_STEPS; i++) {
       const mid = (near + far) / 2;
       Vector3.LerpToRef(goal, safe, mid, targetAt);
       if (clearTarget(c, bones, blade) > 0) near = mid;

@@ -1,8 +1,8 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
   AVERAGE_STAT, Body, clamp, drawnPower, drawTime, dualWielding, FighterStats, Health, Player, rangedOf, SCREEN_DIR,
-  Skilled, weaponIn, Wielder, type Hand, type Hands,
-  type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type World,
+  Skilled, weaponIn, Wielder, type Hand,
+  type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type WielderData, type World,
 } from "@infinite-tower/shared";
 import { AIMING } from "../../modes/battle/aim.js";
 import { LocalPlayer } from "../../modes/components.js";
@@ -59,7 +59,7 @@ function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number
 
 export function aimHud(
   player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
-  weapon: Weapon | null = null, strength = AVERAGE_STAT, panned = false, hands: Required<Hands> | null = null,
+  weapon: Weapon | null = null, strength = AVERAGE_STAT, panned = false, hands: WielderData["hands"] | null = null,
 ): AimHud {
   if (hp <= 0 || !fighting) return { ring: null, crosshair: false, dot: false, meter: null, hand: null };
   return {
