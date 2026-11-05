@@ -4,11 +4,22 @@ import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaLookDef } from "../index.js";
 import {
-  boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft,
+  boulder, floor, hazedRings, litRound, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft, type FarSprite,
 } from "../parts.js";
 
 const STONES = 30;
 const SKY = new Color3(0.33, 0.29, 0.31);
+
+const FAR_PINE: FarSprite = {
+  widthPx: 26, heightPx: 64, heightM: 9.1,
+  draw(pen) {
+    for (const [top, bottom, half] of [[22, 64, 13], [0, 36, 8.5]] as const) {
+      for (let y = top; y < bottom; y++) {
+        litRound(pen, 13, y, Math.max(1, Math.round(half * (y - top + 1) / (bottom - top))), y === bottom - 1);
+      }
+    }
+  },
+};
 
 function build(ctx: ArenaScene, radius: number) {
   const { scene } = ctx;
@@ -51,11 +62,7 @@ function build(ctx: ArenaScene, radius: number) {
   crownHigh.material = needles;
   const trees = ringSpots(rand, 80, radius + 4, radius + 30, 0.8, 1.7);
   scatter(ctx, root, [[trunk, 1.5], [crownLow, 3.8], [crownHigh, 5.6]], trees);
-  const tiers = [cone("forest-far-crown", 6, 0, 3.6), cone("forest-far-top", 5, 0, 2.4)];
-  tiers[1]!.position.y = 3.6;
-  const farCrown = Mesh.MergeMeshes(tiers, true)!;
-  farCrown.name = "forest-far-crown";
-  hazedRings(ctx, root, own, farCrown, 3, { color: new Color3(0.1, 0.19, 0.15), sky: SKY },
+  hazedRings(ctx, root, own, "forest-far-pine", FAR_PINE, { color: new Color3(0.1, 0.19, 0.15), sky: SKY },
     { rand, count: 72, near: radius + 30, far: radius + 50 });
 
   // Broadleaves between the pines, a lighter green so the treeline reads in layers.

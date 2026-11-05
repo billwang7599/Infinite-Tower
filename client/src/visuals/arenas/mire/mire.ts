@@ -5,7 +5,9 @@ import { colorMaterial } from "../../materials.js";
 import type { MapLight } from "../../sky/sky.js";
 import { setWater, waterMaterial, type WaterLook } from "../../water/water.js";
 import type { ArenaLookDef } from "../index.js";
-import { boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled } from "../parts.js";
+import {
+  boulder, floor, hazedRings, litRound, lookRoot, patches, ringSpots, scatter, settle, speckled, type FarSprite,
+} from "../parts.js";
 
 const STUMPS = 34;
 const SKY = new Color3(0.25, 0.27, 0.26);
@@ -23,6 +25,19 @@ const POOLS: WaterLook = {
   waveHeightTiles: 0,
   foam: new Color3(0.32, 0.36, 0.2),
   foamTiles: 0.12,
+};
+
+const FAR_SNAG: FarSprite = {
+  widthPx: 40, heightPx: 80, heightM: 11,
+  draw(pen) {
+    const branch = (fromX: number, fromY: number, dx: number, length: number, thick: number) => {
+      for (let i = 0; i < length; i++) litRound(pen, fromX + dx * i, fromY - i, thick * (1 - i / length) / 2 + 0.5);
+    };
+    branch(22, 34, 1, 15, 3);
+    branch(19, 44, -1, 13, 3);
+    branch(24, 22, 1, 6, 2);
+    for (let y = 0; y < 80; y++) litRound(pen, 20.5 + (80 - y) / 40, y, 0.5 + 2.5 * y / 80);
+  },
 };
 
 function lights(radius: number): MapLight[] {
@@ -122,10 +137,7 @@ function build(ctx: ArenaScene, radius: number) {
   }));
   scatter(ctx, root, [[cap, 0.1]], [...ringSpots(rand, 60, radius + 0.4, radius + 3, 0.6, 1.5), ...clumps], false);
 
-  const farTree = Mesh.MergeMeshes([branch(11, 0.9, 0.04, 0, 0), branch(4, 0.3, 0.8, 1.2, 2.5),
-    branch(3.4, 0.25, -0.9, 3.9, 1.8)], true)!;
-  farTree.name = "mire-far-tree";
-  hazedRings(ctx, root, own, farTree, 5.5, { color: new Color3(0.14, 0.14, 0.12), sky: SKY },
+  hazedRings(ctx, root, own, "mire-far-snag", FAR_SNAG, { color: new Color3(0.14, 0.14, 0.12), sky: SKY },
     { rand, count: 42, near: radius + 30, far: radius + 48 });
   const log = MeshBuilder.CreateCylinder("mire-log", { height: 3.2, diameterTop: 0.35, diameterBottom: 0.5,
     tessellation: 7 }, scene);
