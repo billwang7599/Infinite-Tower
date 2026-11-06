@@ -83,6 +83,10 @@ Character and progression ([plan/core.md](plan/core.md)):
 - The core is the progression: five realms of three steps filled with monster essence, shown as a glowing sphere whose
   light grows, never a bar.
 - Every step raises every stat and gives free points; points can always be taken back, for some effort.
+- Scaling (the user: "scaling should feel rewarding, as leveling up should be exponentially harder per stage"): each
+  step takes exponentially more kills of its own realm's foes, by one rule; each step is a clear jump in power;
+  enemies keep up by a fixed growth per area, not by the player's; equal realms fight alike at every step; buffs stop
+  at a cap. The numbers are the agents' (plan/agent-picks.md).
 - Dying is hardcore: all you carry drops where you fell and the core loses its fill (or a step). Words, skillbook
   pages, the story and inscriptions are kept.
 - HP and stamina carry over between fights and connections.
@@ -98,8 +102,13 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
   physics, not sculpting.
 - One sword system: light, heavy, stab, a held block with a perfect block, a swing parry, a dodge. No kick. A swing's
   way comes from a mouse flick (seven ways, no upward swing); locked on, attacks go where you face.
-- A weapon is data: its heft scales every time and cost, and the wielder's strength scales heft and damage. Any weapon
-  at any strength, only slower. A lone blade is held in both hands, putting in 1.5× the strength.
+- A weapon is data: its heft scales every time and cost. Strength mostly adds damage; it quickens swings at most
+  about 25% (the user: "id say 20%-30%. so making a strenght build still makes sense i think. i want it to most affect
+  damage now"). Any weapon at any strength, only slower. A lone blade is held in both hands, putting in 1.5× the
+  strength, with no speed bonus of its own. A better weapon keeps its weight and only hits harder (the user: "higher
+  tier weapons would be around the same weight wise").
+- A swing's stamina never costs more as you grow, so stamina matters less the stronger you are, on purpose (the user:
+  "the more we level, the less we worry about trivial things like sword swings").
 - No preset timing tables: enemies swing by the player's math; balance goes through weapons, stats and pacing.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's

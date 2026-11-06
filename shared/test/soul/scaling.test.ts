@@ -1,0 +1,122 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import {
+  BASE_STATS, blockStaminaShare, CHAIN, CORE, CORE_STEPS, coreStats, damageTotal, essenceFactor, FELT_HEFT_FLOOR,
+  fillToFinish, grownStats, GUARDS, HYBRID, ITEM_IDS, itemDef, maxHpOf, newCore, physicalTakenFactor, pointsEarned,
+  realmOfSteps, staminaMaxOf, STEP_NAMES, strengthHeftFactor, strikeCost, strikeDamage, toSteps,
+  TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, windupTime, type ItemEffect, type Stats,
+} from "@infinite-tower/shared";
+
+const SWORD = WEAPONS.sword;
+const ESSENCE_WORTHS = ITEM_IDS.flatMap((id) => {
+  const effects: readonly ItemEffect[] = itemDef(id).consumable?.effects ?? [];
+  return effects.flatMap((effect) => ("essence" in effect ? [effect.essence] : []));
+});
+const atStep = (steps: number): Stats => coreStats({ ...newCore(), steps });
+const lightHit = (by: Stats, on: Stats) =>
+  damageTotal(strikeDamage(SWORD, "light", 1, by)) * physicalTakenFactor(on);
+const hitsToKill = (by: Stats, on: Stats) => maxHpOf(on) / lightHit(by, on);
+const STEPS = Array.from({ length: CORE_STEPS }, (_, i) => i);
+
+describe("the cost of a step, in kills", () => {
+  // The player working on step n is in that step's realm, so kills are of foes grown as far as their core.
+  const kills = (n: number, worth: number) => fillToFinish(n) / (worth * essenceFactor(n - 1));
+
+  test("every kind of foe of the step's realm takes killGrowth times as many kills each step", () => {
+    assert.ok(CORE.killGrowth > 1);
+    for (const worth of ESSENCE_WORTHS) {
+      for (let n = 2; n <= CORE_STEPS; n++) {
+        const growth = kills(n, worth) / kills(n - 1, worth);
+        assert.ok(Math.abs(growth - CORE.killGrowth) < 0.01, `step ${n}, worth ${worth}: ×${growth}`);
+      }
+    }
+  });
+
+  test("the first step is a handful of the weakest foe's kills", () => {
+    const weakest = Math.min(...ESSENCE_WORTHS);
+    assert.ok(kills(1, weakest) <= 6, `${kills(1, weakest)}`);
+  });
+
+  test("a foe a realm higher gives realmEssenceFactor times the essence", () => {
+    assert.equal(essenceFactor(0), 1);
+    assert.equal(essenceFactor(STEP_NAMES.length), CORE.realmEssenceFactor);
+    assert.equal(realmOfSteps(CORE_STEPS), realmOfSteps(CORE_STEPS - 1));
+  });
+});
+
+describe("each step is a clear jump", () => {
+  test("against the same foe, damage dealt times HP held grows at least 15% a step", () => {
+    const foe = atStep(0);
+    for (const steps of STEPS) {
+      const before = atStep(steps), after = atStep(steps + 1);
+      const power = (s: Stats) => lightHit(s, foe) * hitsToKill(foe, s);
+      assert.ok(power(after) / power(before) >= 1.15, `step ${steps + 1}: ×${power(after) / power(before)}`);
+    }
+  });
+});
+
+describe("equal realms fight alike at every step", () => {
+  test("hits to kill an equal foe stay within 10% of the first step's", () => {
+    const first = hitsToKill(BASE_STATS, BASE_STATS);
+    for (const steps of [...STEPS, CORE_STEPS]) {
+      const s = atStep(steps), hits = hitsToKill(s, s);
+      assert.ok(Math.abs(hits / first - 1) <= 0.1, `step ${steps}: ${hits} hits, ${first} at the start`);
+    }
+  });
+
+  test("blocks of an equal foe's light that one bar holds stay within 10% of the first step's", () => {
+    const blocks = (s: Stats) => staminaMaxOf(s) / (lightHit(s, BASE_STATS) * blockStaminaShare(GUARDS.one, s.strength));
+    const first = blocks(BASE_STATS);
+    for (const steps of [...STEPS, CORE_STEPS]) {
+      const ratio = blocks(atStep(steps)) / first;
+      assert.ok(Math.abs(ratio - 1) <= 0.1, `step ${steps}: ×${ratio}`);
+    }
+  });
+
+  test("a foe grown as far as a core has a core's stats", () => {
+    for (const steps of [0, 4, CORE_STEPS]) assert.deepEqual(grownStats(BASE_STATS, steps), atStep(steps));
+  });
+});
+
+describe("stamina", () => {
+  test("a swing never costs more as the core grows, so the bar matters less and less", () => {
+    for (const steps of STEPS) {
+      const cost = (n: number) => strikeCost(SWORD, "light", atStep(n).strength);
+      assert.ok(cost(steps + 1) <= cost(steps), `step ${steps + 1}`);
+    }
+  });
+});
+
+describe("strength quickens swings only so far", () => {
+  const whole = { ...newCore(), steps: CORE_STEPS };
+  const allIn = coreStats({ ...whole, points: { strength: pointsEarned(whole) } }).strength;
+  const strongest = allIn * TWO_HAND_STRENGTH_FACTOR;
+
+  test("everything in strength by Peak Tian swings 20-30% quicker than at 10, and no strength past 30%", () => {
+    const quicker = 1 - strengthHeftFactor(allIn);
+    assert.ok(quicker >= 0.2 && quicker <= 0.3, `${quicker}`);
+    assert.ok(FELT_HEFT_FLOOR >= 0.7);
+    assert.ok(strengthHeftFactor(1e12) > FELT_HEFT_FLOOR);
+  });
+
+  for (const item of ["sword", "longsword", "greatsword"] as const) {
+    test(`at the strongest grip, a ${item}'s heavy still winds up slower than its light, past the floor`, () => {
+      const at = (strike: "light" | "heavy") =>
+        wayStepsAfter(WEAPONS[item], windupTime(strike, "opening"), strike === "heavy", strongest);
+      const light = at("light"), heavy = at("heavy");
+      assert.ok(light.liveAt >= toSteps(CHAIN.minWindupTime));
+      assert.ok(heavy.liveAt - light.liveAt >= toSteps(HYBRID.heavy.extraTime * FELT_HEFT_FLOOR) - 1, item);
+    });
+
+    test(`at the strongest grip, a ${item} is live and recovers at least the floor's share of its times`, () => {
+      for (const heavy of [false, true]) {
+        const steps = wayStepsAfter(WEAPONS[item], windupTime(heavy ? "heavy" : "light", "opening"), heavy, strongest);
+        const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
+        const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
+        const heft = WEAPONS[item].heft / SWORD.heft;
+        assert.ok(steps.liveUntil - steps.liveAt >= toSteps(live * heft * FELT_HEFT_FLOOR), `${item} live`);
+        assert.ok(steps.endAt - steps.liveUntil >= toSteps(recover * heft * FELT_HEFT_FLOOR), `${item} recovery`);
+      }
+    });
+  }
+});

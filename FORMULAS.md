@@ -8,16 +8,19 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 ## Stats
 
 `shared/src/battle/stats.ts`. A player's stats come from their core; an enemy's are in its file in
-`server/src/core/enemies/`.
+`server/src/core/enemies/`, grown by its area's core steps (Enemies). Every effect goes × (stat / 10)^power, the
+power its row in `STAT_POWERS`. Damage's power is the bars' plus defense's, so fighters with equal stats take as many
+hits to kill each other at every step.
 
-- **HP** = `HP_PER_VITALITY` × vitality. **Stamina bar** = `STAMINA_PER_POINT` × stamina.
-- **Physical damage** × √(strength / 10); **skill damage** × √(skillpower / 10).
-- **Walking and dodging** × (agility / 10)^¼, in the arena and on the overworld.
-- **Damage taken** × (`DEFENSE_OFFSET` + 10) / (`DEFENSE_OFFSET` + defense), special defense for skills.
-- **Stuns and staggers** × 10 / toughness. **Stamina refill** × stamina recovery / 10.
-- **HP regen** a second = vitality × health regen / `HP_REGEN_DIVISOR`, paused after any damage
+- **HP** = `BASE_HP` (an enemy: its own `maxHp`) × (vitality / 10)^bar. **Stamina bar** = `BASE_STAMINA` ×
+  (stamina / 10)^bar. Both whole.
+- **Physical damage** × (strength / 10)^damage; **skill damage** × (skillpower / 10)^damage.
+- **Walking and dodging** × (agility / 10)^move, in the arena and on the overworld.
+- **Damage taken** × (10 / defense)^defense, special defense for skills.
+- **Stuns and staggers** × (10 / toughness)^toughness. **Stamina refill** × (stamina recovery / 10)^staminaRecovery.
+- **HP regen** a second = the most HP × health regen / 10 × `HP_REGEN_SHARE_PER_SEC`, paused after any damage
   (`HP_REGEN_PAUSE_TIME`); players only.
-- **Carry limit** = `CARRY_LIMIT_AT_AVERAGE` × (strength / 10)^¼.
+- **Carry limit** = `CARRY_LIMIT_AT_AVERAGE` × (strength / 10)^carry.
 - **Pushback taken** (a player) = 1 / ((strength / 10)^a × (steadiness / 10)^b), clamped (`KNOCKBACK_TAKEN`); an
   enemy's is its own `knockbackFactor`.
 - When stats change, a bar that grows adds what it grew; one that shrinks only cuts what's in it (`grownVitals`).
@@ -26,12 +29,14 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 
 `CORE` in `shared/src/soul/core.ts`. Realms of steps, each finished by filling it with essence.
 
-- **Fill to finish step n** = `firstFill` × 2^((n − 1) / `fillDoublingSteps`). Essence past a step carries into the
-  next; a whole core takes no more.
+- **Fill to finish step n** = `firstFill` × `killGrowth`^(n − 1) × `realmEssenceFactor`^realm, the realm the step is
+  in (0 for Yan). So step n takes `killGrowth`^(n − 1) times the first step's kills of foes of its own realm, whatever
+  the foe. Essence past a step carries into the next; a whole core takes no more.
 - **A step gives** every shown stat `firstRealmGain` × `realmFactor`^realm, the hidden ones `hiddenGain`, and
   `firstRealmPoints` × `realmFactor`^realm free points.
 - **Death** takes the step's fill, or with none the step; points over what's left come off the biggest stats first.
-- **Essence** per monster is its item's `essence` effect (`shared/src/items/items.ts`).
+- **Essence** per monster is its item's `essence` effect (`shared/src/items/items.ts`), and it drops
+  `realmEssenceFactor`^realm of them, the realm of the core steps it has grown by (`essenceFactor`).
 
 ## Inscriptions and blessings
 
@@ -50,8 +55,11 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 - **Grip strength** = the wielder's strength × `TWO_HAND_STRENGTH_FACTOR` for a lone melee weapon held in both
   hands, else their own (`appliedStrength`, `shared/src/weapons/kinds.ts`). It's the strength in every weapon
   number below; the body's numbers (carry, pushback, walking) keep the wielder's own.
-- **Felt heft** = (heft / the Basic Sword's heft) × √(10 / grip strength). Every weapon time and stamina cost goes
-  × felt heft.
+- **Felt heft** = (heft / the Basic Sword's heft) × strength's factor, `FELT_HEFT_FLOOR` + (1 − `FELT_HEFT_FLOOR`) ×
+  10 / grip strength (`strengthHeftFactor`): 1 at 10, 0.87 at 20, 0.8 at 40, about 0.75 with every point in strength
+  at Peak Tian (25% quicker), never under the floor; over 1 for a weaker wielder. Every weapon time and stamina cost
+  goes × felt heft. A two-handed grip only adds strength, no speed of its own.
+- **Weapon tiers** keep their heft and raise only `quality` (damage): a better sword hits harder, not quicker.
 - **Wind-up** = max(`CHAIN.minWindupTime`, base × felt heft), the base by how the swing follows the same hand's last
   (opening, reverse, another line, perpendicular), a heavy's longer, a stab its own (`windupTime`, `wayStepsAfter`).
   Live and recovery times go × felt heft too; a whiff adds `whiffRecoverTime` × felt heft.
@@ -61,8 +69,9 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 - **Weapon damage** (`weaponDamage`): swing = `DAMAGE_PER_HEFT` × heft × quality, split by the profile into slash and
   blunt shares and a stab fraction, each rounded. A weapon with its own `baseDamage` splits that instead.
 - **A strike** deals the slash and blunt (× the heavy's factor) or only the stab, × momentum, each type
-  × √(grip strength / 10) and taken on its own (`strikeDamage`).
-- **Stamina** = the strike's `HYBRID` cost × felt heft (`strikeCost`).
+  × physical damage at grip strength (Stats) and taken on its own (`strikeDamage`).
+- **Stamina** = the strike's `HYBRID` cost × felt heft (`strikeCost`). It never grows with the core while the bar
+  does, so stamina matters less as you grow, on purpose.
 - **Reach** = (arm reach + blade length) × the swing's or stab's reach factor, in an arc by the swing's line
   (`wayShape`).
 - **The body**: walking × `swinging.moveFactor` from press to recovery, carried at `lungeSpeed` while live, the live
@@ -75,7 +84,8 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 
 - **Draw** costs `draw.cost` × felt heft; full after `draw.fullTime` × felt heft; a release before `draw.minTime`
   looses then.
-- **Damage** = the bow's damage × (`minDamageShare` + (1 − `minDamageShare`) × share drawn) × √(strength / 10).
+- **Damage** = the bow's damage × (`minDamageShare` + (1 − `minDamageShare`) × share drawn) × physical damage
+  (Stats).
 - **Speed** = `powerMps` × (t² + 2t) / 3, t the share drawn (Minecraft's draw curve).
 - **Flight**: dv/dt = g − k v (gravity and drag, `flightAfter`), solved exactly each step; unlocked it leaves straight
   for the crosshair's spot, locked on in the low arc that meets the target (`launchAt`).
@@ -83,7 +93,7 @@ average, `AVERAGE_STAT` (10); "s / 10" below means a stat over that average.
 
 ## Body blows
 
-An enemy's lunge, charge, pounce, slam or sweep: its `damage` × √(strength / 10), all blunt. Each blow's damage,
+An enemy's lunge, charge, pounce, slam or sweep: its `damage` × physical damage (Stats), all blunt. Each blow's damage,
 reach and knockback are in the enemy's file (`server/src/core/enemies/<id>.ts`).
 
 ## Hits and pushback
@@ -100,8 +110,9 @@ reach and knockback are in the enemy's file (`server/src/core/enemies/<id>.ts`).
 `HYBRID.block` and `GUARDS` in `hybrid.ts`; `fight/weapons/defend.ts`.
 
 - **Held block**, from in front: chip = damage × the guard's `chipFraction`; stamina = damage (× `heavyStaminaFactor`
-  for a heavy) × the guard's `staminaFactor` × 10 / grip strength (`blockStaminaShare`). A hit that takes the last
-  stamina breaks the guard for `brokenTime`. Holding drains `holdStaminaPerSec`. An enemy pays the hit's poise.
+  for a heavy) × the guard's `staminaFactor` × (10 / grip strength)^blockStamina (`blockStaminaShare`). A hit that
+  takes the last stamina breaks the guard for `brokenTime`. Holding drains `holdStaminaPerSec`. An enemy pays the
+  hit's poise.
 - **Against a wall**, chip × (1 + (`pinnedChipFactor` − 1) × the share of the slide the wall stops).
 - **Raise time** = max(0, `raiseTime` + `raiseTimePerHeft` × (felt heft − 1)) (`guardRaiseTime`).
 - **Perfect window** = `perfectTime` × blade length / `perfectAtLengthM` (`perfectBlockTime`), opened by a press not
@@ -138,9 +149,9 @@ i-frames, invulnerability and blocks.
 
 ## Stamina
 
-`PLAYER`; the controller in `fight/player/controller.ts`. Refill = `staminaRegenPerSec` × stamina recovery / 10 ×
-statuses, starting `staminaRegenDelay` after an action ends, not while attacking, dodging, casting, blocking or
-staggered; not on the overworld. Any stamina above 0 starts an attack or a dodge; a skill needs its whole cost.
+`PLAYER`; the controller in `fight/player/controller.ts`. Refill = `staminaRegenPerSec` × stamina recovery's factor
+(Stats) × statuses, starting `staminaRegenDelay` after an action ends, not while attacking, dodging, casting, blocking
+or staggered; not on the overworld. Any stamina above 0 starts an attack or a dodge; a skill needs its whole cost.
 Costs: strikes (above), a held block and blocked hits (Blocks), `PLAYER.dodge.cost` × burden, skills (below).
 
 ## Movement
@@ -164,13 +175,15 @@ walking × `overloadedPace`).
 
 - **Cost** = Σ over segments (form + elements + modifiers at their word costs) × `chainGrowth`^(segments − 1).
 - **Release time** = base + per word.
-- **D** (a skill's base damage) = `SKILL_EFFECTS.damage` × √(skillpower / 10) × the caster's damage dealt.
+- **D** (a skill's base damage) = `SKILL_EFFECTS.damage` × skill damage (Stats) × the caster's damage dealt.
 - **A hit** = Σ over its elements share × D × factor (no element: a plain share); factor = the modifiers' product
   (Amplify up, Split down) × the Form's share (a Beam tick, a cloud pulse, an Imbue hit). Statuses go on in full.
 - **Modifiers** apply in order to the shot built so far: a "×" one compounds, a "+" one adds (`shotOf`).
 - **Reactions** check after the stage's statuses go on, each with a cooldown per target.
 - **Statuses** multiply their stat factors per stack and across statuses (lifesteal adds); put on again, a status
-  keeps the longer time and gains a stack up to its cap (`STATUS_DEFS`).
+  keeps the longer time and gains a stack up to its cap (`STATUS_DEFS`). The product stops at `MOD_CAPS` (damage
+  dealt, damage taken, stamina refill, attack and dodge costs), however many buffs are on; a 0 (the First Door's
+  damage taken) stays 0.
 
 ## Damage taken
 
@@ -181,7 +194,11 @@ on its own. A spar floors HP at `TRAINING_YIELD_SHARE` of the most (`server/src/
 ## Enemies
 
 Each enemy's HP, poise, speeds, attacks, pacing, drops and overworld behaviour are in
-`server/src/core/enemies/<id>.ts`; their behaviours' rules in `shared/src/battle/fight/behaviors/`. Swordsmen take
+`server/src/core/enemies/<id>.ts`; their behaviours' rules in `shared/src/battle/fight/behaviors/`.
+
+- **Grown by core steps** (`enemyAt`): an enemy met in a region is grown by its `enemySteps` (a spawn's own `steps`
+  first): its stats gain what a core's gain over that many steps, and its HP goes by its vitality as a player's.
+  Training spars are never grown. Swordsmen take
 their timing from their weapon and strength (Weapon attacks); beasts keep their own attack timings.
 
 ## Encounters and drops

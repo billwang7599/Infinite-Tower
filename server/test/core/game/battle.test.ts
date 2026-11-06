@@ -7,7 +7,7 @@ import {
   type Equipment, type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
-import { ENEMIES } from "../../../src/core/enemies/index.js";
+import { ENEMIES, enemyAt } from "../../../src/core/enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
@@ -504,5 +504,17 @@ describe("the overworld after a battle", () => {
       tick(session);
     }
     assert.equal(link.all("encounter").length, 2);
+  });
+});
+
+describe("enemies grown by where they're met", () => {
+  const QUARRY = getRegion("old-quarry");
+
+  test("a region's enemies are grown by its enemy steps; the start's by none", () => {
+    assert.ok((QUARRY.enemySteps ?? 0) > 0);
+    assert.equal(REGION.enemySteps, 0);
+    const { session, link } = startSession({ cheats: true, saved: { pad: QUARRY.id } });
+    session.cheat({ kind: "encounter", enemy: "kobold-swordsman" });
+    assert.deepEqual(link.last("encounter").setup.enemies[0]?.def, enemyAt("kobold-swordsman", QUARRY.enemySteps));
   });
 });

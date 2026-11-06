@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ActiveHit, addItem, BASE_STATS, BLESSING_FAITH, blessingsOf, Body, BOW, BURDEN, carryLimit, coreStats, copyInput,
-  DAMAGE_TYPES, drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden, guardOf, guardRaiseTime,
-  Health, HYBRID, IDLE_INPUT, ITEMS, loosedDamage, maxHpOf, newCore, packFor, parryWindowTime, perfectBlockTime,
-  Stamina, staminaMaxOf, STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type Carried,
-  type CoreState, type Damage, type EnemyDef, type Equipment, type Faith, type Grip, type LungeDef,
-  type PlayerInputData, type Strike, type Vec3,
+  ActiveHit, addItem, BASE_STATS, BLESSING_FAITH, blockStaminaShare, blessingsOf, Body, BOW, BURDEN, carryLimit,
+  coreStats, copyInput, DAMAGE_TYPES, drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden,
+  GUARDS, guardOf, guardRaiseTime, Health, HYBRID, IDLE_INPUT, ITEMS, loosedDamage, maxHpOf, newCore, packFor,
+  parryWindowTime, perfectBlockTime, Stamina, staminaMaxOf, STAT_POWERS, STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR,
+  WEAPONS, Wielder, type Carried, type CoreState, type Damage, type EnemyDef, type Equipment, type Faith, type Grip,
+  type LungeDef, type PlayerInputData, type Strike, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type PlayerSetup } from "@infinite-tower/shared/fight";
 import { combatNumbers } from "../../../../src/ui/hud/character/combatNumbers.js";
@@ -98,7 +98,7 @@ describe("the advanced stats' weapon numbers", () => {
     for (const strike of STRIKES) {
       for (const type of DAMAGE_TYPES) {
         close(two!.strikes![strike].damage[type],
-          one!.strikes![strike].damage[type] * Math.sqrt(TWO_HAND_STRENGTH_FACTOR), `${strike} ${type}`);
+          one!.strikes![strike].damage[type] * TWO_HAND_STRENGTH_FACTOR ** STAT_POWERS.damage, `${strike} ${type}`);
       }
     }
   });
@@ -219,10 +219,11 @@ describe("the advanced stats' guard, as the fight blocks", () => {
     const guard = combatNumbers(holding(hands), newCore(), {}).guard!;
 
     if (kind === "two") {
-      test("two: a blade in both hands guards as one blade, for 1 / TWO_HAND_STRENGTH_FACTOR the stamina", () => {
+      test("two: a blade in both hands guards as one blade, for less stamina, as a stronger blocker", () => {
         const one = combatNumbers(holding({ rightHand: "sword", leftHand: "skillbook" }), newCore(), {}).guard!;
         assert.equal(guard.kind, "one");
-        close(guard.blockStaminaShare, one.blockStaminaShare / TWO_HAND_STRENGTH_FACTOR);
+        const gripped = coreStats(newCore()).strength * TWO_HAND_STRENGTH_FACTOR;
+        close(guard.blockStaminaShare, blockStaminaShare(GUARDS.one, gripped));
         close(guard.chipFraction, one.chipFraction);
       });
     }

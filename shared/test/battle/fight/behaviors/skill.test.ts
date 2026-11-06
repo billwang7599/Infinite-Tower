@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, FIXED_DT, Health, PLAYER, SkillObject, Skilled, skillCost, Stamina, STAMINA_PER_POINT, staminaMaxOf,
-  wordsOf, type EnemyDef, type Skill, type Vec3,
+  AVERAGE_STAT, BASE_STAMINA, Enemy, FIXED_DT, Health, PLAYER, SkillObject, Skilled, skillCost, Stamina, STAT_POWERS,
+  staminaMaxOf, wordsOf, type EnemyDef, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, bodyOf, CASTER, casts, enemy, flatDist, IDLE, input, player, run } from "../fixtures.js";
@@ -167,7 +167,8 @@ describe("casting at the player", () => {
   });
 
   test("short of stamina, it doesn't cast", () => {
-    const tired: EnemyDef = { ...CASTER, stats: { ...CASTER.stats, stamina: 1 / STAMINA_PER_POINT } };
+    const oneStaminaAt = AVERAGE_STAT * (1 / BASE_STAMINA) ** (1 / STAT_POWERS.bar);
+    const tired: EnemyDef = { ...CASTER, stats: { ...CASTER.stats, stamina: oneStaminaAt } };
     for (const gapM of [3, SKILL.quickCastM + 2]) {
       const fight = fightWith(tired, gapM);
       run(fight, 3);
@@ -205,6 +206,6 @@ describe("casting at the player", () => {
     };
     assert.equal(hurtBy(0), 0);
     assert.ok(hurtBy(10) > 0);
-    assert.ok(Math.abs(hurtBy(40) - 2 * hurtBy(10)) < 1e-6, "by its square root");
+    assert.ok(Math.abs(hurtBy(40) - 4 ** STAT_POWERS.damage * hurtBy(10)) < 1e-6, "by damage's power");
   });
 });

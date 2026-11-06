@@ -54,8 +54,12 @@ export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
+// However strong, a weapon never feels lighter than this share (all-in strength at Peak Tian reaches 0.75).
+export const FELT_HEFT_FLOOR = 0.74;
+export const strengthHeftFactor = (strength: number): number =>
+  FELT_HEFT_FLOOR + (1 - FELT_HEFT_FLOOR) * AVERAGE_STAT / strength;
 export const feltHeft = (weapon: Guard, strength: number): number =>
-  (weapon.heft / WEAPONS.sword.heft) * Math.sqrt(AVERAGE_STAT / strength);
+  (weapon.heft / WEAPONS.sword.heft) * strengthHeftFactor(strength);
 
 export type Guard = Pick<Weapon, "length" | "heft">;
 

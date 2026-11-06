@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import {
   applyStatus, Body, Enemy, Health, HP_REGEN_PAUSE_TIME, hpRegenPerSec, maxHpOf, moveSpeed,
   physicalTakenFactor, PLAYER,
-  skillTakenFactor, Stamina, staminaRegenPerSec, Statuses, type EnemyDef, type Stats, type Vec3,
+  skillTakenFactor, Stamina, staminaRegenPerSec, STAT_POWERS, Statuses, type EnemyDef, type Stats, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -62,7 +62,7 @@ describe("the core's stats in a fight", () => {
       return fight.world.require(e, Enemy).duration;
     };
     assert.equal(staggerOf(STATS.toughness), SWORDSMAN.staggerTime);
-    close(staggerOf(4 * STATS.toughness), SWORDSMAN.staggerTime / 4);
+    close(staggerOf(4 * STATS.toughness), SWORDSMAN.staggerTime / 4 ** STAT_POWERS.toughness);
   });
 
   test("stamina recovery speeds the refill", () => {

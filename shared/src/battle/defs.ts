@@ -155,4 +155,6 @@ export interface EnemyDef {
   resist?: Partial<Record<SkillElement, number>>;
   /** Takes no damage, and falls once it's been struck with every kind of strike. */
   dummy?: boolean;
+  /** Core steps it has grown by, as a player's core grows. */
+  steps?: number;
 }

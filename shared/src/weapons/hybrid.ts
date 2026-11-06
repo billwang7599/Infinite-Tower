@@ -1,4 +1,4 @@
-import { AVERAGE_STAT, physicalDamage, type Stats } from "../battle/stats.js";
+import { AVERAGE_STAT, physicalDamage, statFactor, type Stats } from "../battle/stats.js";
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
 import {
@@ -171,4 +171,4 @@ export const GUARDS = {
 } as const satisfies Record<GuardKind, Record<"minDot" | "chipFraction" | "staminaFactor" | "pushFactor", number>>;
 
 export const blockStaminaShare = (guard: (typeof GUARDS)[GuardKind], strength: number): number =>
-  guard.staminaFactor * AVERAGE_STAT / strength;
+  guard.staminaFactor / statFactor(strength, "blockStamina");

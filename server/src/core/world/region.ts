@@ -7,6 +7,8 @@ export interface SpawnDef {
   respawnTime: number;
   /** Fought here rather than in the region's arena. */
   arenaId?: string;
+  /** Grown by these core steps rather than the region's `enemySteps`. */
+  steps?: number;
 }
 
 export interface Spawn extends SpawnDef {
@@ -43,6 +45,8 @@ export interface RegionDef {
   grass?: EncounterTable;
   /** × what things are worth in its shops; 1 if left out. */
   priceFactor?: number;
+  /** The core steps its enemies have grown by; 0 if left out. */
+  enemySteps?: number;
 }
 
 export interface Region extends RegionArea {
@@ -53,6 +57,7 @@ export interface Region extends RegionArea {
   spawns: Spawn[];
   grass?: EncounterTable;
   priceFactor: number;
+  enemySteps: number;
   hasPad: boolean;
 }
 

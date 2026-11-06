@@ -40,9 +40,13 @@ Swinging:
   and a hand switch never cuts a recovery short.
 - The body commits: you walk slowly while attacking, a live blade carries you forward, a whiff overextends you
   (carried further, a longer recovery), and a live blade's turn is capped (a drag for timing, never a spin).
-- Heft scales every time and stamina cost, felt through the wielder's strength (one rule for every weapon and guard,
-  strength's part a square root, as for damage). Any weapon at any strength, only slower. A weapon's reach is the
-  wielder's arm reach plus its length.
+- Heft scales every time and stamina cost, felt through the wielder's strength (one rule for every weapon and guard).
+  Strength's part is small and capped (the user: "id say 20%-30%... i want it to most affect damage now"): a little
+  lighter the stronger, ever less, at most about 25% quicker, so timings stay readable at any core. A two-handed grip
+  only adds strength, with no speed bonus of its own. Any weapon at any strength, only
+  slower. A weapon's reach is the wielder's arm reach plus its length.
+- Better weapons keep their weight (the user: "higher tier weapons would be around the same weight wise, it would just
+  have increase like sharpness or whatever"): a tier raises only quality, so damage, never speed.
 - A lone melee weapon is held in both hands, putting 1.5× the strength in, through the same math; anything in the
   other hand makes it one-handed. The Kobolds stay one-handed. No toggle.
 - Weapon damage is typed: slash, stab and blunt from one rule by heft, split by the weapon's profile. A swing deals its

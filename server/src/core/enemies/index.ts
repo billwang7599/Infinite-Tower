@@ -1,4 +1,6 @@
-import type { EnemyDef, EnemyId, ItemCounts, ItemId, Rarity } from "@infinite-tower/shared";
+import {
+  essenceFactor, grownStats, itemDef, maxHpOf, type EnemyDef, type EnemyId, type ItemCounts, type ItemId, type Rarity,
+} from "@infinite-tower/shared";
 import type { Part } from "../overworld/parts.js";
 import { BOG_LURKER } from "./bog-lurker.js";
 import { BRAM } from "./bram.js";
@@ -45,10 +47,25 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   chicken: CHICKEN,
 };
 
+export function enemyAt(id: EnemyId, steps: number): EnemyDef {
+  const { def } = ENEMIES[id];
+  if (steps === 0) return def;
+  const stats = grownStats(def.stats, steps);
+  return { ...def, stats, maxHp: maxHpOf(stats, def.maxHp), steps };
+}
+
+const isEssence = (item: ItemId): boolean =>
+  (itemDef(item).consumable?.effects ?? []).some((effect) => "essence" in effect);
+
 // A unique roll with none free drops nothing.
-export function rollDrops(enemy: EnemyId, rng: () => number, isFree: (item: ItemId) => boolean): ItemCounts {
+export function rollDrops(
+  enemy: EnemyId, rng: () => number, isFree: (item: ItemId) => boolean, steps = 0,
+): ItemCounts {
   const loot: ItemCounts = {}, { drops, treasure } = ENEMIES[enemy];
-  for (const d of drops) if (rng() < d.chance) loot[d.item] = (loot[d.item] ?? 0) + d.count;
+  for (const d of drops) {
+    const count = d.count * (isEssence(d.item) ? essenceFactor(steps) : 1);
+    if (rng() < d.chance) loot[d.item] = (loot[d.item] ?? 0) + count;
+  }
   const tier = treasureTier(treasure, rng());
   if (tier) {
     const pool = TREASURE[tier].filter((item) => tier !== "unique" || isFree(item));

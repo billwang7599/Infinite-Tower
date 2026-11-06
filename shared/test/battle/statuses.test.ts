@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  applyStatus, BLESSINGS, cleanse, INSCRIPTIONS, maxStacksOf, modsFrom, NO_MODS, passivesOf, STATUS_DEFS, stacksOf,
-  statusOn, timeLeft, type StatusOn,
+  applyStatus, BLESSINGS, cleanse, INSCRIPTIONS, maxStacksOf, MOD_CAPS, modsFrom, NO_MODS, passivesOf, STATUS_DEFS,
+  stacksOf, statusOn, timeLeft, type StatusOn,
 } from "@infinite-tower/shared";
 
 const close = (actual: number, expected: number) =>
@@ -87,4 +87,28 @@ test("cleansing takes off harmful timed statuses only", () => {
   applyStatus(on, "rooted", null);
   cleanse(on);
   assert.deepEqual(on.map((o) => o.status), ["empowered", "rooted"]);
+});
+
+describe("buffs stack only so far", () => {
+  const allOn = (key: keyof typeof NO_MODS, better: (factor: number) => boolean): StatusOn[] =>
+    (Object.keys(STATUS_DEFS) as (keyof typeof STATUS_DEFS)[]).flatMap((status) => {
+      const factor = (STATUS_DEFS[status] as { mods?: Partial<typeof NO_MODS> }).mods?.[key];
+      return factor !== undefined && factor !== 0 && better(factor)
+        ? [{ status, left: null, time: null, stacks: maxStacksOf(status), amount: 0 }] : [];
+    });
+
+  test("every capped mod, with every status that helps it on at its most stacks, stops at its cap", () => {
+    for (const [key, cap] of Object.entries(MOD_CAPS) as [keyof typeof NO_MODS, { min?: number; max?: number }][]) {
+      const on = allOn(key, (f) => (cap.max !== undefined ? f > 1 : f < 1));
+      assert.ok(on.length > 0, key);
+      const value = modsFrom(on)[key];
+      if (cap.max !== undefined) assert.ok(value <= cap.max, `${key} ${value}`);
+      if (cap.min !== undefined) assert.ok(value >= cap.min, `${key} ${value}`);
+    }
+    assert.equal(MOD_CAPS.damageDealtFactor.max, modsFrom(allOn("damageDealtFactor", (f) => f > 1)).damageDealtFactor);
+  });
+
+  test("the First Door still takes no damage at all", () => {
+    assert.equal(modsFrom([{ status: "openedDoor", left: 2, time: 2, stacks: 1, amount: 0 }]).damageTakenFactor, 0);
+  });
 });

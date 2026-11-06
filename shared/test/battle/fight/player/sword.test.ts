@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   FIXED_DT, AVERAGE_STAT, CHAIN, damageTotal, DAMAGE_TYPES, emptyBag, feltHeft, packFor, HYBRID, lastFeintStep,
-  MOMENTUM, momentumDamage, Player, Stamina, strikeCost, strikeDamage, toSteps,
+  MOMENTUM, momentumDamage, Player, Stamina, STAT_POWERS, strikeCost, strikeDamage, toSteps,
   TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, Wielder, windupTime, type ChainKind, type Hand, type ItemId,
   type PlayerInputData, type Strike, type SwingDir, type Weapon,
 } from "@infinite-tower/shared";
@@ -200,13 +200,13 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
     }
   });
 
-  test("the Basic Sword feels as at the grip's strength, and hits each type √TWO_HAND_STRENGTH_FACTOR as hard", () => {
+  test("the Basic Sword feels as at the grip's strength, and hits each type harder by the grip's strength", () => {
     assert.ok(feltHeft(SWORD, STATS.strength * TWO_HAND_STRENGTH_FACTOR) < feltHeft(SWORD, STATS.strength));
     for (const strike of ["light", "heavy", "stab"] as const) {
       const one = swingWith("sword", "skillbook", strike), two = swingWith("sword", null, strike);
       assert.deepEqual(one.damage, strikeDamage(SWORD, strike, 1, STATS), strike);
       for (const type of DAMAGE_TYPES) {
-        const want = one.damage[type] * Math.sqrt(TWO_HAND_STRENGTH_FACTOR);
+        const want = one.damage[type] * TWO_HAND_STRENGTH_FACTOR ** STAT_POWERS.damage;
         assert.ok(Math.abs(two.damage[type] - want) < 1e-9, `${strike} ${type}: ${two.damage[type]} vs ${want}`);
       }
     }

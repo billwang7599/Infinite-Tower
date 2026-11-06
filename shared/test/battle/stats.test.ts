@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  AVERAGE_STAT, BASE_STATS, CARRY_LIMIT_AT_AVERAGE, carryLimit, DEFENSE_OFFSET, grownVitals, HIDDEN_STATS,
-  HP_PER_VITALITY, HP_REGEN_DIVISOR, hpRegenPerSec, KNOCKBACK_TAKEN, knockbackTakenFactor, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, PLAYER,
-  SHOWN_STATS, skillDamage, skillTakenFactor, STAMINA_PER_POINT, staminaMaxOf, staminaRegenPerSec, STAT_KEYS, stunTime,
+  AVERAGE_STAT, BASE_HP, BASE_STAMINA, BASE_STATS, CARRY_LIMIT_AT_AVERAGE, carryLimit, grownVitals, HIDDEN_STATS,
+  HP_REGEN_SHARE_PER_SEC, hpRegenPerSec, KNOCKBACK_TAKEN, knockbackTakenFactor, maxHpOf, moveSpeed, physicalDamage,
+  physicalTakenFactor, PLAYER, SHOWN_STATS, skillDamage, skillTakenFactor, STAT_POWERS, staminaMaxOf,
+  staminaRegenPerSec, STAT_KEYS, stunTime,
 } from "@infinite-tower/shared";
 
 const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual}`);
@@ -36,54 +37,57 @@ test("strength and steadiness shrink the knockback a player takes, never past th
   assert.equal(knockbackTakenFactor(huge), KNOCKBACK_TAKEN.min);
 });
 
-test("HP comes from vitality, and the stamina bar from stamina", () => {
-  assert.equal(maxHpOf(BASE_STATS), HP_PER_VITALITY * AVERAGE_STAT);
-  assert.equal(maxHpOf({ ...BASE_STATS, vitality: 25 }), 25 * HP_PER_VITALITY);
-  assert.equal(staminaMaxOf({ ...BASE_STATS, stamina: 25 }), 25 * STAMINA_PER_POINT);
+test("HP comes from vitality, and the stamina bar from stamina, each by the bars' power, in whole points", () => {
+  assert.equal(maxHpOf(BASE_STATS), BASE_HP);
+  assert.equal(maxHpOf({ ...BASE_STATS, vitality: times(4) }), Math.round(BASE_HP * 4 ** STAT_POWERS.bar));
+  assert.equal(staminaMaxOf({ ...BASE_STATS, stamina: times(4) }), Math.round(BASE_STAMINA * 4 ** STAT_POWERS.bar));
+  assert.equal(maxHpOf({ ...BASE_STATS, vitality: times(4) }, 160), Math.round(160 * 4 ** STAT_POWERS.bar));
 });
 
 test("the stamina bar is 100 at the start (combat v2: everything is costed against 100)", () => {
   assert.equal(staminaMaxOf(BASE_STATS), 100);
 });
 
-test("strength and skillpower scale damage by their square root", () => {
-  close(physicalDamage(9, { ...BASE_STATS, strength: times(4) }), 18);
-  close(skillDamage(10, { ...BASE_STATS, skillpower: times(4) }), 20);
+test("strength and skillpower scale damage by damage's power", () => {
+  close(physicalDamage(9, { ...BASE_STATS, strength: times(4) }), 9 * 4 ** STAT_POWERS.damage);
+  close(skillDamage(10, { ...BASE_STATS, skillpower: times(4) }), 10 * 4 ** STAT_POWERS.damage);
   assert.equal(skillDamage(10, { ...BASE_STATS, skillpower: 0 }), 0);
 });
 
 test("defense cuts physical damage taken, special defense skill damage, never to nothing", () => {
-  const tough = { ...BASE_STATS, defense: 90, specialDefense: 40 };
-  close(physicalTakenFactor(tough), (DEFENSE_OFFSET + AVERAGE_STAT) / (DEFENSE_OFFSET + 90));
-  close(skillTakenFactor(tough), (DEFENSE_OFFSET + AVERAGE_STAT) / (DEFENSE_OFFSET + 40));
+  const tough = { ...BASE_STATS, defense: times(9), specialDefense: times(4) };
+  close(physicalTakenFactor(tough), 9 ** -STAT_POWERS.defense);
+  close(skillTakenFactor(tough), 4 ** -STAT_POWERS.defense);
   assert.ok(physicalTakenFactor({ ...BASE_STATS, defense: 1e6 }) > 0);
 });
 
 test("toughness shortens stuns, stamina recovery speeds stamina's refill", () => {
-  close(stunTime(1, { ...BASE_STATS, toughness: times(2) }), 0.5);
-  close(staminaRegenPerSec({ ...BASE_STATS, staminaRecovery: times(2) }, 1), 2 * PLAYER.staminaRegenPerSec);
+  close(stunTime(1, { ...BASE_STATS, toughness: times(4) }), 4 ** -STAT_POWERS.toughness);
+  close(staminaRegenPerSec({ ...BASE_STATS, staminaRecovery: times(4) }, 1),
+    4 ** STAT_POWERS.staminaRecovery * PLAYER.staminaRegenPerSec);
 });
 
 test("a status's regen factor scales stamina's refill", () => {
   close(staminaRegenPerSec(BASE_STATS, 1.5), 1.5 * PLAYER.staminaRegenPerSec);
 });
 
-test("HP regen grows with vitality and health regen alike", () => {
-  close(hpRegenPerSec(BASE_STATS), (AVERAGE_STAT * AVERAGE_STAT) / HP_REGEN_DIVISOR);
-  close(hpRegenPerSec({ ...BASE_STATS, vitality: times(2) }), 2 * hpRegenPerSec(BASE_STATS));
+test("HP regen is a share of the most HP a second, growing with health regen", () => {
+  close(hpRegenPerSec(BASE_STATS), BASE_HP * HP_REGEN_SHARE_PER_SEC);
+  const hale = { ...BASE_STATS, vitality: times(4) };
+  close(hpRegenPerSec(hale), maxHpOf(hale) * HP_REGEN_SHARE_PER_SEC);
   close(hpRegenPerSec({ ...BASE_STATS, healthRegen: times(2) }), 2 * hpRegenPerSec(BASE_STATS));
 });
 
 test("agility and the carry limit grow by strength's and agility's fourth root", () => {
-  close(moveSpeed(6, { ...BASE_STATS, agility: times(16) }), 12);
+  close(moveSpeed(6, { ...BASE_STATS, agility: times(16) }), 6 * 16 ** STAT_POWERS.move);
   assert.equal(carryLimit(BASE_STATS), CARRY_LIMIT_AT_AVERAGE);
-  close(carryLimit({ ...BASE_STATS, strength: times(16) }), 2 * CARRY_LIMIT_AT_AVERAGE);
+  close(carryLimit({ ...BASE_STATS, strength: times(16) }), 16 ** STAT_POWERS.carry * CARRY_LIMIT_AT_AVERAGE);
 });
 
 test("when the stats grow, so do the bars and what's in them; when they shrink, only what's over is cut", () => {
   const bigger = { ...BASE_STATS, vitality: 12, stamina: 11 }, smaller = { ...BASE_STATS, vitality: 8 };
   assert.deepEqual(grownVitals({ hp: 50, stamina: 30 }, BASE_STATS, bigger), {
-    hp: 50 + 2 * HP_PER_VITALITY, stamina: 30 + STAMINA_PER_POINT,
+    hp: 50 + maxHpOf(bigger) - BASE_HP, stamina: 30 + staminaMaxOf(bigger) - BASE_STAMINA,
   });
   assert.deepEqual(grownVitals({ hp: 50, stamina: 30 }, BASE_STATS, smaller), { hp: 50, stamina: 30 });
   assert.deepEqual(grownVitals({ hp: 95, stamina: 30 }, BASE_STATS, smaller), { hp: maxHpOf(smaller), stamina: 30 });

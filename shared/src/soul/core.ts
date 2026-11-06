@@ -6,9 +6,11 @@ export const STEP_NAMES = ["Early", "Middle", "Peak"] as const;
 export const CORE_STEPS = REALMS.length * STEP_NAMES.length;
 
 export const CORE = {
-  /** Essence to finish the first step; each step after needs more, doubling every `fillDoublingSteps`. */
   firstFill: 100,
-  fillDoublingSteps: 3,
+  /** Each step takes this many times the last's kills of its own realm's foes. */
+  killGrowth: 1.3,
+  /** A foe a realm higher gives this many times the essence. */
+  realmEssenceFactor: 2,
   /** A step of the first realm adds this to every shown stat and gives these free points; both × `realmFactor`
    * each realm after. */
   firstRealmGain: 1,
@@ -28,10 +30,14 @@ export interface CoreState {
 
 export const newCore = (): CoreState => ({ steps: 0, fill: 0, points: {}, inscriptions: [] });
 
-export const fillToFinish = (step: number): number =>
-  Math.round(CORE.firstFill * 2 ** ((step - 1) / CORE.fillDoublingSteps));
+export const realmOfSteps = (steps: number): number =>
+  Math.min(REALMS.length - 1, Math.floor(steps / STEP_NAMES.length));
+export const essenceFactor = (steps: number): number => CORE.realmEssenceFactor ** realmOfSteps(steps);
 
-const realmOf = (step: number): number => Math.floor((step - 1) / STEP_NAMES.length);
+export const fillToFinish = (step: number): number =>
+  Math.round(CORE.firstFill * CORE.killGrowth ** (step - 1) * essenceFactor(step - 1));
+
+const realmOf = (step: number): number => realmOfSteps(step - 1);
 const gainOf = (step: number): number => CORE.firstRealmGain * CORE.realmFactor ** realmOf(step);
 const pointsOf = (step: number): number => CORE.firstRealmPoints * CORE.realmFactor ** realmOf(step);
 const sumTo = (steps: number, each: (step: number) => number): number => {
@@ -51,13 +57,17 @@ export const pointsEarned = (core: CoreState): number => sumTo(core.steps, point
 const pointsPlaced = (points: StatPoints): number => SHOWN_STATS.reduce((sum, stat) => sum + (points[stat] ?? 0), 0);
 export const pointsLeft = (core: CoreState): number => pointsEarned(core) - pointsPlaced(core.points);
 
-export function coreStats(core: CoreState): Stats {
-  const gain = sumTo(core.steps, gainOf), hidden = core.steps * CORE.hiddenGain;
-  const stats = { ...BASE_STATS };
-  for (const stat of SHOWN_STATS) {
-    stats[stat] += gain + (core.points[stat] ?? 0) + inscriptionStat(core.inscriptions, stat);
-  }
+export function grownStats(from: Stats, steps: number): Stats {
+  const gain = sumTo(steps, gainOf), hidden = steps * CORE.hiddenGain;
+  const stats = { ...from };
+  for (const stat of SHOWN_STATS) stats[stat] += gain;
   for (const stat of HIDDEN_STATS) stats[stat] += hidden;
+  return stats;
+}
+
+export function coreStats(core: CoreState): Stats {
+  const stats = grownStats(BASE_STATS, core.steps);
+  for (const stat of SHOWN_STATS) stats[stat] += (core.points[stat] ?? 0) + inscriptionStat(core.inscriptions, stat);
   return stats;
 }
 

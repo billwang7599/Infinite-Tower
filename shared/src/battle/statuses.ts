@@ -1,6 +1,7 @@
 import type { Entity, World } from "../core/ecs.js";
 import { BLESSINGS, type BlessingGod } from "../soul/blessings.js";
 import { INSCRIPTIONS, type InscriptionId } from "../soul/inscriptions.js";
+import { clamp } from "../core/math.js";
 import { Statuses } from "./components.js";
 
 export interface StatMods {
@@ -122,6 +123,14 @@ export function cleanse(on: StatusOn[]): void {
   }
 }
 
+export const MOD_CAPS = {
+  damageDealtFactor: { max: 2 },
+  damageTakenFactor: { min: 0.5 },
+  staminaRegenFactor: { max: 2 },
+  attackCostFactor: { min: 0.5 },
+  dodgeCostFactor: { min: 0.5 },
+} as const satisfies Partial<Record<keyof StatMods, { min?: number; max?: number }>>;
+
 export function modsFrom(on: readonly StatusOn[]): StatMods {
   const mods = { ...NO_MODS };
   for (const { status, stacks } of on) {
@@ -130,6 +139,10 @@ export function modsFrom(on: readonly StatusOn[]): StatMods {
       // Multiplied out rather than **, so every engine gets the same bits.
       for (let i = 0; i < stacks; i++) mods[key] = ADDED.includes(key) ? mods[key] + own[key]! : mods[key] * own[key]!;
     }
+  }
+  for (const [key, cap] of Object.entries(MOD_CAPS) as [keyof typeof MOD_CAPS, { min?: number; max?: number }][]) {
+    // A 0 (the First Door's damage taken) is a state, not a stack of buffs.
+    if (mods[key] !== 0) mods[key] = clamp(mods[key], cap.min ?? -Infinity, cap.max ?? Infinity);
   }
   return mods;
 }

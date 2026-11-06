@@ -14,6 +14,11 @@ FORMULAS.md, "The core".
   hidden toughness, stamina recovery, health regen and steadiness. Every step raises every stat and gives free points,
   placed anywhere and always takeable back for some effort. No mana: one stamina pool, growing with the core.
 - **Death** loses the step's fill, or with none a whole step.
+- **Scaling** (the user: "leveling up should be exponentially harder per stage", "scaling should feel rewarding"):
+  each step takes exponentially more kills of its own realm's foes; each step is a clear power jump; enemies are grown
+  by a fixed number of core steps per area (their realms not shown), and a higher realm's foe gives more essence;
+  equal realms take as many hits at every step; buffs stop at a cap. Weapon tiers keep their weight and raise only
+  damage; strength lightens a weapon only a little.
 - **The look**: your portrait sits bottom left and a click flips it to your core, a sphere with light growing from its
   centre, its colour changing by realm; inside a step only the light breathing and sparks near a breakthrough, which
   gets a moment. The character panel shows the stats as a polygon chart with + and −, the hidden ones hidden, with an
@@ -28,7 +33,6 @@ FORMULAS.md, "The core".
 
 ## Decided, not built
 
-- Enemies with realms that scale their stats, their realms not shown; a later realm's enemy gives more essence.
 - Other ways to fill the core: meditating, elixirs, using skills. A breakthrough as a small minigame, maybe.
 - Common inscriptions from crafting (no crafting yet); sigils from quest rewards and from learning legendary words.
 - Maybe a super rare item that keeps a removed inscription.
@@ -40,3 +44,4 @@ FORMULAS.md, "The core".
 - How faith is really earned and lost, and the other gods' blessings (plan/lore.md).
 - For the user to review: losing a step on death can take you back a realm; taking a point back costs only being by
   a campfire; every number of the core, the stats and the inscriptions, to tune in play.
+- Which areas sit at which growth once the test world gives way to real regions; higher-tier weapons (quality).
