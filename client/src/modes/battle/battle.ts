@@ -94,7 +94,7 @@ export function createBattle(opts: BattleOptions): Battle {
     const steer = { pressed: ctx.polled.pressed, free: free !== null, wasFree: ctx.freeCamera !== null };
     ctx.lock = steerLock(ctx.lock, steer, foes, ctx.view, me);
     ctx.freeCamera = free;
-    ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, action === "dodge", views);
+    ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, views);
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const { world } = fight;
     const aimed = foes.map(({ e }) => ({ e, body: world.require(e, Body), fighter: world.require(e, Fighter) }));
