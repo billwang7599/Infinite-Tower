@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, VertexBuffer } from "@babylonjs/core";
 import {
-  breathOf, ENEMY_FILL, enemyMaterial, flickOf, lengthwise,
+  breathOf, ENEMY_FILL, ENEMY_SHADE_TINT, enemyMaterial, flickOf, lengthwise,
 } from "../../../src/visuals/enemies/shape.js";
 
 describe("enemy shapes", () => {
@@ -22,11 +22,13 @@ describe("enemy shapes", () => {
     scene.dispose();
   });
 
-  test("the shade keeps a share of the part's own colour", () => {
+  test("the shade keeps a share of the part's own colour, cooler than its lit side", () => {
     const scene = new Scene(new NullEngine());
-    const m = enemyMaterial(scene, "hide", "#806040");
-    assert.ok(Math.abs(m.emissiveColor.r - m.diffuseColor.r * ENEMY_FILL) < 1e-6);
-    assert.ok(Math.abs(m.emissiveColor.b - m.diffuseColor.b * ENEMY_FILL) < 1e-6);
+    const m = enemyMaterial(scene, "hide", "#806040"), e = m.emissiveColor, d = m.diffuseColor;
+    assert.ok(Math.abs(e.r - d.r * ENEMY_SHADE_TINT.r * ENEMY_FILL) < 1e-6);
+    assert.ok(Math.abs(e.b - d.b * ENEMY_SHADE_TINT.b * ENEMY_FILL) < 1e-6);
+    assert.ok(e.b / e.r > d.b / d.r, "bluer in shade");
+    assert.ok(e.g > 0.05, "not black");
     scene.dispose();
   });
 

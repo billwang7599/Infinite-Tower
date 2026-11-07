@@ -263,10 +263,13 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   The enemies are lofted like the people below (`visuals/enemies/shape.ts`): a trunk, head or tail is a loft laid
   along the body through cross-sections, so the boar is a wedge with a bristled shoulder, the wolf deep-chested with
   a tucked waist, the lurker a squat toad-croc; limbs taper. Each keeps a fill of its own colour in shade
-  (`ENEMY_FILL`), and breathes, flicks its ears and swings its tail standing, on top of its poses, which stay the
-  telegraphs.
+  (`ENEMY_FILL`), a little cooler, as if from the sky (`ENEMY_SHADE_TINT`), so earthy hides keep their light and
+  shade without going orange or black, and breathes, flicks its ears and swings its tail standing, on top of its
+  poses, which stay the telegraphs.
   Arenas keep the fight's ring clear and put their depth outside it: low props near the wall (tufts, stones, caps),
-  taller trees from 4 m out, and a far layer of bigger, darker silhouettes that the fog greys.
+  taller trees from 4 m out, and far silhouettes in three rings (`hazedRings`), each further one taller, lit less
+  and glowing nearer the sky's colour (`HAZE_SHARES`), before the fog greys them. Ground patches fade out at
+  uneven, soft edges (`blotTexture`, their alpha).
   The people are built like this:
   - **One rig for everyone**: `SKELETON` (`skeleton.ts`) is a plain table of joints with Blender's names (`hips`,
     `spine`, `chest`, `neck`, `head`, `upper_arm.L`, `forearm.R`, `hand.L`, `thigh.R`, `shin.L`, `foot.R`...), each
@@ -290,9 +293,13 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     keyframe editor or an export to read; the swing's arm comes from the sword's motions, the arms bent to reach.
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
-    as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); the walk is a four-key stride
-    (`WALK` in `motion.ts`: contact, passing, contact, passing), the hips and shoulders turning against each other,
-    the arms swinging, the body bobbing and leaning into a run. The hips drop so the lower foot stays on the ground.
+    as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); walking, the feet are placed,
+    not keyed (`STRIDE`, `plantLegs` in `motion.ts`): a foot down sweeps back under the hip at the ground's speed the
+    way it goes (ahead, back or aside), so it stays put, then lifts and swings forward; faster is longer, quicker
+    strides with less time down (a run has both feet off between steps), sideways steps shorter. The legs reach
+    there by `legAngles` and aren't eased. The upper body keeps its four keys (`WALK`: the hips and shoulders turning
+    against each other, the arms swinging), the body bobs and leans into a run (back, backing off). Elsewhere the
+    hips drop so the lower foot stays on the ground. Touching down the knees give a moment (`LANDING`).
     Hair swings on a spring toward where gravity, less the head's acceleration, pulls it (`swayHair`).
     A bow is carried low at the side, top limb forward, and drawn side-on (the body turned, the head looking down the
     arrow), feet planted apart, the bow hand ahead at the shoulders and the string hand pulled back with the draw

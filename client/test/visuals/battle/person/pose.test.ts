@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { Matrix, Vector3 } from "@babylonjs/core";
 import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData } from "@infinite-tower/shared";
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
-import { BREATH, WALK } from "../../../../src/visuals/battle/person/motion.js";
+import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
+import { restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
 import {
   CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose,
 } from "../../../../src/visuals/battle/person/pose.js";
@@ -11,6 +13,9 @@ import { playerDoing } from "../../../fixtures/players.js";
 import { swingSteps } from "../../../fixtures/swings.js";
 
 const BUILD = personBuild(DEFAULT_LOOK);
+const AHEAD = { x: 0, z: 1 };
+/** A running leg's knee folds past square as it swings through. */
+const KNEE_MOST_RAD = 2;
 const ATTACKING = playerDoing("attack", 0);
 const EASE_STEPS = Math.ceil(KEY_EASE_TIME / FIXED_DT);
 
@@ -19,7 +24,7 @@ const pose = (
   player = playerDoing("none", 0), swing: SwingData | null = null, extra: Partial<Extra> = {},
 ): PersonPose => personPose(player, { swing }, MOTIONS.sword, {
   build: BUILD, side: 1, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
-  walk: { phase: 0, amp: 0 }, ...extra,
+  walk: { phase: 0, speed: 0, way: AHEAD }, ...extra,
 });
 const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
 const lean = (p: PersonPose) => p.joints.root.x;
@@ -127,29 +132,65 @@ describe("the 3D player's other actions", () => {
     assert.ok(pose(playerDoing("none", 1, "rl")).blade.x > 0);
   });
 
-  test("walking, the legs hold each key of the stride and ease between", () => {
+  test("walking, the upper body holds each key of the stride and eases between", () => {
     const step = (2 * Math.PI) / WALK.at.length, held = WALK.easeShare + 0.05;
-    const legs = (phase: number) => pose(undefined, null, { walk: { phase, amp: 0.5 } }).joints["thigh.L"].x;
-    assert.equal(legs(step * (1 + held)), legs(step * 1.95));
-    assert.notEqual(legs(step * 1.01), legs(step * 1.95));
+    const hips = (phase: number) => pose(undefined, null, { walk: { phase, speed: 3, way: AHEAD } }).joints.hips.y;
+    assert.equal(hips(step * (1 + held)), hips(step * 1.95));
+    assert.notEqual(hips(step * 1.01), hips(step * 1.95));
   });
 
-  const stride = (share: number, amp = 1) => pose(undefined, null, { walk: { phase: share * 2 * Math.PI, amp } });
+  const stride = (share: number, speed: number = PLAYER.moveSpeed, way = AHEAD) =>
+    pose(undefined, null, { walk: { phase: share * 2 * Math.PI, speed, way } });
   const held = (key: number) => WALK.at[key]! + 0.9 / WALK.at.length;
 
+  const footAt = (p: PersonPose, leg: "R" | "L") => {
+    let m = Matrix.Identity();
+    for (const j of [`foot.${leg}`, `shin.${leg}`, `thigh.${leg}`, "hips", "root"] as const) {
+      const r = p.joints[j], at = j === "root" ? { x: 0, y: p.rootY, z: 0 } : restAt(j, BUILD.look.body);
+      m = m.multiply(Matrix.RotationYawPitchRoll(r.y, r.x, r.z).multiply(Matrix.Translation(at.x, at.y, at.z)));
+    }
+    return Vector3.TransformCoordinates(Vector3.Zero(), m);
+  };
+
   test("a stride: the legs take turns, the body bobs, the hips and shoulders turn against each other", () => {
-    const contact = stride(held(0)), passing = stride(held(1)), other = stride(held(2));
-    assert.ok(contact.joints["thigh.L"].x < 0 && contact.joints["thigh.R"].x > 0, "left foot ahead, right behind");
-    close(other.joints["thigh.R"].x, contact.joints["thigh.L"].x, "half a stride later, the right does the same");
+    const { duty } = strideOf(PLAYER.moveSpeed, 0);
+    const contact = stride(0), other = stride(0.5), passing = stride(duty / 2);
+    assert.ok(footAt(contact, "L").z > 0.1 && footAt(contact, "R").z < 0, "left foot ahead, right behind");
+    assert.ok(Math.abs(footAt(other, "R").z - footAt(contact, "L").z) < 0.01, "half a stride later, the right");
     assert.ok(passing.joints["shin.R"].x > 0.5, "the passing leg's knee lifts");
-    assert.ok(passing.rootY > contact.rootY, "up passing, down on contact");
-    assert.ok(contact.joints.hips.y * contact.joints.chest.y < 0, "hips and shoulders counter-turn");
-    assert.ok(contact.offHand.z < stride(held(2)).offHand.z, "the left arm swings back as the left leg goes ahead");
+    assert.ok(stride(duty / 2 + 0.25).rootY > passing.rootY, "up between steps, down over the planted foot");
+    assert.ok(stride(held(0)).joints.hips.y * stride(held(0)).joints.chest.y < 0, "hips and shoulders counter-turn");
+    assert.ok(stride(held(0)).offHand.z < stride(held(2)).offHand.z, "the left arm back as the left leg goes ahead");
     assert.ok(contact.joints.root.x > 0, "leaning into it");
+    assert.ok(stride(0, PLAYER.moveSpeed, { x: 0, z: -1 }).joints.root.x < 0, "backing off, leaning back");
+    assert.equal(contact.legsExact, true);
   });
 
   test("a slower walk is a shorter stride", () => {
-    assert.ok(Math.abs(stride(held(0), 0.4).joints["thigh.L"].x) < Math.abs(stride(held(0)).joints["thigh.L"].x));
+    assert.ok(Math.abs(stride(0, 1.5).joints["thigh.L"].x) < Math.abs(stride(0).joints["thigh.L"].x));
+  });
+
+  test("a planted foot stays put on the ground as the body goes over it, whichever way it goes", () => {
+    const ground = restInModel("foot.L", BUILD.look.body).y;
+    const runs = [[1.5, AHEAD], [PLAYER.moveSpeed, AHEAD], [4, { x: 0.6, z: -0.8 }], [3, { x: 1, z: 0 }]] as const;
+    for (const [speed, way] of runs) {
+      const s = strideOf(speed, Math.abs(way.x)), spots: Vector3[] = [];
+      for (let share = 0.01; share < s.duty - 0.01; share += s.duty / 10) {
+        const p = stride(share, speed, way), foot = footAt(p, "L"), t = share / s.cyclesPerSec;
+        spots.push(foot.add(new Vector3(way.x * speed * t, 0, way.z * speed * t)));
+        assert.ok(Math.abs(foot.y - ground) < 0.003, `${speed} m/s: on the ground, ${foot.y}`);
+      }
+      const slidM = Math.max(...spots.map((at) => Vector3.Distance(at, spots[0]!)));
+      assert.ok(slidM < 0.01, `${speed} m/s along ${JSON.stringify(way)}: slid ${slidM} m`);
+    }
+  });
+
+  test("touching down the knees give and come back", () => {
+    const land = (landing: number) => pose(undefined, null, { landing });
+    assert.ok(land(0.5).rootY < land(0).rootY - 0.01, "down");
+    assert.ok(Math.abs(land(1).rootY - land(0).rootY) < 1e-9, "eased from the touch");
+    const landingWalk = pose(undefined, null, { landing: 0.5, walk: { phase: 0, speed: 3, way: AHEAD } });
+    assert.ok(stride(0, 3).rootY > landingWalk.rootY, "walking too");
   });
 
   test("standing, it breathes: the chest rises and falls, the head kept level", () => {
@@ -169,15 +210,20 @@ describe("the 3D player's other actions", () => {
   });
 
   test("every pose keeps its joints within a half turn, and a foot on the ground", () => {
-    const poses = [pose(), stride(held(1)), pose(playerDoing("dodge", KEY_EASE_TIME)), pose(playerDoing("block", 1))];
+    const poses = [pose(), pose(playerDoing("dodge", KEY_EASE_TIME)), pose(playerDoing("block", 1))];
+    for (let share = 0; share < 1; share += 0.05) poses.push(stride(share), stride(share, 1.5));
     for (const steps of [swingSteps("light", "lr"), swingSteps("heavy", "rl")]) {
       for (const s of steps) poses.push(pose(ATTACKING, s));
     }
     for (const p of poses) {
-      for (const j of POSED_JOINTS) for (const v of Object.values(p.joints[j])) assert.ok(Math.abs(v) < Math.PI / 2, j);
+      for (const j of POSED_JOINTS) {
+        const most = j.startsWith("shin") ? KNEE_MOST_RAD : Math.PI / 2;
+        for (const v of Object.values(p.joints[j])) assert.ok(Math.abs(v) < most, `${j}: ${v}`);
+      }
       const drop = (s: "R" | "L") => legDrop(p.joints[`thigh.${s}`], p.joints[`shin.${s}`]);
-      const low = Math.min(drop("R"), drop("L"));
-      close(p.rootY, -low, "the lower foot down");
+      const low = Math.min(drop("R"), drop("L")), ground = restInModel("foot.L", BUILD.look.body).y;
+      if (p.legsExact) assert.ok(Math.min(footAt(p, "R").y, footAt(p, "L").y) > ground - 0.003, "no foot underground");
+      else close(p.rootY, -low, "the lower foot down");
     }
   });
 });
@@ -187,7 +233,7 @@ describe("the 3D player's bow", () => {
   const bowPose = (player: ReturnType<typeof playerDoing>, drawn = 0): PersonPose =>
     personPose(player, { swing: null }, MOTIONS.bow, {
       build: BUILD, side: 1, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
-      walk: { phase: 0, amp: 0 }, bow: { ...BOW, drawn },
+      walk: { phase: 0, speed: 0, way: AHEAD }, bow: { ...BOW, drawn },
     });
 
   test("drawing, it's held out ahead at the shoulders, upright, the string hand pulling back with the draw", () => {

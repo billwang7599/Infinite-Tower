@@ -1,11 +1,14 @@
-import { Color3, MeshBuilder, type Mesh } from "@babylonjs/core";
+import { Color3, Mesh, MeshBuilder } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaLookDef } from "../index.js";
-import { boulder, floor, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft } from "../parts.js";
+import {
+  boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft,
+} from "../parts.js";
 
 const STONES = 30;
+const SKY = new Color3(0.33, 0.29, 0.31);
 
 function build(ctx: ArenaScene, radius: number) {
   const { scene } = ctx;
@@ -48,10 +51,12 @@ function build(ctx: ArenaScene, radius: number) {
   crownHigh.material = needles;
   const trees = ringSpots(rand, 80, radius + 4, radius + 30, 0.8, 1.7);
   scatter(ctx, root, [[trunk, 1.5], [crownLow, 3.8], [crownHigh, 5.6]], trees);
-  const farNeedles = own(colorMaterial(scene, "forest-far-needles", new Color3(0.1, 0.19, 0.15)));
-  const farCrown = cone("forest-far-crown", 9, 0, 3.6);
-  farCrown.material = farNeedles;
-  scatter(ctx, root, [[farCrown, 5.5]], ringSpots(rand, 70, radius + 32, radius + 48, 1, 1.6), false);
+  const tiers = [cone("forest-far-crown", 6, 0, 3.6), cone("forest-far-top", 5, 0, 2.4)];
+  tiers[1]!.position.y = 3.6;
+  const farCrown = Mesh.MergeMeshes(tiers, true)!;
+  farCrown.name = "forest-far-crown";
+  hazedRings(ctx, root, own, farCrown, 3, { color: new Color3(0.1, 0.19, 0.15), sky: SKY },
+    { rand, count: 72, near: radius + 30, far: radius + 50 });
 
   // Broadleaves between the pines, a lighter green so the treeline reads in layers.
   const leaves = own(colorMaterial(scene, "forest-leaves", new Color3(0.2, 0.31, 0.16)));
@@ -99,7 +104,7 @@ function build(ctx: ArenaScene, radius: number) {
 
 export const FOREST_CLEARING: ArenaLookDef = {
   env: {
-    sky: new Color3(0.33, 0.29, 0.31),
+    sky: SKY,
     fogDensity: 0.028,
     ambient: new Color3(0.2, 0.18, 0.2),
     skyLight: { color: new Color3(0.62, 0.6, 0.78), ground: new Color3(0.2, 0.16, 0.12), intensity: 0.5 },

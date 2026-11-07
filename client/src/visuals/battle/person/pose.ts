@@ -4,7 +4,7 @@ import {
 import { playerBlade } from "../pose.js";
 import { pullOf, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
-import { BREATH, breathOf, WALK, walkKey } from "./motion.js";
+import { BREATH, breathOf, plantLegs, strideOf, WALK, walkKey } from "./motion.js";
 import { restAt, type JointName } from "./skeleton.js";
 
 /** Pose to pose, as Dead Cells animates: each key is eased into this fast, then held until the next. */
@@ -100,6 +100,8 @@ const DRAW_TWIST = { hips: -0.25, spine: -0.25, chest: -0.3, neck: 0.7 } as cons
 const LOOSED_FLICK_M = 0.06;
 const BOW_CARRY = { outM: 0.05, drop: 0.9, aheadM: 0.08 } as const;
 const THIGH_M = -restAt("shin.R", "medium").y, SHIN_M = -restAt("foot.R", "medium").y;
+/** After touching down the knees give by up to `crouchRad` (a crouch's thigh angle) over `durationTime`. */
+export const LANDING = { durationTime: 0.22, crouchRad: 0.32 } as const;
 
 /** How far (m) a leg's foot rises toward its hip from hanging straight. */
 export function legDrop(thigh: Vec3, shin: Vec3): number {
@@ -115,6 +117,8 @@ export interface PersonPose {
   joints: Record<PosedJoint, Vec3>;
   /** The root's height (m), down as the knees bend so the feet stay on the ground. */
   rootY: number;
+  /** Walking: the legs and root's height are exact, so a planted foot stays put. */
+  legsExact: boolean;
 }
 
 export interface PersonMoment {
@@ -128,8 +132,10 @@ export interface PersonMoment {
   deadTime: number;
   /** Seconds, for breathing. */
   time: number;
-  /** `phase` in radians, 2π a stride; `amp` 0..1 of a full run's stride. */
-  walk: { phase: number; amp: number };
+  /** `phase` in radians, 2π a stride; `speed` m/s along `way`, a unit vector in the model's frame. */
+  walk: { phase: number; speed: number; way: Vec2 };
+  /** 1 on touching down, to 0 as the landing's squash ends. */
+  landing?: number;
   /** A bow in hand: how far it's drawn, 0..1. */
   bow?: BowLook & { drawn: number };
 }
@@ -166,7 +172,7 @@ export function personPose(
   const p: PersonPose = {
     blade, bladeExact: exact,
     hand: { x: pivot.x + blade.x * arc, y: pivot.y + blade.y * arc, z: handZ * scale + blade.z * arc },
-    offHand: restOff, joints, rootY: 0,
+    offHand: restOff, joints, rootY: 0, legsExact: false,
   };
   if (alive) {
     const twist = TWIST_RAD * blade.x, bend = -BEND_RAD * blade.y;
@@ -179,7 +185,7 @@ export function personPose(
       z: restOff.z + (to.z - restOff.z) * k };
   };
 
-  const walking = alive && player.grounded && o.walk.amp > 0 && player.action === "none";
+  const walking = alive && player.grounded && o.walk.speed > 0 && player.action === "none";
   if (!alive) {
     play(joints, CLIPS.defeat, o.deadTime);
   } else if (swing && swing.step < swing.endAt) {
@@ -222,7 +228,7 @@ export function personPose(
         towardOff({ x: -side * 0.1, y: b.waistY, z: reach * 0.5 });
         break;
       case "none":
-        play(joints, CLIPS.idle, 0, { side, weight: walking ? 1 - o.walk.amp : 1 });
+        if (!walking) play(joints, CLIPS.idle, 0, { side });
         if (o.bow) {
           p.hand = {
             x: side * (b.shoulderM + BOW_CARRY.outM), y: b.shoulderY - reach * BOW_CARRY.drop, z: BOW_CARRY.aheadM,
@@ -240,7 +246,9 @@ export function personPose(
     }
   }
   if (alive && !player.grounded) play(joints, CLIPS.airborne, 0);
-  if (walking) walk(p, o.walk, reach, side);
+  const landing = alive && player.grounded ? LANDING.crouchRad * Math.sin(Math.PI * (o.landing ?? 0)) : 0;
+  if (landing && !walking) play(joints, { at: [], joints: crouch([landing]) }, 0);
+  const walkY = walking ? walk(p, o.walk, b, side, (THIGH_M + SHIN_M) * (1 - Math.cos(landing))) : 0;
   if (alive && !walking) {
     const breath = breathOf(o.time);
     joints.chest.x -= BREATH.chestRad * breath;
@@ -249,27 +257,28 @@ export function personPose(
     joints.hips.z += BREATH.swayRad * breathOf(o.time / 2);
   }
   for (const s of ["R", "L"] as const) joints[`foot.${s}`].x -= joints[`thigh.${s}`].x + joints[`shin.${s}`].x;
-  p.rootY = -Math.min(legDrop(joints["thigh.R"], joints["shin.R"]), legDrop(joints["thigh.L"], joints["shin.L"]))
-    + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
+  p.legsExact = walking;
+  p.rootY = walking ? walkY
+    : -Math.min(legDrop(joints["thigh.R"], joints["shin.R"]), legDrop(joints["thigh.L"], joints["shin.L"]))
+      + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
   return p;
 }
 
-function walk(p: PersonPose, { phase, amp }: PersonMoment["walk"], reach: number, side: 1 | -1): void {
-  const { joints } = p, share = phase / (2 * Math.PI), at = (keys: readonly number[], half = 0) =>
-    amp * walkKey(share + half, keys);
-  for (const [s, half] of [["L", 0], ["R", 0.5]] as const) {
-    joints[`thigh.${s}`].x += at(WALK.leg.thigh, half);
-    joints[`shin.${s}`].x += at(WALK.leg.shin, half);
-    joints[`foot.${s}`].x += at(WALK.leg.foot, half);
-  }
+function walk(
+  p: PersonPose, { phase, speed, way }: PersonMoment["walk"], b: PersonBuild, side: 1 | -1, dipM: number,
+): number {
+  const { joints } = p, share = phase / (2 * Math.PI), amp = Math.min(1, speed / PLAYER.moveSpeed);
+  const at = (keys: readonly number[], half = 0) => amp * walkKey(share + half, keys);
   joints.hips.y += at(WALK.hips);
   joints.chest.y += at(WALK.chest);
   joints.neck.y += at(WALK.neck);
-  joints.root.x += amp * WALK.leanRad;
-  const scale = reach / MOTION_ARM_M;
+  joints.root.x += amp * WALK.leanRad * way.z;
+  const rootY = plantLegs(joints, share, strideOf(speed, Math.abs(way.x)), way, b.look.body, dipM);
+  const scale = b.reachM / MOTION_ARM_M;
   const offHalf = side === 1 ? 0 : 0.5;
   p.offHand = { ...p.offHand, z: p.offHand.z + at(WALK.arm, offHalf) * scale };
   p.hand = { ...p.hand, z: p.hand.z + at(WALK.arm, 0.5 - offHalf) * scale * SWORD_ARM_SWING };
+  return rootY;
 }
 
 function drawPose(p: PersonPose, bow: BowLook & { drawn: number }, b: PersonBuild, side: 1 | -1, loosed: boolean): void {

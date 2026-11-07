@@ -56,6 +56,22 @@ export function speckleTexture(scene: Scene, name: string, opts: SpeckleOptions)
   });
 }
 
+export function blotTexture(scene: Scene, name: string, seed: number): DynamicTexture {
+  const size = 128, rand = seededRandom(seed);
+  return drawnTexture(scene, name, { width: size, alpha: true }, (c) => {
+    for (let i = 0; i < 10; i++) {
+      const a = rand() * Math.PI * 2, off = rand() * size * 0.2, r = size * (0.2 + rand() * 0.13);
+      const x = size / 2 + Math.cos(a) * off, y = size / 2 + Math.sin(a) * off;
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(255,255,255,0.75)");
+      g.addColorStop(0.5, "rgba(255,255,255,0.45)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, size, size);
+    }
+  });
+}
+
 /** Soft round shadow. */
 export function blobTexture(scene: Scene): DynamicTexture {
   const size = 64;

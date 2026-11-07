@@ -2,7 +2,8 @@ import {
   Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Material, type Scene,
 } from "@babylonjs/core";
 import type { ArenaScene } from "../battle/scene.js";
-import { speckleTexture, type SpeckleOptions } from "../textures.js";
+import { colorMaterial } from "../materials.js";
+import { blotTexture, speckleTexture, type SpeckleOptions } from "../textures.js";
 
 const GROUND_SIZE_M = 120;
 /** A patch's texture repeats, so its specks come out the floor's size. */
@@ -76,15 +77,38 @@ export function patches(
   ctx: ArenaScene, root: TransformNode, own: <M extends Material>(m: M) => M, name: string,
   colors: Pick<SpeckleOptions, "base" | "specks">, spots: Spot[],
 ): void {
-  const blot = MeshBuilder.CreateDisc(name, { radius: 1, tessellation: 7 }, ctx.scene);
-  blot.rotation.x = Math.PI / 2;
-  blot.scaling.z = 0.65;
-  blot.bakeCurrentTransformIntoVertices();
+  const blot = MeshBuilder.CreateGround(name, { width: 2, height: 2 * 0.65 }, ctx.scene);
   const m = own(speckled(ctx.scene, name, { ...colors, count: 900, maxRadiusPx: 5, seed: name.length }, PATCH_TILES));
+  m.opacityTexture = blotTexture(ctx.scene, `${name}-edge`, name.length);
   m.zOffset = -2;
   blot.material = m;
   blot.receiveShadows = true;
   scatter(ctx, root, [[blot, 0.012]], spots, false);
+}
+
+export const HAZE_SHARES = [0.2, 0.42, 0.62] as const;
+
+export function hazed(color: Color3, sky: Color3, share: number): { diffuse: Color3; emissive: Color3 } {
+  const c = Color3.Lerp(color, sky, share);
+  return { diffuse: c.scale(1 - share), emissive: c.scale(share) };
+}
+
+export function hazedRings(
+  ctx: ArenaScene, root: TransformNode, own: <M extends Material>(m: M) => M, tpl: Mesh, y: number,
+  look: { color: Color3; sky: Color3 }, spots: { rand: () => number; count: number; near: number; far: number },
+): void {
+  const band = (spots.far - spots.near) / HAZE_SHARES.length;
+  HAZE_SHARES.forEach((share, i) => {
+    const layer = i === 0 ? tpl : tpl.clone(`${tpl.name}-${i}`);
+    const { diffuse, emissive } = hazed(look.color, look.sky, share);
+    const m = own(colorMaterial(ctx.scene, `${tpl.name}-${i}`, diffuse));
+    m.emissiveColor = emissive;
+    layer.material = m;
+    const near = spots.near + band * i, grow = 1 + 0.25 * i;
+    scatter(ctx, root, [[layer, y]],
+      ringSpots(spots.rand, Math.round(spots.count / HAZE_SHARES.length), near, near + band, 0.8 * grow, 1.4 * grow),
+      false);
+  });
 }
 
 export function tuft(scene: Scene, name: string, heightM: number, blades = 5): Mesh {
