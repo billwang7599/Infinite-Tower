@@ -339,6 +339,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     a shield raised before the chest, facing the foe, the sword kept in its guard. A change of guard, or into or out
     of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's heft or the shield's), a near half turn going
     over the top rather than under; a swing still takes over by its own timing (`easeArms` in `animation.ts`).
+    Switching hands with a blade in each eases both hands to their new places over the same time, mid-swing too,
+    each blade staying in its hand.
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
     as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps). Each key is reached mostly at

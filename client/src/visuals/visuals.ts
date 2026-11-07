@@ -163,7 +163,8 @@ export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanv
   const paintHeld = (look: Pick<PlayerLook<unknown>, "hold" | "finish">, was: Painted, fight: Fight, e: Entity) => {
     const { hands } = fight.world.require(e, Wielder);
     const hand = weaponHandIn(hands);
-    if (fight === was?.fight && hand === was.hand) return was;
+    // A 3D person shows none of the sprite's frames, and painting them all stalls a switch of hands.
+    if (fight === was?.fight && (hand === was.hand || arena.pixel.player3d)) return was;
     look.hold(hand);
     look.finish();
     return { fight, hand } as Painted;
