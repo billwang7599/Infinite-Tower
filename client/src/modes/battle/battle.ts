@@ -11,7 +11,7 @@ import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { arenaCamera, cameraTuning, steerZoom } from "./camera.js";
-import { resultShown, type BattleContext, type Correction } from "./context.js";
+import { Blend, resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { freeCamera, playerAim } from "./aim.js";
 import { pickedWay, readPlayerInput } from "./input.js";
@@ -51,6 +51,7 @@ export function createBattle(opts: BattleOptions): Battle {
   const ctx: BattleContext = {
     polled: actions.poll(), actions, settings,
     view: { ...START_VIEW, fovRad: views.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
+    blend: new Blend(),
     lock: null,
     freeCamera: null,
     zoomM: views.fp.distanceM,
@@ -83,6 +84,7 @@ export function createBattle(opts: BattleOptions): Battle {
   const runFight = (fight: Fight, sync: FightSync) => {
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
     const steps = sync.pace.stepsDue(fight.steps);
+    ctx.blend.alpha = sync.pace.alpha;
     if (steps === 0) return;
     ctx.polled = actions.poll();
     if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
@@ -119,7 +121,10 @@ export function createBattle(opts: BattleOptions): Battle {
     input.bag = opts.panel.get().open === "inventory";
     input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
     input.use = input.use ? null : ctx.uses.shift() ?? null;
-    for (let i = 0; i < steps; i++) sync.advance(input);
+    for (let i = 0; i < steps; i++) {
+      ctx.blend.keep(world, [...fight.players, ...fight.enemies]);
+      sync.advance(input);
+    }
     sync.flush();
     opts.skills.set({ book: fight.world.first(LocalPlayer, Player)![2].book });
   };
@@ -138,6 +143,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.gearMoves = [];
       ctx.uses = [];
       corrected = [];
+      ctx.blend.clear();
       sentWords = opts.chant.get().words;
       wordsDue = null;
       const fight = new Fight(setup);
@@ -151,7 +157,10 @@ export function createBattle(opts: BattleOptions): Battle {
         const after = positions(fight);
         [...fight.players, ...fight.enemies].forEach((e, i) => {
           const was = before[i], pos = after[i]!;
-          if (was) corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
+          if (!was) return;
+          const moved = { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z };
+          corrected.push({ e, moved });
+          ctx.blend.moved(e, moved);
         });
       };
       unsubscribe = [
@@ -199,6 +208,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.lock = null;
       ctx.drops = [];
       corrected = [];
+      ctx.blend.clear();
     },
     update(dt) {
       ctx.corrections = corrected;

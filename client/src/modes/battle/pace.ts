@@ -4,7 +4,7 @@
  * inputs come, and what the client didn't cause itself (it was behind its own clock) moves the clock ahead (late) or
  * back (early). A correction takes a round trip to show, so news about inputs sent before it is ignored.
  */
-import { FIXED_DT } from "@infinite-tower/shared";
+import { clamp, FIXED_DT } from "@infinite-tower/shared";
 
 /** Late or early by up to this many steps is fine: no correction. */
 export const PACE_SLACK_STEPS = 3;
@@ -20,8 +20,12 @@ const KEPT_SENDS = 120;
 const STEP_MS = FIXED_DT * 1000;
 /** A frame right on a step's edge counts that step (floating point). */
 const EDGE_STEPS = 1e-6;
+// Half a step in, so 60 Hz frames land mid-step: a little jitter never makes one run 0 steps and the next 2.
+const FIRST_FRAME_STEPS = 1.5;
 
 export class Pace {
+  /** How far real time is past the fight's last step at the last stepsDue, 0 to 1. */
+  alpha = 1;
   /** When the clock's step 0 was (ms), set by the first frame; moved on when a backlog is dropped. */
   private startMs: number | null = null;
   /** Steps the server's reports have moved the clock by. */
@@ -39,9 +43,15 @@ export class Pace {
   stepsDue(step: number): number {
     this.noteStall(step);
     this.lastFrameMs = this.now();
-    const due = this.due();
-    if (due - step > MAX_BACKLOG_STEPS) this.startMs! += (due - step - MAX_BACKLOG_STEPS) * STEP_MS;
-    return Math.max(0, Math.min(this.due() - step, MAX_STEPS_PER_FRAME));
+    let at = this.clock();
+    const dropped = Math.floor(at + EDGE_STEPS) - step - MAX_BACKLOG_STEPS;
+    if (dropped > 0) {
+      this.startMs! += dropped * STEP_MS;
+      at -= dropped;
+    }
+    const steps = Math.max(0, Math.min(Math.floor(at + EDGE_STEPS) - step, MAX_STEPS_PER_FRAME));
+    this.alpha = clamp(at - step - steps, 0, 1);
+    return steps;
   }
 
   /** The client sent its inputs up to `step`. */
@@ -74,8 +84,12 @@ export class Pace {
   }
 
   private due(): number {
+    return Math.floor(this.clock() + EDGE_STEPS);
+  }
+
+  private clock(): number {
     const now = this.now();
-    this.startMs ??= now - STEP_MS;
-    return Math.floor((now - this.startMs) / STEP_MS + EDGE_STEPS) + this.offset;
+    this.startMs ??= now - FIRST_FRAME_STEPS * STEP_MS;
+    return (now - this.startMs) / STEP_MS + this.offset;
   }
 }

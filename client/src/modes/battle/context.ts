@@ -1,4 +1,7 @@
-import type { Entity, GearMove, PageWrite, PileSnap, Skill, SwingDir, UseSpot, Vec3 } from "@infinite-tower/shared";
+import {
+  Body, type Entity, type GearMove, type PageWrite, type PileSnap, type Skill, type SwingDir, type UseSpot, type Vec3,
+  type World,
+} from "@infinite-tower/shared";
 import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -16,12 +19,36 @@ export const AFTER_FIGHT_BANNER_TIME = 4;
 
 export interface Correction { e: Entity; moved: Vec3 }
 
+export class Blend {
+  alpha = 1;
+  private readonly before = new Map<Entity, Vec3>();
+
+  keep(world: World, fighters: readonly Entity[]): void {
+    for (const e of fighters) this.before.set(e, { ...world.require(e, Body).pos });
+  }
+
+  moved(e: Entity, by: Vec3): void {
+    const was = this.before.get(e);
+    if (was) this.before.set(e, { x: was.x + by.x, y: was.y + by.y, z: was.z + by.z });
+  }
+
+  clear(): void {
+    this.before.clear();
+  }
+
+  pos(world: World, e: Entity): Vec3 {
+    const now = world.require(e, Body).pos, was = this.before.get(e) ?? now, a = this.alpha;
+    return { x: was.x + (now.x - was.x) * a, y: was.y + (now.y - was.y) * a, z: was.z + (now.z - was.z) * a };
+  }
+}
+
 export interface BattleContext {
   // The last fight step's; a frame without a step keeps it.
   polled: Polled;
   actions: Actions;
   settings: Settings;
   view: ArenaView;
+  blend: Blend;
   lock: Entity | null;
   freeCamera: FreeCamera;
   zoomM: number;

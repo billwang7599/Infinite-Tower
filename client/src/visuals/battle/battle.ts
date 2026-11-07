@@ -51,7 +51,7 @@ export function fighter<S>(name: string, own: {
   return {
     spawn(ctx, world, e) {
       const node = new TransformNode(`${name}-${e}`, ctx.scene);
-      const at = world.require(e, Body).pos;
+      const at = ctx.battle.blend.pos(world, e);
       node.position.set(at.x, at.y, at.z);
       ctx.nodes.set(e, node);
       return {
@@ -60,7 +60,7 @@ export function fighter<S>(name: string, own: {
       };
     },
     frame(f, world, e, dt) {
-      const body = world.require(e, Body), { pos } = body, { offset } = f;
+      const body = world.require(e, Body), pos = f.ctx.battle.blend.pos(world, e), { offset } = f;
       const dissolving = world.has(e, Enemy) && world.require(e, Health).hp <= 0;
       const leaving = world.get(e, Player)?.leftArena ?? false;
       f.goneTime = dissolving || leaving ? f.goneTime + dt : 0;

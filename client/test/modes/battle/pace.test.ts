@@ -40,6 +40,39 @@ describe("the client's fight clock", () => {
     assert.deepEqual(client().frames(5, STEP_MS * 2).slice(1), [2, 2, 2, 2]);
   });
 
+  test("at 60 frames a second, one a little late or early runs one step, however late the first was", () => {
+    const lateMs = 0.4 * STEP_MS, lateness = (k: number) => (((k * 7) % 10) / 9) * lateMs;
+    for (const firstLateMs of [0, lateMs / 2, lateMs]) {
+      let now = 0, step = 0;
+      const pace = new Pace(() => now), ran: number[] = [];
+      for (let k = 0; k < 120; k++) {
+        now = k * STEP_MS + (k === 0 ? firstLateMs : lateness(k));
+        const steps = pace.stepsDue(step);
+        step += steps;
+        ran.push(steps);
+      }
+      assert.ok(ran.every((n) => n === 1), `first frame ${firstLateMs} ms late: ${JSON.stringify(ran)}`);
+    }
+  });
+
+  test("alpha: how far real time is past the fight's last step, 0 to 1", () => {
+    const c = client();
+    c.frames(1, STEP_MS / 2);
+    const first = c.pace.alpha;
+    c.frames(1, STEP_MS / 2);
+    const second = c.pace.alpha;
+    assert.ok(first >= 0 && first < 1 && second >= 0 && second < 1, `${first}, ${second}`);
+    assert.ok(Math.abs(Math.abs(second - first) - 0.5) < 1e-6, `half a step apart at 120 a second: ${first}, ${second}`);
+    c.frames(10);
+    c.stall(STEP_MS * 20);
+    c.frames(1);
+    assert.equal(c.pace.alpha, 1, "still catching up: the fight's last step is shown");
+    c.frames(10);
+    c.pace.report(-(PACE_SLACK_STEPS + 2), c.step() - 1, c.step());
+    c.frames(1);
+    assert.equal(c.pace.alpha, 0, "held back: the fight is ahead of the clock");
+  });
+
   test("after a stall it catches up, MAX_STEPS_PER_FRAME a frame at most", () => {
     const c = client();
     c.frames(10);

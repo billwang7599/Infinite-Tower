@@ -7,7 +7,7 @@ import {
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../../../src/modes/components.js";
 import { CROSSHAIR_MIN_M, playerAim } from "../../../src/modes/battle/aim.js";
-import type { BattleContext } from "../../../src/modes/battle/context.js";
+import { Blend, type BattleContext } from "../../../src/modes/battle/context.js";
 import {
   arenaCamera, blocksView, CAMERA_PRESETS, CAMERA_VIEWS, cameraTuning, FLOOR_MARGIN_M, insideSelf, steerZoom, ZOOM,
   type ArenaView, type CameraTuning, type CameraView,
@@ -34,7 +34,7 @@ function arena(me: Vec3, foe: Vec3 | null, radiusM = 20) {
   };
   const drag = { dx: 0, dy: 0 };
   const ctx = {
-    view, lock, freeCamera: null, zoomM: SHOULDER.distanceM,
+    view, lock, freeCamera: null, zoomM: SHOULDER.distanceM, blend: new Blend(),
     actions: { lookDelta: () => ({ ...drag }) },
     polled: {
       held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragging: false, zoom: 0,
@@ -365,6 +365,47 @@ describe("first person", () => {
     assert.equal(insideSelf(view.eye, me), true);
     assert.equal(insideSelf(settle(CAMERA_VIEWS, me, null).eye, me), false);
     assert.equal(insideSelf(settle(CAMERA_VIEWS, me, { x: 0, y: 0.7, z: 5 }).eye, me), false);
+  });
+
+  test("running, the eye stays fixed to the body, with no trail; out of first person the trail eases in", () => {
+    const inFirstPerson = () => {
+      const { ctx, fight, view } = arena({ ...me }, null);
+      ctx.zoomM = fp.distanceM;
+      const camera = arenaCamera(ctx, CAMERA_VIEWS), body = fight.world.first(LocalPlayer, Body)![2].pos;
+      for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+      return { ctx, view, body, frame: () => camera(fight, FRAME_TIME) };
+    };
+    const running = inFirstPerson(), standing = inFirstPerson(), stepM = PLAYER.moveSpeed * FRAME_TIME;
+    const trailM = () => running.view.eye.z - running.body.z - (standing.view.eye.z - standing.body.z);
+    const frame = () => {
+      running.body.z += stepM;
+      running.frame();
+      standing.frame();
+    };
+    for (let i = 0; i < 60; i++) {
+      frame();
+      near(trailM(), 0, `frame ${i}: the eye trails`);
+    }
+    running.ctx.zoomM = standing.ctx.zoomM = SHOULDER.distanceM;
+    for (let i = 0; i < 240; i++) {
+      const before = trailM();
+      frame();
+      assert.ok(Math.abs(trailM() - before) < stepM, `frame ${i}: the trail jumped ${trailM() - before} m`);
+    }
+    assert.ok(trailM() < -stepM, `third person still trails: ${trailM()} m`);
+  });
+
+  test("it follows the body as drawn, between the fight's last two steps", () => {
+    const { ctx, fight, view } = arena({ ...me }, null);
+    ctx.zoomM = fp.distanceM;
+    const camera = arenaCamera(ctx, CAMERA_VIEWS), [e, , body] = fight.world.first(LocalPlayer, Body)!;
+    for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+    const standing = view.eye.z - body.pos.z;
+    ctx.blend.keep(fight.world, [e]);
+    body.pos.z += 1;
+    ctx.blend.alpha = 0.25;
+    camera(fight, FRAME_TIME);
+    near(view.eye.z, me.z + 0.25 + standing, "a quarter of the way into the step");
   });
 
   test("locked, it looks at the target", () => {
