@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { SCREEN_DIR, SWING_DIRS, WAYS, type EnemyState, type Vec3 } from "@infinite-tower/shared";
-import { KOBOLD_DRAWBACK, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
+import { guardPose } from "../../../../src/visuals/battle/guard.js";
+import {
+  KOBOLD_DRAWBACK, KOBOLD_GUARD_FIT, koboldPose,
+} from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import {
   DRAWBACK, MOTIONS, wayCut, type BladePose, type Cut,
 } from "../../../../src/visuals/battle/weapons.js";
@@ -138,5 +141,43 @@ describe("the kobold's pose", () => {
     assert.equal(poseOf("stunned", 0.1, 0, LR).stars, true);
     assert.equal(poseOf("staggered", 0.1, 0, LR).stars, false);
     assert.deepEqual(poseOf("staggered", 0.1, 0, TB, null).blade, poseOf("stunned", 0.1, 0, TB, null).blade);
+  });
+});
+
+describe("the kobold's guard", () => {
+  const AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
+  const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const gap = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  const guarding = (raised: number, state: EnemyState = "approach") =>
+    koboldPose(state, 0.5, 0.5, TB, MOTIONS.sword, null, TOP_GUARD, false, { kind: "one", raised });
+  const block = guardPose("one", 1, KOBOLD_GUARD_FIT);
+
+  test("blocking, it holds its blade across its body as a person does, fitted to it, edge toward its foe", () => {
+    const p = guarding(1);
+    assert.deepEqual(p.hand, block.hand);
+    assert.deepEqual(p.offHand, block.offHand);
+    assert.ok(gap(p.blade, block.blade!) < 1e-9, "the block's blade");
+    assert.ok(p.blade.x < -0.85, "across, toward its other side");
+    assert.ok(p.hand.x > 0 && p.offHand.x < 0, "a hand either side");
+    assert.ok(dot(p.edge, AHEAD) > 0.8, "the edge toward its foe");
+    assert.ok(Math.abs(p.twist) < 1e-9 && Math.abs(p.hipTwist) < 1e-9, "square on");
+  });
+
+  test("raised part way, it's part way from its guard to its block; lowered, its guard as before", () => {
+    const lowered = guarding(0), half = guarding(0.5), plain = poseOf("approach", 0.5, 0.5, TB, null);
+    assert.deepEqual(lowered, plain);
+    for (const at of ["hand", "offHand"] as const) {
+      const all = gap(plain[at], block[at]!);
+      assert.ok(gap(half[at], plain[at]) < all && gap(half[at], block[at]!) < all, `${at} between`);
+    }
+    assert.ok(dot(half.blade, plain.blade) < dot(lowered.blade, plain.blade) - 0.05, "the blade turning");
+    assert.ok(half.twist > -0.6 * 0.5 && half.twist < 0, `${half.twist}: squaring up`);
+  });
+
+  test("lowering as it's stunned or starts a swing, it eases from the block, not jumping", () => {
+    for (const state of ["stunned", "weaponWindup"] as const) {
+      const nearly = guarding(0.99, state), up = guarding(1);
+      assert.ok(gap(nearly.hand, up.hand) < 0.02 && dot(nearly.blade, up.blade) > 0.99, state);
+    }
   });
 });

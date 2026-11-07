@@ -78,7 +78,7 @@ export const GUARD_LEAN = { highRad: 0.35, sideRad: 0.44, lowRad: 0.25 } as cons
 const WINDUP_LEAN = 0.35;
 const STROKE_LEAN = 0.15;
 
-const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
+export const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
   x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k,
 });
 

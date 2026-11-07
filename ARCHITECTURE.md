@@ -1840,7 +1840,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        idle breathing and ear and tail flicks on top) and sprite.ts
                        (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and animation.ts:
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
-                       WEAPON_LOOKS); training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark
+                       WEAPON_LOOKS); a Kobold raises guard.ts's block stance while the fight has its block up
+                       (`blocking`), eased in and out over GUARD_SHIFT by heft (Bram's comes with the person);
+                       training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark
                        lit for each kind of strike landed; sprite.ts); bram/ (only sprite.ts: in a fight he's drawn
                        as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
                        one line each; byEnemy); shape.ts (what the models share: enemyMaterial, a part's colour
@@ -1887,8 +1889,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          between the fight's steps (SWING_ARC); a bow carried at the side (BOW_CARRY) and drawn side-on,
                          held out clear of the body and head (BOW_DRAWN), the string hand back by the draw; LANDING,
                          the knees giving; each pose's blade edge and what the other hand holds (OFF_CARRY), the guard
-                         held (way, block), a block posed by what blocks (BLOCK: one blade across the body over the
-                         other hand, two crossed in an X, a shield raised); no Babylon: tested), motion.ts (WALK,
+                         held (way, block), a block posed by what blocks (guard.ts's guardPose from the shoulders);
+                         no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
                          a planted one stays put, a walk easing into a run (STRIDE.run) past STRIDE.walkSpeed;
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
@@ -1991,6 +1993,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
                          Kobolds' and the players'; a bow's rest and guard); WEAPON_LOOKS, by weapon: its 3D blade
                          (size, colour, art) and a bow's brace and draw. No Babylon: tested
+        guard.ts         The block's stance by what blocks, for any rig (guardPose: BLOCK's spots measured from the
+                         rig's GuardFit, a person's shoulders or KOBOLD_GUARD_FIT; one blade across the body over the
+                         other hand, two crossed in an X, a shield raised); shieldFacing. No Babylon: tested through
+                         the person's and the Kobolds' poses
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a perfect block's, a broken guard's
                          flash), the chant's and wind-up's
@@ -2393,8 +2399,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Where your hands and blade sit in first person; how far from the head the eye takes them back to the body | `FP_ARMS` (`fade`) in `client/src/visuals/battle/firstPerson.ts` |
 | Where each way's guard holds the sword hand in first person | `FP_GUARD` in `client/src/visuals/battle/firstPerson.ts` |
 | How far a guard's blade leans ahead (high, level, low) | `GUARD_LEAN` in `client/src/visuals/battle/weapons.ts` |
-| The block's poses by what blocks (one blade, two, a shield); where a second blade or a shield is carried | `BLOCK`, `OFF_CARRY` in `client/src/visuals/battle/person/pose.ts` |
-| How long a change of guard, or into or out of a block, takes by heft | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
+| The block's poses by what blocks (one blade, two, a shield), for people and enemies; where a Kobold's are measured from; where a second blade or a shield is carried | `BLOCK` in `client/src/visuals/battle/guard.ts`; `KOBOLD_GUARD_FIT` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `OFF_CARRY` in `client/src/visuals/battle/person/pose.ts` |
+| How long a change of guard, or into or out of a block, takes by heft (an enemy's block too) | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
 | The 3D shield's size and where it sits on the hand | `SHIELD` in `client/src/visuals/battle/blade.ts` |
 | A sword swing in first person: how long it's wound up and carried past the end (the hand drawn back, the blade eased in at the side, `sideRad`), the hand's swing, an upright cut's lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
 | The 3D person's swing arc: drawn back, past the end, how hard it drives into the hit, the wind-up's take-over; how quickly a pose's key is reached and the rest crept | `SWING_ARC`, `KEY_EASE_TIME` in `client/src/visuals/battle/person/pose.ts` |

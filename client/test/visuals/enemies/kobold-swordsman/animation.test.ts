@@ -2,21 +2,27 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, Enemy, FIXED_DT, Health, newWielder, Skilled, WAYS, Wielder, World, type EnemyData, type EnemyState,
-  type Entity, type SkilledData, type SwingData,
+  BASE_STATS, Body, Enemy, FighterStats, FIXED_DT, Health, newWielder, Skilled, WAYS, WeaponAttack, WEAPONS, Wielder,
+  World, type EnemyData, type EnemyState, type Entity, type SkilledData, type SwingData, type Vec3,
+  type WeaponAttackData,
 } from "@infinite-tower/shared";
+import { blocking } from "@infinite-tower/shared/fight";
 import { Blend } from "../../../../src/modes/battle/context.js";
-import { BLADE_FROM_M } from "../../../../src/visuals/battle/blade.js";
+import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js";
+import { guardPose } from "../../../../src/visuals/battle/guard.js";
 import { HIT_STOP_MS, type HitStop } from "../../../../src/visuals/battle/impact.js";
 import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
+import { guardShiftTime } from "../../../../src/visuals/battle/person/animation.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
 import { MOTIONS, strokeOf, wayCut, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
-import { GREATSWORD_BUILD } from "../../../../src/visuals/enemies/kobold-greatsword/animation.js";
+import {
+  GREATSWORD_BUILD, koboldGreatswordVisual,
+} from "../../../../src/visuals/enemies/kobold-greatsword/animation.js";
 import { koboldSwordsmanVisual, reachKobold } from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
 import {
   bellySections, buildKobold, SWORDSMAN_BUILD, torsoSections, type KoboldBuild,
 } from "../../../../src/visuals/enemies/kobold-swordsman/model.js";
-import { koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
+import { KOBOLD_GUARD_FIT, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { alongSegment, armDepth, depthIn, type Loft } from "../../../fixtures/clearance.js";
 import { swingAt, swingSteps } from "../../../fixtures/swings.js";
 
@@ -33,9 +39,11 @@ function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword
   }));
   const motion = MOTIONS.sword, held = motion.held(wayCut("tb", true));
   let worst = { depthM: 0, where: "" };
-  const check = (what: string, state: EnemyState, t: number, k: number, swing: SwingData | null, gaitM = 0) => {
+  const check = (
+    what: string, state: EnemyState, t: number, k: number, swing: SwingData | null, gaitM = 0, guarded = 0,
+  ) => {
     const p = koboldPose(state, t, k, wayCut(swing?.way ?? "tb", true), motion, swing && strokeOf(swing), held,
-      swing?.attack === "heavy");
+      swing?.attack === "heavy", { kind: "one", raised: guarded });
     m.hips.rotation.y = p.hipTwist;
     m.chest.rotation.set(p.bend, p.twist, 0);
     m.model.rotation.set(p.lean, 0, p.roll);
@@ -44,7 +52,7 @@ function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword
     hand.rotationQuaternion = new Quaternion();
     const blade = new Vector3(p.blade.x, p.blade.y, p.blade.z);
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), blade, hand.rotationQuaternion);
-    reachKobold(m, p.hand, { ...p.offHand, z: p.offHand.z - gaitM }, look);
+    reachKobold(m, p.hand, { ...p.offHand, z: p.offHand.z - gaitM }, look, 1 - guarded);
     for (const [which, arm] of [["sword", m.swordArm], ["off", m.offArm]] as const) {
       const c = arm.clearance!, { depthM, part } = armDepth(lofts, arm, c, c.upperFrom);
       if (depthM > worst.depthM) worst = { depthM, where: `${which} ${part}, ${what}` };
@@ -58,6 +66,11 @@ function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword
   };
   check("on guard", "approach", 0.5, 0.5, null);
   for (const gaitM of [-0.17, 0.17]) check(`walking, the free hand ${gaitM} m`, "approach", 0.5, 0.5, null, gaitM);
+  for (const guarded of [0.5, 1]) {
+    for (const gaitM of [0, -0.17, 0.17]) {
+      check(`blocking ${guarded}, the free hand ${gaitM} m`, "approach", 0.5, 0.5, null, gaitM, guarded);
+    }
+  }
   for (const state of ["stunned", "staggered", "dead"] as const) {
     for (const t of [0, 0.1, 0.3]) check(`${state} at ${t} s`, state, t, 0.5, null);
   }
@@ -75,11 +88,38 @@ function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword
 }
 
 describe("the kobolds' arms go round their bodies", () => {
-  test("on guard, swinging either way, reeling and down, no arm, fist or blade passes into the torso", () => {
-    const kobolds = [[SWORDSMAN_BUILD, "kobold-blade"], [GREATSWORD_BUILD, "kobold-greatsword"]] as const;
+  const kobolds = [[SWORDSMAN_BUILD, "kobold-blade"], [GREATSWORD_BUILD, "kobold-greatsword"]] as const;
+
+  test("on guard, blocking, swinging either way, reeling and down, no arm, fist or blade passes into the torso", () => {
     for (const [build, weapon] of kobolds) {
       const { depthM, where } = deepest(build, weapon);
       assert.ok(depthM <= TOLERANCE_M, `${weapon}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
+    }
+  });
+
+  test("blocking, its blade passes under its snout", () => {
+    for (const [build, weapon] of kobolds) {
+      const scene = new Scene(new NullEngine()), ctx = { scene, sky: { castShadows: () => {} } } as never;
+      const look = WEAPON_LOOKS[weapon], cut = wayCut("tb", true);
+      const m = buildKobold(ctx, 1, new TransformNode("kobold", scene), { radius: 0.5 } as never, 0, look,
+        ARM_REACH_M, build);
+      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.sword, null, MOTIONS.sword.held(cut), false,
+        { kind: "one", raised: 1 });
+      const hand = m.swordArm.hand;
+      hand.rotationQuaternion = holdingOf(p.blade, p.edge, new Quaternion());
+      reachKobold(m, p.hand, p.offHand, look, 0);
+      const head = m.head.getChildMeshes().map((h) => {
+        h.computeWorldMatrix(true);
+        return h.getBoundingInfo().boundingBox;
+      });
+      const under = (at: Vector3) => head.filter((b) => at.x > b.minimumWorld.x && at.x < b.maximumWorld.x);
+      const blade = (y: number) => Vector3.TransformCoordinates(new Vector3(0, y, 0), hand.computeWorldMatrix(true));
+      for (const at of alongSegment(blade(BLADE_FROM_M), blade(BLADE_FROM_M + look.blade.lengthM), 40)) {
+        for (const b of under(at)) {
+          assert.ok(at.y + look.blade.widthM / 2 < b.minimumWorld.y, `${weapon}: ${at.y.toFixed(2)} m, its head over`);
+        }
+      }
+      scene.dispose();
     }
   });
 });
@@ -142,4 +182,75 @@ describe("a hit-stop on a kobold: its blade holds, then goes on with no jump", (
       }
     });
   }
+});
+
+describe("a kobold raises its guard while its block is up", () => {
+  const PER_SEC = 240, BLOCK_REACT_TIME = 0.3;
+  const kobolds = [
+    { visual: koboldSwordsmanVisual, weapon: "kobold-blade" },
+    { visual: koboldGreatswordVisual, weapon: "kobold-greatsword" },
+  ] as const;
+
+  function run({ visual, weapon }: (typeof kobolds)[number], stunAt: number, blocks = true) {
+    const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
+    world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
+    world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
+    world.add(e, FighterStats, BASE_STATS);
+    const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "approach", stateTime: 0, duration: 0, yaw: 0 } as
+      unknown as EnemyData);
+    world.add(e, Wielder, newWielder({ rightHand: weapon, leftHand: null, active: "rightHand" }, ARM_REACH_M));
+    const attack = { def: { blockReactTime: BLOCK_REACT_TIME } } as unknown as WeaponAttackData;
+    if (blocks) world.add(e, WeaponAttack, attack);
+    const ctx = {
+      scene, sky: { castShadows: () => {} }, nodes: new Map(), impacts: new Map(), hitStops: new Map(), skills: {},
+      materials: { slashFx: new StandardMaterial("slash", scene) }, battle: { blend: new Blend(), corrections: [] },
+    } as unknown as ArenaScene;
+    const drawn = visual.spawn(ctx, world, e), hand = drawn.drawing.swordArm.hand;
+    const frames: { time: number; hand: Vector3 }[] = [];
+    let upAt = Infinity;
+    for (let i = 0; i <= 2 * PER_SEC; i++) {
+      const time = i / PER_SEC;
+      if (time >= stunAt && enemy.state === "approach") Object.assign(enemy, { state: "stunned", stateTime: 0 });
+      if (blocking(world, e)) upAt = Math.min(upAt, time);
+      visual.frame(drawn, world, e, 1 / PER_SEC);
+      frames.push({ time, hand: hand.position.clone() });
+      enemy.stateTime += 1 / PER_SEC;
+    }
+    scene.dispose();
+    return { frames, upAt };
+  }
+
+  const handAt = (pose: { hand: Vec3 }) => new Vector3(pose.hand.x, pose.hand.y, pose.hand.z);
+  const held = MOTIONS.sword.held(wayCut("tb", true));
+  const plain = handAt(koboldPose("approach", 0, 1, wayCut("tb", true), MOTIONS.sword, null, held));
+  const raised = handAt(guardPose("one", 1, KOBOLD_GUARD_FIT) as { hand: Vec3 });
+  const share = (at: Vector3) => 1 - Vector3.Distance(at, raised) / Vector3.Distance(plain, raised);
+
+  const STUN_AT = 1.5;
+  const fastest = (frames: { time: number; hand: Vector3 }[], from: number, to: number) => Math.max(...frames
+    .flatMap((f, i) => i > 0 && f.time > from && f.time < to ? [Vector3.Distance(f.hand, frames[i - 1]!.hand)] : []));
+
+  for (const kobold of kobolds) {
+    test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by heft, never jumping`, () => {
+      const { frames, upAt } = run(kobold, STUN_AT), shiftTime = guardShiftTime(WEAPONS[kobold.weapon].heft);
+      const at = (time: number) => frames.find((f) => f.time >= time - 1e-9)!.hand;
+      assert.ok(upAt > BLOCK_REACT_TIME && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
+      assert.ok(Vector3.Distance(at(upAt), plain) < 0.01, "on guard until its block is up");
+      assert.ok(share(at(upAt + shiftTime / 4)) < 0.4, `${share(at(upAt + shiftTime / 4))}: eased in, not snapped`);
+      assert.ok(Vector3.Distance(at(upAt + shiftTime + 0.2), raised) < 0.01, "held where a block holds it");
+      assert.ok(fastest(frames, 0, STUN_AT) < 0.012, `${fastest(frames, 0, STUN_AT).toFixed(3)} m in a frame`);
+      assert.ok(share(at(STUN_AT + shiftTime / 4)) > 0.6, "eased out as it drops");
+      const reeled = fastest(frames, STUN_AT, 2), unguarded = fastest(run(kobold, STUN_AT, false).frames, STUN_AT, 2);
+      assert.ok(reeled <= unguarded + 1e-3, `reeling from its block ${reeled} m a frame, from its guard ${unguarded}`);
+    });
+  }
+
+  test("a heavier blade's guard rises slower", () => {
+    const halfway = (kobold: (typeof kobolds)[number]) => {
+      const { frames, upAt } = run(kobold, STUN_AT);
+      return frames.find((f) => f.time > upAt && share(f.hand) >= 0.5)!.time - upAt;
+    };
+    assert.ok(halfway(kobolds[1]) > halfway(kobolds[0]) + 0.01);
+  });
 });
