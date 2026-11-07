@@ -48,14 +48,14 @@ describe("Mouse lock", () => {
 
   test("Esc held as it becomes wanted, the lock waits for Esc to come up; not wanted by then, nothing's asked", () => {
     const { mouse, canvas } = setup();
-    mouse.setLockable(true, true, false, true);
+    mouse.setLockable(true, true, true);
     assert.equal(canvas.requests.length, 0);
     mouse.lockIfDue();
     mouse.lockIfDue();
     assert.equal(canvas.requests.length, 1);
     assert.equal(mouse.locked, true);
     mouse.setLockable(false, true);
-    mouse.setLockable(true, true, false, true);
+    mouse.setLockable(true, true, true);
     mouse.setLockable(false, true);
     mouse.lockIfDue();
     assert.equal(canvas.requests.length, 1);
@@ -81,11 +81,11 @@ describe("Mouse lock", () => {
     }
   });
 
-  test("raw movement where it's wanted (the overworld), asked again as that changes while locked", () => {
+  test("a drag's lock asks for raw movement; still held as the mouse becomes wanted, it's asked again for the OS's", () => {
     const { mouse, canvas } = setup();
-    mouse.setLockable(true, true, true);
-    mouse.setLockable(true, true, false);
-    mouse.setLockable(true, true, false);
+    mouse.lockWhileHeld(["Mouse2"]);
+    mouse.setLockable(true, true);
+    mouse.setLockable(true, true);
     assert.deepEqual(canvas.requests, [{ unadjustedMovement: true }, { unadjustedMovement: false }]);
     assert.equal(mouse.locked, true);
   });

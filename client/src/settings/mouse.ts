@@ -1,4 +1,4 @@
-/** Auto lock: the game captures the mouse by itself as play starts or a screen closes, not waiting for a click. */
+/** Auto lock: the game captures the mouse as a fight starts or a screen over it closes, not waiting for a click. */
 import type { SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 import { savedOnSlider, snapToSlider } from "./slider.js";

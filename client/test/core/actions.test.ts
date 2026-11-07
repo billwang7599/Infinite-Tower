@@ -15,9 +15,7 @@ function setup(...layers: Layer[]) {
 }
 
 function setupWith(
-  { autoLock, locked, answer, mouseFree = false }: {
-    autoLock: boolean; locked: boolean; answer?: LockAnswer; mouseFree?: boolean;
-  },
+  { autoLock, locked, answer }: { autoLock: boolean; locked: boolean; answer?: LockAnswer },
   ...layers: Layer[]
 ) {
   const { win, doc, canvas, grant, escape, blur } = fakePointerLock(answer);
@@ -27,7 +25,7 @@ function setupWith(
   const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document, win);
   mouse.locked = locked;
   const actions = new Actions(bindings, new Keyboard(win), mouse, mouseSettings);
-  actions.setLayers(layers.length > 0 ? layers : ["battle"], mouseFree);
+  actions.setLayers(layers.length > 0 ? layers : ["battle"]);
   const send = (target: EventTarget, type: string, fields: object, timeStamp?: number) => {
     const event = Object.assign(new Event(type, { cancelable: true }), fields);
     if (timeStamp !== undefined) Object.defineProperty(event, "timeStamp", { value: timeStamp });
@@ -717,14 +715,22 @@ describe("Actions: the mouse", () => {
     assert.equal(actions.poll().dragging, false);
   });
 
-  test("in the overworld, captured, every move turns the camera with no button, and aims nothing", () => {
-    const { actions, move } = setup("overworld");
+  test("in the overworld the pointer is free: never captured, and a move with no button held turns and aims nothing", () => {
+    const { actions, move, click, unclick, wheel, canvas, mouse } = setupWith(
+      { autoLock: true, locked: false }, "overworld",
+    );
+    click(0);
+    unclick(0);
     move(3, -2);
     move(FLICK.distancePx, 0);
-    assert.deepEqual(actions.lookDelta(), { dx: 3 + FLICK.distancePx, dy: -2 });
+    assert.equal(canvas.requests.length, 0);
+    assert.equal(mouse.locked, false);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    wheel(WHEEL.notchPx);
     const polled = actions.poll();
     assert.deepEqual(polled.flicks, []);
     assert.equal(polled.dragging, false);
+    assert.equal(polled.zoom, 1, "the wheel still zooms");
   });
 
   test("in the overworld, a right click short of DRAG.startPx turns an item as it's let go; a drag only the camera", () => {
@@ -732,7 +738,7 @@ describe("Actions: the mouse", () => {
     click(2);
     move(DRAG.startPx - 1, 0);
     unclick(2);
-    assert.deepEqual(actions.lookDelta(), { dx: DRAG.startPx - 1, dy: 0 }, "turned from the first px");
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, "short of a drag");
     assert.deepEqual(actions.poll().pressed, ["turnItem"]);
     click(2);
     move(DRAG.startPx, 0);
@@ -784,32 +790,34 @@ describe("Actions: the mouse", () => {
 });
 
 describe("Actions: the game holds the mouse while you play", () => {
-  const OVER_THE_WORLD: Layer[][] = [
-    ["overworld", "bag"], ["overworld", "bag", "skillbook"], ["overworld", "settings"], ["overworld", "admin"],
-    ["overworld", "dialogue"], ["overworld", "questbook"], ["overworld", "chat"], ["battle", "chant"],
-    ["battle", "battleBag"], ["battle", "leaveArena"], ["battle", "dialogue"], ["battle", "settings"],
+  const OVER_THE_FIGHT: Layer[][] = [
+    ["battle", "chant"], ["battle", "battleBag"], ["battle", "leaveArena"], ["battle", "dialogue"],
+    ["battle", "settings"], ["battle", "admin"], ["battle", "questbook"], ["battle", "chat"],
   ];
 
-  test("the overworld and the arena capture it as play starts (Auto mouse lock), asking once", () => {
-    for (const mode of ["overworld", "battle"] as const) {
-      const { actions, canvas, mouse } = setupWith({ autoLock: true, locked: false }, "title");
-      assert.equal(canvas.requests.length, 0, "not on the title");
-      actions.setLayers([mode]);
-      actions.setLayers([mode]);
-      assert.equal(canvas.requests.length, 1, mode);
-      assert.equal(mouse.locked, true, mode);
-    }
+  test("the arena captures it as a fight starts (Auto mouse lock), asking once, for the OS's movement", () => {
+    const { actions, canvas, mouse } = setupWith({ autoLock: true, locked: false }, "title");
+    assert.equal(canvas.requests.length, 0, "not on the title");
+    actions.setLayers(["battle"]);
+    actions.setLayers(["battle"]);
+    assert.deepEqual(canvas.requests, [{ unadjustedMovement: false }]);
+    assert.equal(mouse.locked, true);
   });
 
-  test("the overworld asks for raw movement and the arena for the OS's, as each had", () => {
-    const { actions, canvas } = setupWith({ autoLock: true, locked: false }, "overworld");
+  test("the overworld never captures it: going back to it from a fight lets go, and a press there asks nothing", () => {
+    const { actions, canvas, doc, mouse, click } = setupWith({ autoLock: true, locked: false }, "title");
+    actions.setLayers(["overworld"]);
+    assert.equal(canvas.requests.length, 0);
     actions.setLayers(["battle"]);
     actions.setLayers(["overworld"]);
-    assert.deepEqual(canvas.requests.map((r) => r?.unadjustedMovement), [true, false, true]);
+    assert.equal(doc.exits, 1);
+    assert.equal(mouse.locked, false);
+    for (const b of [0, 1, 2]) click(b);
+    assert.equal(canvas.requests.length, 1, "only the fight's");
   });
 
-  test("a screen, the bag, the chant or a dialog lets go of it, and closing it captures it again", () => {
-    for (const layers of OVER_THE_WORLD) {
+  test("a screen, the bag, the chant or a dialog over a fight lets go of it, and closing it captures it again", () => {
+    for (const layers of OVER_THE_FIGHT) {
       const { actions, canvas, doc, mouse } = setupWith({ autoLock: true, locked: false }, layers[0]!);
       actions.setLayers(layers);
       assert.equal(doc.exits, 1, layers.join());
@@ -820,60 +828,44 @@ describe("Actions: the game holds the mouse while you play", () => {
     }
   });
 
-  test("the character panel lets go of it though you walk on; closing it captures it again", () => {
-    const { actions, canvas, doc, mouse, press } = setupWith({ autoLock: true, locked: false }, "overworld");
-    press("KeyW");
-    actions.setLayers(["overworld"], true);
-    assert.equal(doc.exits, 1);
-    assert.equal(actions.poll().held.has("forward"), true);
-    actions.setLayers(["overworld"]);
-    assert.equal(canvas.requests.length, 2);
-    assert.equal(mouse.locked, true);
-    assert.equal(actions.poll().held.has("forward"), true, "still walking");
-  });
-
   test("with Auto mouse lock off, only a press on the game captures it", () => {
     const { actions, canvas, click, unclick } = setupWith({ autoLock: false, locked: false }, "title");
     click(0);
     unclick(0);
-    actions.setLayers(["overworld"]);
+    actions.setLayers(["battle"]);
     assert.equal(canvas.requests.length, 0);
     click(0);
     assert.equal(canvas.requests.length, 1);
   });
 
   test("not captured, a press on the game only asks for it: the press does nothing, nor does the mouse", () => {
-    for (const mode of ["overworld", "battle"] as const) {
-      const { actions, canvas, click, unclick, move, grant } = setupWith(
-        { autoLock: false, locked: false, answer: "later" }, mode,
-      );
-      move(DRAG.startPx + 20, 0);
-      click(2);
-      assert.equal(canvas.requests.length, 1, mode);
-      grant();
-      unclick(2);
-      assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, mode);
-      const polled = actions.poll();
-      assert.deepEqual(polled.pressed, [], mode);
-      assert.deepEqual(polled.flicks, [], mode);
-    }
+    const { actions, canvas, click, unclick, move, grant } = setupWith(
+      { autoLock: false, locked: false, answer: "later" }, "battle",
+    );
+    move(DRAG.startPx + 20, 0);
+    click(2);
+    assert.equal(canvas.requests.length, 1);
+    grant();
+    unclick(2);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    const polled = actions.poll();
+    assert.deepEqual(polled.pressed, []);
+    assert.deepEqual(polled.flicks, []);
   });
 
   test("Esc (the browser letting go of the lock) opens the settings as the key does, once if the key comes too", () => {
-    for (const mode of ["overworld", "battle"] as const) {
-      const { listen, escape, press, actions } = setup(mode);
-      const menu = listen("menu");
-      escape();
-      press("Escape");
-      assert.deepEqual(menu.got, [false], mode);
-      assert.equal(actions.pointer.get().locked, false);
-    }
+    const { listen, escape, press, actions } = setup("battle");
+    const menu = listen("menu");
+    escape();
+    press("Escape");
+    assert.deepEqual(menu.got, [false]);
+    assert.equal(actions.pointer.get().locked, false);
   });
 
   test("an Esc key later than ESC_ECHO_MS is heard", () => {
     mock.timers.enable({ apis: ["Date"], now: 0 });
     try {
-      const { listen, escape, press } = setup("overworld");
+      const { listen, escape, press } = setup("battle");
       const menu = listen("menu");
       escape();
       mock.timers.tick(ESC_ECHO_MS);
@@ -886,10 +878,9 @@ describe("Actions: the game holds the mouse while you play", () => {
 
   test("Esc closing what's over play captures the mouse as Esc comes up, and nothing opens again", () => {
     const CLOSED_BY_ESC: [Layer, Layer, ActionName][] = [
-      ["overworld", "settings", "menu"], ["battle", "settings", "menu"], ["overworld", "bag", "closeBag"],
-      ["overworld", "admin", "closeAdmin"], ["overworld", "dialogue", "closeDialogue"],
-      ["overworld", "questbook", "closeQuestbook"], ["overworld", "chat", "closeChat"],
-      ["battle", "chant", "closeChant"], ["battle", "battleBag", "closeBag"], ["battle", "leaveArena", "stayInArena"],
+      ["battle", "settings", "menu"], ["battle", "admin", "closeAdmin"], ["battle", "dialogue", "closeDialogue"],
+      ["battle", "questbook", "closeQuestbook"], ["battle", "chat", "closeChat"], ["battle", "chant", "closeChant"],
+      ["battle", "battleBag", "closeBag"], ["battle", "leaveArena", "stayInArena"],
     ];
     for (const [mode, over, close] of CLOSED_BY_ESC) {
       const { actions, listen, press, release, escape, mouse, canvas } = setupWith(
@@ -915,10 +906,10 @@ describe("Actions: the game holds the mouse while you play", () => {
   });
 
   test("a lock the game lets go (a screen opens), or one lost to another window, opens nothing", () => {
-    const { actions, listen, blur, mouse } = setup("overworld");
+    const { actions, listen, blur, mouse } = setup("battle");
     const menu = listen("menu");
-    actions.setLayers(["overworld", "bag"]);
-    actions.setLayers(["overworld"]);
+    actions.setLayers(["battle", "battleBag"]);
+    actions.setLayers(["battle"]);
     assert.equal(mouse.locked, true);
     blur();
     assert.deepEqual(menu.got, []);
@@ -933,9 +924,8 @@ describe("Actions: the game holds the mouse while you play", () => {
   });
 });
 
-describe("Actions: with the character panel open, a camera drag captures the pointer", () => {
-  const overworld = (answer?: LockAnswer) =>
-    setupWith({ autoLock: true, locked: false, answer, mouseFree: true }, "overworld");
+describe("Actions: in the overworld, a camera drag captures the pointer while it's held", () => {
+  const overworld = (answer?: LockAnswer) => setupWith({ autoLock: true, locked: false, answer }, "overworld");
 
   test("past DRAG.startPx the pointer locks, asking for raw movement; a click or a shorter drag doesn't", () => {
     for (const b of [1, 2]) {

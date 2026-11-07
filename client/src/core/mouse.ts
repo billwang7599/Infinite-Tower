@@ -1,7 +1,7 @@
 /**
- * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). While the game wants it (the overworld
- * and the arena with nothing over them) it's captured (pointer lock) by a press on the canvas, or by Auto mouse lock,
- * and let go with Esc, and counts only while captured; where it isn't wanted, it counts on the canvas as it is,
+ * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). While the game wants it (the arena
+ * with nothing over it) it's captured (pointer lock) by a press on the canvas, or by Auto mouse lock, and let go with
+ * Esc, and counts only while captured; where it isn't wanted (the overworld too), it counts on the canvas as it is,
  * captured only while a camera drag lasts.
  */
 import { clamp } from "@infinite-tower/shared";
@@ -16,8 +16,8 @@ interface LockChange {
 }
 
 /**
- * Capture the mouse without a click only at the moment it becomes wanted (play starts, or a screen over the world
- * closes). So a lock lost some other way stays let go until the player clicks.
+ * Capture the mouse without a click only at the moment it becomes wanted (a fight starts, or a screen over it closes).
+ * So a lock lost some other way stays let go until the player clicks.
  */
 export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: LockChange): boolean {
   return autoLock && lockable && !wasLockable && !locked;
@@ -121,16 +121,13 @@ export class Mouse extends Buttons {
   }
 
   /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured if `autoLock`, Esc up. */
-  setLockable(lockable: boolean, autoLock: boolean, rawMovement = false, escHeld = false): void {
-    const wasLockable = this.lockable, rawChanged = rawMovement !== this.rawMovement;
+  setLockable(lockable: boolean, autoLock: boolean, escHeld = false): void {
+    const wasLockable = this.lockable;
     this.lockable = lockable;
-    if (lockable) {
-      this.dragLockButtons = null;
-      this.rawMovement = rawMovement;
-    }
+    if (lockable) this.dragLockButtons = null;
     this.autoLockDue = lockable
       && (this.autoLockDue || shouldAutoLock({ wasLockable, lockable, autoLock, locked: this.locked }));
-    if (lockable && this.locked && rawChanged) void this.lock();
+    if (lockable && this.locked && this.rawMovement) void this.lock();
     if (!escHeld) this.lockIfDue();
     if (!lockable) this.unlock();
   }
@@ -143,12 +140,12 @@ export class Mouse extends Buttons {
   lockWhileHeld(buttons: readonly string[]): void {
     if (this.locked || this.lockable) return;
     this.dragLockButtons = buttons;
-    this.rawMovement = true;
-    void this.lock();
+    void this.lock(true);
   }
 
   /** Never rejects: a browser may refuse without a recent click (then a press on the canvas asks again). */
-  async lock(unadjustedMovement = this.rawMovement): Promise<void> {
+  async lock(unadjustedMovement = false): Promise<void> {
+    this.rawMovement = unadjustedMovement;
     try {
       await this.canvas.requestPointerLock?.({ unadjustedMovement });
     } catch (e) {
