@@ -83,6 +83,8 @@ export const HYBRID = {
     windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05,
     clashStaggerTime: 0.3, minRatio: 0.5, maxRatio: 2, heavyWeightFactor: 2,
   },
+  // Just short enough that a guard raised once free is up before an enemy's counter lands.
+  counter: { recoilTime: 0.25 },
   // Speeds in m/s.
   swinging: { lungeSpeed: 4, moveFactor: 0.25, liveTurnRadPerSec: 3, whiffRecoverTime: 0.2, whiffCarrySpeed: 1.5 },
 } as const;

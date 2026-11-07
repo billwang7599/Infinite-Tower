@@ -27,9 +27,9 @@ function recoil(world: World, e: Entity, time: number): void {
 }
 
 function deflected(world: World, events: FightEvent[], parrier: Entity, parried: Entity, kind: ParryKind): void {
-  const ratio = weightOf(world, parrier) / weightOf(world, parried);
-  recoil(world, parried, parryRecoilTime(baseTime(kind), ratio));
   const enemy = world.get(parrier, Enemy), attack = world.get(parrier, WeaponAttack);
+  const ratio = weightOf(world, parrier) / weightOf(world, parried);
+  recoil(world, parried, attack ? HYBRID.counter.recoilTime : parryRecoilTime(baseTime(kind), ratio));
   if (enemy && attack) {
     enter(world, parrier, enemy, "approach");
     Object.assign(attack, { riposte: true, swingsLeft: 0 });

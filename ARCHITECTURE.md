@@ -475,7 +475,7 @@ main.ts
   opens a perfect block's window by its length (`perfectBlockTime`, `perfectBlockLeft`); pressed in a heavy's wind-up it
   feints instead (`readSword`, the `feint` event). A swordsman's brain is its `WeaponAttack`'s
   (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a perfect block it reads
-  (`perfectBlockRead`) and the quick swing after it (`riposte`), and seeded feints of its heavies (`feint`).
+  (`perfectBlockRead`) and the counter it owes after it or a parry (`riposte`), and seeded feints of its heavies (`feint`).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
   for a weapon, its way) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not
   physics. A weapon's hit is first asked of `parries` (`fight/weapons/parry.ts`): a swing meeting the target's own
@@ -886,7 +886,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   of it with part of the room, none extra in the open), the swordsman (`behaviors/weapon.test.ts` and
   `kobold.test.ts`: ways never twice running, its block costing poise, its perfect block and the swing after, chains
   by its seed and through a save, its landed hits only hurting, a stagger or a
-  perfect block's recoil dropping its chain and its answer for its whole cooldown and a fresh opening wind-up, its
+  perfect block's recoil dropping its chain and its counter for its whole cooldown and a fresh opening wind-up, its
   recovery by heft), every attack's cooldown restarting after a stagger (`behaviors/brain.test.ts`: the boar's bite
   and charge, the wolf's leap, the lurker's slam), the wolf
   (`behaviors/pounce.test.ts`: circling before its first leap, backing off when walked up to, the bite, the locked
@@ -949,7 +949,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   lost at the time limit), lateness, `battleSync` on asking and as it's decided; dodging a bite k steps before it lands,
   on time, 150 ms late and too late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the
   Kobold's attack the same way; the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and
-  punishes whatever its seed, beating one who only holds a block and mostly one who only swings (`enemies/kobold-swordsman.test.ts`);
+  punishes whatever its seed, beating one who only holds a block and mostly one who only swings, and a swordsman's
+  counter after its blade parries a late answer landing only once a guard raised then is up (`enemies/kobold-swordsman.test.ts`);
   the wolf beaten by a player who sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most
   who only run at it swinging, its drops, the forge buying them and its spawns (`enemies/grey-wolf.test.ts`); the bog
   lurker beaten by a player who dodges and cuts back, more slowly by one who blocks, beating one who only swings, its

@@ -279,14 +279,15 @@ only a guard that blocks it.
 - **Perfect block:** the window opens as the guard comes up and lasts `perfectTime` 0.2 s × blade length /
   `perfectAtLengthM` 1.1 (`perfectBlockTime`): sword 0.2, longsword 0.25, greatsword 0.35 s. A weapon landing in it
   (even with block let go again) is stopped with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina
-  (if it has a bar) and is staggered `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s
+  (if it has a bar) and is staggered `perfectRecoilTime` 0.4 s (blocked by an enemy that counters, 0.25 s: Counters,
+  under Swing parries). No window if the last press was under `remashTime` 0.5 s
   (30 steps) before, so mashing opens none, while a reader can still press for each swing of a chain. Body blows can't
   be blocked perfectly.
 - **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
   pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
   the next 0.5 s's) and ends the chain. Then the blade recovers `feint.recoverTime` 0.38 s × felt heft (the Basic
   Sword 0.38 s) before that hand can swing again, the guard held meanwhile; a swordsman's feint too (no parry or
-  answer in it). Lights and stabs can't be feinted.
+  counter in it). Lights and stabs can't be feinted.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
@@ -306,12 +307,21 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
 - **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy.
 - **Recoil** of the parried: base (`fullRecoilTime` 0.8 s, `partialRecoilTime` 0.5 s) × clamp(parrier's weight /
   parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both
-  `clashStaggerTime` 0.3 s, whatever the ways and weights.
+  `clashStaggerTime` 0.3 s, whatever the ways and weights. Parried by an enemy that counters, `counter.recoilTime`
+  0.25 s whatever the weights (Counters, below).
 - **The Kobold** parries `parryChance` 15% of the swings it reads (those it doesn't perfect-block).
+- **Counters** (a swordsman's, after it parries a swing or blocks one perfectly; the `riposte` in
+  `fight/behaviors/weapon.ts`): one swing, wound up as a player's opening with its blade (`windupTime(strike,
+  "opening")` through `wayStepsAfter`: × felt heft, never under `CHAIN.minWindupTime` 0.4 s), started once its
+  `cooldown` is over and the player is in its `triggerDist` and in front, as any swing of its own. The one it parried
+  or blocked perfectly recoils `HYBRID.counter.recoilTime` 0.25 s: the 0.4 s floor less a Basic Sword's 0.1 s guard
+  raise, with a step to spare.
 
 Example: a sword heavy fully parrying a sword light: weights 2 and 1, the light recoils 0.8 × 2 = 1.6 s; a light
 partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kobold blade's light (the same weight,
-1): the Kobold recoils 0.8 s.
+1): the Kobold recoils 0.8 s. The Kobold's blade parrying a Basic Sword light that went live too late: the player
+recoils 0.25 s (free 17 steps on, the systems' order adding two), and its counter, a light opening (0.56 s), goes
+live 35 steps after the parry: 18 steps (0.3 s) to raise the guard (6) or dodge; a stab counter (0.45 s) leaves 11.
 
 ## Poise and stagger (enemies)
 
@@ -326,7 +336,7 @@ partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kob
   (`elements.lightning`).
 - Enemies have no hurt invulnerability, and a hit neither stuns nor moves them (Hits and pushback, above).
 - Any stun or stagger (those above, and a perfect block's or a parry's recoil) ends the attack under way (`stun` in
-  `fight/behaviors/common.ts`): a Kobold's swing, the rest of its chain and its quick answer are dropped, and every
+  `fight/behaviors/common.ts`): a Kobold's swing, the rest of its chain and its counter are dropped, and every
   attack waits its whole `cooldown` once the stun is over (the stun's time + `cooldown`; the wolf's, which counts only
   while it circles, `cooldown`). A skill's cooldown already starts with the cast, so it's left alone.
 
@@ -512,7 +522,7 @@ Each in `server/src/core/enemies/<id>.ts`.
   blade's felt heft, creeping up at a quarter of its walk while winding up and carried at 4 m/s while live, as a
   player (the body, under the sword); then 0.65 s to recover (× the heft too) and 1.2 s more before the next chain;
   first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
-  perfect-blocks 30% of a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
+  perfect-blocks 30% of a player's swings (rolled as each starts) and counters (Swing parries, Counters). A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, its first live 1.3 s after it
   starts and the rest 0.6 s, 0.7 s to recover and 1.8 s more (his def's 1.69, 0.78 and 0.91 × the old stick's

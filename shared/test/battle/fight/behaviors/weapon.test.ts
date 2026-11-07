@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   CHAIN, emptyBag, Enemy, feltHeft, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, packFor,
-  parryWay, Player, Stamina, toSteps, WeaponAttack, Wielder, wayStepsAfter, type EnemyDef, type Entity,
-  type PlayerInputData, type SwingDir, type WeaponAttackDef,
+  parryWay, Player, Stamina, strikeOf, toSteps, WeaponAttack, Wielder, wayStepsAfter, windupTime, type EnemyDef,
+  type Entity, type PlayerInputData, type SwingDir, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, armed, enemy, FULL_HP, FULL_STAMINA, input, player, STATS, swings, SWORDSMAN } from "../fixtures.js";
@@ -57,13 +57,25 @@ describe("a swordsman", () => {
     assert.equal(heavy.fight.world.require(heavy.it, Enemy).state, "staggered");
   });
 
-  test("perfect-blocks a player's swing when it reads it: the player loses stamina, recoils, and it answers", () => {
-    const { events, fight, me, it } = play(kobold({ perfectBlockChance: 1, firstDelay: 99 }), 60,
-      (s) => ({ attack: s === 20 ? "light" : null }));
-    assert.ok(events.some((e) => e.type === "block" && e.perfect && e.by === me && e.target === it));
-    assert.equal(fight.world.require(me, Player).action, "stagger");
-    assert.ok(fight.world.require(me, Stamina).value <= FULL_STAMINA - HYBRID.block.perfectDrain);
-    assert.notEqual(fight.world.require(it, Wielder).swing, null);
+  test("perfect-blocks a player's swing it reads: the player loses stamina and recoils, and it counters later", () => {
+    const def = kobold({ perfectBlockChance: 1, firstDelay: 1.5 });
+    const { fight, me, it } = play(def, 0);
+    const wielder = fight.world.require(it, Wielder);
+    let blocked = -1, recoil = 0;
+    while (fight.steps < 300 && wielder.swing?.step !== 1) {
+      fight.step([input({ locked: 0, attack: fight.steps + 1 === 20 ? "light" : null })]);
+      if (!fight.events.some((e) => e.type === "block" && e.perfect && e.by === me && e.target === it)) continue;
+      blocked = fight.steps;
+      recoil = fight.world.require(me, Health).hitstun;
+      assert.equal(fight.world.require(me, Player).action, "stagger");
+      assert.ok(fight.world.require(me, Stamina).value <= FULL_STAMINA - HYBRID.block.perfectDrain);
+    }
+    assert.ok(blocked > 0, "blocked perfectly");
+    assert.equal(recoil, HYBRID.counter.recoilTime);
+    assert.ok(fight.steps >= toSteps(def.attacks.weapon!.firstDelay), `countered at ${fight.steps}, in its cooldown`);
+    const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way);
+    const opening = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy", STATS.strength);
+    assert.equal(swing.liveAt, opening.liveAt, "wound up as a player's opening");
   });
 
   test("its blows land on a player who doesn't defend, and a held block stops them", () => {
@@ -202,7 +214,7 @@ describe("a swordsman stunned mid-chain", () => {
 });
 
 describe("a swordsman's parries", () => {
-  test("reads a player's swing by its share and parries it with the way that meets it, then answers at once", () => {
+  test("reads a player's swing by its share and parries it with the way that meets it; its counter waits", () => {
     const { events, fight, me, it } = play(kobold({ parryChance: 1, firstDelay: 99 }), 60,
       (s) => ({ way: "lr", attack: s === 20 ? "light" : null }));
     const parry = events.find((e) => e.type === "parry");
@@ -210,7 +222,7 @@ describe("a swordsman's parries", () => {
     assert.ok(!events.some((e) => e.type === "hit"));
     assert.equal(fight.world.require(me, Health).hp, FULL_HP);
     assert.equal(fight.world.require(me, Player).action, "stagger");
-    assert.notEqual(fight.world.require(it, Wielder).swing, null, "its answer");
+    assert.equal(fight.world.require(it, Wielder).swing, null, "its counter waits for its cooldown");
   });
 
   test("lets a swing by that it could only meet by winding up under the floor", () => {

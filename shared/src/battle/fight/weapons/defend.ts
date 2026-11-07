@@ -76,7 +76,7 @@ function blockedPerfectly(
     const wielder = world.get(attacker, Wielder), stamina = world.get(attacker, Stamina);
     if (wielder) endChain(wielder);
     if (stamina) spend(stamina, HYBRID.block.perfectDrain);
-    stagger(world, attacker, HYBRID.block.perfectRecoilTime);
+    stagger(world, attacker, attack ? HYBRID.counter.recoilTime : HYBRID.block.perfectRecoilTime);
   }
   events.push({ type: "block", by: attacker, target, perfect: true, ...(shot && { at: shot.at }) });
 }

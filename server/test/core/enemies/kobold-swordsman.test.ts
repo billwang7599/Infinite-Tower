@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, feltHeft, FIXED_DT, Health, HYBRID, IDLE_INPUT, wayStepsAfter, WEAPONS, Wielder, type EnemyDef,
-  type PlayerInputData, type Skill,
+  Body, Enemy, feltHeft, FIXED_DT, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeOf, toSteps,
+  wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type PlayerInputData, type Skill, type SwingDir,
 } from "@infinite-tower/shared";
-import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
+import { initPhysics, type Fight, type FightEvent } from "@infinite-tower/shared/fight";
+import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fightWith, FULL } from "../../fixtures/fight.js";
 
@@ -81,6 +82,54 @@ describe("the Kobold Swordsman", () => {
   test("its own blade never drops: only its essence, besides treasure", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
     assert.deepEqual(ENEMIES["kobold-swordsman"].drops.map((d) => d.item), ["kobold-swordsman-essence"]);
+  });
+});
+
+describe("losing a parry to a swordsman", () => {
+  const PAST_CLASH_STEPS = toSteps(HYBRID.parry.clashTime) + 2;
+  const OPENING = wayStepsAfter(WEAPONS.sword, windupTime("light", "opening"), false, PLAYER_STATS.strength).liveAt;
+
+  function answerLate(def: EnemyDef, heavy: boolean, seed: number) {
+    const weapon = { ...def.attacks.weapon!, heavyShare: heavy ? 1 : 0, heavyFeintShare: 0 };
+    const fight = fightWith({ ...def, attacks: { weapon } }, seed);
+    const me = fight.players[0]!, it = fight.enemies[0]!;
+    const wielder = fight.world.require(it, Wielder), player = fight.world.require(me, Player);
+    const blade = WEAPONS[def.wielder!.hands.rightHand as keyof typeof WEAPONS];
+    let press = -1, way: SwingDir = "lr", parried = -1, free = -1, counter = -1, counterLiveAt = -1, expected = -1;
+    const after: FightEvent[] = [];
+    while (fight.steps < 30 / FIXED_DT && (counter < 0 || fight.steps < counter + 30)) {
+      const s = fight.steps + 1;
+      fight.step([{ ...IDLE_INPUT, locked: 0, way, attack: s === press ? "light" : null, block: parried >= 0 }]);
+      if (parried >= 0) after.push(...fight.events);
+      const swing = wielder.swing;
+      if (press < 0 && swing?.step === 1 && swing.way !== "stab") {
+        way = parryWay(swing.way);
+        press = fight.steps + swing.liveAt + PAST_CLASH_STEPS - OPENING;
+      }
+      if (parried < 0 && fight.events.some((e) => e.type === "parry" && e.by === it && !e.clash)) parried = fight.steps;
+      else if (parried >= 0 && free < 0 && player.action !== "stagger") free = fight.steps;
+      if (parried >= 0 && counter < 0 && swing?.step === 1) {
+        counter = fight.steps + swing.liveAt;
+        counterLiveAt = swing.liveAt;
+        const strike = strikeOf(swing.attack, swing.way);
+        expected = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy", def.stats.strength).liveAt;
+      }
+    }
+    return { parried, free, counter, counterLiveAt, expected, after, me, it };
+  }
+
+  test("its counter winds up as a player's opening, and lands only after the player is free to raise a block", () => {
+    const raise = toSteps(guardRaiseTime(WEAPONS.sword, PLAYER_STATS.strength));
+    for (const def of [KOBOLD, ENEMIES["kobold-greatsword"].def, ENEMIES.bram.def]) {
+      for (const [heavy, seed] of SEEDS.flatMap((seed) => [[false, seed], [true, seed]] as const)) {
+        const r = answerLate(def, heavy, seed), name = `${def.id}${heavy ? " heavy" : ""} seed ${seed}`;
+        assert.ok(r.parried >= 0 && r.free >= 0 && r.counter >= 0, `${name}: ${JSON.stringify(r)}`);
+        assert.ok(r.counter - r.free >= raise, `${name}: free at ${r.free}, its counter live at ${r.counter}`);
+        assert.ok(!r.after.some((e) => e.type === "hit" && e.target === r.me), `${name}: never hit`);
+        assert.ok(r.after.some((e) => e.type === "block" && e.target === r.me && e.by === r.it), `${name}: blocked`);
+        assert.equal(r.counterLiveAt, r.expected, `${name}: the player's math`);
+      }
+    }
   });
 });
 

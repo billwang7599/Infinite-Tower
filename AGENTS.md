@@ -173,10 +173,21 @@ Decided by the user:
 - A stun resets an enemy's attack (the user: "when the enemy gets stunned, it should reset their attack. their follow
   up attack is too quick"; the details the main chat's, tried by tests only, not hand-played): any stun or stagger (a
   broken poise, a perfect block's or a parry's recoil, the boar's wall, Lightning) ends the attack under way: a
-  Kobold's swing, the rest of its chain and its quick answer are dropped, and every attack (sword, bite, charge, leap,
+  Kobold's swing, the rest of its chain and its counter are dropped, and every attack (sword, bite, charge, leap,
   slam) waits its whole cooldown once the stun is over, then a Kobold opens with its full first wind-up. Hits still
   don't stun enemies: poise is their stagger meter. A skill's cooldown already runs from the cast, so it's unchanged.
   `stun` in `shared/src/battle/fight/behaviors/common.ts`.
+- A swordsman's counter can be met (the user: "we both get stunned when i parry, but after that, they immediately
+  swing which makes reaction hard (they dont have the recovery/wind up)", picking a real wind-up and the cooldown
+  gate, then "nobody should have any special preset table that differs from the math"; the numbers are the agent's,
+  tried by tests only, not hand-played): after a Kobold (the Greatsword, Bram) parries a swing or blocks one
+  perfectly, its counter winds up as a player's opening swing with its blade (`windupTime(strike, "opening")` × felt
+  heft, never under 0.4 s: the Kobold's light 0.56 s, heavy 0.92, stab 0.45), and starts only as any of its swings
+  would: its cooldown over, the player in reach and in front. The one it parried or blocked perfectly recoils 0.25 s
+  (`HYBRID.counter.recoilTime`), not the parry's 0.8 or the perfect block's 0.4, so even a counter at the floor lands
+  after a Basic Sword's guard, raised once free, is up. A player's parry or perfect block (of an enemy or another
+  player) is as before. Its parry read isn't gated by the cooldown (off cooldown and in reach it's already swinging,
+  so it would never read one), only the counter after it.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -893,8 +904,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     head on; the straight-down swing has no exact reverse (no upward swing) and is only ever partly parried, by a
     rising diagonal. The Kobold (the Greatsword too) reads 15% of the swings a player starts at it while walking up and
     not perfect-blocking (`parryChance`), unless it could only meet one by winding up under the 0.4 s floor, and
-    swings the meeting way (light) so its blade goes live 5 steps before the player's; after any parry it answers at
-    once with a quick swing, as after a perfect block. Sounds and shows as a
+    swings the meeting way (light) so its blade goes live 5 steps before the player's; after any parry it counters, as
+    after a perfect block ("A swordsman's counter can be met", above). Sounds and shows as a
     perfect block does (the clang, the hold, sparks); a clash bounces both with sparks.
   - The Kobold (the Greatsword too): a swing winds up 1.43 s, chained ones 0.58 s (its old, approved 1.1 and 0.45 ×
     the heavier blade), a heavy 0.36 s more; any of the 7 swings or the stab, never the same twice running, 30%
@@ -902,7 +913,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     (1 for the Kobold blade, 1.62 for the Kobold greatsword). Stunned, it waits its cooldown and
     starts a fresh chain. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
     the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
-    answers at once with a quick swing. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
+    counters. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
     few hits and loses (the bot test). The seeded rolls are the fight's, as for its other choices.
   - Feints (numbers in `HYBRID.feint`; the Kobold's share is `heavyFeintShare`, 0.2): a feint's press counts as a
     block press, so a press within 0.5 s after it gets no perfect window either; a player needs some stamina left
@@ -910,7 +921,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     live), straight into its held block; its chain ends there, it pays no stamina (its swings cost none), and it waits
     its cooldown (1.2 s, with no chain recovery) before its next chain. The feint's recovery (`recoverTime` 0.38 s ×
     felt heft: 0.38 s with the Basic Sword) holds back that hand's next swing, a player's or a swordsman's, the guard
-    held meanwhile; a Kobold's cooldown is longer, so for it only a parry or an answer waits. It's the hand's recovery
+    held meanwhile; a Kobold's cooldown is longer, so for it only a parry waits. It's the hand's recovery
     (`HandChain.recoverSteps`), so with a blade in each hand the other may swing. A feint sounds as a quick, high
     blade-draw.
   - Drawn: the sprite takes the drawn swing nearest each way (the diagonals from below the side ones, the stab the
