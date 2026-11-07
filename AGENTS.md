@@ -99,7 +99,7 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
 - One sword system: light, heavy, stab, a held block with a perfect block, a swing parry, a dodge. No kick. A swing's
   way comes from a mouse flick (seven ways, no upward swing); locked on, attacks go where you face.
 - A weapon is data: its heft scales every time and cost, and the wielder's strength scales heft and damage. Any weapon
-  at any strength, only slower. A lone blade is held in both hands, putting in more strength.
+  at any strength, only slower. A lone blade is held in both hands, putting in 1.5× the strength.
 - No preset timing tables: enemies swing by the player's math; balance goes through weapons, stats and pacing.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's
