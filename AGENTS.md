@@ -278,11 +278,12 @@ Decided by the user:
   fire if its a click. a drag should unlock the camera + pan"). A drawn bow frees the camera to aim (the user: "when
   holding left to draw [the bow] back, it should free the camera to aim"): from the draw until the loose's recovery
   ends, every mouse move turns it (the pointer captured, the crosshair showing), you walk by the camera, the arrow
-  goes for the spot under the crosshair (the input's `aimAt`) and the fight isn't told of the lock; then it eases
-  back by the same rule as a pan. A chant, a cast's wind-up and a Beam free it the same way (the user: "make sure we
-  consolidate the aim to api or something, cause magic casting also needs this"; the main chat's pick), so a skill
-  goes the crosshair's way too; the chant's popup holds the pointer, so the camera only turns once the cast winds
-  up. With no enemy left, the camera turns only by hand. Up and down are capped (the
+  goes for the spot under the crosshair (the input's `aimAt`) and the fight isn't told of the lock; then, once every
+  arrow you loosed has landed (the agent's pick: swung back mid-flight, the arrow streaked off the screen as if it
+  flew straight), it eases back by the same rule as a pan. A chant, a cast's wind-up and a Beam free it the same way
+  (the user: "make sure we consolidate the aim to api or something, cause magic casting also needs this"; the main
+  chat's pick), so a skill goes the crosshair's way too; the chant's popup holds the pointer, so the camera only turns
+  once the cast winds up. With no enemy left, the camera turns only by hand. Up and down are capped (the
   user: "make the up and down arrow capped at some point so i cant spin forever, but still give a decent amount of
   freedom"; the numbers are the main chat's): the eye goes from 35° under the pivot to 80° over it, arrows and drag
   alike, and the floor pulls it in rather than letting it through; in first person you look 80° up or down at most
