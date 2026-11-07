@@ -1148,9 +1148,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The training yard (kingdom PR 3; the user decided only "start with nothing", the herald sending you to an old man
   and an old stick; the rest is the agent's, tried in a headless browser, not hand-played):
   - Bram (a placeholder name) keeps a 13 x 6 dirt yard by the barracks, through a 2-tile gap in the courtyard's
-    north-west wall, two straw dummies drawn in it.
+    north-west wall, three straw dummies drawn in it.
   - The quest "The Old Man's Yard" (main), offered by Aldric (a last line sends you there) and by Bram if not taken:
-    find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummy, best Bram in
+    find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummies, best Bram in
     a spar (lore "Soft as dough"). A quest taken from the NPC its first step asks you to talk to does that step at
     once, so taking it from Bram gives the stick there and then.
   - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, 5 damage, heft 1, no strength
@@ -1162,8 +1162,11 @@ them; treat them as changeable, and still ask before deciding new ones):
     no death, no win counted, the core as it was; gear moved and pages written are kept. Nobody can join one (a
     notice: "A spar can't be joined."). The arena says "You win the spar." / "You lose the spar.", a loss's notice "You
     yield to Bram.", and leaving mid-fight costs nothing.
-  - The dummy takes no damage from anything and never attacks; it falls once a light, a heavy and a stab have each
-    landed (a mark on it lights for each).
+  - The dummy fight has three dummies (the user: "make it 3 training dummies"), in a row 6 m ahead of you, 2.5 m
+    apart, the middle one nearest so it's locked on first (`DUMMY_SPOTS` in `training.ts`); it's won once all three
+    are down, and the quest's step still counts that one win. A dummy takes no damage from anything and never
+    attacks; it falls once a light, a heavy and a stab have each landed (a mark on it lights for each). Bram spars
+    alone.
   - Bram spars by the Kobold's rules, kinder (`server/src/core/enemies/bram.ts`): 60 HP, the old stick, wind-ups of
     1.3 s (0.6 chained), chains of 1 or 2, 20% heavies, no feints, 10% perfect blocks, no parries, poise 60. Only a
     won spar does the step; a lost one can be tried again at once, and after the quest he spars whenever asked. In

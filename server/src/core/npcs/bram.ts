@@ -18,8 +18,8 @@ export const BRAM: Npc = {
         {
           id: "dummy",
           task: { kind: "kill", enemy: "training-dummy", count: 1 },
-          text: "Knock down the training dummy.",
-          hint: "Bram said it stays up until it's taken a light swing, a heavy one and a stab. Talk to him to begin.",
+          text: "Knock down the training dummies.",
+          hint: "Bram said each stays up until it's taken a light swing, a heavy one and a stab. Talk to him to begin.",
         },
         {
           id: "spar",
@@ -45,16 +45,16 @@ export const BRAM: Npc = {
               + "like one, and it's yours to keep.",
             "It's in your bag now. Open it, {general.inventory}, and drag the stick into one of your hands. No "
               + "stick in hand, no swing.",
-            "Then show me on the dummy. A light swing, a heavy one and a stab, and it'll go down. Tell me when "
-              + "you're ready.",
+            "Then show me on the dummies, all three. A light swing, a heavy one and a stab, and each goes down. "
+              + "Tell me when you're ready.",
           ],
           offer: { train: "training-dummy" },
         },
         {
           when: { quest: QUEST, step: "dummy" },
           lines: [
-            "The dummy's waiting. Stick in hand first: open your bag, {general.inventory}, and drag it into a "
-              + "hand. It won't hit back, and it won't fall until it's had a light swing, a heavy one and a stab. "
+            "The dummies are waiting. Stick in hand first: open your bag, {general.inventory}, and drag it into a "
+              + "hand. They won't hit back, and none falls until it's had a light swing, a heavy one and a stab. "
               + "Ready?",
           ],
           offer: { train: "training-dummy" },

@@ -398,8 +398,8 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
   too), × the target's statuses' damage taken (Warded 0.7, Bloodrage 1.25), less what the Light shield absorbs (a
   shield used up comes off), off HP (never below 0). Any damage stops HP regen for 5 s.
 - In a spar (Bram's training fights) HP never goes below a share of the most, `TRAINING_YIELD_SHARE` 0.1
-  (`server/src/core/game/training.ts`), and a fighter at it has yielded: 100 HP stops at 10. The training dummy takes
-  nothing and falls once a light, a heavy and a stab have each landed.
+  (`server/src/core/game/training.ts`), and a fighter at it has yielded: 100 HP stops at 10. The training dummies (three,
+  `DUMMY_SPOTS`) take nothing and each falls once a light, a heavy and a stab have each landed on it.
 - Siphoning heals the attacker 10% of what was taken. A player with the dev cheat on takes nothing.
 
 ## Enemies

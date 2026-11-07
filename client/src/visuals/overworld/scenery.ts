@@ -96,7 +96,7 @@ const KEEP: readonly [number, number, number, number, number][] = [
   [-22, 1, 44, 12, 12], [-27, 0, 6, 6, 18], [21, 0, 6, 6, 18], [-25, 9, 6, 6, 21], [19, 9, 6, 6, 21],
   [-8, 3, 16, 8, 19], [-3, 5, 6, 5, 28], [-15, 4, 4, 4, 16], [11, 4, 4, 4, 16],
 ];
-const DUMMIES: readonly Vec2[] = [{ x: -31.5, z: 13.5 }, { x: -30.5, z: 14.5 }];
+const DUMMIES: readonly Vec2[] = [{ x: -31.5, z: 13.5 }, { x: -30.5, z: 14.5 }, { x: -29.5, z: 13.5 }];
 
 const kindAt = (map: WorldMap, x: number, z: number) => tileAt(map, x + 0.5, z + 0.5);
 const tileRandom = (x: number, z: number, salt: number) => seededRandom(salt + x * 7919 + z * 104729);
