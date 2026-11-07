@@ -93,7 +93,10 @@ export const MENUS = {
   leaveArena: { stayInArena: ["Escape"] },
   chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },
   skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
-  chat: { sendChat: ["Enter"], closeChat: ["Escape"] },
+  chat: {
+    sendChat: ["Enter"], closeChat: ["Escape"], takeSuggestion: ["Tab", "ArrowRight"], nextSuggestion: ["ArrowDown"],
+    previousSuggestion: ["ArrowUp"],
+  },
   dialogue: { nextLine: ["Enter"], closeDialogue: ["Escape"] },
   questbook: { closeQuestbook: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;

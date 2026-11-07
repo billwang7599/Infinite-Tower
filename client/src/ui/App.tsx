@@ -29,6 +29,7 @@ export function App() {
   const interaction = useStore(ui.overworld, (s) => s.interaction);
   const playing = inWorld(mode, phase) && !creating;
   const overworldHud = playing && mode === "overworld";
+  const cheatsAllowed = import.meta.env.DEV;
   return (
     <>
       {playing && (
@@ -36,7 +37,7 @@ export function App() {
           {mode === "overworld" && <OverworldHud />}
           {mode === "battle" && <BattleHud />}
           <CoreCard />
-          <Chat />
+          <Chat commands={cheatsAllowed} />
           <Dialogue />
         </>
       )}
@@ -47,7 +48,7 @@ export function App() {
       />
       <Fade screen={ui.screen} />
       {playing && <QuestbookScreen />}
-      {playing && import.meta.env.DEV && <AdminPanel />}
+      {playing && cheatsAllowed && <AdminPanel />}
       {playing && <SettingsScreen />}
       {mode !== null && <CreationScreen />}
       <TitleScreen />

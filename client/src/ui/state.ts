@@ -12,6 +12,7 @@ import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
 import type { Mode } from "../game/transition.js";
 import { Notifications } from "./notifications/state.js";
+import type { DaySpeed } from "./screens/admin/admin.js";
 import { NO_CHANT, type ChantState } from "./skills/chant.js";
 import { Store } from "./store.js";
 
@@ -111,6 +112,7 @@ export interface AdminState {
   open: boolean;
   invulnerable: boolean;
   keepInventory: boolean;
+  daySpeed: DaySpeed;
 }
 
 export interface PingState {
@@ -120,10 +122,15 @@ export interface PingState {
 
 export const CHAT_LOG_LINES = 100;
 
+export interface ChatNote {
+  note: string;
+  error: boolean;
+}
+
 export interface ChatState {
   open: boolean;
   focused: boolean;
-  lines: readonly ChatLine[];
+  lines: readonly (ChatLine | ChatNote)[];
 }
 
 export interface DialogueState {
@@ -189,7 +196,7 @@ export class UiState {
   /** The notices in the corner; game code reaches them through `say`. */
   readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
-  readonly admin = new Store<AdminState>({ open: false, invulnerable: false, keepInventory: false });
+  readonly admin = new Store<AdminState>({ open: false, invulnerable: false, keepInventory: false, daySpeed: 1 });
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
   readonly panel = new Store<PanelState>({ open: null, widthPx: 0 });
@@ -245,7 +252,7 @@ export class UiState {
     this.panel.set({ open: this.panel.get().open === panel ? null : panel });
     this.skillbookScreen.set({ open: false });
   };
-  readonly hearChat = (lines: readonly ChatLine[]): void =>
+  readonly hearChat = (lines: readonly (ChatLine | ChatNote)[]): void =>
     this.chat.set({ lines: [...this.chat.get().lines, ...lines].slice(-CHAT_LOG_LINES) });
   readonly openDialogue = (
     name: string, look: Look | null, lines: readonly string[], offer: DialogueOffer | null = null,

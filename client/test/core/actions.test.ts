@@ -638,7 +638,7 @@ describe("Actions: chat", () => {
     }
   });
 
-  test("the chat has only Enter (send) and Esc (close): not Settings, eating, a challenge, interacting or the bag", () => {
+  test("the chat has only its own keys: not Settings, eating, a challenge, interacting or the bag", () => {
     for (const mode of ["overworld", "battle"] as const) {
       const { press, listen } = setup(mode, "chat");
       const send = listen("sendChat"), close = listen("closeChat");
@@ -677,6 +677,21 @@ describe("Actions: chat", () => {
     assert.equal(type("Enter").defaultPrevented, true);
     assert.equal(send.got.length, 1);
     assert.deepEqual(others.map((got) => got.length), [0, 0, 0, 0]);
+  });
+
+  test("in its text field Tab and → take a suggestion and ↑ ↓ move along them; unused, they stay the field's", () => {
+    const { type, listen } = setup("overworld", "chat");
+    let showing = true;
+    const take = listen("takeSuggestion", () => showing);
+    const next = listen("nextSuggestion", () => showing), previous = listen("previousSuggestion", () => showing);
+    for (const code of ["Tab", "ArrowRight", "ArrowDown", "ArrowUp"]) {
+      assert.equal(type(code).defaultPrevented, true, code);
+    }
+    assert.deepEqual([take.got.length, next.got.length, previous.got.length], [2, 1, 1]);
+    showing = false;
+    for (const code of ["Tab", "ArrowRight", "ArrowDown", "ArrowUp", "ArrowLeft"]) {
+      assert.equal(type(code).defaultPrevented, false, code);
+    }
   });
 
   test("keys held as the chat closes count again", () => {

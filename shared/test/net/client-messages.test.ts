@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  DEFAULT_LOOK, HIDDEN_STATS, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
+  DEFAULT_LOOK, HIDDEN_STATS, MAX_GIVE_COUNT, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
   OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
 } from "@infinite-tower/shared";
-import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
+import { MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
 const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = "boy") =>

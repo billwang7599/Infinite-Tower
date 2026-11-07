@@ -15,6 +15,7 @@ import { GODS } from "../soul/blessings.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
+import { MAX_GIVE_COUNT } from "./server-messages.js";
 import { ruledText } from "./text-schema.js";
 
 const InputMsg = z.object({
@@ -178,8 +179,6 @@ const StatPointMsg = z.object({ t: z.literal("statPoint"), stat: z.enum(SHOWN_ST
 
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
-
-export const MAX_GIVE_COUNT = 100;
 
 const CheatSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("encounter"), enemy: z.enum(ENEMY_IDS) }),

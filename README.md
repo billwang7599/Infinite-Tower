@@ -235,7 +235,11 @@ needed. Production never delays.
 **The admin panel (dev only).** F1 in the game opens a panel of cheats: the time of day and how fast it runs,
 invulnerability, keep inventory (on by default), a heal, completing the current quest, resetting your save, a fight with
 any enemy, and any item into the bag. Its settings are kept in the browser. Production has no panel and its server
-ignores cheats.
+ignores cheats. The same cheats are chat commands, Minecraft style: / opens the chat with "/" typed, and the commands
+and then each argument's options are listed as you type (Tab or → takes one, ↑ ↓ pick, Enter runs; `/help` lists
+them): `/give <item> [count]`, `/god [on|off]`, `/keepinventory [on|off]`, `/heal`, `/kill`, `/encounter <enemy>`,
+`/core <up|down>`, `/quest`, `/faith <god>`, `/time <dawn|noon|dusk|midnight>`, `/timespeed <1|10|60|600>`,
+`/resetsave`.
 
 **Troubleshooting.**
 
