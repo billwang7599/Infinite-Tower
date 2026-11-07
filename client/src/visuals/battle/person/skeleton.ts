@@ -8,7 +8,7 @@ export const M_PER_PX = SPRITE_SIZE / VIEWS.battle.width;
 const px = (n: number): number => n * M_PER_PX;
 
 export const JOINTS = [
-  "root", "hips", "spine", "chest", "neck", "head", "crown", "back",
+  "root", "hips", "spine", "chest", "neck", "head", "crown", "hair", "back",
   "upper_arm.R", "forearm.R", "hand.R", "grip.R", "upper_arm.L", "forearm.L", "hand.L", "grip.L",
   "thigh.R", "shin.R", "foot.R", "thigh.L", "shin.L", "foot.L",
 ] as const;
@@ -39,6 +39,7 @@ export const SKELETON: readonly Joint[] = [
   { name: "neck", parent: "chest", at: v(0, 5.6, 0) },
   { name: "head", parent: "neck", at: v(0, 2.9, 0) },
   { name: "crown", parent: "head", at: v(0, 19, 0) },
+  { name: "hair", parent: "head", at: v(0, 11.3, -8.6) },
   { name: "back", parent: "chest", at: v(0, 1.5, -4) },
   { name: "upper_arm.R", parent: "chest", at: v(7, 2.4, 0), widthBy: "shoulder" },
   { name: "forearm.R", parent: "upper_arm.R", at: v(0, -UPPER_ARM_PX, 0) },

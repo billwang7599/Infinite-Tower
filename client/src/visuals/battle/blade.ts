@@ -15,8 +15,8 @@ import { glintOf, WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
 
 export const BLADE_FROM_M = 0.14;
 const THICKNESS_SHARE = 0.35;
-const TEXTURE_LEVEL = 1.4;
-const STEEL_GLOW = 0.4;
+const TEXTURE_LEVEL = 1.15;
+const STEEL_GLOW = 0.2;
 
 export interface BladeMaterials { grip: StandardMaterial; guard: StandardMaterial; steel: StandardMaterial }
 
@@ -211,7 +211,7 @@ export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapo
   const materials = {
     grip: colorMaterial(scene, "blade-grip", Color3.FromHexString("#4a3424")),
     guard: colorMaterial(scene, "blade-guard", Color3.FromHexString("#b8913a")),
-    steel: colorMaterial(scene, "blade-steel", steel, new Color3(0.3, 0.3, 0.3)),
+    steel: colorMaterial(scene, "blade-steel", steel, new Color3(0.18, 0.18, 0.18)),
   };
   const bow = look.bow ? buildBow(scene, hand, { ...look, bow: look.bow }, materials.steel, materials.grip) : null;
   if (bow) materials.steel.emissiveColor = materials.steel.diffuseColor.scale(STEEL_GLOW);

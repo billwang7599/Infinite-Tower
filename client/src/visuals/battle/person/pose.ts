@@ -4,12 +4,11 @@ import {
 import { playerBlade } from "../pose.js";
 import { pullOf, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
+import { BREATH, breathOf, WALK, walkKey } from "./motion.js";
 import { restAt, type JointName } from "./skeleton.js";
 
 /** Pose to pose, as Dead Cells animates: each key is eased into this fast, then held until the next. */
 export const KEY_EASE_TIME = 0.07;
-export const WALK_KEYS = 4;
-const WALK_EASE_SHARE = 0.35;
 
 /** `values` has one more than `at`: the pose before the first key, then each key's. */
 export function keyed(t: number, at: readonly number[], values: readonly number[], easeTime = KEY_EASE_TIME): number {
@@ -35,8 +34,14 @@ const crouch = (c: readonly number[]): Clip["joints"] => ({
   "shin.R": { x: c.map((v) => 2 * v) }, "shin.L": { x: c.map((v) => 2 * v) },
 });
 
-/** Times in seconds unless a clip says otherwise. */
+/** Times in seconds unless a clip says otherwise; written for the right hand, mirrored for the left. */
 export const CLIPS = {
+  idle: {
+    at: [], joints: {
+      "thigh.R": { x: [-0.05], z: [0.07] }, "thigh.L": { x: [-0.12], z: [-0.07] },
+      "shin.R": { x: [0.1] }, "shin.L": { x: [0.3] }, hips: { z: [0.025] }, spine: { z: [-0.02] },
+    },
+  },
   /** For a dodge straight ahead: the root's lean is turned toward the way it goes. */
   dodge: {
     at: [0, 0.6 * PLAYER.dodge.duration],
@@ -49,7 +54,23 @@ export const CLIPS = {
   stagger: { at: [0, 0.5], joints: { root: { x: [0, -0.35, -0.15], z: [0, 0.08, -0.12] }, neck: { x: [0, -0.3, 0] } } },
   block: { at: [0], joints: { ...crouch([0, 0.25]), root: { x: [-0.05, -0.05] } } },
   defeat: { at: [0, 0.3], joints: { ...crouch([0, 1.1, 1.1]), root: { x: [0, 0.35, 0.1], z: [0, 0, Math.PI / 2] } } },
-  swing: { at: [], joints: crouch([0.15]) },
+  /** Keyed at the swing's own steps: its start, the drive, going live, the follow-through. */
+  swing: {
+    at: [0, 1, 2, 3],
+    joints: {
+      "thigh.L": { x: [0, -0.35, -0.32, -0.6, -0.55] }, "shin.L": { x: [0, 0.7, 0.66, 0.62, 0.58] },
+      "thigh.R": { x: [0, 0.15, 0.14, 0.42, 0.4] }, "shin.R": { x: [0, 0.35, 0.33, 0.08, 0.08] },
+      root: { x: [0, -0.1, -0.05, 0.22, 0.17] }, neck: { x: [0, 0.06, 0.02, -0.12, -0.09] },
+    },
+  },
+  draw: {
+    at: [0],
+    joints: {
+      "thigh.R": { x: [0, -0.12], z: [0, 0.16] }, "thigh.L": { x: [0, 0.1], z: [0, -0.16] },
+      "shin.R": { x: [0, 0.22] }, "shin.L": { x: [0, 0.12] }, root: { x: [0, -0.05] }, chest: { x: [0, -0.06] },
+    },
+  },
+  loose: { at: [0, 0.12], joints: { root: { x: [-0.05, -0.12, -0.04] }, neck: { x: [0, 0.08, 0] } } },
   airborne: { at: [], joints: crouch([0.6]) },
 } as const satisfies Record<string, Clip>;
 
@@ -59,11 +80,6 @@ function keyedStroke({ step, driveAt, liveAt, liveUntil }: SwingData): { set: nu
     set: keyed(step, [0], [0, 1], ease),
     turn: keyed(step, [driveAt, liveAt, liveUntil], [0, 1 / 3, 2 / 3, 1], ease),
   };
-}
-
-function keyedPhase(phase: number): number {
-  const q = (2 * Math.PI) / WALK_KEYS, base = Math.floor(phase / q) * q;
-  return base + q * smoothstep(0, WALK_EASE_SHARE, (phase - base) / q);
 }
 
 /** The motions are sized for this arm (the kobold's). */
@@ -76,14 +92,19 @@ const TWIST_RAD = 0.6;
 const TWIST_SHARES = { hips: 0.4, spine: 0.3, chest: 0.3, neck: -0.6 } as const;
 const BEND_RAD = 0.15;
 const PULL_LEAN_RAD = 0.2;
-const STRIKE_LEAN_RAD = 0.15;
-const KNEE_LIFT = 0.6;
+/** The sword hand's share of the walk's arm swing. */
+const SWORD_ARM_SWING = 0.35;
 const BOW_UPRIGHT = { x: 0.12, y: 0.99, z: 0 };
 /** How far the body turns side-on drawing, hips to chest; the neck turns back to look down the arrow. */
 const DRAW_TWIST = { hips: -0.25, spine: -0.25, chest: -0.3, neck: 0.7 } as const;
 const LOOSED_FLICK_M = 0.06;
 const BOW_CARRY = { outM: 0.05, drop: 0.9, aheadM: 0.08 } as const;
 const THIGH_M = -restAt("shin.R", "medium").y, SHIN_M = -restAt("foot.R", "medium").y;
+
+/** How far (m) a leg's foot rises toward its hip from hanging straight. */
+export function legDrop(thigh: Vec3, shin: Vec3): number {
+  return THIGH_M + SHIN_M - Math.cos(thigh.z) * (THIGH_M * Math.cos(thigh.x) + SHIN_M * Math.cos(thigh.x + shin.x));
+}
 
 /** In the model's frame, feet at 0 and +z ahead. */
 export interface PersonPose {
@@ -105,6 +126,9 @@ export interface PersonMoment {
   dodge: Vec2;
   stagger: { left: number; of: number };
   deadTime: number;
+  /** Seconds, for breathing. */
+  time: number;
+  /** `phase` in radians, 2π a stride; `amp` 0..1 of a full run's stride. */
   walk: { phase: number; amp: number };
   /** A bow in hand: how far it's drawn, 0..1. */
   bow?: BowLook & { drawn: number };
@@ -112,11 +136,19 @@ export interface PersonMoment {
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
 
-function play(joints: PersonPose["joints"], clip: Clip, t: number, scale: Partial<Record<PosedJoint, Vec3>> = {}): void {
+const MIRRORED = Object.fromEntries(POSED_JOINTS.map((j) => [j, j.replace(/\.R$/, ".X").replace(/\.L$/, ".R")
+  .replace(/\.X$/, ".L")])) as Record<PosedJoint, PosedJoint>;
+
+interface Playing { scale?: Partial<Record<PosedJoint, Vec3>>; side?: 1 | -1; weight?: number }
+
+function play(
+  joints: PersonPose["joints"], clip: Clip, t: number, { scale = {}, side = 1, weight = 1 }: Playing = {},
+): void {
   for (const [name, track] of Object.entries(clip.joints) as [PosedJoint, Track][]) {
+    const to = side === 1 ? name : MIRRORED[name];
     for (const axis of ["x", "y", "z"] as const) {
-      const values = track[axis];
-      if (values) joints[name][axis] += keyed(t, clip.at, values) * (scale[name]?.[axis] ?? 1);
+      const values = track[axis], flip = side === -1 && axis !== "x" ? -1 : 1;
+      if (values) joints[to][axis] += keyed(t, clip.at, values) * (scale[name]?.[axis] ?? 1) * flip * weight;
     }
   }
 }
@@ -147,23 +179,26 @@ export function personPose(
       z: restOff.z + (to.z - restOff.z) * k };
   };
 
+  const walking = alive && player.grounded && o.walk.amp > 0 && player.action === "none";
   if (!alive) {
     play(joints, CLIPS.defeat, o.deadTime);
   } else if (swing && swing.step < swing.endAt) {
     const stroke = keyedStroke(swing), pull = pullOf(stroke, swing.attack === "heavy");
-    joints.root.x = stroke.turn < 1 / 3 ? -PULL_LEAN_RAD * pull : STRIKE_LEAN_RAD;
-    play(joints, CLIPS.swing, 0);
+    if (stroke.turn < 1 / 3) joints.root.x -= PULL_LEAN_RAD * pull;
+    const keys = [0, swing.driveAt, swing.liveAt, swing.liveUntil].map((step) => step * FIXED_DT);
+    play(joints, { at: keys, joints: CLIPS.swing.joints }, swing.step * FIXED_DT, { side });
   } else {
     switch (player.action) {
       case "dodge": {
         const clip = CLIPS.dodge;
-        play(joints, clip, t, { root: { x: o.dodge.z, y: 1, z: 1 } });
+        play(joints, clip, t, { scale: { root: { x: o.dodge.z, y: 1, z: 1 } } });
         joints.root.z -= keyed(t, clip.at, clip.joints.root.x) * o.dodge.x;
         break;
       }
       case "stagger": {
         const { at, joints: keys } = CLIPS.stagger, { left, of } = o.stagger;
-        play(joints, { at: at.map((share) => share * of), joints: keys }, of - left, { root: { x: 1, y: 1, z: side } });
+        play(joints, { at: at.map((share) => share * of), joints: keys }, of - left,
+          { scale: { root: { x: 1, y: 1, z: side } } });
         break;
       }
       case "block":
@@ -187,6 +222,7 @@ export function personPose(
         towardOff({ x: -side * 0.1, y: b.waistY, z: reach * 0.5 });
         break;
       case "none":
+        play(joints, CLIPS.idle, 0, { side, weight: walking ? 1 - o.walk.amp : 1 });
         if (o.bow) {
           p.hand = {
             x: side * (b.shoulderM + BOW_CARRY.outM), y: b.shoulderY - reach * BOW_CARRY.drop, z: BOW_CARRY.aheadM,
@@ -195,24 +231,45 @@ export function personPose(
         break;
       case "draw":
       case "loose":
-        if (o.bow) drawPose(p, o.bow, b, side, player.action === "loose");
+        if (o.bow) {
+          drawPose(p, o.bow, b, side, player.action === "loose");
+          play(joints, CLIPS.draw, player.action === "draw" ? t : 1, { side });
+          if (player.action === "loose") play(joints, CLIPS.loose, t);
+        }
         break;
     }
   }
   if (alive && !player.grounded) play(joints, CLIPS.airborne, 0);
-  if (alive && player.grounded && o.walk.amp > 0 && player.action === "none") {
-    const stride = o.walk.amp * Math.sin(keyedPhase(o.walk.phase));
-    joints["thigh.L"].x += stride;
-    joints["thigh.R"].x -= stride;
-    joints["shin.L"].x += Math.max(0, -stride) * KNEE_LIFT;
-    joints["shin.R"].x += Math.max(0, stride) * KNEE_LIFT;
-    p.offHand = { ...p.offHand, z: p.offHand.z - stride * 0.3 };
+  if (walking) walk(p, o.walk, reach, side);
+  if (alive && !walking) {
+    const breath = breathOf(o.time);
+    joints.chest.x -= BREATH.chestRad * breath;
+    joints.spine.x -= BREATH.spineRad * breath;
+    joints.neck.x += BREATH.neckRad * breath;
+    joints.hips.z += BREATH.swayRad * breathOf(o.time / 2);
   }
-  for (const s of ["R", "L"] as const) joints[`foot.${s}`].x = -(joints[`thigh.${s}`].x + joints[`shin.${s}`].x);
-  const thigh = joints["thigh.R"].x, knee = thigh + joints["shin.R"].x;
-  p.rootY = -(THIGH_M * (1 - Math.cos(thigh)) + SHIN_M * (1 - Math.cos(knee)))
+  for (const s of ["R", "L"] as const) joints[`foot.${s}`].x -= joints[`thigh.${s}`].x + joints[`shin.${s}`].x;
+  p.rootY = -Math.min(legDrop(joints["thigh.R"], joints["shin.R"]), legDrop(joints["thigh.L"], joints["shin.L"]))
     + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
   return p;
+}
+
+function walk(p: PersonPose, { phase, amp }: PersonMoment["walk"], reach: number, side: 1 | -1): void {
+  const { joints } = p, share = phase / (2 * Math.PI), at = (keys: readonly number[], half = 0) =>
+    amp * walkKey(share + half, keys);
+  for (const [s, half] of [["L", 0], ["R", 0.5]] as const) {
+    joints[`thigh.${s}`].x += at(WALK.leg.thigh, half);
+    joints[`shin.${s}`].x += at(WALK.leg.shin, half);
+    joints[`foot.${s}`].x += at(WALK.leg.foot, half);
+  }
+  joints.hips.y += at(WALK.hips);
+  joints.chest.y += at(WALK.chest);
+  joints.neck.y += at(WALK.neck);
+  joints.root.x += amp * WALK.leanRad;
+  const scale = reach / MOTION_ARM_M;
+  const offHalf = side === 1 ? 0 : 0.5;
+  p.offHand = { ...p.offHand, z: p.offHand.z + at(WALK.arm, offHalf) * scale };
+  p.hand = { ...p.hand, z: p.hand.z + at(WALK.arm, 0.5 - offHalf) * scale * SWORD_ARM_SWING };
 }
 
 function drawPose(p: PersonPose, bow: BowLook & { drawn: number }, b: PersonBuild, side: 1 | -1, loosed: boolean): void {

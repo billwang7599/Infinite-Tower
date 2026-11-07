@@ -36,6 +36,11 @@ describe("the person's skeleton", () => {
     assert.ok(y("hand.R") < y("upper_arm.R") && y("upper_arm.R") < y("neck"));
   });
 
+  test("the hair swings from high on the back of the head", () => {
+    const head = restInModel("head", "medium"), hair = restInModel("hair", "medium");
+    assert.ok(hair.y > head.y && hair.y < restInModel("crown", "medium").y && hair.z < head.z);
+  });
+
   test("a wider body's shoulders and hips sit further out", () => {
     for (const j of ["upper_arm.R", "thigh.R"] as const) {
       const [skinny, wide] = (["skinny", "wide"] as const).map((b) => restInModel(j, b).x);
