@@ -5,6 +5,8 @@ import {
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
+import { blocksView, insideSelf } from "../../modes/battle/camera.js";
+import { LocalPlayer } from "../../modes/components.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
@@ -19,6 +21,7 @@ import { MOTIONS, WEAPON_LOOKS } from "./weapons.js";
 const SHADOW_REACH = 30;
 const SHADOW_LENGTH_M = 1.1;
 const HEAVY_WINDUP_STRETCH = 0.9;
+const SEE_THROUGH_ALPHA = 0.3;
 
 /** Where the sprite's center sits above the body's, so its bottom edge stays on the feet. */
 const spriteY = (stretch: number, bob: number): number => -PLAYER.height / 2 + (SPRITE_SIZE / 2) * stretch + bob;
@@ -119,6 +122,13 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   const stagger = { left: health.hitstun, of: sprite.staggerTime };
   if (sprite.person) framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
   else drawSprite(sprite, world, e, dt, player, stagger);
+  if (sprite.person?.model) {
+    const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
+    const held = sprite.person.blade?.root;
+    for (const m of sprite.person.model.root.getChildMeshes()) {
+      if (!held || !m.isDescendantOf(held)) m.isVisible = !hidden;
+    }
+  }
 
   const blade = sprite.person?.blade ?? sprite.blade;
   const edge = blade?.root.isEnabled() ? bladeEdge(blade.hand, WEAPON_LOOKS[blade.weapon]) : null;
@@ -163,13 +173,19 @@ function drawSprite(
   const picture = look?.battleSprite(sprite.facing, pose.pose, pose.frame)
     ?? ctx.materials.player.back[pose.pose][pose.frame]!;
   ctx.sky.tintAt(p, picture.emissiveColor);
-  const shown = player.leaving ? fadingCopy(sprite, picture) : picture;
+  const lock = ctx.battle.lock, target = lock === null ? undefined : world.get(lock, Body);
+  const feet = (b: typeof body) => ({ ...b.pos, y: b.pos.y - b.centerHeight });
+  const seeThrough = ctx.tuning.fade && !player.leaving && target !== undefined && world.has(e, LocalPlayer)
+    && blocksView(ctx.battle.view.eye, feet(body), SPRITE_SIZE, feet(target), 2 * target.centerHeight);
+  if (ctx.tuning.fade && !player.leaving) sprite.plane.visibility = seeThrough ? SEE_THROUGH_ALPHA : 1;
+  const shown = player.leaving || seeThrough ? fadingCopy(sprite, picture) : picture;
   if (sprite.plane.material !== shown) sprite.plane.material = shown;
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
   sprite.plane.position.y = spriteY(sprite.stretch, bob);
   sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(health.hitstun * 45) * 0.06 : 0;
 
-  sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);
+  const blinkedOut = alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1;
+  sprite.plane.isVisible = !blinkedOut && !(world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, body.pos));
 
   const facing = swing?.dir ?? aim, faceYaw = Math.atan2(facing.x, facing.z);
   if (weapon !== sprite.blade?.weapon) {
@@ -177,7 +193,7 @@ function drawSprite(
     sprite.blade = weapon && holdBlade(ctx, e, sprite.node, weapon, faceYaw);
   }
   const hand = look?.handAt(sprite.facing, pose.pose, pose.frame) ?? null;
-  sprite.blade?.root.setEnabled(hand !== null && sprite.plane.isVisible);
+  sprite.blade?.root.setEnabled(hand !== null && !blinkedOut);
   if (sprite.blade && motion && hand) {
     const { position } = sprite.plane, across = hand[0] / VIEWS.battle.width - 0.5;
     const up = 0.5 - hand[1] / VIEWS.battle.height;
