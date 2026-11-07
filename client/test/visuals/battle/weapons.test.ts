@@ -4,18 +4,12 @@ import {
   ITEMS, SCREEN_DIR, SWING_DIRS, WEAPONS, type AttackKind, type SwingData, type Vec3, type WeaponId,
 } from "@infinite-tower/shared";
 import {
-  glintOf, MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS, type TrailPose,
+  glintOf, MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS,
 } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
-const { trail: trailPose, windup, stroke: strokeBlade, held } = MOTIONS.sword;
+const { trail, windup, stroke: strokeBlade, held } = MOTIONS.sword;
 const near = (a: Vec3, b: Vec3, msg: string) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 1e-9, msg);
-
-/** Where on screen (seen from behind: x right, y up) the trail's growing tip is. */
-const onScreen = (pose: TrailPose) => {
-  const along = pose.from * (1 - 2 * pose.reach);
-  return { x: along * Math.cos(pose.rollRad), y: along * Math.sin(pose.rollRad) };
-};
 
 const KINDS: readonly AttackKind[] = ["light", "heavy"];
 
@@ -30,8 +24,8 @@ describe("a swing's cut", () => {
 
   test("a stab leaves no trail", () => {
     const { liveAt } = waySwingAt("stab", 0);
-    assert.equal(trailPose(waySwingAt("stab", liveAt)), null);
-    assert.notEqual(trailPose(waySwingAt("lr", liveAt)), null);
+    assert.equal(trail(waySwingAt("stab", liveAt)), null);
+    assert.notEqual(trail(waySwingAt("lr", liveAt)), null);
   });
 });
 
@@ -59,18 +53,18 @@ describe("a swing's stroke and frames", () => {
 });
 
 describe("the sword trail", () => {
-  test("goes across the screen the way the cut goes, as its wielder sees it", () => {
+  test("is left from the drive through the hit, fading out over the follow-through", () => {
     for (const attack of KINDS) {
       for (const way of SWING_DIRS) {
-        const poses = swingSteps(attack, way).map(trailPose).filter((pose) => pose !== null);
-        assert.ok(poses.length > 0, `${attack} ${way} shows a trail`);
-        const from = onScreen(poses[0]!), to = onScreen(poses.at(-1)!);
-        const move = { x: to.x - from.x, y: to.y - from.y }, len = Math.hypot(move.x, move.y);
-        const want = wayCut(way);
-        assert.equal(poses.at(-1)!.reach, 1, `${attack} ${way} reaches the far end of its line`);
-        assert.ok((move.x * want.x + move.y * want.y) / len > 0.99, `${attack} ${way} goes ${JSON.stringify(move)}`);
+        const steps = swingSteps(attack, way), shown = steps.map(trail), { driveAt, liveAt, liveUntil } = steps[0]!;
+        const first = shown.findIndex((v) => v !== null), last = shown.length - 1 - [...shown].reverse().findIndex((v) => v !== null);
+        assert.ok(first > driveAt && first < liveAt, `${attack} ${way} starts in the drive`);
+        assert.ok(shown.slice(first, last + 1).every((v) => v !== null), `${attack} ${way} unbroken`);
+        assert.ok(shown.slice(first, liveUntil).every((v) => v === 1), `${attack} ${way} whole while live`);
+        assert.ok(shown[last]! < shown[liveUntil]!, `${attack} ${way} fades`);
       }
     }
+    assert.equal(trail(null), null);
   });
 
   test("a slower swing (a heavier blade) draws its trail as much slower", () => {
@@ -79,13 +73,7 @@ describe("the sword trail", () => {
       liveUntil: swing.liveUntil * 2, endAt: swing.endAt * 2,
     });
     const steps = swingSteps("light", "lr");
-    assert.deepEqual(steps.map((swing) => trailPose(slowed(swing))), steps.map(trailPose));
-  });
-
-  test("a swing draws the same trail, around its own aim, whatever that aim is", () => {
-    const trail = (yaw: number) => swingSteps("light", "lr", yaw).map(trailPose);
-    const [first, ...rest] = [0, 0.8, -1.5].map(trail);
-    rest.forEach((poses, i) => assert.deepEqual(poses, first, `aim ${i + 2} is like the first`));
+    assert.deepEqual(steps.map((swing) => trail(slowed(swing))), steps.map(trail));
   });
 });
 

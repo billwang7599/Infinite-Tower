@@ -9,10 +9,11 @@ import { BASE, LIGHT, SHADOW, polygon, type Point } from "./pixels.js";
 type Span = readonly [from: number, to: number];
 
 /** Where each part runs along the sword, in pixels from the middle of the grip, and its half-width. */
-const POMMEL: Span = [-4.2, -2.6], GRIP: Span = [-3, 2], GUARD: Span = [1.8, 3.2], BLADE_FROM = 3;
-const POMMEL_HALF = 1.2, GRIP_HALF = 0.9, GUARD_HALF = 3, BLADE_HALF = 1.6;
+const POMMEL: Span = [-4.2, -2.6], GRIP: Span = [-3, 2], GUARD: Span = [1.8, 3.2];
+export const BLADE_FROM = 3, BLADE_HALF = 1.6;
+const POMMEL_HALF = 1.2, GRIP_HALF = 0.9, GUARD_HALF = 3;
 /** The blade narrows to its point over this many pixels. */
-const POINT = 3;
+export const POINT = 3;
 
 const sword = (layer: Layer): Draw<BattleFrame> => (pen, frame) => {
   const { sword: [[gx, gy], [tx, ty]], swordLayer = "weapon" } = frame;

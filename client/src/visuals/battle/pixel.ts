@@ -1,5 +1,5 @@
 import {
-  Constants, Effect, GeometryBufferRenderer, PostProcess, type Camera, type Scene,
+  Constants, Effect, GeometryBufferRenderer, PostProcess, type AbstractMesh, type Camera, type Scene,
 } from "@babylonjs/core";
 import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN, type Ramp } from "../../gfx/look/palette.js";
 
@@ -106,11 +106,19 @@ void main(void) {
 #endif
 }`;
 
+const sharp = new WeakSet<AbstractMesh>();
+
+/** Left out of the outline: a thin blade or its trail, a pixel or two wide, would be all outline. */
+export function keepSharp(mesh: AbstractMesh): void {
+  sharp.add(mesh);
+}
+
 export function pixelPost(scene: Scene, camera: Camera, flags: PixelFlags): void {
   if (flags.outline) {
     const gbuffer = scene.enableGeometryBufferRenderer();
     if (gbuffer) {
       gbuffer.useSpecificClearForDepthTexture = true;
+      gbuffer.getGBuffer().renderListPredicate = (mesh) => !sharp.has(mesh);
       const textures = gbuffer.getGBuffer().textures;
       const depth = textures[gbuffer.getTextureIndex(GeometryBufferRenderer.DEPTH_TEXTURE_TYPE)];
       const normal = textures[gbuffer.getTextureIndex(GeometryBufferRenderer.NORMAL_TEXTURE_TYPE)];
