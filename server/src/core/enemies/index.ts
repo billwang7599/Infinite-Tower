@@ -2,6 +2,7 @@ import type { EnemyDef, EnemyId, ItemCounts, ItemId, Rarity } from "@infinite-to
 import type { Part } from "../overworld/parts.js";
 import { BOG_LURKER } from "./bog-lurker.js";
 import { BRAM } from "./bram.js";
+import { CHICKEN } from "./chicken.js";
 import { GOBLIN_WARLOCK } from "./goblin-warlock.js";
 import { GREY_WOLF } from "./grey-wolf.js";
 import { KOBOLD_GREATSWORD } from "./kobold-greatsword.js";
@@ -41,6 +42,7 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   "bog-lurker": BOG_LURKER,
   "training-dummy": TRAINING_DUMMY,
   bram: BRAM,
+  chicken: CHICKEN,
 };
 
 // A unique roll with none free drops nothing.

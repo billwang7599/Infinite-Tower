@@ -28,6 +28,8 @@ export const TILES = {
   potionStall: { char: "P", solid: true, tallGrass: false },
   forge: { char: "A", solid: true, tallGrass: false },
   changerStall: { char: "C", solid: true, tallGrass: false },
+  butcherStall: { char: "B", solid: true, tallGrass: false },
+  fence: { char: "|", solid: true, tallGrass: false },
   cutStone: { char: "Q", solid: true, tallGrass: false },
   cart: { char: "K", solid: true, tallGrass: false },
   crane: { char: "Y", solid: true, tallGrass: false },

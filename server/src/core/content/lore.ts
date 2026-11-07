@@ -8,6 +8,12 @@ export const LORE = {
       + "hands and knocking the worst habits out of them. He says the crown wants its avatars armed and grateful, "
       + "and that he only cares about the first part.",
   },
+  "long-grass": {
+    title: "Long grass",
+    text: "Hob Fletcher keeps his birds in long grass because they're calmer in it, and harder to catch. Out past the "
+      + "South Gate the beasts do the same: a boar or a wolf lies low in the tall grass until something walks right "
+      + "onto it. Hob says avatars learn to watch where they put their feet, or they learn it from a tusk.",
+  },
   "the-seed": {
     title: "The seed",
     text: "What wakes on the pad is a seed: a piece of a soul, given at the door by someone in your own world, the one "

@@ -65,8 +65,9 @@ for (const region of WORLD.regions) {
       for (const [name, at] of places) assert.ok(fromStart(at), name);
     });
 
-    test("has a campfire only out in the wild, where there are enemies", () => {
-      assert.equal(region.campfires.length > 0, region.spawns.length > 0 || region.grass !== undefined);
+    test("has a campfire only out in the wild, where there are enemies: Highmere has none", () => {
+      const wild = region.theme !== "kingdom";
+      assert.equal(region.campfires.length > 0, wild && (region.spawns.length > 0 || region.grass !== undefined));
     });
   });
 }

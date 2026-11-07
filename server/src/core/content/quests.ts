@@ -31,10 +31,10 @@ export type Quests = Readonly<Record<string, QuestDef>>;
 /** Ids are saved with each player: renaming one loses it. The questbook lists them in this order, the admin's
  * Complete walks them in it, and a quest may only wait on one before it. */
 export const QUEST_ORDER = [
-  "bram-yard", "maren-waking", "tobin-smoke", "maren-road", "hollis-hides", "hollis-pads", "hollis-loom",
-  "tobin-kobold", "maren-tongue", "corwin-blind", "corwin-count", "ilse-weights", "ilse-snapped", "captain-boars",
-  "cook-meat", "tamsin-son", "chronicler-roads", "foreman-pit", "scavenger-pelts", "scavenger-chanters",
-  "herbalist-fangs", "herbalist-mist", "burner-rook",
+  "bram-yard", "butcher-chickens", "maren-waking", "tobin-smoke", "maren-road", "hollis-hides", "hollis-pads",
+  "hollis-loom", "tobin-kobold", "maren-tongue", "corwin-blind", "corwin-count", "ilse-weights", "ilse-snapped",
+  "captain-boars", "cook-meat", "tamsin-son", "chronicler-roads", "foreman-pit", "scavenger-pelts",
+  "scavenger-chanters", "herbalist-fangs", "herbalist-mist", "burner-rook",
 ] as const;
 
 const WRITTEN: Quests = Object.assign({}, ...Object.values(NPCS).map((npc) => npc.quests ?? {}));

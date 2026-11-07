@@ -6,7 +6,7 @@ import { gateMouths, houseLedges, middleIn, tileBlocks, wholeRuns, type House } 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
   | "produce" | "potions" | "scales" | "embers" | "dummy" | "rubble" | "crane" | "cart" | "scrub" | "chips"
-  | "shack" | "statue";
+  | "shack" | "statue" | "meat" | "fence";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
@@ -28,7 +28,7 @@ export interface Scenery {
 }
 
 const TALL = new Set<PropKind>([
-  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack", "statue",
+  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack", "statue", "fence",
 ]);
 
 export function isTall(kind: PropKind): boolean {
@@ -89,6 +89,7 @@ const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, stri
   { kind: "foodStall", goods: "produce", awning: ["#e8dcc0", "#4f7a3a"] },
   { kind: "potionStall", goods: "potions", awning: ["#e8dcc0", "#5b3f8a"] },
   { kind: "changerStall", goods: "scales", awning: ["#e8dcc0", "#a8862e"] },
+  { kind: "butcherStall", goods: "meat", awning: ["#e8dcc0", "#8a2a2a"] },
   { kind: "forge", goods: "embers" },
 ];
 const TERRACE = { stepY: 1.2, tiles: 2, inQuarry: 4, ringTiles: 4, propChance: 0.18 };

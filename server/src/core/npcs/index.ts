@@ -6,6 +6,7 @@ import { inRegion } from "../world/index.js";
 import { APOTHECARY } from "./apothecary.js";
 import { BRAM } from "./bram.js";
 import { BURNER } from "./burner.js";
+import { BUTCHER } from "./butcher.js";
 import { CARVER } from "./carver.js";
 import { CAPTAIN } from "./captain.js";
 import { CHANGER } from "./changer.js";
@@ -91,6 +92,7 @@ const WRITTEN: Record<NpcId, Npc> = {
   king: KING,
   innkeeper: INNKEEPER,
   carver: CARVER,
+  butcher: BUTCHER,
 };
 
 export const NPCS = Object.fromEntries(

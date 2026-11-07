@@ -40,7 +40,8 @@ What's built so far:
   and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword and a Kobold Shieldbearer beside it), a
   Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low
   in the Mistwood's reeds. Touching
-  one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
+  one, or walking through tall grass (boars; chickens in the butcher's pen), starts a fight. Wider screens than 16:9
+  get side bars. It's drawn
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
   warm haze glows on the sky toward a low sun). The

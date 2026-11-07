@@ -56,14 +56,15 @@ describe("Highmere's Castle Ward", () => {
 });
 
 describe("Highmere's Market Ward", () => {
-  test("is named for its city, and is as safe as the castle: no enemies, no tall-grass fights, no campfire", () => {
+  test("is named for its city, and is as safe as the castle: no monsters, no campfire, only the butcher's chickens", () => {
     assert.equal(MARKET.name, "Highmere: Market Ward");
     for (const ward of [KINGDOM, MARKET]) {
       assert.deepEqual(ward.spawns, []);
-      assert.equal(ward.grass, undefined);
       assert.deepEqual(ward.campfires, []);
       assert.equal(ward.theme, "kingdom");
     }
+    assert.equal(KINGDOM.grass, undefined);
+    assert.deepEqual(MARKET.grass?.enemies.map((e) => e.enemy), ["chicken"]);
   });
 
   test("has no summoning pad: a player saved there wakes on the Castle Ward's platform", () => {

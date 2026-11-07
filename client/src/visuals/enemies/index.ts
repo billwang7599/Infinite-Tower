@@ -5,6 +5,8 @@ import type { Visual } from "../visuals.js";
 import { lurkerVisual } from "./bog-lurker/animation.js";
 import { lurkerSprite } from "./bog-lurker/sprite.js";
 import { bramSprite } from "./bram/sprite.js";
+import { chickenVisual } from "./chicken/animation.js";
+import { chickenSprite } from "./chicken/sprite.js";
 import { goblinVisual } from "./goblin-warlock/animation.js";
 import { goblinSprite } from "./goblin-warlock/sprite.js";
 import { wolfVisual } from "./grey-wolf/animation.js";
@@ -42,6 +44,7 @@ export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
   "bog-lurker": { battle: lurkerVisual, sprite: lurkerSprite },
   "training-dummy": { battle: trainingDummyVisual, sprite: trainingDummySprite },
   bram: { battle: personEnemyVisual, sprite: bramSprite, npc: "bram" },
+  chicken: { battle: chickenVisual, sprite: chickenSprite },
 };
 
 export function byEnemy<T>(f: (look: EnemyLook, id: EnemyId) => T): Record<EnemyId, T> {
