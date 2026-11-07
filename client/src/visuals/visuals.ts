@@ -14,6 +14,7 @@ import {
 import { arenaStage } from "./battle/battle.js";
 import { clash, guardBroken, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
+import { pixelScale } from "./battle/pixel.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
@@ -238,6 +239,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
       shown = mode;
     },
     frame(dt) {
+      const scalingLevel = shown === "battle" ? pixelScale(arena.pixel, canvas.clientHeight) : 1;
+      if (engine.getHardwareScalingLevel() !== scalingLevel) {
+        engine.setHardwareScalingLevel(scalingLevel);
+        canvas.style.imageRendering = scalingLevel > 1 ? "pixelated" : "";
+      }
       engine.beginFrame();
       paintPlayer();
       if (shown === "battle") drawArena(dt);
