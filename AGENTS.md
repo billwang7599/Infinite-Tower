@@ -150,7 +150,7 @@ Decided by the user:
   One Strike and Master Cuts styles are gone (their branches stay on GitHub). Its rules are the user's (the numbers
   are first guesses, to tune):
   - Left click a light attack, a right click a heavy (as it's let go; a right drag turns the camera instead), the
-    mouse's back side button a stab (K too); the scroll wheel zooms the camera. The swing's way comes only from
+    mouse's back side button a stab (K too). The swing's way comes only from
     the mouse, as flavour: a quick flick aims one of 7 ways (across, down from the top, and the four diagonals), a
     horizontal swing wide and a vertical one narrow. There's no straight upward swing (a downward flick does
     nothing) and no key aims. Locked on, attacks go where you face.
@@ -287,29 +287,21 @@ Decided by the user:
   user: "make the up and down arrow capped at some point so i cant spin forever, but still give a decent amount of
   freedom"; the numbers are the main chat's): the eye goes from 35° under the pivot to 80° over it, arrows and drag
   alike, and the floor pulls it in rather than letting it through; in first person you look 80° up or down at most
-  (`PITCH` in `client/src/modes/orbit.ts`, the overworld's too). Skills may home (the Follow modifier). The camera
-  has three views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"):
-  over your left shoulder (5.5 m back), For Honor style, so the target's swings aren't hidden behind your own body,
-  close (3 m) and first person (your head and body hidden, your arms, hands and what they hold shown with their
-  swings, block, bow draw and chant; the trail and aim ring too). Every fight starts in first person for now (the
-  user: "for now make first person the default view"), and it's the main battle view (the user: "we should optimize
-  for first person view"): the wall pulls its eye in as far as your head, so it never leaves the arena and the
-  crosshair's spot holds with your back to the wall. The scroll wheel zooms between them, locked or not (the user:
-  "mouse scroll should also be able to zoom in and out (capped at some point). main mode of playing now will be
-  keyboard + mouse"): a notch takes the camera 1.2 times as far out or in (`ZOOM_PER_NOTCH`), from close out to 8 m
-  (`ZOOM.maxM`), the shoulder view's framing at any distance; zooming in stops at close, and a notch more is first
-  person (one out of it, close again). V (`cycleView`, rebindable) steps in to the next of shoulder, close and first
-  person, then round to the shoulder, and the zoom with it. Panned, only its direction is free. A dodge sends it
-  back to the shoulder's distance if it was nearer (the user: "maybe on rolls it zooms back out so i dont have to stay
-  in first person"); zoomed out further, it stays. When the dodge ends it goes back to the view it had (the user:
-  "it should go back to first person after"), or to the one V or the wheel picked during it. Every change eases; the
-  zoom lasts the fight, not saved. In first person your arms are always in view (the user: "first person i should be
-  able to see my arms at
-  all times i think, so the sword is in view a bit more"): both hands sit low on the screen, the sword lower and
-  nearer the middle than the pose's own, and the arms go with the camera wherever it looks (ART.md, "first
-  person"). The camera's numbers (`CAMERA_VIEWS` and `ZOOM` at the top of `client/src/modes/battle/camera.ts`, the
-  turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to tune; dev servers try others with
-  `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
+  (`PITCH` in `client/src/modes/orbit.ts`, the overworld's too). Skills may home (the Follow modifier). Fights are in
+  first person only (the user: "i think we go first person only for now. i will A/B test this with friends later"),
+  locked or not: your head and body hidden, your arms, hands and what they hold shown with their swings, block, bow draw
+  and chant, the trail and aim ring too. The wall pulls its eye in as far as your head, so it never leaves the arena and
+  the crosshair's spot holds with your back to the wall. There's no other view to pick: V's cycling (shoulder, close,
+  first person) and the wheel's zoom are gone from fights. Panned, only its direction is free. A dodge zooms out to over
+  your left shoulder (5.5 m back, For Honor style) and, as it ends, eases back to first person (the user: "maybe on
+  rolls it zooms back out so i dont have to stay in first person", "it should go back to first person after"; kept with
+  first person only: "sure"). Every change eases. Third person stays reachable on a dev server, for the user's A/B test:
+  `?cam=shoulder` (or another preset) is the fight's view in first person's place. In first person your arms are always
+  in view (the user: "first person i should be able to see my arms at all times i think, so the sword is in view a bit
+  more"): both hands sit low on the screen, the sword lower and nearer the middle than the pose's own, and the arms go
+  with the camera wherever it looks (ART.md, "first person"). The camera's numbers (`CAMERA_VIEWS` at the top of
+  `client/src/modes/battle/camera.ts`, the turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to
+  tune; dev servers try others with `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
 - Seeing you're stunned (the user: "i want an indication that im stunned since we're in first person now", "maybe
   stun status effect and also stars on screen?"; the look and numbers are the agent's, seen in a headless browser,
   not hand-played). Looks only, from your hitstun: while it runs a "Stunned" tile shows last in your statuses, its
@@ -335,7 +327,8 @@ Decided by the user:
   `server/src/core/enemies/kobold-swordsman.ts`) are the agent's picks, to tune.
 - A small crosshair at the screen's centre while you aim (the user: "there should be a small crosshair on the screen
   when aiming (whether it be spells or bow and arrow)"): a bow drawn, a skill chanted, cast or streamed. Arrows and
-  skills go the crosshair's way (aiming frees the camera, above).
+  skills go the crosshair's way (aiming frees the camera, above). While the camera is panned a small dot marks the
+  centre, where attacks then go (the user, asked: "yes"; its size is the agent's, `dotRadiusPx` in `AIM_HUD`).
 - One aim for the bow and skills (the user: "make sure we consolidate the aim to api or something, cause magic
   casting also needs this"; the rest the main chat's picks): skills aim exactly as the bow does, locked on at the
   target and unlocked at the crosshair's spot, through the one `aimOf` (`shared/src/battle/fight/aim.ts`). An arrow
@@ -580,7 +573,7 @@ Decided by the user:
   where it's left until the page reloads; tilted under, it stays just above the ground. It starts at 50°
   (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`). The world is drawn as far as the camera sees at 25°:
   tilted lower, the far ground is in the fog, and upright sprites look squashed seen from high or low. The scroll
-  wheel zooms it, as in the arena, from 21 tiles out (where it starts; what's drawn and sent is reckoned from there)
+  wheel zooms it from 21 tiles out (where it starts; what's drawn and sent is reckoned from there)
   in to 7 (`CAMERA_DISTANCE`, the agent's pick), easing; kept for the session only.
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.

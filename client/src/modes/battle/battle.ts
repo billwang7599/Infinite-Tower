@@ -10,7 +10,7 @@ import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { arenaCamera, cameraTuning, steerZoom } from "./camera.js";
+import { arenaCamera, cameraTuning } from "./camera.js";
 import { Blend, resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { freeCamera, playerAim } from "./aim.js";
@@ -47,14 +47,13 @@ interface BattleOptions {
 
 export function createBattle(opts: BattleOptions): Battle {
   const { actions, settings } = opts;
-  const views = cameraTuning(import.meta.env.DEV ? location.search : "");
+  const tuning = cameraTuning(import.meta.env.DEV ? location.search : "");
   const ctx: BattleContext = {
     polled: actions.poll(), actions, settings,
-    view: { ...START_VIEW, fovRad: views.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
+    view: { ...START_VIEW, fovRad: tuning.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     blend: new Blend(),
     lock: null,
     freeCamera: null,
-    zoomM: views.fp.distanceM,
     way: START_WAY,
     stun: noStun(),
     who: [],
@@ -70,7 +69,7 @@ export function createBattle(opts: BattleOptions): Battle {
     gearMoves: [],
     uses: [],
   };
-  const camera = arenaCamera(ctx, views);
+  const camera = arenaCamera(ctx, tuning);
   const hud = hudSystem(ctx, opts.hud);
   /** Syncs land between frames; the next frame's `corrections` are theirs. */
   let corrected: Correction[] = [];
@@ -98,7 +97,6 @@ export function createBattle(opts: BattleOptions): Battle {
     const steer = { pressed: ctx.polled.pressed, free: free !== null, wasFree: ctx.freeCamera !== null };
     ctx.lock = steerLock(ctx.lock, steer, foes, ctx.view, me);
     ctx.freeCamera = free;
-    ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, views);
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const { world } = fight;
     const aimed = foes.map(({ e }) => ({ e, body: world.require(e, Body), fighter: world.require(e, Fighter) }));
@@ -186,7 +184,6 @@ export function createBattle(opts: BattleOptions): Battle {
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);
       ctx.freeCamera = null;
-      ctx.zoomM = views.fp.distanceM;
       ctx.way = START_WAY;
       ctx.stun = noStun();
       const target = foes.find((f) => f.e === ctx.lock)?.pos;

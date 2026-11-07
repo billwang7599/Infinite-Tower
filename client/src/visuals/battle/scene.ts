@@ -36,7 +36,7 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
   const scene = new Scene(engine);
 
   const camera = new UniversalCamera("camera", new Vector3(0, 4, -16), scene);
-  const search = import.meta.env.DEV ? location.search : "", tuning = cameraTuning(search).shoulder;
+  const search = import.meta.env.DEV ? location.search : "", tuning = cameraTuning(search);
   // Near enough for your own hands in first person.
   camera.minZ = 0.03;
   camera.inputs.clear(); // it follows the battle mode's view

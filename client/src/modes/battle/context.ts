@@ -51,7 +51,6 @@ export interface BattleContext {
   blend: Blend;
   lock: Entity | null;
   freeCamera: FreeCamera;
-  zoomM: number;
   way: SwingDir;
   stun: Stun;
   who: PlayerSetup["who"][];

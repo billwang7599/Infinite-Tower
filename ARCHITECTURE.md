@@ -158,8 +158,8 @@ main.ts
   the poll's `flicks` (`right`, `upLeft`, ...), which the arena's input turns into the swing's way (straight down
   into none); not while a drag button is held.
   The scroll wheel is no action: the poll's `zoom` is the notches turned since the last poll (+ out), each event
-  its pixels' share of one (`WHEEL`, a notch at most; the first after a rest is a whole one), for both cameras'
-  zoom. In a text field only the
+  its pixels' share of one (`WHEEL`, a notch at most; the first after a rest is a whole one), for the overworld
+  camera's zoom. In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
   stays the field's), and Enter in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw keys
   with `captureKey`. The chat is a layer of its own, `chat`, over the overworld or the arena, while its field has
@@ -198,8 +198,8 @@ main.ts
   alpha-tested, and its shadow with it). What reads as HUD is drawn over the pixel art at full resolution, on a 2D
   canvas of its own (`visuals/battle/overlay.ts`): your aim ring (or, with a bow in hand, its draw meter) at the bottom
   centre and, while you aim, a crosshair
-  at the centre; where the camera puts them each frame, the lock-on diamond and, over anyone but you, a chanter's
-  words as a row of squares in front of it (`chantWords.ts`). The
+  at the centre (while you pan the camera, a dot); where the camera puts them each frame, the lock-on diamond and,
+  over anyone but you, a chanter's words as a row of squares in front of it (`chantWords.ts`). The
   player's look is read from `ui.you`'s character and painted once
   (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
   every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
@@ -1715,29 +1715,27 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's, and how far past
                          the last step it is (alpha) (PACE_SLACK_STEPS, MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
-                         time and drops, the lock, whether the camera is free (freeCamera) and its distance (zoomM,
-                         first person as each fight starts), its orbit, your stun's cue, this frame's events and
+                         time and drops, the lock, whether the camera is free (freeCamera), its orbit, your stun's
+                         cue, this frame's events and
                          corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME; Blend
                          (ctx.blend: each fighter's position the step before, shifted with a correction, and where
                          it's drawn, Pace.alpha of the way on to its body; the camera and fighter() read it)
         stun.ts          Your stun as you see it, from your hitstun, once a frame: followStun (the stun it began as,
                          how strong and how shown, the camera's kick and sway; STUN_CUE; tested)
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
-                         yaw is the aim. Its distance (steerZoom): the wheel from close out to ZOOM.maxM, a notch in
-                         from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in. While you dodge
-                         it's out at the shoulder's from nearer, ctx.zoomM kept, so it eases back after. Nearer than
-                         close it's the fp view, else the shoulder view at that
-                         distance; freed (ctx.freeCamera) only its direction is free, turned by the held arrows, a
+                         yaw is the aim. Fights are in first person (CAMERA_VIEWS.fp); while you dodge it eases out
+                         to the shoulder view (CAMERA_VIEWS.shoulder), and back as the dodge ends. Freed
+                         (ctx.freeCamera) only its direction is free, turned by the held arrows, a
                          drag or the mouse while you aim, its tilt
                          capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in
                          (the wall no nearer than MIN_DISTANCE, but in first person right in, so its eye stays inside);
                          every change eases, the field of view and the tilt's caps too. It follows the player as
                          drawn (ctx.blend), trailing as a smoothed point does in third person and fixed to the body in
                          first person (trailShare). insideSelf hides
-                         your body but its arms in first person. Dev-only flags try others in place of the shoulder
-                         view (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,
-                         .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and blocksView says when your
-                         fighter hides the target (cam.fade)
+                         your body but its arms in first person. Dev-only flags put another view in first person's
+                         place, third person for an A/B test (cameraTuning: ?cam=shoulder, close, high, both or fp,
+                         &cam.dist, .height, .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and
+                         blocksView says when your fighter hides the target (cam.fade)
         lock.ts          The lock-on, always on: steerLock (Q switches to the enemy nearest where the camera points
                          but the target, pointedFoe; lock closest; the camera freed keeps the target, and as it ends,
                          or the target dies, the lock goes to inViewFoe, in the picture nearest its middle, else the
@@ -1850,12 +1848,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
                          centre while you fight with a sword, a bow's draw meter there instead (filling with the
-                         speed it would loose at, drawnPower, marked at the least and the full draw), and a crosshair
-                         at the centre while you aim (aimHud, aimLayout, meterSpan, wedgeOf and ringLights: what
-                         shows where, the aimed way's wedge, a stab's mark and the meter's fill; tested); where the
-                         camera puts them (onScreen: a world point's spot and pixels a
-                         metre; tested), the lock-on's diamond (an octahedron's facets, turning) and other fighters'
-                         chant words
+                         speed it would loose at, drawnPower, marked at the least and the full draw), a crosshair
+                         at the centre while you aim and a dot there while you pan the camera (aimHud, aimLayout,
+                         meterSpan, wedgeOf and ringLights: what shows where, the aimed way's wedge, a stab's mark
+                         and the meter's fill; tested); where the camera puts them (onScreen: a world point's spot
+                         and pixels a metre; tested), the lock-on's diamond (an octahedron's facets, turning) and
+                         other fighters' chant words
         stunned.ts       Your stun on the overlay: a vignette, and in first person stars circling the top of the
                          view (STUN_HUD; stunStars and vignetteAlpha, tested)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
@@ -2277,7 +2275,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
-| The aim ring and crosshair (sizes and the ring's height in the HUD's pixels, `AIM_HUD`; colours; the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
+| The aim ring, crosshair and the pan's dot (sizes and the ring's height in the HUD's pixels, `AIM_HUD`; colours; the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | Which actions aim (free the camera, show the crosshair, keep the lock from the fight), `AIMING`; how near the crosshair's spot may be (`CROSSHAIR_MIN_M`) | top of `client/src/modes/battle/aim.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
 | The 3D bow and arrow: the stave's and string's thickness, how much further its limbs bend fully drawn (`FLEX_M`), where the nocked arrow rests (`ARROW_REST`), the arrow's size, colours, how deep it sinks stuck and how long it takes to ease from the bow onto its path (`LEAVE_BOW_TIME`); its trail's length, width and fade (`TRAIL`; its colour `arrowTrail` in `materials.ts`); a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, how far out and how leant it's carried and drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
@@ -2305,7 +2303,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | The arena's pixels: their size, how far they stay full size, the smallest they get, how deep a size fades into the next; the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
 | Your stun's cue: its strength by length, fades, the camera's kick and sway (`STUN_CUE`); the stars and vignette (`STUN_HUD`) | top of `client/src/modes/battle/stun.ts`; top of `client/src/visuals/battle/stunned.ts` |
-| Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
+| Arena camera feel, locked and not | `CAMERA_VIEWS` (first person, and the shoulder view a dodge zooms out to) and the dev-only `CAMERA_PRESETS` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |
 | Where the bow, the drawn arrow and both hands sit in first person, carried and drawn, and the loose's flick and kick | `FP_BOW` in `client/src/visuals/battle/firstPerson.ts` |

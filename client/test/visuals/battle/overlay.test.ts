@@ -57,6 +57,15 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
     assert.equal(aimHud(playerDoing("draw", 0), 10, null, "tb", false).crosshair, false);
   });
 
+  test("a dot at the centre while the camera is panned; none otherwise, once down or once the fight is decided", () => {
+    const dot = (panned: boolean, hp = 10, fighting = true) =>
+      aimHud(playerDoing("none", 0, "tb"), hp, null, "tb", fighting, null, AVERAGE_STAT, panned).dot;
+    assert.equal(dot(true), true);
+    assert.equal(dot(false), false);
+    assert.equal(dot(true, 0), false);
+    assert.equal(dot(true, 10, false), false);
+  });
+
   test("casting with a sword in hand shows both", () => {
     const hud = aimHud(playerDoing("cast", 0, "tb"), 10, null, "tb", true);
     assert.ok(hud.ring && hud.crosshair);
@@ -93,7 +102,7 @@ describe("the draw meter, in the ring's place while a bow is in hand", () => {
 
   test("with a bow in hand it shows, and the ring doesn't", () => {
     const { meter, ...rest } = hud("none", 0);
-    assert.deepEqual(rest, { ring: null, crosshair: false });
+    assert.deepEqual(rest, { ring: null, crosshair: false, dot: false });
     assert.equal(meter?.share, 0);
     near(meter?.minShare, speedShare(MIN));
   });

@@ -54,7 +54,6 @@ export const ACTIONS = {
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Switch target (the enemy nearest the screen's middle)", keys: ["KeyQ"] },
     lockClosest: { label: "Lock onto the closest enemy", keys: ["ShiftRight"] },
-    cycleView: { label: "Zoom the camera in (shoulder, close, first person; or scroll)", keys: ["KeyV"] },
     turnLeft: { label: "Turn camera left (hold; unlocks)", keys: ["ArrowLeft"] },
     turnRight: { label: "Turn camera right (hold; unlocks)", keys: ["ArrowRight"] },
     lookUp: { label: "Tilt camera up (hold; unlocks)", keys: ["ArrowUp"] },

@@ -15,8 +15,8 @@ const SHOWN_WEDGES = [0, 1, 2, 3, 4, 5, 7];
 // In the HUD's CSS pixels. The ring's centre sits clear above the foe's bar and its statuses (BossBar, ~110 px up).
 export const AIM_HUD = {
   ringAboveBottomPx: 176, ringRadiusPx: 48, wedgeLengthPx: 18, wedgeThickPx: 5, ringEdgePx: 1.6, stabPx: 6.4,
-  crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1, meterLengthPx: 120, meterThickPx: 7,
-  markLengthPx: 15, markThickPx: 2,
+  crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1, dotRadiusPx: 2.5, meterLengthPx: 120,
+  meterThickPx: 7, markLengthPx: 15, markThickPx: 2,
 };
 const DIM = "rgba(232, 223, 200, 0.3)";
 const LIT = "rgba(217, 88, 60, 0.95)";
@@ -43,7 +43,7 @@ export function ringLights(way: SwingDir, swing: SwingData | null): RingLights {
 
 export interface DrawMeter { share: number; minShare: number }
 
-export interface AimHud { ring: RingLights | null; crosshair: boolean; meter: DrawMeter | null }
+export interface AimHud { ring: RingLights | null; crosshair: boolean; dot: boolean; meter: DrawMeter | null }
 
 function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number): DrawMeter | null {
   const bow = rangedOf(weapon);
@@ -56,12 +56,12 @@ function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number
 
 export function aimHud(
   player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
-  weapon: Weapon | null = null, strength = AVERAGE_STAT,
+  weapon: Weapon | null = null, strength = AVERAGE_STAT, panned = false,
 ): AimHud {
-  if (hp <= 0 || !fighting) return { ring: null, crosshair: false, meter: null };
+  if (hp <= 0 || !fighting) return { ring: null, crosshair: false, dot: false, meter: null };
   return {
     ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action),
-    meter: drawMeterOf(player, weapon, strength),
+    dot: panned, meter: drawMeterOf(player, weapon, strength),
   };
 }
 
@@ -130,8 +130,9 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   if (!me) return;
   const fighting = ctx.battle.outcome.state === "fighting";
   const strength = world.get(me[0], FighterStats)?.strength;
-  const { ring, crosshair, meter } =
-    aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), strength);
+  const panned = ctx.battle.freeCamera === "pan";
+  const { ring, crosshair, dot, meter } =
+    aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), strength, panned);
   const layout = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
   const { ring: { x, y }, crosshair: centre, scale: s } = layout;
   g.strokeStyle = EDGE;
@@ -162,10 +163,16 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
     g.fill();
     g.stroke();
   }
-  if (!crosshair) return;
-  const gap = H.crossGapPx * s, arm = H.crossArmPx * s, thick = H.crossThickPx * s;
   g.lineWidth = H.crossEdgePx * s;
   g.fillStyle = CROSS;
+  if (dot) {
+    g.beginPath();
+    g.arc(centre.x, centre.y, H.dotRadiusPx * s, 0, 2 * Math.PI);
+    g.fill();
+    g.stroke();
+  }
+  if (!crosshair) return;
+  const gap = H.crossGapPx * s, arm = H.crossArmPx * s, thick = H.crossThickPx * s;
   g.beginPath();
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
     const w = dx === 0 ? thick : arm, h = dx === 0 ? arm : thick;
