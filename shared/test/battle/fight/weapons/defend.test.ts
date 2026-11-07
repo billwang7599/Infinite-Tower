@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, packFor, FIXED_DT, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage, Player, Stamina,
+  emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage,
+  Player, Stamina,
   toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -202,5 +203,78 @@ describe("blocking by the blade", () => {
     assert.ok(perfect(blockFrom("greatsword", hitAt - raiseSteps(WEAPONS.greatsword) - lead)), "greatsword");
     const sword = blockFrom("sword", hitAt - RAISE - lead);
     assert.ok(sword.some((e) => e.type === "block") && !perfect(sword), "a sword pressed as early only holds");
+  });
+});
+
+describe("the guard: a shield, one blade, two blades", () => {
+  const withHands = (rightHand: ItemId | null, leftHand: ItemId | null) => new Fight({
+    arena: ARENA, duel: true, enemies: [],
+    players: [
+      player({ x: 0, y: 0.05, z: 0 }),
+      player({ x: 0, y: 0.05, z: 1.6 }, {
+        gear: {
+          bag: emptyBag(), pack: packFor(null), quiver: packFor(null),
+          equipment: { ...armed(), rightHand, leftHand },
+        },
+      }),
+    ],
+  });
+  const hitAt = landsAt(PRESS);
+  const blockedHit = (fight: Fight, b: Script = holdFrom(hitAt - HOLD_STEPS)) => {
+    const events = play(fight, hitAt + 2, (s) => ({ way: "lr", attack: s === PRESS ? "light" : null }), b);
+    return events.find((e) => e.type === "block" && !e.perfect);
+  };
+
+  test("a shield blocks best and two blades worst; one blade's numbers are the held block's own", () => {
+    assert.ok(GUARDS.shield.chipFraction < GUARDS.one.chipFraction);
+    assert.ok(GUARDS.one.chipFraction < GUARDS.dual.chipFraction);
+    assert.ok(GUARDS.shield.staminaFactor < GUARDS.one.staminaFactor);
+    assert.ok(GUARDS.one.staminaFactor < GUARDS.dual.staminaFactor);
+    assert.ok(GUARDS.shield.pushFactor < GUARDS.one.pushFactor);
+    assert.ok(GUARDS.one.pushFactor < GUARDS.dual.pushFactor);
+    assert.ok(GUARDS.shield.minDot < GUARDS.one.minDot);
+    assert.deepEqual(GUARDS.one, {
+      minDot: HYBRID.block.minDot, chipFraction: HYBRID.block.chipFraction, staminaFactor: 1, pushFactor: 1,
+    });
+  });
+
+  test("which guard the hands make: a shield over a blade, two blades, one", () => {
+    const hands = (rightHand: ItemId | null, leftHand: ItemId | null) =>
+      guardOf({ rightHand, leftHand, active: "rightHand" })?.kind ?? null;
+    assert.equal(hands("sword", "wooden-shield"), "shield");
+    assert.equal(hands("wooden-shield", "longsword"), "shield");
+    assert.equal(hands(null, "wooden-shield"), "shield");
+    assert.equal(hands("sword", "longsword"), "dual");
+    assert.equal(hands("sword", "skillbook"), "one");
+    assert.equal(hands(null, "sword"), "one");
+    assert.equal(hands("skillbook", null), null);
+  });
+
+  for (const [kind, right, left] of [
+    ["shield", "sword", "wooden-shield"], ["one", "sword", null], ["dual", "sword", "kobold-blade"],
+  ] as const) {
+    test(`${kind}: chips and costs stamina by its guard`, () => {
+      const fight = withHands(right, left);
+      assert.ok(blockedHit(fight), kind);
+      const guard = GUARDS[kind];
+      close(FULL_HP - hp(fight, 1), SWORD * guard.chipFraction, kind);
+      const held = HYBRID.block.holdStaminaPerSec * HOLD_STEPS * FIXED_DT;
+      const spent = FULL_STAMINA - stamina(fight, 1) - held;
+      assert.ok(Math.abs(spent - SWORD * guard.staminaFactor) < 0.5, `${kind}: ${spent}`);
+    });
+  }
+
+  test("a shield alone still blocks, though nothing in hand swings", () => {
+    const fight = withHands(null, "wooden-shield");
+    assert.ok(blockedHit(fight));
+    play(fight, 5, () => ({}), () => ({ attack: "light" }));
+    assert.equal(fight.world.require(fight.players[1]!, Wielder).swing, null);
+  });
+
+  test("a shield covers further round to the side than a blade", () => {
+    const side = { aimX: Math.sin(Math.PI - 1.35), aimZ: Math.cos(Math.PI - 1.35), locked: null };
+    const guarding: Script = (s) => ({ ...side, block: s >= hitAt - HOLD_STEPS });
+    assert.ok(blockedHit(withHands("sword", "wooden-shield"), guarding), "the shield");
+    assert.equal(blockedHit(withHands("sword", null), guarding), undefined, "the blade");
   });
 });

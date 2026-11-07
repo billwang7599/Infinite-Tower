@@ -65,6 +65,7 @@ const StepInputSchema = z.object({
   dodge: z.boolean(),
   way: z.enum(SWING_DIRS).nullable(),
   block: z.boolean(),
+  switchHand: z.boolean(),
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),

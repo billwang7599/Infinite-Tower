@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, guardRaiseTime, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, toSteps, WEAPONS, type EnemyDef,
+  FIXED_DT, guardRaiseTime, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, toSteps, WEAPONS, Wielder, type EnemyDef,
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
@@ -65,5 +65,20 @@ describe("a block, on the client and on the server", () => {
       assert.equal(server, client, `k = ${k}`);
       assert.deepEqual(room.fight.save(), clientFight.save(), `k = ${k}`);
     }
+  });
+});
+
+describe("switching hands, on the client and on the server", () => {
+  test("a tap with a blade in each hand, arriving late, swings the left's on both", () => {
+    const setup = setupWith(ONE_ATTACK);
+    const me = setup.players[0]!;
+    const dual: FightSetup = { ...setup, players: [{ ...me, gear: { ...me.gear,
+      equipment: { ...me.gear.equipment, rightHand: "sword", leftHand: "kobold-blade" } } }] };
+    const { room, client, play } = openRoom(dual);
+    play({ ...IDLE_INPUT, switchHand: true }, 3);
+    for (let i = 0; i < 6; i++) play();
+    const active = (fight: Fight) => fight.world.require(fight.players[0]!, Wielder).hands.active;
+    assert.equal(active(client.fight), "leftHand");
+    assert.equal(active(room.fight), "leftHand");
   });
 });

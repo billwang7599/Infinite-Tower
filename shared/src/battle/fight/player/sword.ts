@@ -6,7 +6,7 @@ import {
   strikeCost, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeOf, rangedOf } from "../../../weapons/kinds.js";
-import type { Weapon } from "../../../weapons/weapons.js";
+import type { Guard, Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -29,6 +29,7 @@ export interface SwordTurn {
   wielder: WielderData;
   stamina: StaminaData;
   weapon: Weapon | null;
+  guard: Guard | null;
   stunned: boolean;
   free: boolean;
 }
@@ -36,10 +37,10 @@ export interface SwordTurn {
 const UNAIMED = "tb";
 
 export function readSword(t: SwordTurn): void {
-  const { player, input, wielder, weapon, dt } = t, swing = wielder.swing;
+  const { player, input, wielder, guard, dt } = t, swing = wielder.swing;
   const locked = swing !== null && swing.step < swing.liveUntil;
-  const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.last.attack;
-  player.way = meleeOf(weapon) ? input.way : null;
+  const attackPressed = t.weapon !== null && input.attack !== null && input.attack !== player.last.attack;
+  player.way = meleeOf(t.weapon) ? input.way : null;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
@@ -49,8 +50,8 @@ export function readSword(t: SwordTurn): void {
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   if (blockPressed) {
     const strength = t.world.require(t.e, FighterStats).strength;
-    player.perfectBlockLeft = weapon && !feint && player.sinceBlockPress >= HYBRID.block.remashTime
-      ? guardRaiseTime(weapon, strength) + perfectBlockTime(weapon) : 0;
+    player.perfectBlockLeft = guard && !feint && player.sinceBlockPress >= HYBRID.block.remashTime
+      ? guardRaiseTime(guard, strength) + perfectBlockTime(guard) : 0;
     player.sinceBlockPress = 0;
   } else {
     player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
@@ -110,7 +111,7 @@ export function attackOrBlock(t: SwordTurn): boolean {
     player.action = "none";
     return true;
   }
-  if (player.action !== "none" || !weapon || !input.block || !player.grounded) return false;
+  if (player.action !== "none" || !t.guard || !input.block || !player.grounded) return false;
   startAction(world, e, player, "block", input.aimX, input.aimZ);
   endChain(wielder);
   return true;

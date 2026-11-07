@@ -13,8 +13,9 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, aimAt: { x: 0, y: 1, z: 8 }, jump: false, attack: null,
-  attackHeld: false, dodge: false, way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null,
-  write: null, locked: null, bag: false, gear: null, use: null,
+  attackHeld: false, dodge: false, way: null, block: false, switchHand: false, cast: null, castHeld: false,
+  chant: false,
+  chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });

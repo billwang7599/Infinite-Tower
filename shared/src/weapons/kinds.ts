@@ -1,8 +1,7 @@
-import type { Hand } from "../items/gear.js";
-import type { ItemId } from "../items/items.js";
+import { itemDef } from "../items/items.js";
 import { BOW, type RangedMoves } from "./bow.js";
-import { wayShape, wayStepsAfter } from "./hybrid.js";
-import { weaponIn, type Weapon, type WeaponKind } from "./weapons.js";
+import { wayShape, wayStepsAfter, type GuardKind } from "./hybrid.js";
+import { isWeapon, WEAPONS, weaponIn, type Guard, type Hands, type Weapon, type WeaponKind } from "./weapons.js";
 
 export interface MeleeMoves {
   style: "melee";
@@ -30,7 +29,17 @@ export function rangedOf(weapon: Weapon | null): RangedMoves | null {
   return moves?.style === "ranged" ? moves : null;
 }
 
-export const meleeIn = (hands: Record<Hand, ItemId | null>): Weapon | null => {
+export const meleeIn = (hands: Hands): Weapon | null => {
   const weapon = weaponIn(hands);
   return meleeOf(weapon) ? weapon : null;
 };
+
+export const dualWielding = ({ rightHand, leftHand }: Hands): boolean =>
+  isWeapon(rightHand) && isWeapon(leftHand) && !!meleeOf(WEAPONS[rightHand]) && !!meleeOf(WEAPONS[leftHand]);
+
+export function guardOf(hands: Hands): { kind: GuardKind; guard: Guard } | null {
+  const shield = [hands.rightHand, hands.leftHand].flatMap((item) => (item && itemDef(item).shield) || [])[0];
+  if (shield) return { kind: "shield", guard: shield };
+  const weapon = weaponIn(hands);
+  return weapon && { kind: dualWielding(hands) ? "dual" : "one", guard: weapon };
+}

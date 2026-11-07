@@ -15,7 +15,7 @@ import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec, type Stats } from "../../stats.js";
 import { nockTime } from "../../../weapons/bow.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
-import { rangedOf } from "../../../weapons/kinds.js";
+import { dualWielding, guardOf, rangedOf } from "../../../weapons/kinds.js";
 import { weaponIn } from "../../../weapons/weapons.js";
 import { breakOff, canPayStamina, payStamina, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
@@ -97,12 +97,19 @@ function controlPlayer(
 ): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), last = player.last;
   const health = world.require(e, Health), skilled = world.require(e, Skilled), wielder = world.require(e, Wielder);
-  const swing = wielder.swing;
+  const swing = wielder.swing, stunned = health.hp <= 0 || health.hitstun > 0;
+  const locked = swing !== null && swing.step < swing.liveUntil;
+  if (input.switchHand && !last.switchHand && dualWielding(wielder.hands)) player.handSwitchQueued = true;
+  if (player.handSwitchQueued && !locked && !stunned) {
+    player.handSwitchQueued = false;
+    const active = wielder.hands.active === "rightHand" ? "leftHand" : "rightHand";
+    if (dualWielding(wielder.hands)) wielder.hands = { ...wielder.hands, active };
+  }
   const t: Turn = {
     world, e, dt, events, player, input, wielder, health, skilled, stamina: world.require(e, Stamina),
     stats: world.require(e, FighterStats), mods: modsOf(world, e), weapon: weaponIn(wielder.hands),
-    skillbook: heldIn(wielder.hands, "skillbook") !== null, stunned: health.hp <= 0 || health.hitstun > 0,
-    locked: swing !== null && swing.step < swing.liveUntil, free: false,
+    guard: guardOf(wielder.hands)?.guard ?? null, skillbook: heldIn(wielder.hands, "skillbook") !== null, stunned,
+    locked, free: false,
   };
   readSword(t);
   if (input.dodge && !last.dodge) player.dodgeBuffer = PLAYER.inputBuffer;
@@ -272,7 +279,7 @@ function moveGearInBag({ player, input, wielder, stats }: Turn): void {
   const moved = moveGear(gear, move.from, move.to, move.turned, stats.strength);
   if (moved) {
     player.gear = { bag: moved.bag, pack: moved.pack, quiver: moved.quiver, equipment: moved.equipment };
-    wielder.hands = handsOf(moved.equipment);
+    wielder.hands = handsOf(moved.equipment, wielder.hands.active);
   }
 }
 

@@ -103,7 +103,7 @@ describe("Actions: key to action", () => {
 
     const battle = setup("battle");
     battle.press("KeyQ");
-    assert.equal(battle.actions.poll().held.has("lockOn"), true);
+    assert.equal(battle.actions.poll().held.has("switchHand"), true);
     battle.press("KeyT");
     assert.deepEqual(battle.actions.poll().pressed, []);
   });
@@ -255,13 +255,13 @@ describe("Actions: poll", () => {
     assert.equal(actions.poll().held.has("dragCamera"), false);
   });
 
-  test("Q is the lock toggle and right Shift locks the closest; E is Interact in the arena too", () => {
+  test("Q switches hands and right Shift locks the closest; E is Interact in the arena too", () => {
     const { actions, press } = setup();
     press("KeyQ");
     press("ShiftRight");
     press("KeyE");
     const polled = actions.poll();
-    assert.deepEqual(polled.pressed, ["lockOn", "lockClosest", "interact"]);
+    assert.deepEqual(polled.pressed, ["switchHand", "lockClosest", "interact"]);
     assert.equal(polled.turn, 0);
   });
 
@@ -330,7 +330,7 @@ describe("Actions: the layers", () => {
 
   test("each layer reads its own keys", () => {
     const cases: [Layer, string, ActionName][] = [
-      ["overworld", "KeyE", "interact"], ["battle", "KeyQ", "lockOn"], ["bag", "KeyR", "turnItem"],
+      ["overworld", "KeyE", "interact"], ["battle", "KeyQ", "switchHand"], ["bag", "KeyR", "turnItem"],
       ["bag", "Enter", "useItem"], ["bag", "KeyB", "inventory"], ["bag", "KeyC", "character"],
       ["bag", "Escape", "closeBag"], ["overworld", "Escape", "menu"], ["battle", "Escape", "menu"],
       ["settings", "Escape", "menu"], ["title", "Enter", "play"], ["creation", "Escape", "goBack"],

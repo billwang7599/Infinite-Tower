@@ -1,7 +1,8 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
-  AVERAGE_STAT, Body, clamp, drawnPower, drawTime, FighterStats, Health, Player, rangedOf, SCREEN_DIR, Skilled,
-  weaponIn, Wielder, type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type World,
+  AVERAGE_STAT, Body, clamp, drawnPower, drawTime, dualWielding, FighterStats, Health, Player, rangedOf, SCREEN_DIR,
+  Skilled, weaponIn, Wielder, type Hand, type Hands,
+  type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type World,
 } from "@infinite-tower/shared";
 import { AIMING } from "../../modes/battle/aim.js";
 import { LocalPlayer } from "../../modes/components.js";
@@ -16,7 +17,7 @@ const SHOWN_WEDGES = [0, 1, 2, 3, 4, 5, 7];
 export const AIM_HUD = {
   ringAboveBottomPx: 176, ringRadiusPx: 48, wedgeLengthPx: 18, wedgeThickPx: 5, ringEdgePx: 1.6, stabPx: 6.4,
   crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1, dotRadiusPx: 2.5, meterLengthPx: 120,
-  meterThickPx: 7, markLengthPx: 15, markThickPx: 2,
+  meterThickPx: 7, markLengthPx: 15, markThickPx: 2, handGapPx: 24, handLengthPx: 22, handThickPx: 4,
 };
 const DIM = "rgba(232, 223, 200, 0.3)";
 const LIT = "rgba(217, 88, 60, 0.95)";
@@ -43,7 +44,9 @@ export function ringLights(way: SwingDir, swing: SwingData | null): RingLights {
 
 export interface DrawMeter { share: number; minShare: number }
 
-export interface AimHud { ring: RingLights | null; crosshair: boolean; dot: boolean; meter: DrawMeter | null }
+export interface AimHud {
+  ring: RingLights | null; crosshair: boolean; dot: boolean; meter: DrawMeter | null; hand: Hand | null;
+}
 
 function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number): DrawMeter | null {
   const bow = rangedOf(weapon);
@@ -56,12 +59,13 @@ function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number
 
 export function aimHud(
   player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
-  weapon: Weapon | null = null, strength = AVERAGE_STAT, panned = false,
+  weapon: Weapon | null = null, strength = AVERAGE_STAT, panned = false, hands: Required<Hands> | null = null,
 ): AimHud {
-  if (hp <= 0 || !fighting) return { ring: null, crosshair: false, dot: false, meter: null };
+  if (hp <= 0 || !fighting) return { ring: null, crosshair: false, dot: false, meter: null, hand: null };
   return {
     ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action),
     dot: panned, meter: drawMeterOf(player, weapon, strength),
+    hand: hands && dualWielding(hands) ? hands.active : null,
   };
 }
 
@@ -131,8 +135,8 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   const fighting = ctx.battle.outcome.state === "fighting";
   const strength = world.get(me[0], FighterStats)?.strength;
   const panned = ctx.battle.freeCamera === "pan";
-  const { ring, crosshair, dot, meter } =
-    aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), strength, panned);
+  const { ring, crosshair, dot, meter, hand } = aimHud(
+    me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), strength, panned, me[3].hands);
   const layout = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
   const { ring: { x, y }, crosshair: centre, scale: s } = layout;
   g.strokeStyle = EDGE;
@@ -150,6 +154,16 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
       g.stroke();
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  if (hand) {
+    const off = (H.ringRadiusPx + H.handGapPx) * s, w = H.handThickPx * s, h = H.handLengthPx * s;
+    for (const [side, dx] of [["leftHand", -off], ["rightHand", off]] as const) {
+      g.fillStyle = side === hand ? LIT : DIM;
+      g.beginPath();
+      g.rect(x + dx - w / 2, y - h / 2, w, h);
+      g.fill();
+      g.stroke();
+    }
   }
   if (ring?.stab) {
     const r = H.stabPx * s;

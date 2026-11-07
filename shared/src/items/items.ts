@@ -1,6 +1,6 @@
 /** What each item is and does. Who drops what is in each enemy's server file (server/src/core/enemies/). */
 import type { InscriptionId } from "../soul/inscriptions.js";
-import type { Weapon } from "../weapons/weapons.js";
+import type { Guard, Weapon } from "../weapons/weapons.js";
 
 export type WornOn = "hand" | "cap" | "head" | "body" | "legs" | "boots" | "belt" | "back" | "hip" | "finger" | "wrist";
 
@@ -39,6 +39,7 @@ export interface ItemDef {
   wearable?: Wearable;
   inscription?: InscriptionId;
   weapon?: Weapon;
+  shield?: Guard;
   /** A backpack's or a quiver's: the grid of its own it brings, worn; `holds`, the one thing that goes in it. */
   pack?: { cols: number; rows: number; holds?: { item: AmmoId; stackSize: number } };
 }
@@ -146,6 +147,11 @@ export const ITEMS = {
     description: "A slab of iron with a handle. Kobolds don't let go of theirs either.",
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
     weapon: { kind: "sword", length: 1.9, damage: 14, heft: 1.6, minStrength: 9 },
+  },
+  "wooden-shield": {
+    name: "Wooden shield", rarity: "common",
+    description: "Oak boards in an iron rim. It takes a blow better than any blade, but it cuts nothing.", cols: 2,
+    rows: 2, stackSize: 1, weight: 4, wearable: { on: "hand" }, shield: { length: 1.1, heft: 1.3 },
   },
   "training-bow": {
     name: "Training bow", rarity: "common",

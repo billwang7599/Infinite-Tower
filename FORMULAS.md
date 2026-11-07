@@ -245,6 +245,12 @@ moves.
   knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime` 0.8 s.
   Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
   costs it the hit's poise instead (below), and pushes it back at 60% of the hit's knockback.
+- **By guard** (`GUARDS` in `hybrid.ts`, the hands' guard from `guardOf` in `kinds.ts`): a shield in either hand
+  blocks for the hands; else a melee weapon in each is two blades, else one weapon is one blade. The held block's
+  chip, its stamina and its push go by it: shield 8% chip, stamina × 0.6, push × 0.6, covering 90° either side;
+  one blade the numbers above; two blades 32% chip, stamina × 1.35, push × 1.2. The perfect window and raise time
+  take the shield's own length and heft (the Wooden shield: 1.1, so 0.2 s, and heft 1.3, up in 0.1 s), or the
+  swinging blade's.
 - **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.05 s +
   `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.05, longsword 0.08,
   greatsword 0.15 s at strength 10, 0.1 s at 20. An enemy's rises after its `blockReactTime`.
@@ -258,7 +264,8 @@ moves.
   the next 0.5 s's) and ends the chain. Lights and stabs can't be feinted.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
-boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP.
+boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
+5.4 stamina and 0.72 HP; with two blades 12.15 stamina and 2.88 HP.
 
 ## Swing parries
 

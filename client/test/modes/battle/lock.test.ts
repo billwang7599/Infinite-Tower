@@ -62,10 +62,8 @@ describe("inViewFoe", () => {
 });
 
 describe("steerLock: always locked on", () => {
-  test("the lock key switches to the enemy nearest the screen's middle other than the target; alone, it stays", () => {
-    assert.equal(steerLock(current.e, steer(["lockOn"]), [current, left, far], aim, player), far.e);
-    assert.equal(steerLock(current.e, steer(["lockOn"]), [current, left, right], looking(3, 0), player), right.e);
-    assert.equal(steerLock(current.e, steer(["lockOn"]), [current], aim, player), current.e);
+  test("Q switches hands, not targets: the target stays", () => {
+    assert.equal(steerLock(current.e, steer(["switchHand"]), [current, left, far], aim, player), current.e);
   });
 
   test("lock closest locks the enemy nearest the player", () => {

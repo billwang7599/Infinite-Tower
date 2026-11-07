@@ -216,7 +216,7 @@ describe("the bag in a fight", () => {
     });
     run(fight, 0.3);
     moveInBag(fight, { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false });
-    assert.deepEqual(handsOf(fight), { rightHand: "training-bow", leftHand: null });
+    assert.deepEqual(handsOf(fight), { rightHand: "training-bow", leftHand: null, active: "rightHand" });
     assert.deepEqual(playerOf(fight).gear.bag.items.map((s) => s.item), ["skillbook"]);
   });
 

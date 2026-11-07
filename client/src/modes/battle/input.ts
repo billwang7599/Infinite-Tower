@@ -30,5 +30,6 @@ export function readPlayerInput(polled: Polled, yaw: number, way: SwingDir, inpu
   const tapped = (action: Pressed) => polled.pressed.includes(action) || polled.held.has(action);
   input.dodge = tapped("dodge");
   input.block = tapped("block");
+  input.switchHand = tapped("switchHand");
   input.way = way;
 }

@@ -1,7 +1,7 @@
 import { Color3, Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Health, heldIn, Player, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity,
-  type Equipment, type Look, type PlayerData, type Vec2, type Vec3, type WeaponId, type WielderData, type World,
+  Body, damp, dampFactor, Health, Player, weaponHandIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity,
+  type Equipment, type Hands, type Look, type PlayerData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
 import { BATTLE_BUILDS } from "../../../gfx/look/body.js";
 import { reachRound, type BladeReach, type Clearance } from "../arm.js";
@@ -139,8 +139,8 @@ export function reachWith(
 }
 
 // A bow is always in the left hand: the locked camera looks over the left shoulder.
-export const handSide = (hands: WielderData["hands"], weapon: WeaponId | null): 1 | -1 =>
-  weapon && (WEAPON_LOOKS[weapon].bow || heldIn(hands, weapon) === "leftHand") ? -1 : 1;
+export const handSide = (hands: Hands, weapon: WeaponId | null): 1 | -1 =>
+  weapon && (WEAPON_LOOKS[weapon].bow || weaponHandIn(hands) === "leftHand") ? -1 : 1;
 
 const bladeDir = new Vector3(), bladeTurn = new Quaternion(), target = new Vector3(), offTarget = new Vector3();
 const up = Vector3.Up(), UNTURNED = Quaternion.Identity();

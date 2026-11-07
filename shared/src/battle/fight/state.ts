@@ -13,6 +13,7 @@ import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import { FighterStats, type Stats } from "../stats.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
+import type { Hand } from "../../items/gear.js";
 import { ATTACKS } from "./setup.js";
 import { handsOf } from "./weapons/swing.js";
 
@@ -21,7 +22,7 @@ interface FighterSnapshot {
   vel: Vec3;
   health: HealthData;
   statuses: StatusData;
-  wielder: Omit<WielderData, "hands" | "armReachM"> | null;
+  wielder: Omit<WielderData, "hands" | "armReachM"> & { active: Hand } | null;
   skilled: Omit<SkilledData, "target"> & { target: number };
 }
 
@@ -79,8 +80,8 @@ const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e ==
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const { swing, combo, comboTime, momentum } = wielder;
-  return { swing: copySwing(swing), combo, comboTime, momentum };
+  const { swing, combo, comboTime, momentum, hands } = wielder;
+  return { swing: copySwing(swing), combo, comboTime, momentum, active: hands.active };
 }
 
 const partOf = (world: World, e: Entity, kind: Part) => world.get(e, PARTS[kind]);
@@ -160,8 +161,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
     if (wielder && s.wielder) {
-      const { swing, ...rest } = s.wielder;
-      Object.assign(wielder, rest, { swing: copySwing(swing) });
+      const { swing, active, ...rest } = s.wielder;
+      Object.assign(wielder, rest, { swing: copySwing(swing), hands: { ...wielder.hands, active } });
     }
     const { words, aim, aimAt, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, aimAt: { ...aimAt }, target: fighterAt(target) };
@@ -175,7 +176,7 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     Object.assign(world.require(e, Player), s.player, {
       actionDir: { ...s.player.actionDir }, last: copyInput(s.player.last),
     });
-    world.require(e, Wielder).hands = handsOf(s.player.gear.equipment);
+    world.require(e, Wielder).hands = handsOf(s.player.gear.equipment, s.wielder!.active);
     Object.assign(world.require(e, PlayerInput), copyInput(s.input));
     Object.assign(world.require(e, Stamina), s.stamina);
     Object.assign(world.require(e, FighterStats), s.stats);

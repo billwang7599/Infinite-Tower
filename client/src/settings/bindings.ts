@@ -52,7 +52,7 @@ export const ACTIONS = {
     },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
-    lockOn: { label: "Switch target (the enemy nearest the screen's middle)", keys: ["KeyQ"] },
+    switchHand: { label: "Switch hand (with a blade in each)", keys: ["KeyQ"] },
     lockClosest: { label: "Lock onto the closest enemy", keys: ["ShiftRight"] },
     turnLeft: { label: "Turn camera left (hold; unlocks)", keys: ["ArrowLeft"] },
     turnRight: { label: "Turn camera right (hold; unlocks)", keys: ["ArrowRight"] },

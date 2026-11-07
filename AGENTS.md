@@ -270,14 +270,15 @@ Decided by the user:
 - Fights are always locked on (the user: "no more free camera in battle mode. you can hold right click to pan the
   camera around, but as soon as you let go it'll snap back to the closest enemy the camera is facing and within the
   camera view"): a fight starts locked onto the closest enemy, and while any enemy lives one is the target. Locked,
-  you face the target (A / D circle it, W / S close in and back off), and the camera keeps it in view on its own. Q
-  switches to the enemy nearest the screen's middle other than the target (with one enemy it stays), Right Shift to
-  the closest; nothing lets go. A drag with the middle or right button (past about 6 px) or the held arrows pan the
+  you face the target (A / D circle it, W / S close in and back off), and the camera keeps it in view on its own. Right
+  Shift switches to the closest; nothing lets go. There's no switch-target key: Q switches hands now (the user:
+  "since we also lock onto the enemy anyway, we dont need the unlock camera hotkey anymore"), and a pan let go
+  retargets. A drag with the middle or right button (past about 6 px) or the held arrows pan the
   camera by hand, the target kept; while it's panned you walk by the camera and attacks go the crosshair's way, the
   fight not told of the lock, as when aiming (the user: "when panning the camera, the control should follow where im
   looking, not the locked target"); let go, it eases to the enemy in view nearest the screen's middle, or back to the
-  old target if none is in view (the main chat's picks; Q skipping the target, the arrows panning like the drag and
-  a dead target's rule are the agent's). A target that dies passes the lock the same way, to the closest enemy if
+  old target if none is in view (the main chat's picks; the arrows panning like the drag and a dead target's rule are
+  the agent's). A target that dies passes the lock the same way, to the closest enemy if
   none is in view. A right click is the heavy attack, fired as
   the button is let go, and only if it never dragged that far: a drag is no attack (the user: "heavy attacks should
   fire if its a click. a drag should unlock the camera + pan"). A drawn bow frees the camera to aim (the user: "when
@@ -384,8 +385,8 @@ Decided by the user:
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, the three coins, and one
   thing for each new slot (a canvas backpack, a wool cap, a leather belt, a copper ring, a braided bracelet and a
-  feathered hat, a cosmetic). A training bow, arrows and a training quiver are placeholders, from the admin panel only
-  ("Bows" under Decided by the agent).
+  feathered hat, a cosmetic), and a wooden shield. A training bow, arrows and a training quiver are placeholders, from
+  the admin panel only ("Bows" under Decided by the agent).
 - Rarity and unique things (the user: "give items rarity"; "unique items must have user activity within 7 days";
   "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
   only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
@@ -478,6 +479,21 @@ Decided by the user:
   too"; not hand-played yet): a Longsword and a Greatsword, sold at Garrick's forge. The Kobold
   Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
   Field), dropping only its essence.
+- Shields and two blades (the user: "add a shield item, which takes priority over the other hand if thats like a
+  sword or something. block power: shield > single sword > dual wield"; "q would switch controls between left and
+  right hand"): a shield in either hand is what blocks, over a blade in the other, and is never swung (with a blade in
+  the other hand that one attacks; a shield alone only blocks). A held block is strongest with a shield, then one
+  blade, then two blades. With a blade in each hand, Q (`switchHand`, rebindable) switches which hand the attacks
+  use, each blade swinging with its own length, damage and heft; the right first. The switch is the shared fight's
+  input, so the server runs it. Q does nothing unless both hands hold a melee weapon. The numbers and smaller rules
+  are the agent's (tried by tests only, not hand-played): `GUARDS` in `shared/src/weapons/hybrid.ts`, shield / one /
+  dual, a chip of 8% / 20% / 32% of the hit, its stamina × 0.6 / 1 / 1.35, its push × 0.6 / 1 / 1.2, and a shield
+  covers 180° in front against a blade's 140° (one blade's numbers are the held block's as before). The perfect
+  window and the guard's raise come from the shield's own length and heft as from a blade's (the Wooden shield: 1.1,
+  so the sword's 0.2 s window, and heft 1.3, up in 0.1 s); two blades block with the swinging one's. A press mid-swing
+  switches once that blade's done (after its live time), and a chain goes on across a switch. The Wooden shield is 2 x
+  2, weight 4, worth 250c, sold and bought at Garrick's forge. A small mark either side of the aim ring shows which
+  hand swings, with two blades only. The arena's 3D people don't draw a shield yet, nor a block pose by guard.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
   40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
@@ -1166,7 +1182,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     (Highmere 1.5, else 1), and buys at 40% of worth, rounded down, whatever the place. The first purchase at each shop
     is 25% off, that one item, once per player per shop, saved with the player (`shops_bought`).
   - Bette's food stall sells bread and boar meat and buys both; Mirela's potion stall sells the two potions and buys
-    nothing; Garrick's forge sells the three swords and buys hides, tusks, the old stick and swords.
+    nothing; Garrick's forge sells the three swords and the wooden shield and buys hides, tusks, the old stick, swords
+    and the shield.
   - New items: bread (heals 20% of the most HP, 20 at the start; stacks of 5, weight 0.3), the health potion (50%) and
     the stamina tonic (stamina to full, at full HP too), drunk in 1 s, stacks of 5, weight 0.4.
   - A money changer, Fennick Cooper (was Osric, renamed for the king), with a stall on the market's west side across

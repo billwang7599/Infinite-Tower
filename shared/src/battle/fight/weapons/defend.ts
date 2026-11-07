@@ -1,8 +1,8 @@
 import type { Entity, World } from "../../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
-import { guardRaiseTime, HYBRID } from "../../../weapons/hybrid.js";
-import { weaponIn } from "../../../weapons/weapons.js";
+import { guardRaiseTime, GUARDS, HYBRID, type GuardKind } from "../../../weapons/hybrid.js";
+import { guardOf } from "../../../weapons/kinds.js";
 import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
 import { faces, knock, knockbackOf, spend, stagger } from "../combat.js";
@@ -19,9 +19,9 @@ export function facingOf(world: World, e: Entity): Vec2 {
 }
 
 function guardUp(world: World, e: Entity, raisingTime: number): boolean {
-  const weapon = weaponIn(world.require(e, Wielder).hands);
-  if (!weapon) return false;
-  return toSteps(raisingTime) >= toSteps(guardRaiseTime(weapon, world.require(e, FighterStats).strength));
+  const guard = guardOf(world.require(e, Wielder).hands)?.guard;
+  if (!guard) return false;
+  return toSteps(raisingTime) >= toSteps(guardRaiseTime(guard, world.require(e, FighterStats).strength));
 }
 
 export function blocking(world: World, e: Entity): boolean {
@@ -49,13 +49,14 @@ export function defend(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null = null,
 ): boolean {
   const from = shot?.from ?? world.require(attacker, Body).pos, at = world.require(target, Body).pos;
-  if (!faces(at, facingOf(world, target), from, HYBRID.block.minDot)) return false;
+  const kind = guardOf(world.get(target, Wielder)?.hands ?? { rightHand: null, leftHand: null })?.kind;
+  if (!kind || !faces(at, facingOf(world, target), from, GUARDS[kind].minDot)) return false;
   if (hit.attack !== null && blocksPerfectly(world, target)) {
     blockedPerfectly(world, events, attacker, target, shot);
     return true;
   }
   if (!blocking(world, target)) return false;
-  blocked(world, events, attacker, hit, target, shot);
+  blocked(world, events, attacker, hit, target, shot, GUARDS[kind]);
   return true;
 }
 
@@ -77,13 +78,14 @@ function blockedPerfectly(
 
 function blocked(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
+  guard: (typeof GUARDS)[GuardKind],
 ): void {
   const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
   const player = world.has(target, Player);
   let broken: boolean;
   if (player) {
     const stamina = world.require(target, Stamina);
-    const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1);
+    const cost = damage * (hit.attack === "heavy" ? block.heavyStaminaFactor : 1) * guard.staminaFactor;
     broken = stamina.value <= cost;
     spend(stamina, cost);
   } else {
@@ -96,10 +98,10 @@ function blocked(
   const speed = hit.attack === null ? hit.knockback : player ? 0 : knockbackOf(world, target, hit.knockback);
   if (speed > 0) {
     const body = world.require(target, Body), from = world.require(attacker, Body).pos;
-    knock(body.pos, from, body.vel, speed * block.pushbackFactor, 0, { x: hit.dirX, z: hit.dirZ });
+    knock(body.pos, from, body.vel, speed * block.pushbackFactor * guard.pushFactor, 0, { x: hit.dirX, z: hit.dirZ });
   }
   if (hit.attack !== null) {
-    hurt(world, target, damage * block.chipFraction, "physical");
+    hurt(world, target, damage * guard.chipFraction, "physical");
     if (!shot) endSwing(world, attacker);
   }
   if (broken && player) stagger(world, target, block.brokenTime);

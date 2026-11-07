@@ -5,10 +5,9 @@ import type {
   ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, SlamDef, WeaponAttackDef,
 } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
-import type { AttackKind, WeaponId } from "../weapons/weapons.js";
+import type { AttackKind, Hands, WeaponId } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
-import type { Carried, Hand } from "../items/gear.js";
-import type { ItemId } from "../items/items.js";
+import type { Carried } from "../items/gear.js";
 import type { Using } from "../items/using.js";
 import type { Reaction } from "../skills/effects.js";
 import type { StatusOn } from "./statuses.js";
@@ -40,6 +39,7 @@ export interface PlayerData {
   dodgeCooldownSteps: number;
   perfectBlockLeft: number;
   sinceBlockPress: number;
+  handSwitchQueued: boolean;
   queued: Strike | null;
   castQueued: Skill | null;
   writing: PageWrite | null;
@@ -92,7 +92,7 @@ export interface SwingData {
 }
 
 export interface WielderData {
-  hands: Record<Hand, ItemId | null>;
+  hands: Required<Hands>;
   armReachM: number;
   swing: SwingData | null;
   combo: Way | null;
