@@ -11,7 +11,7 @@ import {
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, skillDamage } from "../../stats.js";
-import { aimOf } from "../aim.js";
+import { aimOf, foeAlong } from "../aim.js";
 import type { FightContext } from "../context.js";
 import { cantCast, interrupt } from "./skilled.js";
 import { heal } from "../health.js";
@@ -116,7 +116,7 @@ function release(
       const lock = aimed.target;
       const target = shot.followTurnRadPerSec === 0 ? null
         : lock !== null && lock !== ignore ? lock
-        : foesNear(world, caster, from, Infinity, ignore ?? undefined)[0] ?? null;
+        : foeAlong(world, caster, from, aim, SKILL_EFFECTS.bolt.followLookRad, ignore ?? undefined);
       if (count === 1) {
         spawn(ctx, { ...base, kind: "bolt", target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM });
         return;
@@ -337,7 +337,7 @@ function fly(ctx: FightContext, e: Entity, o: SkillObjectData): void {
   const shot = shotOf(segment);
   const follow = shot.followTurnRadPerSec;
   if (follow > 0 && (o.target === null || world.require(o.target, Health).hp <= 0)) {
-    o.target = foesNear(world, o.caster, pos, Infinity, o.ignore ?? undefined)[0] ?? null;
+    o.target = foeAlong(world, o.caster, pos, o.dir, SKILL_EFFECTS.bolt.followLookRad, o.ignore ?? undefined);
   }
   if (follow > 0 && o.target !== null) {
     const to = world.require(o.target, Body).pos, maxTurnRad = follow * FIXED_DT;
