@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData } from "@infinite-tower/shared";
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import {
-  KEY_EASE_TIME, keyed, personPose, WALK_KEYS, type PersonPose,
+  CLIPS, KEY_EASE_TIME, keyed, personPose, WALK_KEYS, type PersonPose,
 } from "../../../../src/visuals/battle/person/pose.js";
 import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../../fixtures/players.js";
@@ -21,6 +21,10 @@ const pose = (
   walk: { phase: 0, amp: 0 }, ...extra,
 });
 const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
+const lean = (p: PersonPose) => p.joints.root.x;
+const roll = (p: PersonPose) => p.joints.root.z;
+const crouch = (p: PersonPose) => -p.joints["thigh.R"].x;
+const twist = (p: PersonPose) => p.joints.hips.y + p.joints.spine.y + p.joints.chest.y;
 
 describe("keyed poses", () => {
   test("ease into each key over a short time, then hold it until the next", () => {
@@ -48,7 +52,7 @@ describe("the 3D player's swing, pose to pose", () => {
       assert.ok(driveAt > EASE_STEPS, "the wind-up is longer than the ease");
       assert.deepEqual(at(EASE_STEPS).blade, at(driveAt - 1).blade, "the wind-up held");
       assert.ok(at(driveAt - 1).blade.z < 0, "drawn back behind");
-      assert.ok(at(1).lean < 0 && at(1).lean > at(EASE_STEPS).lean, "eased into");
+      assert.ok(lean(at(1)) < 0 && lean(at(1)) > lean(at(EASE_STEPS)), "eased into");
       assert.ok(at(liveUntil - 1).blade.z > at(liveAt).blade.z - 1e-9, "sweeping round in front");
       const follow = Math.min(endAt - 1, liveUntil + EASE_STEPS);
       assert.deepEqual(at(follow).blade, at(endAt - 1).blade, "the follow-through held");
@@ -59,32 +63,45 @@ describe("the 3D player's swing, pose to pose", () => {
 
   test("a heavy draws back further than a light, and the body coils with the blade", () => {
     const light = swingSteps("light", "lr")[EASE_STEPS]!, heavy = swingSteps("heavy", "lr")[EASE_STEPS]!;
-    assert.ok(pose(ATTACKING, heavy).lean < pose(ATTACKING, light).lean);
+    assert.ok(lean(pose(ATTACKING, heavy)) < lean(pose(ATTACKING, light)));
     const coiled = pose(ATTACKING, light);
-    assert.ok(coiled.blade.x < 0 && coiled.twist < 0, "turned toward the blade, on the left");
+    assert.ok(coiled.blade.x < 0 && twist(coiled) < 0, "turned toward the blade, on the left");
+    assert.ok(coiled.joints.neck.y > 0, "the head turned back toward the foe");
   });
 });
 
 describe("the 3D player's other actions", () => {
-  test("a dodge crouches and leans the way it goes, then recovers, held between", () => {
+  test("a dodge plays its clip: crouched and leaning the way it goes, then recovering, held between", () => {
     const at = (t: number, dodge = { x: 0, z: 1 }) => pose(playerDoing("dodge", t), null, { dodge });
-    const launched = at(KEY_EASE_TIME);
-    assert.ok(launched.crouch > 0.3 && launched.lean > 0.2);
+    const launched = at(KEY_EASE_TIME), keys = CLIPS.dodge.joints;
+    close(lean(launched), keys.root.x[1], "leaning ahead");
+    close(launched.joints["thigh.L"].z, keys["thigh.L"].z[1], "legs apart");
+    assert.ok(crouch(launched) > 0.5, "crouched");
     assert.deepEqual(at(KEY_EASE_TIME * 1.5), launched, "held");
-    assert.ok(at(PLAYER.dodge.duration * 0.95).crouch < launched.crouch, "recovering");
-    assert.ok(at(KEY_EASE_TIME, { x: 1, z: 0 }).roll < 0, "to the right, leaning right");
+    assert.ok(crouch(at(PLAYER.dodge.duration * 0.95)) < crouch(launched), "recovering");
+    const right = at(KEY_EASE_TIME, { x: 1, z: 0 });
+    close(roll(right), -keys.root.x[1], "to the right, leaning right as far as ahead");
+    close(lean(right), 0, "and not ahead");
+    assert.ok(right.rootY < 0, "dropped so the feet stay down");
   });
 
   test("staggered, knocked back, then stumbling", () => {
     const at = (left: number) => pose(playerDoing("stagger", 0.1), null, { stagger: { left, of: 0.8 } });
     const back = at(0.8 - KEY_EASE_TIME), stumble = at(0.4 - KEY_EASE_TIME);
-    assert.ok(back.lean < 0 && back.lean < stumble.lean);
+    assert.ok(lean(back) < 0 && lean(back) < lean(stumble));
   });
 
   test("defeated, to the knees, then over on its side", () => {
     const at = (deadTime: number) => pose(playerDoing("none", 0), null, { alive: false, deadTime });
-    assert.ok(at(KEY_EASE_TIME).crouch > 0.5);
-    close(at(2).roll, Math.PI / 2, "fallen");
+    assert.ok(crouch(at(KEY_EASE_TIME)) > 0.5);
+    close(roll(at(2)), Math.PI / 2, "fallen");
+  });
+
+  test("the feet stay flat whatever the legs do", () => {
+    const p = pose(playerDoing("dodge", KEY_EASE_TIME));
+    for (const s of ["R", "L"] as const) {
+      close(p.joints[`foot.${s}`].x + p.joints[`thigh.${s}`].x + p.joints[`shin.${s}`].x, 0, s);
+    }
   });
 
   test("chanting holds the free hand out in front; aimed, the guard is held on that side", () => {
@@ -95,9 +112,9 @@ describe("the 3D player's other actions", () => {
 
   test("walking, the legs hold each key of the stride and ease between", () => {
     const step = (2 * Math.PI) / WALK_KEYS;
-    const legs = (phase: number) => pose(undefined, null, { walk: { phase, amp: 0.5 } }).legSwing;
+    const legs = (phase: number) => pose(undefined, null, { walk: { phase, amp: 0.5 } }).joints["thigh.L"].x;
     assert.equal(legs(step * 1.6), legs(step * 1.9));
     assert.notEqual(legs(step * 1.01), legs(step * 1.9));
-    assert.equal(pose().legSwing, 0);
+    assert.equal(pose().joints["thigh.L"].x, 0);
   });
 });

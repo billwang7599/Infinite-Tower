@@ -1,22 +1,22 @@
 import { Color3, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
   Body, damp, dampFactor, Health, heldIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
-  type PlayerData, type Vec2, type WeaponId, type World,
+  type PlayerData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
-import { poseArm } from "../arm.js";
+import { reachArm } from "../arm.js";
 import { dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
-import { buildPerson, disposePerson, personBuild, type PersonBuild, type PersonModel } from "./model.js";
-import { personPose } from "./pose.js";
+import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
+import { personPose, POSED_JOINTS } from "./pose.js";
+import { restAt, type Joints } from "./skeleton.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const JOINT_RATE = 30;
 const YAW_RATE = 15;
-const HEAD_COUNTER = 0.6;
 /** A two-handed grip's off hand, this far (m) down the grip from the sword hand. */
 const OFF_GRIP_M = 0.18;
-const bladeDir = new Vector3(), bladeTurn = new Quaternion(), target = new Vector3(), offTarget = new Vector3();
+const UPPER_ARM_M = -restAt("forearm.R", "medium").y, FOREARM_M = -restAt("hand.R", "medium").y;
 
 export interface PersonDrawing {
   look: Look | null;
@@ -24,7 +24,9 @@ export interface PersonDrawing {
   model: PersonModel | null;
   blade: HeldBlade | null;
   bladeSide: 1 | -1;
+  /** In the root's frame, eased toward the pose. */
   handAt: Vector3 | null;
+  bladeTurn: Quaternion | null;
   yaw: number;
   gait: number;
   deadTime: number;
@@ -36,8 +38,8 @@ export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir
 };
 
 export const newPerson = (): PersonDrawing => ({
-  look: null, build: null, model: null, blade: null, bladeSide: 1, handAt: null, yaw: 0, gait: 0, deadTime: 0,
-  sinceStep: 0,
+  look: null, build: null, model: null, blade: null, bladeSide: 1, handAt: null, bladeTurn: null, yaw: 0, gait: 0,
+  deadTime: 0, sinceStep: 0,
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -46,6 +48,44 @@ export function dropPerson(p: PersonDrawing): void {
   if (p.model) disposePerson(p.model);
   p.model = null;
 }
+
+const down = new Vector3(0, -1, 0), dir = new Vector3(), want = new Quaternion(), parentTurn = new Quaternion();
+const shoulderAt = new Vector3(), targetAt = new Vector3(), poleAt = new Vector3(), elbowAt = new Vector3();
+
+function turnInParent(bone: TransformNode, world: Quaternion): void {
+  const parent = bone.parent as TransformNode;
+  parent.computeWorldMatrix(true);
+  Quaternion.InverseToRef(parent.absoluteRotationQuaternion, parentTurn);
+  bone.rotationQuaternion ??= new Quaternion();
+  parentTurn.multiplyToRef(world, bone.rotationQuaternion);
+  bone.computeWorldMatrix(true);
+}
+
+function aimBone(bone: TransformNode, from: Vector3, to: Vector3): void {
+  to.subtractToRef(from, dir).normalize();
+  Quaternion.FromUnitVectorsToRef(down, dir, want);
+  turnInParent(bone, want);
+}
+
+/** `target`, `holding` (the hand's +y) and `pole` are in the root's frame, as the pose gives them. */
+export function reachWith(joints: Joints, side: "R" | "L", target: Vec3, holding: Quaternion, pole: Vec3): void {
+  const upper = joints[`upper_arm.${side}`], fore = joints[`forearm.${side}`], hand = joints[`hand.${side}`];
+  for (const j of ["root", "hips", "spine", "chest"] as const) joints[j].computeWorldMatrix(true);
+  const root = joints.root.getWorldMatrix();
+  upper.computeWorldMatrix(true);
+  shoulderAt.copyFrom(upper.getAbsolutePosition());
+  Vector3.TransformCoordinatesToRef(targetAt.set(target.x, target.y, target.z), root, targetAt);
+  Vector3.TransformNormalToRef(poleAt.set(pole.x, pole.y, pole.z), root, poleAt);
+  const reach = reachArm(shoulderAt, targetAt, { upperM: UPPER_ARM_M, foreM: FOREARM_M }, poleAt);
+  elbowAt.set(reach.elbow.x, reach.elbow.y, reach.elbow.z);
+  aimBone(upper, shoulderAt, elbowAt);
+  aimBone(fore, elbowAt, targetAt.set(reach.hand.x, reach.hand.y, reach.hand.z));
+  joints.root.absoluteRotationQuaternion.multiplyToRef(holding, want);
+  turnInParent(hand, want);
+}
+
+const bladeDir = new Vector3(), bladeTurn = new Quaternion(), target = new Vector3(), offTarget = new Vector3();
+const up = Vector3.Up(), UNTURNED = Quaternion.Identity();
 
 export function framePerson(
   p: PersonDrawing, ctx: ArenaScene, node: TransformNode, world: World, e: Entity, dt: number, stance: PersonStance,
@@ -67,8 +107,8 @@ export function framePerson(
   p.gait += dt * speed * 2.6;
   p.deadTime = alive ? 0 : p.deadTime + dt;
 
-  model.root.setEnabled(!(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1));
-  for (const m of model.materials) m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : Color3.Black());
+  model.holder.setEnabled(!(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1));
+  for (const m of model.materials) m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : FILL_EMISSIVE);
   if (p.blade) showCue(p.blade.cue, alive ? wielder.swing : null);
 
   const steps = ctx.pixel.steps;
@@ -80,7 +120,7 @@ export function framePerson(
   if (weapon !== p.blade?.weapon || side !== p.bladeSide) placeBladeIn(p, ctx, e, model, weapon, side);
   const facing = wielder.swing?.dir ?? stance.aim;
   p.yaw += wrapAngle(Math.atan2(facing.x, facing.z) - p.yaw) * dampFactor(YAW_RATE, shownDt);
-  model.root.rotation.y = p.yaw;
+  model.holder.rotation.y = p.yaw;
   const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw), d = stance.actionDir;
   const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
@@ -88,45 +128,36 @@ export function framePerson(
     walk: { phase: p.gait, amp: Math.min(0.7, speed * 0.12) },
   });
 
-  const ease = (current: number, to: number) => damp(current, to, JOINT_RATE, shownDt);
-  model.hips.rotation.y = ease(model.hips.rotation.y, pose.hipTwist);
-  model.chest.rotation.y = ease(model.chest.rotation.y, pose.twist);
-  model.chest.rotation.x = ease(model.chest.rotation.x, pose.bend);
-  model.head.rotation.y = -model.chest.rotation.y * HEAD_COUNTER;
-  model.model.rotation.x = ease(model.model.rotation.x, pose.lean);
-  model.model.rotation.z = ease(model.model.rotation.z, pose.roll);
-  model.model.position.y = ease(model.model.position.y, pose.yOff);
-  model.legs.forEach((leg, i) => {
-    const swing = (i === 0 ? 1 : -1) * pose.legSwing;
-    leg.hip.rotation.x = ease(leg.hip.rotation.x, swing - pose.crouch);
-    leg.knee.rotation.x = ease(leg.knee.rotation.x, 2 * pose.crouch + Math.max(0, -swing) * 0.6);
-  });
+  const { joints } = model, ease = (current: number, to: number) => damp(current, to, JOINT_RATE, shownDt);
+  for (const name of POSED_JOINTS) {
+    const r = joints[name].rotation, to = pose.joints[name];
+    r.set(ease(r.x, to.x), ease(r.y, to.y), ease(r.z, to.z));
+  }
+  joints.root.position.y = ease(joints.root.position.y, pose.rootY);
 
-  const [right, left] = model.arms, swordArm = side === 1 ? right : left, offArm = side === 1 ? left : right;
-  const hand = swordArm.hand, snap = pose.bladeExact ? 1 : dampFactor(JOINT_RATE, shownDt);
-  Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), bladeTurn);
-  hand.rotationQuaternion ??= bladeTurn.clone();
-  Quaternion.SlerpToRef(hand.rotationQuaternion, bladeTurn, snap, hand.rotationQuaternion);
+  const swordSide = side === 1 ? "R" : "L", offSide = side === 1 ? "L" : "R";
+  const snap = pose.bladeExact ? 1 : dampFactor(JOINT_RATE, shownDt);
+  Quaternion.FromUnitVectorsToRef(up, bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), bladeTurn);
+  p.bladeTurn ??= bladeTurn.clone();
+  Quaternion.SlerpToRef(p.bladeTurn, bladeTurn, snap, p.bladeTurn);
   target.set(pose.hand.x, pose.hand.y, pose.hand.z);
   p.handAt ??= target.clone();
   Vector3.LerpToRef(p.handAt, target, snap, p.handAt);
-  poseArm(swordArm, p.handAt);
+  reachWith(joints, swordSide, p.handAt, p.bladeTurn, { x: side * 0.5, y: -0.8, z: -0.45 });
   if (weapon && WEAPON_LOOKS[weapon].twoHanded && alive) {
-    Vector3.Up().applyRotationQuaternionToRef(hand.rotationQuaternion, bladeDir);
-    hand.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
-    offArm.hand.rotationQuaternion ??= new Quaternion();
-    offArm.hand.rotationQuaternion.copyFrom(hand.rotationQuaternion);
+    up.applyRotationQuaternionToRef(p.bladeTurn, bladeDir);
+    p.handAt.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
+    reachWith(joints, offSide, offTarget, p.bladeTurn, { x: -side * 0.5, y: -0.8, z: -0.45 });
   } else {
     offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z);
+    reachWith(joints, offSide, offTarget, UNTURNED, { x: -side * 0.5, y: -0.8, z: -0.45 });
   }
-  poseArm(offArm, offTarget);
 }
 
 function placeBladeIn(
   p: PersonDrawing, ctx: ArenaScene, e: Entity, model: PersonModel, weapon: WeaponId | null, side: 1 | -1,
 ): void {
   dropBlade(p.blade);
-  const hand = model.arms[side === 1 ? 0 : 1].hand;
-  p.blade = weapon && holdBlade(ctx, e, hand, weapon, 0);
+  p.blade = weapon && holdBlade(ctx, e, model.joints[side === 1 ? "grip.R" : "grip.L"], weapon, 0);
   p.bladeSide = side;
 }

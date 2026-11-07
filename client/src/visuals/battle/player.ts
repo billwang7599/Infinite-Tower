@@ -125,7 +125,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   if (sprite.person?.model) {
     const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
     const held = sprite.person.blade?.root;
-    for (const m of sprite.person.model.root.getChildMeshes()) {
+    for (const m of sprite.person.model.holder.getChildMeshes()) {
       if (!held || !m.isDescendantOf(held)) m.isVisible = !hidden;
     }
   }
