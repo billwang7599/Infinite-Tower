@@ -427,8 +427,8 @@ Decided by the user:
 - The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
   with its own physics world and fixed steps, for any number of players and enemies, so the server and the browser
   run the same fight on the same inputs. Fighters are moved by code, not pushed by forces, so the
-  controls stay tight. An enemy shoves a player; a player can't push an enemy; dodging, knocked back or dead, a
-  player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
+  controls stay tight. An enemy shoves a player; a player's body can't push an enemy (their hits knock it back,
+  below); dodging, knocked back or dead, a player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
 - The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The browser runs
   the whole fight itself too (you and the enemies) and shows it at once, so the boar reacts without lag; it sends
   only its inputs, each tagged with the fight step it's for. The server runs them on those steps: an input up to
@@ -442,13 +442,21 @@ Decided by the user:
 - A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
 - Skills ignore dodge i-frames, hurt invulnerability and blocks: a Bolt hits a dodging or blocking player (for now).
-- A dodge (or the next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting
-  the attack short, and starts on the first step the attack lets another action start, as soon as its blade is done
+- A dodge never cancels an attack, not even a light's wind-up (the user, asked if it should: "no"). A dodge (or the
+  next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting the attack short,
+  and starts on the first step the attack lets another action start, as soon as its blade is done
   (the swing's `liveUntil`; after a chain's last attack, the next attack waits for its recovery too). If the player
   can't dodge then (no stamina, overloaded, in the air), the press runs out like any early press
   (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes first.
-- Hit-stop, the hit's jolt and the sparks are drawing only, to tune: `hitStopMs` in `WEAPON_LOOKS` and the top of
-  `client/src/visuals/battle/impact.ts`.
+- Nothing pauses the fight (the user: "nothing should ever pause the whole fight"): hit-stop (by weapon; 140 ms on a
+  perfect block or a parry), the hit's jolt and the sparks are drawing only, and the fight runs on through them. To
+  tune: `hitStopMs` in `WEAPON_LOOKS` and the top of `client/src/visuals/battle/impact.ts`.
+- A player's hits knock enemies back (the user, asked if they should: "balance it"; the numbers are the agent's, not
+  hand-played): a light a little (4 m/s, about 0.3 m on a Kobold, about what the swing's own step closes), a stab
+  more (6), a heavy most (8, about 1.2 m), whatever the blade; an arrow by its speed; Air as before. A heavier enemy
+  takes less (the boar 0.7 of it, the bog lurker 0.3, a training dummy none), and none mid-blow (armored). It never
+  lifts or stuns, so the enemy fights on and no chain of hits locks it, and the wall stops it. A weapon still only
+  hurts a player. Numbers: FORMULAS.md, "Knockback".
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
   fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, with no
   stun or knockback (the boar's still stun). It drops only its essence. It holds its own Kobold blade (the sword's

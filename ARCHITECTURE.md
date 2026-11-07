@@ -456,8 +456,10 @@ main.ts
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
-  back), and dodging, knocked back or dead, a player passes through; anyone passes through a dead enemy. Rapier
-  simulates nothing itself
+  back), and dodging, knocked back or dead, a player passes through; anyone passes through a dead enemy. Knockback
+  is a velocity too (`knock` in `fight/combat.ts`): an enemy's body blows on a player, and a player's hits on an
+  enemy, scaled by `knockbackOf` (the enemy's `knockbackFactor`, none while it's armored, statuses); the wall stops
+  it like any move, and a knocked enemy is never stunned by it. Rapier simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
@@ -852,7 +854,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
   each way's reach and
-  shape by line (`combat.test.ts`), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
+  shape by line and no hit-stop in the fight (`combat.test.ts`), a player's hits knocking enemies back
+  (`knockback.test.ts`: by strike, an arrow by its speed, Air, less for a heavier enemy, never mid-blow, through the
+  wall, into the air or into a stun-lock; a blocked hit's pushback; none on a player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
   quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina),
   the defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double
   cost, running out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost
@@ -2241,7 +2245,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
-| The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
+| Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share; a body blow's push and the hitstun it gives a player | `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
+| The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
@@ -2282,7 +2287,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
-| Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
+| Hit-stop by weapon (drawing only: the fight never pauses for it); the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
 | Chunks: how far round you they're sent, held, drawn (in detail, and past what's seen), built ahead and kept built, the build budget and which build first, the edge's fog and the plain ground under the world, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SEEN_MARGIN_TILES`, `NEAR_TILES`, `AHEAD_TILES`, `HIDE_MARGIN_TILES`, `DROPPED_TILES`, `AHEAD_BIAS_TILES`, `MUST_BUILD_TILES`, `BUILD_BUDGET_MS`, `FOG_FADE_M`, `SKIRT`, `SKY_BLEND_TILES`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | How far from a walking player monsters stay awake | `AWAKE_TILES` in `server/src/core/overworld/sleep.ts` |

@@ -91,11 +91,12 @@ function meets(world: World, o: ProjectileData, a: Vec3, d: Vec3, before: number
 }
 
 function strike(ctx: FightContext, o: ProjectileData, target: Entity, struck: Vec3): void {
-  const { world, events } = ctx, flat = Math.hypot(o.vel.x, o.vel.z) || 1;
+  const { world, events } = ctx, flat = Math.hypot(o.vel.x, o.vel.z) || 1, def = projectileOf(o);
   const dirX = o.vel.x / flat, dirZ = o.vel.z / flat;
   const hit: ActiveHitData = {
-    dirX, dirZ, range: 0, minDot: 1, attack: "light", way: null, damage: o.damage, knockback: 0, lift: 0,
-    poiseDamage: projectileOf(o).poiseDamage, alreadyHit: new Set(),
+    dirX, dirZ, range: 0, minDot: 1, attack: "light", way: null, damage: o.damage,
+    knockback: def.knockbackShare * Math.hypot(o.vel.x, o.vel.y, o.vel.z), lift: 0, poiseDamage: def.poiseDamage,
+    alreadyHit: new Set(),
   };
   const from = { x: struck.x - dirX, y: struck.y, z: struck.z - dirZ };
   if (!defend(world, events, o.shooter, hit, target, { from, at: struck })) {

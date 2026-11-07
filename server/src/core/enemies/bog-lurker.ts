@@ -13,6 +13,7 @@ export const BOG_LURKER: Enemy = {
     radius: 0.9,
     walkSpeed: 1.5,
     turnRate: 1.4,
+    knockbackFactor: 0.3,
     poise: 100,
     poiseRegen: 10,
     staggerTime: 1.2,

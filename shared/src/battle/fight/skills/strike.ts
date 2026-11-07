@@ -4,7 +4,7 @@ import { SKILL_EFFECTS } from "../../../skills/effects.js";
 import type { SkillElement } from "../../../skills/skill.js";
 import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
 import { FighterStats, skillDamage, stunTime } from "../../stats.js";
-import { HIT_FLASH_TIME, knock } from "../combat.js";
+import { HIT_FLASH_TIME, knock, knockbackOf } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { enter } from "../behaviors/common.js";
 import { heal, hurt, lifesteal } from "../health.js";
@@ -60,7 +60,7 @@ export function strike(
     applyStatus(s.on, "rooted", E.earth.rootTime);
     if (enemy) enemy.poise -= E.earth.poiseDamage * factor;
   }
-  const knockback = E.air.knockbackSpeed * factor * modsOf(world, target).knockbackFactor;
+  const knockback = knockbackOf(world, target, E.air.knockbackSpeed * factor);
   if (has("air") && knockback > 0) knock(body.pos, from, body.vel, knockback);
   if (has("lightning")) applyStatus(s.on, "shocked", E.lightning.shockTime);
   if (has("light")) applyStatus(s.on, "marked", E.light.markTime);

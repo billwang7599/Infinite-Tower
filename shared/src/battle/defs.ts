@@ -146,6 +146,7 @@ export interface EnemyDef {
   /** At agility 10. */
   walkSpeed: number;
   turnRate: number;
+  knockbackFactor?: number;
   /** Breaks after enough hits in quick succession: a stagger. */
   poise: number;
   poiseRegen: number;

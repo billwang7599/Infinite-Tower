@@ -13,6 +13,7 @@ export interface ProjectileDef {
   stuckTime: number;
   radiusM: number;
   poiseDamage: number;
+  knockbackShare: number;
   releaseUpM: number;
   releaseOutM: number;
 }
@@ -36,8 +37,8 @@ export const BOW = {
   draw: { cost: 8, minTime: 0.25, fullTime: 1, minDamageShare: 0.3, moveFactor: 0.5 },
   nock: { quiverTime: 0.3, bagTime: 0.8 },
   projectile: {
-    gravityMps2: -20, dragPerSec: 0.2, lifeTime: 3, stuckTime: 2, radiusM: 0.05, poiseDamage: 10, releaseUpM: 0.15,
-    releaseOutM: 0.6,
+    gravityMps2: -20, dragPerSec: 0.2, lifeTime: 3, stuckTime: 2, radiusM: 0.05, poiseDamage: 10, knockbackShare: 0.07,
+    releaseUpM: 0.15, releaseOutM: 0.6,
   },
 } as const satisfies RangedMoves;
 
