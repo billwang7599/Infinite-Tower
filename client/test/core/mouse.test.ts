@@ -1,43 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Mouse, shouldAutoLock } from "../../src/core/mouse.js";
+import { fakePointerLock, settle, type LockAnswer } from "../fixtures/pointer-lock.js";
 
-/** What the browser does with a lock request: grant it, refuse it, or answer later (`grant()`). */
-type Answer = "grant" | "refuse" | "later";
-
-/**
- * Stand-ins for the canvas, document and window: Node's EventTargets with the pointer-lock parts Mouse uses. A
- * granted lock sets `pointerLockElement` and fires pointerlockchange, as the browser does.
- */
-function setup(answer: Answer = "grant") {
-  const doc = Object.assign(new EventTarget(), {
-    pointerLockElement: null as unknown,
-    exits: 0,
-    exitPointerLock() {
-      doc.exits++;
-      lockChange(null);
-    },
-  });
-  const lockChange = (element: unknown) => {
-    doc.pointerLockElement = element;
-    doc.dispatchEvent(new Event("pointerlockchange"));
-  };
-  const grant = () => lockChange(canvas);
-  const canvas = Object.assign(new EventTarget(), {
-    requests: 0,
-    requestPointerLock(): Promise<void> {
-      canvas.requests++;
-      if (answer === "grant") grant();
-      return answer === "refuse" ? Promise.reject(new DOMException("no user gesture", "NotAllowedError"))
-        : Promise.resolve();
-    },
-  });
-  const mouse = new Mouse(
-    canvas as unknown as HTMLCanvasElement, doc as unknown as Document, new EventTarget() as unknown as Window,
-  );
+function setup(answer: LockAnswer = "grant") {
+  const { win, doc, canvas, grant, escape } = fakePointerLock(answer);
+  const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document, win);
   const click = () => canvas.dispatchEvent(new Event("click"));
-  /** The player presses Esc: the browser lets go of the lock. */
-  const escape = () => lockChange(null);
   return { mouse, canvas, doc, click, escape, grant };
 }
 
@@ -68,19 +37,19 @@ describe("Mouse lock", () => {
     const { mouse, canvas } = setup();
     mouse.setLockable(false, true);
     mouse.setLockable(true, true);
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
     assert.equal(mouse.locked, true);
     mouse.setLockable(true, true);
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
   });
 
   test("with auto lock off, nothing is asked until a click", () => {
     const { mouse, canvas, click } = setup();
     mouse.setLockable(false, false);
     mouse.setLockable(true, false);
-    assert.equal(canvas.requests, 0);
+    assert.equal(canvas.requests.length, 0);
     click();
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
     assert.equal(mouse.locked, true);
   });
 
@@ -88,18 +57,18 @@ describe("Mouse lock", () => {
     const { mouse, canvas, click } = setup();
     mouse.setLockable(false, true);
     click();
-    assert.equal(canvas.requests, 0);
+    assert.equal(canvas.requests.length, 0);
   });
 
   test("a refused request is dropped quietly, and a click still asks", async () => {
     const { mouse, canvas, click } = setup("refuse");
     mouse.setLockable(false, true);
     mouse.setLockable(true, true);
-    await new Promise(setImmediate);
+    await settle();
     assert.equal(mouse.locked, false);
     click();
-    await new Promise(setImmediate);
-    assert.equal(canvas.requests, 2);
+    await settle();
+    assert.equal(canvas.requests.length, 2);
     await assert.doesNotReject(mouse.lock());
   });
 
@@ -110,10 +79,10 @@ describe("Mouse lock", () => {
     escape();
     assert.equal(mouse.locked, false);
     mouse.setLockable(true, true);
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
     mouse.setLockable(false, true);
     mouse.setLockable(true, true);
-    assert.equal(canvas.requests, 2);
+    assert.equal(canvas.requests.length, 2);
     assert.equal(mouse.locked, true);
   });
 

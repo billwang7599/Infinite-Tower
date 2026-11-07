@@ -1,7 +1,7 @@
 /**
  * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). In the arena it's captured (pointer
  * lock) by a click on the canvas, or by Auto mouse lock, and let go with Esc, and counts only while captured; where it
- * isn't wanted captured (the overworld), it counts on the canvas as it is.
+ * isn't wanted captured (the overworld), it counts on the canvas as it is, captured only while a camera drag lasts.
  */
 import { clamp } from "@infinite-tower/shared";
 import { Buttons } from "./buttons.js";
@@ -38,6 +38,8 @@ export class Mouse extends Buttons {
   locked = false;
   /** Only capture the mouse when the current mode wants it (the arena). */
   private lockable = false;
+  private dragLockButtons: readonly string[] | null = null;
+  private skipNextMove = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement, private readonly doc: Document = document, win: Window = window,
@@ -48,9 +50,16 @@ export class Mouse extends Buttons {
     });
     doc.addEventListener("pointerlockchange", () => {
       this.locked = doc.pointerLockElement === canvas;
-      if (!this.locked) this.releaseAll();
-      // A request answered after the arena stopped wanting the mouse.
-      else if (!this.lockable) doc.exitPointerLock();
+      if (!this.locked) {
+        this.dragLockButtons = null;
+        this.releaseAll();
+      } else if (this.dragLockButtons) {
+        // A browser may report the jump into the lock as the first move after it.
+        this.skipNextMove = true;
+      } else if (!this.lockable) {
+        // A request answered after the arena stopped wanting the mouse, or after the drag.
+        doc.exitPointerLock();
+      }
     });
     // Babylon's scene cancels every pointerdown, and then the browser sends no mousedown, mouseup or held mousemove.
     canvas.addEventListener("pointerdown", (e) => this.button(e));
@@ -58,7 +67,9 @@ export class Mouse extends Buttons {
     doc.addEventListener("pointermove", (e) => {
       // A button pressed or let go while another is down.
       if (e.button >= 0) this.button(e);
-      if (this.counts) this.moved(e.movementX, e.movementY, e.timeStamp);
+      const skip = this.skipNextMove;
+      this.skipNextMove = false;
+      if (this.counts && !skip) this.moved(e.movementX, e.movementY, e.timeStamp);
     });
     canvas.addEventListener("wheel", (e) => {
       if (!this.counts || e.deltaY === 0) return;
@@ -79,8 +90,15 @@ export class Mouse extends Buttons {
 
   private button(e: MouseEvent): void {
     const name = `Mouse${e.button}`;
-    if ((e.buttons & (BUTTON_BITS[e.button] ?? 0)) === 0) this.release(name);
-    else if (this.counts) this.press(name);
+    if ((e.buttons & (BUTTON_BITS[e.button] ?? 0)) !== 0) {
+      if (this.counts) this.press(name);
+      return;
+    }
+    this.release(name);
+    if (this.dragLockButtons && !this.dragLockButtons.some((b) => this.held.has(b))) {
+      this.dragLockButtons = null;
+      if (this.locked) this.doc.exitPointerLock();
+    }
   }
 
   onMove(listener: MoveListener): void {
@@ -95,21 +113,29 @@ export class Mouse extends Buttons {
   setLockable(lockable: boolean, autoLock: boolean): void {
     const wasLockable = this.lockable;
     this.lockable = lockable;
+    if (lockable) this.dragLockButtons = null;
     if (shouldAutoLock({ wasLockable, lockable, autoLock, locked: this.locked })) void this.lock();
     if (!lockable) this.unlock();
   }
 
+  lockWhileHeld(buttons: readonly string[]): void {
+    if (this.locked || this.lockable) return;
+    this.dragLockButtons = buttons;
+    void this.lock(true);
+  }
+
   /** Never rejects: a browser may refuse without a recent click (then a click on the canvas asks again). */
-  async lock(): Promise<void> {
+  async lock(unadjustedMovement = false): Promise<void> {
     try {
-      await this.canvas.requestPointerLock?.();
-    } catch {
-      // Refused: stay unlocked.
+      await this.canvas.requestPointerLock?.({ unadjustedMovement });
+    } catch (e) {
+      if (unadjustedMovement && e instanceof DOMException && e.name === "NotSupportedError") await this.lock();
     }
   }
 
   /** Lets go of the pointer lock and forgets all buttons. */
   unlock(): void {
+    this.dragLockButtons = null;
     if (this.locked) this.doc.exitPointerLock();
     this.releaseAll(true);
   }

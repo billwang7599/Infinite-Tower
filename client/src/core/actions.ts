@@ -200,7 +200,6 @@ export class Actions {
       if (this.dragHeld()) this.dragBy(dx, dy);
       return;
     }
-    this.drag = { travelPx: 0, turning: false };
     if (atMs - this.lastMoveMs > FLICK.restMs) this.flickedWay = null;
     this.lastMoveMs = atMs;
     const way = this.flickedWay;
@@ -220,7 +219,10 @@ export class Actions {
   private dragBy(dx: number, dy: number): void {
     const drag = this.drag;
     drag.travelPx += Math.hypot(dx, dy);
-    drag.turning ||= drag.travelPx >= DRAG.startPx;
+    if (!drag.turning && drag.travelPx >= DRAG.startPx) {
+      drag.turning = true;
+      this.mouse.lockWhileHeld(this.dragButtons());
+    }
     if (!drag.turning) return;
     this.look.dx += dx;
     this.look.dy += dy;
