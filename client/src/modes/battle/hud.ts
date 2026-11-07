@@ -7,6 +7,7 @@ import { LocalPlayer } from "../components.js";
 import type { BattleHudState, StatusIcon } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { AFTER_FIGHT_BANNER_TIME, resultShown, type BattleContext } from "./context.js";
+import type { Stun } from "./stun.js";
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (fight: Fight) => void {
@@ -26,7 +27,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.hp = Math.ceil(me[2].hp);
       patch.hpMax = Math.round(me[2].max);
-      patch.statuses = iconsOf(world, me[0], hud.get().statuses);
+      patch.statuses = iconsOf(world, me[0], hud.get().statuses, ctx.stun);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
       patch.stunned = me[2].hitstun > 0;
       patch.skillbookInHand = heldIn(me[5].hands, "skillbook") !== null;
@@ -58,16 +59,24 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
 /** 0..1, rounded to 0.1% so changes too small to see don't re-render the HUD. */
 const fraction = (value: number, max: number) => roundTo(value / max, 3);
 
-const iconsOf = (world: World, e: Entity, last: readonly StatusIcon[]) =>
-  statusIcons(world.get(e, Statuses)?.on ?? [], last);
+const iconsOf = (world: World, e: Entity, last: readonly StatusIcon[], stun?: Stun) =>
+  statusIcons(world.get(e, Statuses)?.on ?? [], last, stun);
 
-export function statusIcons(on: readonly StatusOn[], last: readonly StatusIcon[]): readonly StatusIcon[] {
+export function statusIcons(
+  on: readonly StatusOn[], last: readonly StatusIcon[], stun?: Stun,
+): readonly StatusIcon[] {
   const icons = on.map(({ status, left, time, stacks }): StatusIcon => ({
     status, harmful: STATUS_DEFS[status].harmful, stacks,
     secondsLeft: left === null ? null : Math.ceil(left),
     shareLeft: left === null || !time ? 1 : roundTo(left / time, 2),
   }));
   icons.sort((a, b) => Number(a.harmful) - Number(b.harmful));
+  if (stun && stun.left > 0) {
+    icons.push({
+      status: "stunned", harmful: true, stacks: 1, secondsLeft: Math.ceil(stun.left * 10) / 10,
+      shareLeft: roundTo(stun.left / stun.of, 2),
+    });
+  }
   const same = icons.length === last.length && icons.every((icon, i) => {
     const was = last[i]!;
     return icon.status === was.status && icon.stacks === was.stacks && icon.secondsLeft === was.secondsLeft

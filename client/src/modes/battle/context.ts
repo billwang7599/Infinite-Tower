@@ -4,6 +4,7 @@ import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
 import type { ArenaView } from "./camera.js";
 import type { FreeCamera } from "./aim.js";
+import type { Stun } from "./stun.js";
 import type { FightSync, StepEvent } from "./sync.js";
 
 /** Seconds a decided fight waits before showing the result and taking the leave key. */
@@ -25,6 +26,7 @@ export interface BattleContext {
   freeCamera: FreeCamera;
   zoomM: number;
   way: SwingDir;
+  stun: Stun;
   who: PlayerSetup["who"][];
   /** Your own copy, from the encounter until the player leaves the arena. */
   fight: Fight | null;
