@@ -215,6 +215,8 @@ export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapo
   };
   const bow = look.bow ? buildBow(scene, hand, { ...look, bow: look.bow }, materials.steel, materials.grip) : null;
   if (bow) materials.steel.emissiveColor = materials.steel.diffuseColor.scale(STEEL_GLOW);
+  if (bow) ctx.bows.set(e, bow.held);
+  else ctx.bows.delete(e);
   for (const mesh of bow?.meshes ?? buildBlade(scene, hand, look, materials)) ctx.sky.castShadows(mesh);
   return {
     weapon, root, hand, materials: [...Object.values(materials), ...(bow?.materials ?? [])], at: null, yaw,

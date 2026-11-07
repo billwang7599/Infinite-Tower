@@ -2,7 +2,8 @@ import {
   Color3, Mesh, MeshBuilder, Quaternion, TransformNode, Vector3, type Scene, type StandardMaterial,
 } from "@babylonjs/core";
 import {
-  drawnShare, FighterStats, Player, Projectile, rangedOf, weaponIn, Wielder, type Entity, type Vec3, type World,
+  drawnShare, FighterStats, Player, Projectile, rangedOf, smoothstep, weaponIn, WEAPONS, Wielder, type Entity,
+  type ProjectileData, type World,
 } from "@infinite-tower/shared";
 import { colorMaterial } from "../materials.js";
 import type { Visual } from "../visuals.js";
@@ -16,6 +17,8 @@ const STRING_M = 0.012;
 const SHAFT_M = 0.03;
 export const ARROW_M = 0.7;
 const SUNK_M = 0.12;
+/** The fight looses an arrow from the shooter's centre-front: drawn, it leaves the bow and eases onto that path. */
+export const LEAVE_BOW_TIME = 0.12;
 const ARROW_COLORS = { shaft: "#c9a46a", head: "#9aa3ad", fletch: "#e8e4da" } as const;
 
 export interface HeldBow { look: BowLook; strings: [Mesh, Mesh]; nocked: TransformNode; tips: [Vector3, Vector3] }
@@ -107,20 +110,33 @@ export function bowDrawOf(world: World, e: Entity): { drawn: number; nocked: boo
   return { drawn: drawnShare(bow, weapon, world.require(e, FighterStats).strength, player.actionTime), nocked: true };
 }
 
-interface FlyingArrow { root: TransformNode; materials: StandardMaterial[] }
+interface FlyingArrow { root: TransformNode; materials: StandardMaterial[]; fromBow: Vector3 }
 
 const heading = new Vector3(), forward = new Vector3(0, 0, 1);
 
+const flownTime = (o: ProjectileData): number => rangedOf(WEAPONS[o.weapon])!.projectile.lifeTime - o.left;
+
 export const arrowVisual: Visual<FlyingArrow> = {
-  spawn({ scene, sky }, world, e) {
+  spawn({ scene, sky, bows }, world, e) {
     const root = new TransformNode(`arrow-${e}`, scene), materials = arrowMaterials(scene);
     for (const m of arrowMesh(scene, `arrow-${e}`, root, materials)) sky.castShadows(m);
     root.rotationQuaternion = new Quaternion();
-    place(root, world.require(e, Projectile));
-    return { root, materials };
+    const o = world.require(e, Projectile), flown = flownTime(o), fromBow = Vector3.Zero();
+    const nock = bows.get(o.shooter)?.nocked;
+    place(root, o);
+    if (nock && !nock.isDisposed() && !o.stuck && flown < LEAVE_BOW_TIME) {
+      // From where the fight loosed it, so drawing it again after a reload doesn't move it.
+      nock.computeWorldMatrix(true).getTranslationToRef(fromBow).subtractInPlace(root.position)
+        .addInPlaceFromFloats(o.vel.x * flown, o.vel.y * flown, o.vel.z * flown);
+    }
+    const drawn = { root, materials, fromBow };
+    arrowVisual.frame(drawn, world, e, 0);
+    return drawn;
   },
-  frame({ root }, world, e) {
-    place(root, world.require(e, Projectile));
+  frame({ root, fromBow }, world, e) {
+    const o = world.require(e, Projectile);
+    place(root, o);
+    if (!o.stuck) fromBow.scaleAndAddToRef(1 - smoothstep(0, LEAVE_BOW_TIME, flownTime(o)), root.position);
   },
   dispose({ root, materials }) {
     root.dispose();
@@ -129,7 +145,7 @@ export const arrowVisual: Visual<FlyingArrow> = {
 };
 
 /** `pos` is its point. */
-function place(root: TransformNode, o: { pos: Vec3; vel: Vec3; stuck: boolean }): void {
+function place(root: TransformNode, o: ProjectileData): void {
   heading.set(o.vel.x, o.vel.y, o.vel.z);
   if (heading.lengthSquared() > 1e-9) {
     Quaternion.FromUnitVectorsToRef(forward, heading.normalize(), root.rotationQuaternion!);

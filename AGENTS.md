@@ -833,8 +833,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   at 30 m/s, falling at 9.8 m/s², for at most 3 s, and lands on the first foe in its way (poise 10) unless it's
   dodging or in hurt invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina)
   and a perfect block whole, the shooter far off not recoiling. In the floor or the wall it lies 2 s, then is gone.
-  The 3D person holds a bow in the left hand whichever hand's slot it's in, and draws it held out to the side and
-  canted, so the locked camera over the left shoulder sees it past the head (looks only).
+  The 3D person holds a bow in the left hand whichever hand's slot it's in, and carries and draws it held out to the
+  side, near upright, so the locked camera over the left shoulder sees all of it past the body and head; the arrow
+  is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only).
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight

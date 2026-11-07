@@ -129,16 +129,17 @@ const backStrap = (dx: number): Extra => ({
 export const WORN: Partial<Record<ItemId, PersonWear>> = {
   "wool-cap": { covers: {}, extras: [
     { on: "crown", ramp: "greyfur", sections: () => [
-      { y: -7, x: 10.9, z: 10.6 }, { y: -5.4, x: 10.8, z: 10.5 }, { y: -5.3, x: 10.1, z: 9.8 },
-      { y: -2.5, x: 7.9, z: 7.7 }, { y: -0.2, x: 4.6, z: 4.4 }, { y: 1.2, x: 1.4, z: 1.4 },
+      { y: -8.2, x: 10.95, z: 11 }, { y: -6.6, x: 10.5, z: 10.5 }, { y: -5, x: 9.5, z: 9.4 }, { y: -3, x: 7.9, z: 7.7 },
+      { y: -1.2, x: 5.3, z: 5.15 }, { y: 0.1, x: 2.4, z: 2.3 }, { y: 0.6, x: 1.2, z: 1.2 },
     ] },
     { on: "crown", ramp: "fat", roundness: 2, sections: () => [
-      { y: 0.8, x: 1.3, z: 1.3 }, { y: 2.1, x: 2.3, z: 2.3 }, { y: 3.5, x: 1.7, z: 1.7 }, { y: 4, x: 0.3, z: 0.3 },
+      { y: 0.3, x: 1.2, z: 1.2 }, { y: 1.5, x: 2.1, z: 2.1 }, { y: 2.8, x: 1.6, z: 1.6 }, { y: 3.3, x: 0.3, z: 0.3 },
     ] },
   ] },
   "feathered-hat": { covers: {}, extras: [
+    // Narrow on the bow's side, so the drawn bow shows past it from the shoulder camera.
     { on: "crown", ramp: "oxblood", roundness: 2, sections: () => [
-      { y: -6.6, x: 15.5, z: 15 }, { y: -5.8, x: 15.5, z: 15 },
+      { y: -6.6, x: 13, z: 12.8, dx: 1.2 }, { y: -5.8, x: 13, z: 12.8, dx: 1.2 },
     ] },
     { on: "crown", ramp: "oxblood", sections: () => [
       { y: -6, x: 10.7, z: 10.4 }, { y: -1.5, x: 9.6, z: 9.3 }, { y: 2, x: 8.4, z: 8 }, { y: 2.6, x: 5.5, z: 5.2 },
@@ -165,7 +166,7 @@ export const WORN: Partial<Record<ItemId, PersonWear>> = {
     })) },
   ] },
   "braided-bracelet": { covers: {}, extras: [
-    { on: "forearm", ramp: "cork", band: { from: -FORE + 1.4, to: -FORE + 2.8, grow: 0.55 } },
+    { on: "forearm", ramp: "crust", band: { from: -FORE + 1.4, to: -FORE + 3.4, grow: 0.85 } },
   ] },
 };
 

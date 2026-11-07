@@ -7,6 +7,7 @@ import { cameraTuning, type CameraTuning } from "../../modes/battle/camera.js";
 import type { BattleContext } from "../../modes/battle/context.js";
 import type { PlayerLook } from "../characters.js";
 import { createSky, type Sky } from "../sky/sky.js";
+import type { HeldBow } from "./bow.js";
 import type { Impact } from "./impact.js";
 import { createMaterials, type Materials } from "./materials.js";
 import { pixelFlags, pixelPost, type PixelFlags } from "./pixel.js";
@@ -20,6 +21,7 @@ export interface ArenaScene {
   skills: SkillKit;
   nodes: Map<Entity, TransformNode>;
   looks: Map<Entity, PlayerLook<StandardMaterial>>;
+  bows: Map<Entity, HeldBow>;
   /** Camera shake amplitude, decaying. Hard hits add to it. */
   shake: number;
   impacts: Map<Entity, Impact>;
@@ -46,7 +48,7 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
     scene, camera, sky, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
-    nodes: new Map(), looks: new Map(), shake: 0, impacts: new Map(), battle, pixel, tuning,
+    nodes: new Map(), looks: new Map(), bows: new Map(), shake: 0, impacts: new Map(), battle, pixel, tuning,
   };
 }
 
