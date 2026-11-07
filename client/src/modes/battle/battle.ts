@@ -14,7 +14,7 @@ import { arenaCamera, cameraTuning, steerZoom } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { crosshairAim, pickedWay, readPlayerInput } from "./input.js";
-import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
+import { closestFoe, freeCamera, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
 const HOTBAR = ["skill1", "skill2", "skill3", "skill4"] as const;
@@ -50,7 +50,8 @@ export function createBattle(opts: BattleOptions): Battle {
     polled: actions.poll(), actions, settings,
     view: { ...START_VIEW, fovRad: views.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
-    zoomM: views.shoulder.distanceM,
+    freeCamera: null,
+    zoomM: views.fp.distanceM,
     way: START_WAY,
     who: [],
     fight: null,
@@ -87,10 +88,13 @@ export function createBattle(opts: BattleOptions): Battle {
       const written = book[HOTBAR.indexOf(action as (typeof HOTBAR)[number])];
       if (written) ctx.casts.push(written);
     }
-    const foes = livingFoes(fight);
-    ctx.lock = steerLock(ctx.lock, ctx.polled, foes, ctx.view, me);
+    const foes = livingFoes(fight), free = freeCamera(ctx.polled, action), aiming = free === "aim";
+    actions.setFreeLook(aiming);
+    const steer = { pressed: ctx.polled.pressed, free: free !== null, wasFree: ctx.freeCamera !== null };
+    ctx.lock = steerLock(ctx.lock, steer, foes, ctx.view, me);
+    ctx.freeCamera = free;
     ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, action === "dodge", views);
-    const target = foes.find((f) => f.e === ctx.lock)?.pos;
+    const target = aiming ? undefined : foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const yaw = (target && lockYaw(me, target)) ?? ctx.view.yaw;
     const { world } = fight;
@@ -104,7 +108,7 @@ export function createBattle(opts: BattleOptions): Battle {
     });
     input.cast = last ? null : ctx.casts.shift() ?? null;
     casting = input.castHeld ? last : input.cast;
-    input.locked = ctx.lock === null ? null : fight.targets.indexOf(ctx.lock);
+    input.locked = ctx.lock === null || aiming ? null : fight.targets.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     const { open, words } = opts.chant.get();
     input.chant = open;
@@ -171,6 +175,8 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.drops = [];
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);
+      ctx.freeCamera = null;
+      ctx.zoomM = views.fp.distanceM;
       ctx.way = START_WAY;
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
       Object.assign(ctx.view, START_VIEW, { yaw: (target && lockYaw(me, target)) ?? START_VIEW.yaw });

@@ -63,7 +63,7 @@ export interface Polled {
   move: { x: number; z: number };
   turn: number;
   look: number;
-  dragged: boolean;
+  dragging: boolean;
   /** Scroll wheel notches since the last poll, + out (toward you). */
   zoom: number;
 }
@@ -104,6 +104,7 @@ export class Actions {
   private lastMoveMs = -Infinity;
   private drag = { travelPx: 0, turning: false };
   private dragged = false;
+  private freeLook = false;
   private look = { dx: 0, dy: 0 };
   private zoom = 0;
   /** Drag buttons on another action too, pressed (in this order) and not yet let go. */
@@ -130,6 +131,7 @@ export class Actions {
     this.look = { dx: 0, dy: 0 };
     this.zoom = 0;
     this.clicks.clear();
+    this.freeLook = false;
     this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
   }
 
@@ -160,7 +162,8 @@ export class Actions {
       const action = this.worldAction(key);
       if (action && !this.drag.turning) presses.push([action, order]);
     }
-    const flicks = this.flicks, dragged = this.dragged, zoom = this.zoom;
+    const flicks = this.flicks, zoom = this.zoom;
+    const dragging = this.dragged || (this.drag.turning && this.dragHeld());
     for (const d of this.devices) d.clearPressed();
     this.flicks = [];
     this.dragged = false;
@@ -171,7 +174,7 @@ export class Actions {
     const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
     return {
       held, pressed, flicks, move: { x: axis("x"), z: axis("z") }, turn: axis("turn") + axis("turnCamera"),
-      look: axis("look"), dragged, zoom,
+      look: axis("look"), dragging, zoom,
     };
   }
 
@@ -180,6 +183,10 @@ export class Actions {
     const delta = this.look;
     this.look = { dx: 0, dy: 0 };
     return this.dragButtons().length > 0 ? delta : { dx: 0, dy: 0 };
+  }
+
+  setFreeLook(on: boolean): void {
+    this.freeLook = on;
   }
 
   private dragButtons(): readonly string[] {
@@ -195,9 +202,10 @@ export class Actions {
   }
 
   private moved(dx: number, dy: number, atMs: number): void {
-    if (this.top !== "battle" || this.dragHeld()) {
+    if (this.top !== "battle" || this.dragHeld() || this.freeLook) {
       this.sweep = [];
       if (this.dragHeld()) this.dragBy(dx, dy);
+      else if (this.top === "battle") this.look = { dx: this.look.dx + dx, dy: this.look.dy + dy };
       return;
     }
     if (atMs - this.lastMoveMs > FLICK.restMs) this.flickedWay = null;
