@@ -102,7 +102,7 @@ describe("CameraSettings", () => {
     assert.deepEqual(c.toSaved(), {});
   });
 
-  test("turning the overworld camera steps a quarter turn each way and wraps round", () => {
+  test("turning the overworld camera goes any part of a quarter turn each way and wraps round", () => {
     const c = new CameraSettings();
     c.turnOverworld(1);
     assert.equal(c.get().overworldTurns, 1);
@@ -111,6 +111,10 @@ describe("CameraSettings", () => {
     assert.equal(c.get().overworldTurns, OVERWORLD_CAMERA_ANGLES - 1);
     for (let i = 0; i < OVERWORLD_CAMERA_ANGLES; i++) c.turnOverworld(1);
     assert.equal(c.get().overworldTurns, OVERWORLD_CAMERA_ANGLES - 1);
+    c.turnOverworld(1.25);
+    assert.equal(c.get().overworldTurns, 0.25);
+    c.turnOverworld(0);
+    assert.equal(c.get().overworldTurns, 0.25);
   });
 
   test("the overworld turns are saved and restored, apart from the sensitivity", () => {
@@ -123,8 +127,11 @@ describe("CameraSettings", () => {
     assert.deepEqual(copy.get(), { sensitivity: 2, overworldTurns: OVERWORLD_CAMERA_ANGLES - 1 });
   });
 
-  test("restoring unreadable turns faces north", () => {
-    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, 1.5, NaN]) {
+  test("part of a turn is restored as it was; unreadable turns face north", () => {
+    const part = new CameraSettings();
+    part.restore({ overworldTurns: 1.5 });
+    assert.equal(part.get().overworldTurns, 1.5);
+    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, NaN]) {
       const c = new CameraSettings();
       c.turnOverworld(1);
       c.restore({ overworldTurns });

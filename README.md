@@ -43,8 +43,8 @@ What's built so far:
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
   warm haze glows on the sky toward a low sun). The
-  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
-  the camera a quarter turn (walking follows it), up and down tilt it. Everyone shares the world: you see other players
+  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Held, the arrows
+  turn the camera (walking follows it) and tilt it all the way round. Everyone shares the world: you see other players
   (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone until it
   respawns. T challenges a player next to you to a duel: a spar in an arena of your own, everything working player
   against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins their
@@ -103,9 +103,10 @@ What's built so far:
   front, face and all.
 - **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
-  lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
-  the camera), Space jumps, F dodges; a quick flick of the mouse aims, a left click is a light attack and a right
-  click a heavy one, the wheel or K stabs, and Left Shift blocks.
+  lock (onto the enemy the camera points at), Right Shift locks the closest enemy, the arrows or a middle- or
+  right-button drag turn the camera all the way round (and let go of the lock), V steps through the shoulder, close
+  and first-person views, Space jumps, F dodges; a quick flick of the mouse aims, a left click is a light attack and
+  a right click a heavy one, the wheel or K stabs, and Left Shift blocks.
   R opens the chant, and 1-4 quick-cast the skillbook's pages. H opens the questbook.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes

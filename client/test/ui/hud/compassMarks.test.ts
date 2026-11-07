@@ -18,7 +18,15 @@ describe("compassMarks", () => {
     assert.deepEqual(centred(4).map((m) => m.label), ["N"]);
   });
 
-  test("facing north, east is to the right and west to the left", () => {
+  test("turned part of the way (the arrows turn it smoothly), the marks stay on their bearings", () => {
+    for (const turns of [0.3, 1.5, -2.7]) {
+      assert.ok(compassMarks(turns).every((m) => m.deg % 45 === 0 && m.label), `turns ${turns}`);
+    }
+    const at = (deg: number) => compassMarks(1.5).find((m) => m.deg === deg)?.label;
+    assert.deepEqual([at(90), at(135), at(180)], ["E", "SE", "S"]);
+  });
+
+    test("facing north, east is to the right and west to the left", () => {
     const at = (label: string) => markOffsetPx(shown(0).find((m) => m.label === label)!.deg, 0);
     assert.ok(at("E") > 0 && at("W") < 0);
     assert.ok(at("NE") > 0 && at("NE") < at("E"));

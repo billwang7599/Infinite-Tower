@@ -71,7 +71,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual([battle.lightAttack, battle.heavyAttack], [[], []]);
     assert.deepEqual([ACTIONS.battle.lightAttack.mouse, ACTIONS.battle.heavyAttack.mouse], [[0], [2]]);
     assert.equal(isFixed({ group: "battle", action: "lightAttack" }), true, "attacks stay on the mouse");
-    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1], "the camera drags on the middle button");
+    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1, 2], "the camera drags on the middle or right button");
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.deepEqual(battle.leave, ["Enter"]);
@@ -87,7 +87,7 @@ describe("ACTIONS and helpers", () => {
     assert.ok(!names.some((name) => name.startsWith("aim") || name === "kick" || name === "feint"), names.join());
   });
 
-  test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
+  test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it", () => {
     const battle = new KeyBindings().get().battle;
     assert.deepEqual(battle.lockOn, ["KeyQ"]);
     assert.deepEqual(battle.lockClosest, ["ShiftRight"]);
@@ -97,9 +97,10 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.lookDown, ["ArrowDown"]);
   });
 
-  test("the middle mouse button only drags the camera: it doesn't dodge", () => {
+  test("the middle or right mouse button drags the camera; the right one still heavy-attacks; none dodges", () => {
     assert.equal("mouse" in ACTIONS.battle.dodge, false);
-    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1]);
+    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1, 2]);
+    assert.deepEqual(ACTIONS.battle.heavyAttack.mouse, [2]);
     assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 

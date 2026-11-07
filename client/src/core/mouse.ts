@@ -29,8 +29,6 @@ const WHEEL_REST_MS = 150;
 
 export class Mouse extends Buttons {
   private moved: MoveListener = () => {};
-  private dx = 0;
-  private dy = 0;
   private lastWheelMs = -Infinity;
   locked = false;
   /** Only capture the mouse when the current mode wants it (the arena). */
@@ -56,8 +54,6 @@ export class Mouse extends Buttons {
       // A button pressed or let go while another is down.
       if (e.button >= 0) this.button(e);
       if (!this.locked) return;
-      this.dx += e.movementX;
-      this.dy += e.movementY;
       this.moved(e.movementX, e.movementY, e.timeStamp);
     });
     canvas.addEventListener("wheel", (e) => {
@@ -102,12 +98,5 @@ export class Mouse extends Buttons {
   unlock(): void {
     if (this.locked) this.doc.exitPointerLock();
     this.releaseAll(true);
-  }
-
-  /** Pixels moved since the last call. */
-  consumeDelta(): { dx: number; dy: number } {
-    const d = { dx: this.dx, dy: this.dy };
-    this.dx = this.dy = 0;
-    return d;
   }
 }

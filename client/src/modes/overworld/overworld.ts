@@ -1,6 +1,7 @@
 import {
   coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, inView, INTERACT_RANGE_M,
-  maxHpOf, nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState,
+  maxHpOf, nearCampfire, OVERWORLD_CAMERA_ANGLES, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf,
+  START_HEADING, wrapAngle, type CoreState,
   type Gear, type Heading, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
 import { LocalPlayer } from "../components.js";
@@ -10,7 +11,8 @@ import type { CameraSettings } from "../../settings/camera.js";
 import type { Interaction, OverworldHudState, YouState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
-import { CAMERA_PITCH, mapMove, tiltCamera, unwrapTurns } from "./facing.js";
+import { turnBy } from "../orbit.js";
+import { CAMERA_PITCH, mapMove, unwrapTurns } from "./facing.js";
 import { dropFar, hold, nothingHeld } from "./held.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
@@ -193,11 +195,9 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
       else accumulator += dt;
       while (prediction && accumulator >= FIXED_DT) {
         const polled = actions.poll();
-        for (const press of polled.pressed) {
-          if (press === "turnCameraLeft") camera.turnOverworld(-1);
-          else if (press === "turnCameraRight") camera.turnOverworld(1);
-        }
-        state.cameraPitchRad = tiltCamera(state.cameraPitchRad, polled.look, FIXED_DT);
+        const turned = turnBy(polled, { dx: 0, dy: 0 }, FIXED_DT, camera.get().sensitivity);
+        if (turned.yaw !== 0) camera.turnOverworld((turned.yaw / (2 * Math.PI)) * OVERWORLD_CAMERA_ANGLES);
+        state.cameraPitchRad = wrapAngle(state.cameraPitchRad + turned.pitch);
         const move = mapMove(polled.move, camera.get().overworldTurns);
         prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;

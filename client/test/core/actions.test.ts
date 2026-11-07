@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, type SwingDir } from "@infinite-tower/shared";
-import { Actions, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
+import { Actions, DRAG, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
 import { pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
@@ -211,13 +211,16 @@ describe("Actions: poll", () => {
     assert.deepEqual(axes(), { z: 0, turn: 0, look: 0 });
   });
 
-  test("in the overworld, Up / Down tilt the camera on the same axis", () => {
+  test("in the overworld, the arrows turn and tilt the camera on the same axes", () => {
     const { actions, press, release } = setup("overworld");
     press("ArrowUp");
-    assert.equal(actions.poll().look, -1);
+    press("ArrowLeft");
+    assert.deepEqual([actions.poll().look, actions.poll().turn], [-1, -1]);
     release("ArrowUp");
+    release("ArrowLeft");
     press("ArrowDown");
-    assert.equal(actions.poll().look, 1);
+    press("ArrowRight");
+    assert.deepEqual([actions.poll().look, actions.poll().turn], [1, 1]);
   });
 
   test("presses come in the order they were made, keys and clicks together", () => {
@@ -423,7 +426,9 @@ describe("Actions: the layers", () => {
       const { actions, press } = setup("overworld", top);
       press("KeyW");
       press("KeyF");
-      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, top);
+      assert.deepEqual(actions.poll(), {
+        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false,
+      }, top);
     }
   });
 
@@ -659,7 +664,9 @@ describe("Actions: chat", () => {
       press("Digit1");
       click(0);
       move(FLICK.distancePx * 2, 0);
-      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, mode);
+      assert.deepEqual(actions.poll(), {
+        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false,
+      }, mode);
       assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, mode);
     }
   });
@@ -685,12 +692,41 @@ describe("Actions: chat", () => {
 });
 
 describe("Actions: the mouse", () => {
-  test("with the arena on top, lookDelta is what the mouse moved since the last call", () => {
+  test("a drag past DRAG.startPx with the middle or right button held turns the camera; short of it, nothing", () => {
+    for (const b of [1, 2]) {
+      const { actions, move, click, unclick } = setup("battle");
+      click(b);
+      move(DRAG.startPx - 1, 0);
+      assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, `button ${b}: short`);
+      assert.equal(actions.poll().dragged, false, `button ${b}: not dragged`);
+      move(3, -2);
+      move(4, 1);
+      assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 }, `button ${b}: turning`);
+      assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+      assert.equal(actions.poll().dragged, true, `button ${b}: dragged`);
+      assert.equal(actions.poll().dragged, false, "once per poll");
+      unclick(b);
+      move(10, 10);
+      assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, `button ${b}: let go`);
+    }
+  });
+
+  test("with no button held the mouse never turns the camera", () => {
     const { actions, move } = setup("battle");
-    move(3, -2);
-    move(4, 1);
-    assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 });
+    move(30, -20);
     assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    assert.equal(actions.poll().dragged, false);
+  });
+
+  test("a right press is still a heavy attack, dragged after or not, and a drag flicks no aim", () => {
+    const { actions, move, click } = setup("battle");
+    click(2);
+    move(FLICK.distancePx, 0);
+    move(FLICK.distancePx, 0);
+    const polled = actions.poll();
+    assert.deepEqual(polled.pressed, ["heavyAttack"]);
+    assert.deepEqual(polled.flicks, []);
+    assert.equal(polled.dragged, true);
   });
 
   test("under a screen, lookDelta is zero and what moved meanwhile is dropped", () => {

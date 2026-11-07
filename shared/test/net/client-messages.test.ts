@@ -228,13 +228,13 @@ describe("parseClientMsg", () => {
     for (const flickSensitivity of ["1", null]) assert.equal(settings({ flickSensitivity }), null);
   });
 
-  test("settings: the overworld camera's turns are kept as saved, a whole number of quarter turns", () => {
+  test("settings: the overworld camera's turns are kept as saved, in quarter turns, any part of one", () => {
     const settings = (camera: object) => parse({ t: "settings", settings: { camera } });
-    for (const overworldTurns of [0, OVERWORLD_CAMERA_ANGLES - 1]) {
+    for (const overworldTurns of [0, 1.5, OVERWORLD_CAMERA_ANGLES - 0.01]) {
       const camera = { sensitivity: 1, overworldTurns };
       assert.deepEqual(settings(camera), { t: "settings", settings: { camera } });
     }
-    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, 1.5, "1", null]) {
+    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, "1", null]) {
       assert.equal(settings({ overworldTurns }), null, `turns ${overworldTurns}`);
     }
   });
