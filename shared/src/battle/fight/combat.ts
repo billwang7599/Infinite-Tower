@@ -4,6 +4,7 @@
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
+import { FIXED_DT, toSteps } from "../../core/time.js";
 import { STRIKES, strikeOf, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
@@ -106,8 +107,10 @@ export function combatSystem(events: FightEvent[]): System {
 /** In a dodge's i-frames. */
 export function dodging(world: World, e: Entity): boolean {
   const player = world.get(e, Player);
-  return player?.action === "dodge"
-    && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd;
+  if (player?.action !== "dodge") return false;
+  // The controller has already counted this step into actionTime.
+  const step = toSteps(player.actionTime - FIXED_DT);
+  return step >= toSteps(PLAYER.dodge.iframeStart) && step < toSteps(PLAYER.dodge.iframeEnd);
 }
 
 /** A hit nothing stopped. `at`: where a projectile struck. */

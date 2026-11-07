@@ -1,7 +1,7 @@
 import type { Entity, World } from "../../../core/ecs.js";
 import { toSteps } from "../../../core/time.js";
 import {
-  HYBRID, parryKind, parryRecoilTime, perfectBlockTime, swingWeight, type ParryKind,
+  HYBRID, parryKind, parryRecoilTime, parryWindowTime, swingWeight, type ParryKind,
 } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
 import { Body, Enemy, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
@@ -19,7 +19,7 @@ function weightOf(world: World, e: Entity): number {
   return swingWeight(weaponIn(wielder.hands)!, world.require(e, FighterStats).strength, wielder.swing?.attack === "heavy");
 }
 
-const windowSteps = (world: World, e: Entity) => toSteps(perfectBlockTime(weaponIn(world.require(e, Wielder).hands)!));
+const windowSteps = (world: World, e: Entity) => toSteps(parryWindowTime(weaponIn(world.require(e, Wielder).hands)!));
 
 function recoil(world: World, e: Entity, time: number): void {
   endChain(world.require(e, Wielder));

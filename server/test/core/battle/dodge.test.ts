@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, PLAYER, type EnemyDef, type PlayerInputData,
+  FIXED_DT, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, PLAYER, toSteps, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
@@ -39,8 +39,7 @@ const LANDS_AT = (() => {
   return fight.steps;
 })();
 
-/** Steps of a dodge (from the one it starts on) with i-frames: what the fight's PLAYER.dodge says. */
-const IFRAME_STEPS = Math.ceil(PLAYER.dodge.iframeEnd / FIXED_DT) - 1;
+const IFRAMES_FROM = toSteps(PLAYER.dodge.iframeStart), IFRAMES_UNTIL = toSteps(PLAYER.dodge.iframeEnd);
 
 /**
  * Plays the fight to past the bite with a dodge tapped on step `dodgeAt`, its message held back `late` ticks.
@@ -61,29 +60,31 @@ const MISSED = FULL.hp, HIT = FULL.hp - BITE_DAMAGE;
 
 describe("a dodge, on the client and on the server", () => {
   test("the bite lands on a step of its own", () => {
-    assert.ok(LANDS_AT > IFRAME_STEPS + 4, `lands at step ${LANDS_AT}`);
+    assert.ok(LANDS_AT > IFRAMES_UNTIL + 4, `lands at step ${LANDS_AT}`);
     assert.equal(playDodge(-1).server, HIT);
   });
 
   test("dodging k steps before the bite, on time: the same hit or miss on both, and the same HP", () => {
-    for (const k of [-1, 0, 1, 2, 5, IFRAME_STEPS - 1, IFRAME_STEPS, IFRAME_STEPS + 3]) {
+    const ks = [-1, 0, IFRAMES_FROM - 1, IFRAMES_FROM, IFRAMES_FROM + 2, IFRAMES_UNTIL - 1, IFRAMES_UNTIL,
+      IFRAMES_UNTIL + 3];
+    for (const k of ks) {
       const { client, server, room, clientFight } = playDodge(LANDS_AT - k);
-      const missed = k >= 0 && k < IFRAME_STEPS;
+      const missed = k >= IFRAMES_FROM && k < IFRAMES_UNTIL;
       assert.equal(client, missed ? MISSED : HIT, `client, dodging ${k} steps before`);
       assert.equal(server, client, `server, dodging ${k} steps before`);
       assert.deepEqual(room.fight.save(), clientFight.save(), `the whole fight, dodging ${k} steps before`);
     }
   });
 
-  test("a dodge on the step the bite lands has i-frames on that step, on both", () => {
+  test("a dodge on the step the bite lands has no i-frames yet: a hit on both", () => {
     const { client, server } = playDodge(LANDS_AT);
-    assert.deepEqual({ client, server }, { client: MISSED, server: MISSED });
+    assert.deepEqual({ client, server }, { client: HIT, server: HIT });
   });
 
   test("arriving 150 ms late, the dodge still runs on its own step: a miss on both", () => {
     const late = Math.round(0.15 / FIXED_DT);
     assert.ok(late <= MAX_INPUT_DELAY_STEPS);
-    for (const k of [0, 2, 5]) {
+    for (const k of [IFRAMES_FROM, IFRAMES_FROM + 2, IFRAMES_UNTIL - 1]) {
       const { client, server, room, clientFight } = playDodge(LANDS_AT - k, late);
       assert.deepEqual({ client, server }, { client: MISSED, server: MISSED }, `dodging ${k} steps before`);
       assert.deepEqual(room.fight.save(), clientFight.save());
@@ -93,15 +94,15 @@ describe("a dodge, on the client and on the server", () => {
   test("arriving more than 200 ms late, it runs on the server's next step instead", () => {
     const late = MAX_INPUT_DELAY_STEPS + 3;
     // Still in time for the bite, a few steps later: a miss on both, but the server's dodge started later.
-    const early = playDodge(LANDS_AT - 8, late);
+    const earlyAt = LANDS_AT - IFRAMES_FROM - 5, early = playDodge(earlyAt, late);
     assert.deepEqual({ client: early.client, server: early.server }, { client: MISSED, server: MISSED });
     const expected = new Fight(SETUP);
     while (expected.steps < early.room.fight.steps) {
-      expected.step([expected.steps + 1 === LANDS_AT - 8 + late - MAX_INPUT_DELAY_STEPS ? DODGE : IDLE_INPUT]);
+      expected.step([expected.steps + 1 === earlyAt + late - MAX_INPUT_DELAY_STEPS ? DODGE : IDLE_INPUT]);
     }
     assert.deepEqual(early.room.fight.save(), expected.save(), "the dodge ran on the server's next step");
-    // Pushed past the bite: the client showed a miss, the server counts the hit (and corrects the client).
-    const tooLate = playDodge(LANDS_AT - 2, late);
+    // Pushed past the i-frames' start: the client showed a miss, the server counts the hit (and corrects the client).
+    const tooLate = playDodge(LANDS_AT - IFRAMES_FROM, late);
     assert.deepEqual({ client: tooLate.client, server: tooLate.server }, { client: MISSED, server: HIT });
   });
 });

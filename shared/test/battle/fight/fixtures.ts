@@ -66,7 +66,7 @@ export const WOLF: EnemyDef = {
 };
 
 export const slam = (over: Partial<SlamDef>): SlamDef => ({
-  triggerDist: 3, range: 2.6, minDot: 0.5, windup: 1, lockAt: 0.3, active: 0.15, recover: 1.2, damage: 30,
+  triggerDist: 3, range: 2.6, minDot: 0.5, windup: 1, lockAt: 0.3, active: 0.15, recover: 1.2, damage: 40,
   knockback: 10, lift: 3, cooldown: 0.5, firstDelay: 0.5,
   sweep: {
     range: 2.6, minDot: -1, belowDot: 0.3, windup: 0.6, active: 0.2, recover: 0.8, damage: 15, knockback: 8, lift: 2,

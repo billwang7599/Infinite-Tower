@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, emptyBag, packFor, Health, HYBRID, parryKind, parryRecoilTime, parryWay, perfectBlockTime, Player, SWING_DIRS,
-  swingWeight, toSteps, WEAPONS, Wielder, wayStepsAfter, type ItemId, type PlayerInputData,
+  CHAIN, emptyBag, packFor, Health, HYBRID, parryKind, parryRecoilTime, parryWay, parryWindowTime, perfectBlockTime,
+  Player, SWING_DIRS, swingWeight, toSteps, WEAPONS, Wielder, wayStepsAfter, type ItemId, type PlayerInputData,
   type Strike, type Way,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -70,7 +70,7 @@ function exchange(x: Exchange) {
   };
 }
 const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-6, `${what}: ${a} vs ${b}`);
-const WINDOW = toSteps(perfectBlockTime(WEAPONS.sword));
+const WINDOW = toSteps(parryWindowTime(WEAPONS.sword));
 const CLASH = toSteps(HYBRID.parry.clashTime);
 
 describe("which ways parry", () => {
@@ -134,6 +134,14 @@ describe("a swing parried by a swing", () => {
     assert.ok(r.hits.some((e) => e.type === "hit" && e.target === r.them));
   });
 
+  test("its window is wider than a perfect block's: live earlier than a perfect block works, it still deflects", () => {
+    const lead = toSteps(perfectBlockTime(WEAPONS.sword)) + 2;
+    const r = exchange({ way: "lr", answer: "lr", lead });
+    assert.ok(r.parry?.type === "parry" && !r.parry.clash && r.parry.by === r.them, `lead ${lead}`);
+    assert.equal(r.hits.length, 0);
+    assert.ok(lead <= WINDOW);
+  });
+
   test("live longer than the window before, it's no parry", () => {
     const r = exchange({ way: "lr", answer: "lr", lead: WINDOW + 3 });
     assert.equal(r.parry, undefined);
@@ -142,7 +150,7 @@ describe("a swing parried by a swing", () => {
 
   test("the window grows with the parrier's blade", () => {
     const lead = WINDOW + 3;
-    assert.ok(lead <= toSteps(perfectBlockTime(WEAPONS.greatsword)));
+    assert.ok(lead <= toSteps(parryWindowTime(WEAPONS.greatsword)));
     const r = exchange({ way: "lr", answer: "lr", lead, blade: "greatsword" });
     assert.ok(r.parry && !r.parry.clash && r.parry.by === r.them);
     assert.equal(r.hits.length, 0);

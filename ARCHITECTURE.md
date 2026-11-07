@@ -473,7 +473,8 @@ main.ts
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
   for a weapon, its way) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not
   physics. A weapon's hit is first asked of `parries` (`fight/weapons/parry.ts`): a swing meeting the target's own
-  swing at a parry angle is deflected, deflects it or clashes, by whose blade went live first. Then of `defend`
+  swing at a parry angle is deflected, deflects it or clashes, by whose blade went live first (within its blade's
+  `parryWindowTime`, wider than the perfect block's). Then of `defend`
   (`fight/weapons/defend.ts`): in front of the target, a weapon in its
   perfect block's window costs the attacker stamina and staggers it (`stagger`: a player's "stagger" action in
   hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
@@ -875,8 +876,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`faceToward`), a fight's whole state
   (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
-  difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
-  costs), and a dodge pressed during an attack waiting for its blade (on any step of it, once, ahead of a buffered
+  difference), a dodge's i-frames step by step (a dodge on the very step a hit lands, or in its tail, is hit; its
+  stamina and burden costs; no second dodge until its recovery is over, a press in it waiting, attacks and blocks not
+  held back), and a dodge pressed during an attack waiting for its blade (on any step of it, once, ahead of a buffered
   attack, through a save and a rollback). Skills (`shared/test/battle/fight/skills/`): the wind-up, its cost at release,
   waiting behind a swing, cancelled by a dodge or a hit; the chant (held still, broken off by a stun or a dodge but
   not a sword hit, the only way to cast a skill on no page, needing no book; its words in the fight: kept by a dodge,
@@ -1300,7 +1302,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
-                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime)
+                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime, parryWindowTime)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts

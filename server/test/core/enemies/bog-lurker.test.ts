@@ -66,7 +66,7 @@ describe("the bog lurker", () => {
   });
 
   test("its slam costs a blocker more stamina than a dodge does", () => {
-    assert.ok(SLAM.damage > PLAYER.dodge.cost * 1.5);
+    assert.ok(SLAM.damage > PLAYER.dodge.cost);
   });
 
   test("a player who dodges its slams and sweeps and cuts back beats it", () => {

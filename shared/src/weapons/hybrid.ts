@@ -83,8 +83,8 @@ export const HYBRID = {
   },
   feint: { cutoffTime: 0.15, cost: 10 },
   parry: {
-    fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05, minRatio: 0.5, maxRatio: 2,
-    heavyWeightFactor: 2,
+    windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05, minRatio: 0.5,
+    maxRatio: 2, heavyWeightFactor: 2,
   },
   /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
@@ -92,6 +92,9 @@ export const HYBRID = {
 
 export const perfectBlockTime = (weapon: Weapon): number =>
   HYBRID.block.perfectTime * weapon.length / HYBRID.block.perfectAtLengthM;
+
+export const parryWindowTime = (weapon: Weapon): number =>
+  HYBRID.parry.windowTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
 export const guardRaiseTime = (weapon: Weapon, strength: number): number =>
   HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft;

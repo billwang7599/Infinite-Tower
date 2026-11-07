@@ -87,7 +87,7 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
   per second for 3 s (`weaponBurnPerSec`, `EMBERS.burnTime`), on again from 3 s at the next hit: 9 a hit on top of
   the sword's 9.
 - **Last Breath** (epic): an attack or a dodge with too little stamina is paid for, the part you lack × 0.5 HP
-  (`hpPerStaminaShort`). At 0 stamina only if your HP is more than that: a light (10) costs 5 HP, a dodge (22) 11.
+  (`hpPerStaminaShort`). At 0 stamina only if your HP is more than that: a light (10) costs 5 HP, a dodge (30) 15.
   Paying never takes your last HP.
 - **Red Blade** (legendary): your weapon hits heal 25% of the damage they deal (`weaponLifesteal`), on top of any
   lifesteal; a sword's 9 heals 2.25.
@@ -266,9 +266,10 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
 
 - **Angle:** the exact reverse of the incoming way (as you see it) is a full parry, within 45° a partial one; stabs
   never count.
-- **Timing:** when a blade would land, the defender's swing went live up to its window before (`perfectBlockTime`:
-  sword 0.2, longsword 0.25, greatsword 0.35 s, and while its swing lasts) and it parries; or it goes live up to the
-  attacker's window after, and the attacker's blade parries it. Within `clashTime` 0.05 s of each other: a clash.
+- **Timing:** when a blade would land, the defender's swing went live up to its window before (`windowTime` 0.3 s ×
+  blade length / `block.perfectAtLengthM` 1.1, `parryWindowTime`: sword 0.3, longsword 0.38, greatsword 0.52 s, wider
+  than the perfect block's, and while its swing lasts) and it parries; or it goes live up to the attacker's window
+  after, and the attacker's blade parries it. Within `clashTime` 0.05 s of each other: a clash.
 - **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy.
 - **Recoil** of the parried: base (`fullRecoilTime` 0.8 s, `partialRecoilTime` 0.5 s) × clamp(parrier's weight /
   parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both the base time.
@@ -301,7 +302,9 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
   guard broken, the stagger above. Toughness shortens only the body blow's: the counterplay's openings stay as they are.
   Weapon hits and skills give none.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
-- **Dodge i-frames:** from `dodge.iframeStart` 0 to `iframeEnd` 0.32 s of the 0.42 s dodge, weapon and body hits miss.
+- **Dodge i-frames:** from `dodge.iframeStart` 0.05 to `iframeEnd` 0.25 s of the 0.42 s dodge, counted in steps from
+  the one it starts on (steps 3 to 14), weapon and body hits miss. Another dodge can't start until `dodge.cooldown`
+  0.25 s (15 steps) after one ends.
 - Neither stops a skill: Bolts, Beams, Novas, clouds and burning hurt through them, and through a block.
 - **What breaks off a chant**, a cast's wind-up, writing a page or the bag: any hitstun (losing the chant's words), or
   a dodge (keeping them). An enemy's chant breaks when it's stunned, staggered or killed (`cantCast` in
@@ -325,7 +328,7 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 | A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
 | Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |
 | Feinting a heavy | 10 | `HYBRID.feint.cost` |
-| Dodge | 22; heavy × 1.3 = 28.6; overloaded can't; Hasted × 0.7 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
+| Dodge | 30; heavy × 1.3 = 39; overloaded can't; Hasted × 0.7 = 21 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 
 The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds up a cast).
@@ -461,7 +464,7 @@ Each in `server/src/core/enemies/<id>.ts`.
   you, it rises (1.3 s, turning toward you at 1.2 rad/s until 0.35 s before) and slams: 2.6 m ahead, 60° either side,
   live 0.15 s; then it stands open 1.5 s. Within 2.8 m and more than about 73° off its facing (cos < 0.3), it coils
   (0.75 s) and sweeps its tail all round (live 0.2 s), then stands 1 s. 0.8 s after either before the next; the
-  first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 22).
+  first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 30).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
   heavy 30% of the time; its first goes live 1.1 s after it starts and the rest 0.45 s (a heavy 0.35 s more), × its
   blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover and 1.2 s more before the next chain; first
