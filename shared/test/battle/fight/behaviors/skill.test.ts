@@ -186,7 +186,7 @@ describe("casting at the player", () => {
     while (!skilledOf(fight).chanting) fight.step([IDLE]);
     run(fight, SKILL.wordTime * 1.5);
     assert.ok(skilledOf(fight).words.length > 0);
-    for (let i = 0; i < 0.5 / FIXED_DT && stateOf(fight) !== "staggered"; i++) {
+    for (let i = 0; i < 1 / FIXED_DT && stateOf(fight) !== "staggered"; i++) {
       fight.step([input({ attack: i % 2 ? "light" : null })]);
     }
     assert.equal(stateOf(fight), "staggered");

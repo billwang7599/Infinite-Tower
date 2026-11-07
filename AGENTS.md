@@ -135,26 +135,41 @@ Decided by the user:
   called spells). The skillbook only stores built skills.
 - Weapons are an arsenal: every weapon is an item with a `weapon` component (its kind of moveset and its stats), and a
   fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
-  weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
-  planned ([plan/weapons.md](plan/weapons.md)).
+  weapon's reach is the wielder's own arm reach plus the weapon's length. Where weapons are headed (three stats,
+  loadouts by what's in each hand) is [plan/combat-v2.md](plan/combat-v2.md).
 - Heft scales everything and strength scales heft down (the user: "heft scales everything which is realistic", "a
   stronger person would use a greatsword well, while a weaker person wouldn't"): a weapon's wind-up, live time,
-  recovery and stamina costs go × the heft its wielder feels, 1 + (heft − 1) × (10 / strength), players and enemies
-  alike (strength 10 feels the listed heft; a heft-1 weapon, the old stick, feels the same to everyone). Each weapon
-  has a minimum strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing
-  it, and the bag screen says why. The test numbers: sword 0, longsword 6, greatsword 9. Two-handed grips, halving
-  the heft penalty, come later ([plan/weapons.md](plan/weapons.md)).
-- Swords are heavier (the user: "increase sword weight, swinging is too easy"; the numbers are the agent's, tried by
-  tests only, not hand-played): the sword, longsword and greatsword have 30% more heft (1.3, 1.55, 2.1; were 1, 1.2,
-  1.6), so by the rule above every part of a swing, its stamina and the guard's raise take that much longer at
-  strength 10, less for the stronger. A sword's opening light at strength 10 winds up 0.45 s (was 0.35), is live
-  0.13 s (0.1), recovers 0.1 s (0.08) and costs 13 stamina (10); at strength 20, 0.4 s, 0.12, 0.1 and 11.5. The
-  times and costs the Hybrid lists below are a heft-1 blade's. The old stick (Bram's too) keeps its heft. The Kobolds'
-  blades followed (the user: "also make their swords heavier too"; tests only, not hand-played): the Kobold blade 1.3
-  and the Kobold greatsword 2.1 (were 1 and 1.6), as the sword's and the greatsword's, and an enemy's recovery after a
-  chain goes × its felt heft too, as a player's does. The Kobold's opening swing winds up 1.43 s (was 1.1), a chained
-  one 0.58 s (0.45), and it recovers 0.65 s (0.5); the Kobold Greatsword's 2.32 s (1.76), 0.95 s (0.72) and 1.05 s
-  (0.5). Bram's old stick swings as before.
+  recovery and stamina costs go × the heft its wielder feels, players and enemies alike. Each weapon has a minimum
+  strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing it, and the
+  bag screen says why. The test numbers: Basic Sword 0, longsword 6, greatsword 9. Two-handed weapons come later
+  ([plan/combat-v2.md](plan/combat-v2.md)).
+- Swords are heavier (the user: "increase sword weight, swinging is too easy"; tests only, not hand-played): the
+  sword, longsword and greatsword got 30% more heft, and the Kobolds' blades followed (the user: "also make their
+  swords heavier too"), an enemy's recovery after a chain going × its felt heft too, as a player's does. The Kobold's
+  opening swing winds up 1.43 s (was 1.1), a chained one 0.58 s (0.45), and it recovers 0.65 s (0.5); the Kobold
+  Greatsword's 2.32 s (1.76), 0.95 s (0.72) and 1.05 s (0.5). Then combat v2 put the swords' weight in new units
+  (below).
+- Combat v2, Phase 1, the swing model (the user's decisions 4-6 and the spec's per-hand rule, in
+  [plan/combat-v2.md](plan/combat-v2.md); tests only, not hand-played):
+  - The sword is the Basic Sword (its stored id still `sword`), the measure of weight: heft 1 at strength 10. Every
+    weapon's and the shield's heft went × 1 / 1.3 (the old stick 0.77, the Basic Sword and the Kobold blade 1, the
+    longsword 1.19, the greatsword and the Kobold greatsword 1.62, the Wooden shield 1). The training bow keeps heft 1
+    so its placeholder draw doesn't change (the agent's pick).
+  - Felt heft: a weapon under 1 feels its own heft to everyone, so it winds up quicker, down to the floor; one of 1
+    or more feels max(1, 1 + (heft − 1) × 10 / strength), so strength never takes it under the Basic Sword's.
+  - Every final wind-up, after heft and swiftness, is at least 0.4 s (`CHAIN.minWindupTime`), a player's or an
+    enemy's. The Basic Sword at any strength: the reverse 0.4 s, another line 0.48, a perpendicular 0.6, an opening
+    or after a stab 0.56, a heavy's opening 0.92, the stab 0.45; live 0.13 s, recovering 0.1 s. The Hybrid's costs
+    and times are the Basic Sword's (a light 13 stamina, a heavy 21, a stab 16, its guard up in 0.1 s), so its
+    stamina and guard didn't change. The Kobolds' and Bram's wind-ups and recoveries are as before (their defs carry
+    the old blade weight); their heavies' extra is 0.36 s × felt heft now, so a Kobold's heavy is 0.1 s quicker, the
+    Kobold Greatsword's 0.15 s. A Kobold won't parry a swing it could only meet by winding up under the floor.
+  - Momentum pays in damage only (+25% a point, ×2 at most; a stab cashes it for +50% a point); it no longer
+    shortens a wind-up. Gains: the reverse +0.25, another line +1, a perpendicular +0.5, at most 4.
+  - Each hand keeps its own chain and momentum, and its own recovery: a hand can't swing until its recovery is over.
+    With a blade in each hand, the other hand swings as soon as the first's blade is done, while the first recovers,
+    and a switch (Q) never cuts a recovery short. The chain's 0.25 s gap counts from the last swing by either hand,
+    so weaving keeps both hands' chains going.
 - A stun resets an enemy's attack (the user: "when the enemy gets stunned, it should reset their attack. their follow
   up attack is too quick"; the details the main chat's, tried by tests only, not hand-played): any stun or stagger (a
   broken poise, a perfect block's or a parry's recoil, the boar's wall, Lightning) ends the attack under way: a
@@ -172,9 +187,10 @@ Decided by the user:
     the mouse, as flavour: a quick flick aims one of 7 ways (across, down from the top, and the four diagonals), a
     horizontal swing wide and a vertical one narrow. There's no straight upward swing (a downward flick does
     nothing) and no key aims. Locked on, attacks go where you face.
-  - Every swing reaches as far, 1.15 × (arm reach + blade), about 2.2 m with the sword; the stab 1.75 ×.
-  - Lights wind up readably: 0.35 s an opening swing, 0.25 a reverse, 0.45 a perpendicular, 0.3 any other; a heavy
-    0.35 s more. Momentum never takes a wind-up under 0.25 s. A heavy has no hyperarmor.
+  - Every swing reaches as far, 1.15 × (arm reach + blade), about 2.2 m with the Basic Sword; the stab 1.75 ×.
+  - Lights wind up readably (combat v2's numbers, above): with the Basic Sword 0.56 s an opening swing, 0.4 a
+    reverse, 0.6 a perpendicular, 0.48 any other; a heavy 0.36 s more. No wind-up is under 0.4 s. A heavy has no
+    hyperarmor.
   - The body (combat spec v2, the user's: "a whiffed committed swing overextends you ... the natural punish for
     throwing wildly"): you walk at 25% while attacking, wind-up through recovery, and a live blade carries you forward
     at 4 m/s. A swing that whiffs overextends you: carried further and a longer recovery. A live blade's turn is capped,
@@ -201,10 +217,10 @@ Decided by the user:
     raising the guard takes time that grows with the heft its wielder feels (sword 0.1 s, greatsword ~0.24 s at
     strength 10); a hit landing while it comes up isn't blocked. Enemies raise theirs the same way. No close-range
     penalty for big weapons.
-  - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); a light costs 10, a heavy
-    16, a stab 12, a dodge 30. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
-    costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the guard breaks,
-    a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
+  - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); with the Basic Sword a light
+    costs 13, a heavy 21, a stab 16; a dodge 30. Holding block drains it slowly and it doesn't refill while blocking.
+    A blocked hit costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the
+    guard breaks, a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
   - The dodge is nerfed (the user: "i also want to nerf dodge. we can still get hit when we dodge right?"): of its
     0.42 s, only 0.05 s to 0.25 s has i-frames, so a dodge pressed as a hit lands, or a hit in its tail, still lands;
     it costs 30 stamina; and another dodge can't start until 0.25 s after one ends (an attack or a block can). These
@@ -213,11 +229,11 @@ Decided by the user:
     shift to cancel early to mess with their timing"): block pressed in a heavy's wind-up pulls it back into the
     guard, for 10 stamina, but not in the last 0.15 s before the blade goes live. It opens no perfect block and ends
     the chain, and the blade then recovers before it can swing again (spec v2: "it costs enough, with enough recovery,
-    that it's a tool and not spam"; 0.3 s × felt heft, the agent's pick). A light or a stab can't be feinted. The
-    Kobold feints about 1 in 5 of its heavies ("sure add kobald feint"), told only by sound and its blade snapping back
-    to its guard.
-  - The old momentum, with the old numbers: the reverse swing chains quickest, a perpendicular one slowest; a chain
-    builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
+    that it's a tool and not spam"; 0.38 s × felt heft, the agent's pick, on the hand that swung). A light or a stab
+    can't be feinted. The Kobold feints about 1 in 5 of its heavies ("sure add kobald feint"), told only by sound and
+    its blade snapping back to its guard.
+  - Momentum: the reverse swing chains quickest, a perpendicular one slowest; a chain builds damage (not speed) until
+    a gap, a block, a dodge or a hit taken, most by varying the line; a stab spends it (combat v2's numbers, above).
   - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
     by its own chances. The boar and the Goblin Warlock just keep working. The 3D player blade follows the ways.
   - A ring shows your aim all the time, For Honor style (the user: "it should bring back the ring (with the
@@ -480,7 +496,7 @@ Decided by the user:
 - A dodge never cancels an attack, not even a light's wind-up (the user, asked if it should: "no"). A dodge (or the
   next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting the attack short,
   and starts on the first step the attack lets another action start, as soon as its blade is done
-  (the swing's `liveUntil`; after a chain's last attack, the next attack waits for its recovery too). If the player
+  (the swing's `liveUntil`; the next attack with the same hand waits for its recovery too). If the player
   can't dodge then (no stamina, overloaded, in the air), the press runs out like any early press
   (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes first.
 - Nothing pauses the fight (the user: "nothing should ever pause the whole fight"). Hit-stop is local (combat v2,
@@ -533,8 +549,9 @@ Decided by the user:
   dual, a chip of 8% / 20% / 32% of the hit, its stamina × 0.6 / 1 / 1.35, its push × 0.6 / 1 / 1.2, and a shield
   covers 180° in front against a blade's 140° (one blade's numbers are the held block's as before). The perfect
   window and the guard's raise come from the shield's own length and heft as from a blade's (the Wooden shield: 1.1,
-  so the sword's 0.2 s window, and heft 1.3, up in 0.1 s); two blades block with the swinging one's. A press mid-swing
-  switches once that blade's done (after its live time), and a chain goes on across a switch. The Wooden shield is 2 x
+  so the sword's 0.2 s window, and heft 1, up in 0.1 s); two blades block with the swinging one's. A press mid-swing
+  switches once that blade's done (after its live time); each hand keeps its own chain and recovery (combat v2,
+  above). The Wooden shield is 2 x
   2, weight 4, worth 250c, sold and bought at Garrick's forge. A small mark either side of the aim ring shows which
   hand swings, with two blades only. The arena's 3D people hold the shield (a round board) and the second blade in
   the other hand, and block by guard (the sword's guard, below). A switch eases both hands into their new places as
@@ -818,25 +835,28 @@ them; treat them as changeable, and still ask before deciding new ones):
     mouse aims (`FLICK`, below): right swings from the right, up from the top, down-left from below on the left, and
     so on; straight down aims nothing. The aim stays between attacks; a fight starts aimed from the top. The old aim keys and the kick are dropped from saved keys; the questbook stays
     on H.
-  - Attacks: a light winds up as the user set (above), is live 0.1 s and recovers 0.08 s, poise 12. A heavy: 0.35 s
-    more wind-up, live 0.12 s, recovering 0.2 s, twice the damage, poise 24. The stab: 0.3 s (the agent's pick, so it
-    isn't the quickest attack while reaching furthest), 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's
-    heft, as its wielder's strength feels it, stretches every part. Arcs by line: 160° across, 110° on a diagonal, 60°
-    down from the top.
-  - Momentum, the old numbers: +1 a reverse, +0.5 any other, +0.25 a perpendicular, at most 4; each point 25% more
-    damage (×2 at most) and 10% sooner (never under 0.25 s); a stab adds 50% per point and spends it. A swing down from
-    the top has no reverse. An attack chains if it starts during the last one or within 0.25 s of its end; a dodge, a
-    block, a cast, the chant, the bag, a hit taken or a perfect block against it breaks it.
+  - Attacks (the Basic Sword's; combat v2's numbers): a light winds up as the user set (above), is live 0.13 s and
+    recovers 0.1 s, poise 12. A heavy: 0.36 s more wind-up, live 0.15 s, recovering 0.26 s, twice the damage, poise
+    24. The stab: 0.45 s, 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's heft, as its wielder's
+    strength feels it, stretches every part, a lighter one shortens it, and no wind-up goes under 0.4 s. Arcs by line:
+    160° across, 110° on a diagonal, 60° down from the top.
+  - Momentum: +0.25 a reverse, +1 any other, +0.5 a perpendicular, at most 4, each hand its own; each point 25% more
+    damage (×2 at most), never speed; a stab adds 50% per point and spends that hand's. A swing down from the top has
+    no reverse. An attack chains if it starts within 0.25 s of the end of the last swing by either hand; a dodge, a
+    block, a cast, the chant, the bag, a hit taken or a perfect block against it breaks both hands' chains.
   - The body (numbers in `HYBRID.swinging`, rules in `fight/weapons/commit.ts`): a whiff is a swing whose live time
     met no one, out of reach or dodged (a blocked, parried or clashing one ends anyway). It recovers 0.2 s × felt heft
-    longer (`whiffRecoverTime`; a sword light at strength 10: 0.37 s in all, not 0.1), carried forward at 1.5 m/s
-    (`whiffCarrySpeed`) all through its recovery, about 0.55 m on top of the live blade's 0.53; until it ends nothing
+    longer (`whiffRecoverTime`; a Basic Sword light: 0.3 s in all, not 0.1), carried forward at 1.5 m/s
+    (`whiffCarrySpeed`) all through its recovery, about 0.45 m on top of the live blade's 0.53; until it ends nothing
     else starts, not a dodge, a swing, a block or a hand switch, and a press waits for it. A chain's gap counts from
     that later end. A live blade turns toward the aim (locked on, the target; a swordsman's, its target) at most
-    3 rad/s (`liveTurnRadPerSec`): a sword light's 23°, a greatsword light's 37°; its hit and the carry turn with it.
-    The wind-up isn't steered: a player's swing keeps the way it was pressed until it goes live (a swordsman keeps
+    3 rad/s (`liveTurnRadPerSec`): a Basic Sword light's 23°, a greatsword light's 37°; its hit and the carry turn with
+    it. The wind-up isn't steered: a player's swing keeps the way it was pressed until it goes live (a swordsman keeps
     tracking at its own 2.5 rad/s). A swordsman now creeps up at 25% of its walk up while winding up and recovering
     (it stood still) and is carried at 4 m/s while live (the Kobold's own 3 m/s and Bram's 2.6 are gone).
+    Recovery is one mechanism, kept per hand: a swing's own recovery (longer when it whiffs) and a feint's recovery
+    land on the hand that swung (`HandChain.recoverSteps` holds a feint's, or what's left when the other hand cuts a
+    swing short), and that hand can't swing until it's over.
   - The held block covers 140° in front and walks at 40%; held, it drains 5 stamina a second. A blocked hit costs a
     player its damage in stamina (a heavy twice), chips 20% (a stab too), and stops the blade with no recoil: the
     attacker may chain on. A body blow (the boar's) chips nothing. Either pushes back 60% of its knockback (blocks
@@ -844,8 +864,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     last of the stamina (or more) breaks the guard: staggered 0.8 s. The drain alone never breaks it; it leaves
     nothing for the next hit. An enemy's held block costs it the hit's poise instead, and out of poise it staggers as
     when hit.
-  - The guard comes up in 0.05 s + 0.17 s for each point of felt heft over 1 (`raiseTime`, `raiseTimePerHeft`):
-    sword 0.1, longsword 0.14, greatsword 0.24 at strength 10. The perfect window opens once it's up, so a heavier
+  - The guard comes up in 0.1 s + 0.22 s for each point of felt heft over 1 (`raiseTime`, `raiseTimePerHeft`):
+    Basic Sword 0.1, longsword 0.14, greatsword 0.24 at strength 10. The perfect window opens once it's up, so a heavier
     blade has to be pressed earlier. An enemy's comes up after its `blockReactTime`, a feint's too.
   - The perfect block: a block press opens a window (0.2 s with the sword, by blade length), even let go again, as long
     as nothing else starts; a weapon from in front lands in it blocked perfectly: no stamina, no chip; the attacker
@@ -861,12 +881,14 @@ them; treat them as changeable, and still ask before deciding new ones):
     other. Felt by angle: facing each other the other's way is mirrored, so the same named way (lr against lr) meets
     head on; the straight-down swing has no exact reverse (no upward swing) and is only ever partly parried, by a
     rising diagonal. The Kobold (the Greatsword too) reads 15% of the swings a player starts at it while walking up and
-    not perfect-blocking (`parryChance`), and swings the meeting way (light) so its blade goes live 5 steps before the
-    player's; after any parry it answers at once with a quick swing, as after a perfect block. Sounds and shows as a
+    not perfect-blocking (`parryChance`), unless it could only meet one by winding up under the 0.4 s floor, and
+    swings the meeting way (light) so its blade goes live 5 steps before the player's; after any parry it answers at
+    once with a quick swing, as after a perfect block. Sounds and shows as a
     perfect block does (the clang, the hold, sparks); a clash bounces both with sparks.
-  - The Kobold (the Greatsword too): a swing winds up 1.1 s, chained ones 0.45 s (its old, approved numbers), a heavy
-    0.35 s more; any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s
-    of recovery after a chain, then its cooldown; each time × its blade's felt heft. Stunned, it waits its cooldown and
+  - The Kobold (the Greatsword too): a swing winds up 1.43 s, chained ones 0.58 s (its old, approved 1.1 and 0.45 ×
+    the heavier blade), a heavy 0.36 s more; any of the 7 swings or the stab, never the same twice running, 30%
+    heavies, chains of 2 or 3; 0.65 s of recovery after a chain, then its cooldown; each time × its blade's felt heft
+    (1 for the Kobold blade, 1.62 for the Kobold greatsword). Stunned, it waits its cooldown and
     starts a fresh chain. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
     the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
     answers at once with a quick swing. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
@@ -875,10 +897,11 @@ them; treat them as changeable, and still ask before deciding new ones):
     block press, so a press within 0.5 s after it gets no perfect window either; a player needs some stamina left
     to feint, as for any attack. The Kobold pulls a feinted heavy back at the latest it may (0.15 s before it would go
     live), straight into its held block; its chain ends there, it pays no stamina (its swings cost none), and it waits
-    its cooldown (1.2 s, with no chain recovery) before its next chain. The feint's recovery (`recoverTime` 0.3 s ×
-    felt heft: 0.38 s with a sword at strength 10) holds back any swing, a player's or a swordsman's, the guard held
-    meanwhile; a Kobold's cooldown is longer, so for it only a parry or an answer waits. It's counted per fighter, not
-    per hand. A feint sounds as a quick, high blade-draw.
+    its cooldown (1.2 s, with no chain recovery) before its next chain. The feint's recovery (`recoverTime` 0.38 s ×
+    felt heft: 0.38 s with the Basic Sword) holds back that hand's next swing, a player's or a swordsman's, the guard
+    held meanwhile; a Kobold's cooldown is longer, so for it only a parry or an answer waits. It's the hand's recovery
+    (`HandChain.recoverSteps`), so with a blade in each hand the other may swing. A feint sounds as a quick, high
+    blade-draw.
   - Drawn: the sprite takes the drawn swing nearest each way (the diagonals from below the side ones, the stab the
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the
@@ -1051,9 +1074,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
-- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.55, 11 damage; the Greatsword 1 x 4, 1.9 m,
-  weight 8, heft 2.1, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword
-  with the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
+- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.19, 11 damage; the Greatsword 1 x 4, 1.9 m,
+  weight 8, heft 1.62, 16 damage (about the Basic Sword's damage per second); the Kobold Greatsword's blade is the
+  greatsword with the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
   (`shared/src/items/items.ts`).
 - Bows (the user's rules above, building on the agent's earlier prep: "prep for future weapons (bows)", "make any
   assumptions you want as to not block me"): **placeholders, every rule below the user's and every number.** All of it
@@ -1129,7 +1152,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   0.75 s and sweeps its tail all round (20, knockback 10), then stands 1 s. 0.8 s after either before the next; the
   first after 1.5 s. It can't be staggered from the rise or coil to the blow. Both are body blows, so blockable, but a
   blocked slam costs 38 stamina (a dodge 30) and its push puts you out of reach of the opening: in the bot fights a
-  dodger wins in about 37 s, a blocker in about 66 s, and one who only swings loses. No new rules: the slam reuses
+  dodger wins in about 40 s, a blocker in about 63 s, and one who only swings loses. No new rules: the slam reuses
   the charge's `slam` event for its thud and shake. Its tells are the rise, the eyes lighting and its groan, no
   marker. Numbers: `server/src/core/enemies/bog-lurker.ts`, the behaviour in
   `shared/src/battle/fight/behaviors/slam.ts`. Drops: its essence (worth 45) always and 2 lurker scales 70% (1 x 1,
@@ -1290,7 +1313,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummies, best Bram in
     a spar (lore "Soft as dough"). A quest taken from the NPC its first step asks you to talk to does that step at
     once, so taking it from Bram gives the stick there and then.
-  - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, 5 damage, heft 1, no strength
+  - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, 5 damage, heft 0.77, no strength
     needed; worth 5 copper (the forge buys it for 2). It goes into the bag, not a hand: Bram says to hold it, and the
     bag works in a fight too.
   - Both fights start from Bram's talk (Begin), in the region's arena, as a spar (`TRAINING_YIELD_SHARE`, 0.1, in

@@ -3,11 +3,11 @@ import {
 } from "@infinite-tower/shared";
 
 export function swingAt(attack: AttackKind, way: Way, step: number, aimYaw = 0): SwingData {
-  const heavy = attack === "heavy", windup = windupTime(attack, "opening", 0);
+  const heavy = attack === "heavy", windup = windupTime(attack, "opening");
   return {
     attack, way, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
     ...wayStepsAfter(WEAPONS.sword, windup, heavy, AVERAGE_STAT), damage: 9, poiseDamage: 12,
-    whiffed: false,
+    whiffed: false, hand: "rightHand",
   };
 }
 

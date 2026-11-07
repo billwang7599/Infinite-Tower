@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, Enemy, FIXED_DT, Health, Skilled, WAYS, Wielder, World, type EnemyData, type EnemyState, type Entity,
-  type SkilledData, type SwingData,
+  Body, Enemy, FIXED_DT, Health, newWielder, Skilled, WAYS, Wielder, World, type EnemyData, type EnemyState,
+  type Entity, type SkilledData, type SwingData,
 } from "@infinite-tower/shared";
 import { Blend } from "../../../../src/modes/battle/context.js";
 import { BLADE_FROM_M } from "../../../../src/visuals/battle/blade.js";
@@ -94,8 +94,8 @@ describe("a hit-stop on a kobold: its blade holds, then goes on with no jump", (
     world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
     const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "weapon", stateTime: 0, duration: 0.5, yaw: 0 } as
       unknown as EnemyData);
-    const wielder = world.add(e, Wielder, { hands: { rightHand: "kobold-blade", leftHand: null, active: "rightHand" },
-      armReachM: ARM_REACH_M, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
+    const wielder = world.add(e, Wielder,
+      newWielder({ rightHand: "kobold-blade", leftHand: null, active: "rightHand" }, ARM_REACH_M));
     const hitStops = new Map<Entity, HitStop>(), ctx = {
       scene, sky: { castShadows: () => {} }, nodes: new Map(), impacts: new Map(), hitStops, skills: {},
       materials: { slashFx: new StandardMaterial("slash", scene) }, battle: { blend: new Blend(), corrections: [] },

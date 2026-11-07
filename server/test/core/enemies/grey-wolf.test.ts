@@ -37,9 +37,13 @@ function sidestepper(fight: Fight): PlayerInputData {
   return locked || wolf.state === "pounce" ? { ...aimed, ...aside(aimed) } : punish(fight);
 }
 
+// Aside and back, toward where its leap lands, so the cut back is in time.
+const behindAside = (aimed: PlayerInputData) =>
+  ({ moveX: (aimed.aimZ - aimed.aimX) * Math.SQRT1_2, moveZ: (-aimed.aimX - aimed.aimZ) * Math.SQRT1_2 });
+
 function dodger(fight: Fight): PlayerInputData {
   const { wolf, dist, aimed } = sizeUp(fight);
-  return wolf.state === "pounce" && dist < 3 ? { ...aimed, ...aside(aimed), dodge: true } : punish(fight);
+  return wolf.state === "pounce" && dist < 3 ? { ...aimed, ...behindAside(aimed), dodge: true } : punish(fight);
 }
 
 function blocker(fight: Fight): PlayerInputData {

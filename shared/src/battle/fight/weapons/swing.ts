@@ -3,7 +3,7 @@ import type { Vec2 } from "../../../core/math.js";
 import type { Equipment, Hand } from "../../../items/gear.js";
 import { HYBRID, strikeDamage, strikeOf, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { meleeOf } from "../../../weapons/kinds.js";
-import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
+import { weaponHandIn, weaponIn, type Weapon } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
 import { addHit } from "../combat.js";
@@ -20,19 +20,19 @@ export function startWaySwing(
   const melee = meleeOf(weapon);
   world.remove(e, ActiveHit);
   if (!melee) return;
-  const stats = world.require(e, FighterStats);
-  world.require(e, Wielder).swing = {
+  const stats = world.require(e, FighterStats), wielder = world.require(e, Wielder);
+  wielder.swing = {
     attack: strike === "heavy" ? "heavy" : "light", way, dir, step: 0,
     ...melee.steps(weapon, windupTime, strike === "heavy", stats.strength),
     damage: strikeDamage(weapon, strike, power, stats),
     poiseDamage: HYBRID[strike].poiseDamage, whiffed: false,
+    hand: weaponHandIn(wielder.hands) ?? "rightHand",
   };
 }
 
 export function endChain(wielder: WielderData): void {
-  wielder.combo = null;
   wielder.comboTime = 0;
-  wielder.momentum = 0;
+  for (const chain of Object.values(wielder.chains)) Object.assign(chain, { combo: null, momentum: 0 });
 }
 
 export function endSwing(world: World, e: Entity): void {

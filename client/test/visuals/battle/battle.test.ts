@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, type TransformNode } from "@babylonjs/core";
-import { Body, Skilled, Wielder, World, type Entity, type SkilledData } from "@infinite-tower/shared";
+import { Body, newWielder, Skilled, Wielder, World, type Entity, type SkilledData } from "@infinite-tower/shared";
 import { Blend } from "../../../src/modes/battle/context.js";
 import { fighter } from "../../../src/visuals/battle/battle.js";
 import { clash, parried, strike } from "../../../src/visuals/battle/impact.js";
@@ -27,8 +27,9 @@ describe("nothing pauses the fight: weapon contact never holds a fighter's drawi
       const spawn = (z: number) => {
         const e = world.spawn();
         world.add(e, Body, { pos: { x: 0, y: 0.9, z }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
-        world.add(e, Wielder, { hands: { rightHand: "sword", leftHand: null, active: "rightHand" }, armReachM: 0.7,
-          swing: swingAt("light", "lr", 6), combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
+        world.add(e, Wielder, {
+          ...newWielder({ rightHand: "sword", leftHand: null, active: "rightHand" }, 0.7), swing: swingAt("light", "lr", 6),
+        });
         world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
         return e;
       };

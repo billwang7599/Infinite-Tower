@@ -74,7 +74,7 @@ describe("nothing pauses the fight for a hit (the user: \"nothing should ever pa
     });
     const me = fight.players[0]!, it = fight.enemies[0]!, ticks: Clock[] = [];
     let landed = false;
-    run(fight, 1.5, (step) => {
+    run(fight, 2, (step) => {
       landed ||= fight.events.some((e) => e.type === "hit" && e.target === it);
       const p = fight.world.require(me, Player), swing = fight.world.require(me, Wielder).swing;
       ticks.push({

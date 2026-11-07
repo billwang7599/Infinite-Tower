@@ -74,14 +74,16 @@ export interface FightSnapshot {
 
 const copyStatuses = (s: StatusData): StatusData => ({ on: s.on.map((o) => ({ ...o })), cooldown: { ...s.cooldown } });
 const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: { ...s.dir } };
+const copyChains = (c: WielderData["chains"]): WielderData["chains"] =>
+  ({ rightHand: { ...c.rightHand }, leftHand: { ...c.leftHand } });
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
 const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e === null ? -1 : fighters.indexOf(e));
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const { swing, combo, comboTime, momentum, feintRecoverSteps, hands } = wielder;
-  return { swing: copySwing(swing), combo, comboTime, momentum, feintRecoverSteps, active: hands.active };
+  const { swing, comboTime, chains, hands } = wielder;
+  return { swing: copySwing(swing), comboTime, chains: copyChains(chains), active: hands.active };
 }
 
 const partOf = (world: World, e: Entity, kind: Part) => world.get(e, PARTS[kind]);
@@ -161,8 +163,10 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
     if (wielder && s.wielder) {
-      const { swing, active, ...rest } = s.wielder;
-      Object.assign(wielder, rest, { swing: copySwing(swing), hands: { ...wielder.hands, active } });
+      const { swing, chains, active, ...rest } = s.wielder;
+      Object.assign(wielder, rest, {
+        swing: copySwing(swing), chains: copyChains(chains), hands: { ...wielder.hands, active },
+      });
     }
     const { words, aim, aimAt, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, aimAt: { ...aimAt }, target: fighterAt(target) };

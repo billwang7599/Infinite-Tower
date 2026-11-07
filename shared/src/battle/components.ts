@@ -7,7 +7,7 @@ import type {
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
 import type { AttackKind, Hands, WeaponId } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
-import type { Carried } from "../items/gear.js";
+import type { Carried, Hand } from "../items/gear.js";
 import type { Using } from "../items/using.js";
 import type { Reaction } from "../skills/effects.js";
 import type { StatusOn } from "./statuses.js";
@@ -90,18 +90,28 @@ export interface SwingData {
   damage: number;
   poiseDamage: number;
   whiffed: boolean;
+  hand: Hand;
+}
+
+export interface HandChain {
+  combo: Way | null;
+  momentum: number;
+  /** Steps until this hand can swing again: a feint's recovery, or what's left of one the other hand cut short. */
+  recoverSteps: number;
 }
 
 export interface WielderData {
   hands: Required<Hands>;
   armReachM: number;
   swing: SwingData | null;
-  combo: Way | null;
+  /** Either hand's next swing chains on while it's above 0. */
   comboTime: number;
-  momentum: number;
-  feintRecoverSteps: number;
+  chains: Record<Hand, HandChain>;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
+const newChain = (): HandChain => ({ combo: null, momentum: 0, recoverSteps: 0 });
+export const newWielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
+  ({ hands, armReachM, swing: null, comboTime: 0, chains: { rightHand: newChain(), leftHand: newChain() } });
 
 export interface HealthData {
   hp: number;

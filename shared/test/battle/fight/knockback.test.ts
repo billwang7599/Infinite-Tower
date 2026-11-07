@@ -14,7 +14,7 @@ before(() => initPhysics());
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const IN_REACH_M = 2.4;
-const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening", 0), true, STATS.strength);
+const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening"), true, STATS.strength);
 const SETTLE_TIME = SLOWEST.endAt * FIXED_DT + 1;
 
 const PERSON: EnemyDef = { ...STATUE, knockbackFactor: 1 };

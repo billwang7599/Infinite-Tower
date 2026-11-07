@@ -11,8 +11,8 @@ import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, Skilled,
-  SlamAttack, Stamina, Statuses, WeaponAttack, Wielder, type EnemyData, type HealthData, type WeaponAttackData,
-  type WielderData,
+  SlamAttack, Stamina, Statuses, WeaponAttack, Wielder, newWielder, type EnemyData, type HealthData,
+  type WeaponAttackData,
 } from "../components.js";
 import type {
   ChargeDef, EnemyAttacks, EnemyDef, LungeDef, PounceDef, SkillAttackDef, SlamDef, WeaponAttackDef,
@@ -67,10 +67,6 @@ const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.
 const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
 
-const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({
-  hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0,
-});
-
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
   const e = world.spawn();
   const center = centerAbove(setup.at, PLAYER_CENTER_HEIGHT);
@@ -90,7 +86,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     core: setup.core, invulnerable: setup.invulnerable ?? false, leftArena: false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
-  world.add(e, Wielder, wielder(handsOf(setup.gear.equipment), PLAYER.armReachM));
+  world.add(e, Wielder, newWielder(handsOf(setup.gear.equipment), PLAYER.armReachM));
   world.add(e, Health, { ...fresh(maxHpOf(setup.stats)), hp: setup.vitals.hp });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
@@ -157,7 +153,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   if (def.sidestep) world.add(e, Sidestep, { def: def.sidestep, dir: { x: 0, z: 0 } });
   if (def.wielder) {
     const hands = { rightHand: null, leftHand: null, active: "rightHand" as const, ...def.wielder.hands };
-    world.add(e, Wielder, wielder(hands, def.wielder.armReachM));
+    world.add(e, Wielder, newWielder(hands, def.wielder.armReachM));
   }
   world.add(e, Health, fresh(def.maxHp));
   world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius, heightM: def.heightM ?? 2 * def.radius });

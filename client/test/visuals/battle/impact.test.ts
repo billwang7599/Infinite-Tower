@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Body, FIXED_DT, Wielder, World, type Entity, type Vec3 } from "@infinite-tower/shared";
+import { Body, FIXED_DT, newWielder, Wielder, World, type Entity, type Vec3 } from "@infinite-tower/shared";
 import {
   clash, HIT_STOP_EASE_MS, HIT_STOP_MS, heldSwing, hitStopKickRad, impactPose, JOLT_M, joltOf, parried, strike,
   type HitStop, type Impact, type Swung,
@@ -87,8 +87,9 @@ describe("weapon contact: whose drawing it touches", () => {
       centerHeight: 0.9, collider: 0 });
     const armed = (e: Entity, z: number) => {
       world.add(e, Body, body(z));
-      world.add(e, Wielder, { hands: { rightHand: "sword", leftHand: null, active: "rightHand" }, armReachM: 0.7,
-        swing: swingAt("light", "lr", 6), combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
+      world.add(e, Wielder, {
+        ...newWielder({ rightHand: "sword", leftHand: null, active: "rightHand" }, 0.7), swing: swingAt("light", "lr", 6),
+      });
     };
     const [by, target, other] = [world.spawn(), world.spawn(), world.spawn()];
     armed(by, 0);
