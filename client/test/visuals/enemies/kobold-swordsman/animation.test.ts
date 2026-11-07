@@ -1,18 +1,24 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { NullEngine, Quaternion, Scene, TransformNode, Vector3 } from "@babylonjs/core";
-import { FIXED_DT, WAYS, type EnemyState, type SwingData } from "@infinite-tower/shared";
+import { NullEngine, Quaternion, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
+import {
+  Body, Enemy, FIXED_DT, Health, Skilled, WAYS, Wielder, World, type EnemyData, type EnemyState, type Entity,
+  type SkilledData, type SwingData,
+} from "@infinite-tower/shared";
+import { Blend } from "../../../../src/modes/battle/context.js";
 import { BLADE_FROM_M } from "../../../../src/visuals/battle/blade.js";
+import { HIT_STOP_MS, type HitStop } from "../../../../src/visuals/battle/impact.js";
+import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
 import { MOTIONS, strokeOf, wayCut, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import { GREATSWORD_BUILD } from "../../../../src/visuals/enemies/kobold-greatsword/animation.js";
-import { reachKobold } from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
+import { koboldSwordsmanVisual, reachKobold } from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
 import {
   bellySections, buildKobold, SWORDSMAN_BUILD, torsoSections, type KoboldBuild,
 } from "../../../../src/visuals/enemies/kobold-swordsman/model.js";
 import { koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { alongSegment, armDepth, depthIn, type Loft } from "../../../fixtures/clearance.js";
-import { swingSteps } from "../../../fixtures/swings.js";
+import { swingAt, swingSteps } from "../../../fixtures/swings.js";
 
 const TOLERANCE_M = 0.003;
 const ARM_REACH_M = 0.8;
@@ -76,4 +82,64 @@ describe("the kobolds' arms go round their bodies", () => {
       assert.ok(depthM <= TOLERANCE_M, `${weapon}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
     }
   });
+});
+
+describe("a hit-stop on a kobold: its blade holds, then goes on with no jump", () => {
+  const PER_SEC = 240;
+
+  function run(contact: "hit" | "blocked" | null) {
+    const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
+    world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
+    world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
+    const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "weapon", stateTime: 0, duration: 0.5, yaw: 0 } as
+      unknown as EnemyData);
+    const wielder = world.add(e, Wielder, { hands: { rightHand: "kobold-blade", leftHand: null, active: "rightHand" },
+      armReachM: ARM_REACH_M, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
+    const hitStops = new Map<Entity, HitStop>(), ctx = {
+      scene, sky: { castShadows: () => {} }, nodes: new Map(), impacts: new Map(), hitStops, skills: {},
+      materials: { slashFx: new StandardMaterial("slash", scene) }, battle: { blend: new Blend(), corrections: [] },
+    } as unknown as ArenaScene;
+    const drawn = koboldSwordsmanVisual.spawn(ctx, world, e), hand = drawn.drawing.swordArm.hand;
+    const swing = swingAt("light", "lr", 0), contactAt = swing.liveAt + 1, frames = [];
+    const tipM = BLADE_FROM_M + WEAPON_LOOKS["kobold-blade"].blade.lengthM;
+    let struck = false, ended = false;
+    for (let i = 0; i <= (swing.endAt * FIXED_DT + 0.3) * PER_SEC; i++) {
+      const step = Math.floor(i / PER_SEC / FIXED_DT);
+      if (!ended) swing.step = step;
+      if (contact && step >= contactAt && !struck) {
+        hitStops.set(e, { ageMs: 0 });
+        struck = true;
+        ended = contact === "blocked";
+      }
+      wielder.swing = !ended && step < swing.endAt ? swing : null;
+      Object.assign(enemy, { state: wielder.swing ? "weapon" : "weaponRecover", stateTime: i / PER_SEC });
+      koboldSwordsmanVisual.frame(drawn, world, e, 1 / PER_SEC);
+      const at = hand.computeWorldMatrix(true);
+      frames.push({
+        grip: Vector3.TransformCoordinates(Vector3.Zero(), at),
+        tip: Vector3.TransformCoordinates(new Vector3(0, tipM, 0), at),
+        held: (hitStops.get(e)?.ageMs ?? Infinity) <= HIT_STOP_MS - 1000 / PER_SEC,
+      });
+    }
+    scene.dispose();
+    return frames;
+  }
+
+  const moved = (a: { grip: Vector3; tip: Vector3 }, b: { grip: Vector3; tip: Vector3 }) =>
+    Math.max(Vector3.Distance(a.grip, b.grip), Vector3.Distance(a.tip, b.tip));
+
+  for (const contact of ["hit", "blocked"] as const) {
+    test(`a ${contact} swing`, () => {
+      const free = run(null), stopped = run(contact);
+      const fastest = Math.max(...free.slice(1).map((f, i) => moved(f, free[i]!)));
+      const held = stopped.flatMap((f, i) => f.held ? [i] : []);
+      assert.ok(held.length >= Math.floor((HIT_STOP_MS / 1000) * PER_SEC) - 2, `${held.length} frames held`);
+      for (const i of held.slice(1)) assert.ok(moved(stopped[i]!, stopped[i - 1]!) < 1e-6, `still on frame ${i}`);
+      for (let i = held[0]!; i < stopped.length; i++) {
+        const m = moved(stopped[i]!, stopped[i - 1]!);
+        assert.ok(m <= fastest, `${m.toFixed(3)} m on frame ${i}: a jump`);
+      }
+    });
+  }
 });

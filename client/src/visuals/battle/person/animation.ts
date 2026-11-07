@@ -11,6 +11,7 @@ import {
 } from "../blade.js";
 import { pullString } from "../bow.js";
 import { bowDrawOf, moveBow, restingBow, type BowMotion } from "../bowMotion.js";
+import { heldSwing, swingHeld, type Swung } from "../impact.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS, type WeaponLook } from "../weapons.js";
 import { SHAPES, shownGear, wearOf, type ShownGear } from "./body.js";
@@ -19,7 +20,7 @@ import {
   buildPerson, disposePerson, FILL_EMISSIVE, personBuild, toMetres, type PersonBuild, type PersonModel,
 } from "./model.js";
 import { STILL_HAIR, strideOf, swayHair, type Sway } from "./motion.js";
-import { LANDING, personPose, POSED_JOINTS, type PersonPose } from "./pose.js";
+import { drawnStep, LANDING, personPose, POSED_JOINTS, type PersonPose } from "./pose.js";
 import { M_PER_PX, restAt, type JointName, type Joints } from "./skeleton.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
@@ -53,6 +54,7 @@ export interface PersonDrawing {
   bow: BowMotion;
   pose: PersonPose | null;
   inView: ShownArms | null;
+  drawnSwing: Swung | null;
 }
 
 export interface HeldArms { hand: Vector3; holding: Quaternion; offHand: Vector3; offHolding: Quaternion }
@@ -146,7 +148,7 @@ export const newPerson = (): PersonDrawing => ({
   look: null, equipment: null, shown: {}, build: null, model: null, blade: null, offBlade: null, shield: null,
   bladeSide: 1, held: null, yaw: 0, gait: 0, time: 0, deadTime: 0, sinceStep: 0,
   sinceLanding: LANDING.durationTime, hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() }, bow: restingBow(),
-  pose: null, inView: null,
+  pose: null, inView: null, drawnSwing: null,
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -287,24 +289,28 @@ export function framePerson(
   p.gait += shownDt * 2 * Math.PI * strideOf(speed, Math.abs(way.x)).cyclesPerSec;
   const drawing = alive ? bowDrawOf(world, e) : null;
   moveBow(p.bow, drawing, shownDt);
-  const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
+  const { alpha } = ctx.battle.blend, stop = ctx.hitStops.get(e);
+  const live = wielder.swing && { swing: wielder.swing, step: drawnStep(wielder.swing, alpha) };
+  const drawn = p.drawnSwing = heldSwing(stop, live, p.drawnSwing);
+  const pose = personPose(stance, { swing: drawn?.swing ?? null }, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
     stagger, deadTime: p.deadTime, time: p.time,
     walk: { phase: p.gait, speed, way },
     landing: p.sinceLanding === null ? 0 : Math.max(0, 1 - p.sinceLanding / LANDING.durationTime),
     ...(held?.bow && drawing && { bow: { ...held.bow, drawn: p.bow.hand, flick: p.bow.flick } }),
-    alpha: ctx.battle.blend.alpha, guard: kind, twoHanded: !!held?.twoHanded,
+    // The alpha that draws the swing at the drawn step.
+    alpha: drawn ? drawn.step - drawn.swing.step + 1 : alpha, guard: kind, twoHanded: !!held?.twoHanded,
   });
   p.pose = pose;
 
-  const { joints } = model;
+  const { joints } = model, jointDt = swingHeld(stop) ? 0 : shownDt;
   for (const name of POSED_JOINTS) {
     const exact = pose.legsExact && LEGS.has(name);
-    const ease = (current: number, to: number) => exact ? to : damp(current, to, JOINT_RATE, shownDt);
+    const ease = (current: number, to: number) => exact ? to : damp(current, to, JOINT_RATE, jointDt);
     const r = joints[name].rotation, to = pose.joints[name];
     r.set(ease(r.x, to.x), ease(r.y, to.y), ease(r.z, to.z));
   }
-  joints.root.position.y = pose.legsExact ? pose.rootY : damp(joints.root.position.y, pose.rootY, JOINT_RATE, shownDt);
+  joints.root.position.y = pose.legsExact ? pose.rootY : damp(joints.root.position.y, pose.rootY, JOINT_RATE, jointDt);
 
   wanted.hand.set(pose.hand.x, pose.hand.y, pose.hand.z);
   holdingOf(pose.blade, pose.edge, wanted.holding);

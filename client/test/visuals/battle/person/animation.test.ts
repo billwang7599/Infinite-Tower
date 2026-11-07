@@ -2,24 +2,25 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  Body, DEFAULT_LOOK, FIXED_DT, Health, LOOK_OPTIONS, Player, PLAYER, WAYS, Wielder, World, type Look, type PlayerData,
-  type SwingData, type WeaponId,
+  Body, DEFAULT_LOOK, FIXED_DT, Health, LOOK_OPTIONS, Player, PLAYER, WAYS, Wielder, World, type Entity, type Look,
+  type PlayerData, type SwingData, type WeaponId,
 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
 import { orbitBack } from "../../../../src/modes/orbit.js";
 import { BATTLE_BUILDS } from "../../../../src/gfx/look/body.js";
 import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js";
 import { holdInView, restShoulders } from "../../../../src/visuals/battle/firstPerson.js";
+import { HIT_STOP_EASE_MS, HIT_STOP_MS, type HitStop } from "../../../../src/visuals/battle/impact.js";
 import {
   dropPerson, framePerson, handSide, newPerson, reachArms, reachWith,
 } from "../../../../src/visuals/battle/person/animation.js";
-import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
 import { SHAPES } from "../../../../src/visuals/battle/person/body.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
 import {
   buildPerson, personBuild, toMetres, type PersonBuild,
 } from "../../../../src/visuals/battle/person/model.js";
 import { personPose, POSED_JOINTS } from "../../../../src/visuals/battle/person/pose.js";
+import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
 import { M_PER_PX, type Joints } from "../../../../src/visuals/battle/person/skeleton.js";
 import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import type { Sky } from "../../../../src/visuals/sky/sky.js";
@@ -222,7 +223,7 @@ describe("switching hands with a blade in each", () => {
   function run(firstPerson: boolean, midSwing: boolean, perSec: number) {
     const world = new World(), e = world.spawn();
     const blend = { alpha: 1 }, ctx = { scene, sky, bows: new Map(), looks: new Map([[e, { current: DEFAULT_LOOK }]]),
-      battle: { blend }, pixel: { steps: null } } as unknown as ArenaScene;
+      battle: { blend }, pixel: { steps: null }, hitStops: new Map() } as unknown as ArenaScene;
     world.add(e, Player, playerDoing("none", 0, "lr"));
     world.add(e, Body, { pos: { ...feet }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.8, collider: 0 });
     world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
@@ -265,4 +266,74 @@ describe("switching hands with a blade in each", () => {
       }
     }
   });
+});
+
+describe("a hit-stop on a 3D person: its arms and blade hold, then go on with no jump", () => {
+  const PER_SEC = 240, dt = 1 / PER_SEC, view = {
+    yaw: 0, pitch: 0, fovRad: CAMERA_VIEWS.fp.fovRad, eye: { x: 0, y: 1.6, z: -0.1 }, at: { x: 0, y: 1.3, z: 3 },
+  };
+
+  function run(contact: "hit" | "blocked" | null, firstPerson: boolean) {
+    const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
+    world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
+    world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    const wielder = world.add(e, Wielder, { hands: { rightHand: "sword", leftHand: null, active: "rightHand" },
+      armReachM: 0.7, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
+    const blend = { alpha: 1 }, hitStops = new Map<Entity, HitStop>();
+    const ctx = { scene, sky, bows: new Map(), looks: new Map([[e, { current: DEFAULT_LOOK }]]),
+      pixel: { steps: null }, battle: { blend }, hitStops } as unknown as ArenaScene;
+    const node = new TransformNode("player", scene), p = newPerson(), swing = swingAt("light", "lr", 0);
+    const contactAt = swing.liveAt + 1, frames: { s: number; grip: Vector3; tip: Vector3; held: boolean }[] = [];
+    let ended = false;
+    for (let i = 0; i <= (swing.endAt * FIXED_DT + 0.4) * PER_SEC; i++) {
+      const clock = i / PER_SEC / FIXED_DT, step = Math.floor(clock);
+      blend.alpha = clock - step;
+      const s = step - 1 + blend.alpha;
+      if (!ended) swing.step = step;
+      if (contact && s >= contactAt && !hitStops.has(e)) {
+        hitStops.set(e, { ageMs: 0 });
+        ended = contact === "blocked";
+      } else {
+        const stop = hitStops.get(e);
+        if (stop) stop.ageMs += dt * 1000;
+      }
+      wielder.swing = !ended && step < swing.endAt ? swing : null;
+      if (firstPerson) restShoulders(p);
+      framePerson(p, ctx, node, world, e, dt, { ...playerDoing(wielder.swing ? "attack" : "none", 0, "lr"),
+        aim: { x: 0, z: 1 } }, { left: 0, of: 0 });
+      if (firstPerson) holdInView(p, view, 1, dt);
+      const grip = p.model!.joints["grip.R"].computeWorldMatrix(true);
+      frames.push({ s, grip: Vector3.TransformCoordinates(Vector3.Zero(), grip),
+        tip: Vector3.TransformCoordinates(new Vector3(0, BLADE_FROM_M + WEAPON_LOOKS.sword.blade.lengthM, 0), grip),
+        held: (hitStops.get(e)?.ageMs ?? Infinity) < HIT_STOP_MS });
+    }
+    scene.dispose();
+    return frames;
+  }
+
+  const moved = (a: { grip: Vector3; tip: Vector3 }, b: { grip: Vector3; tip: Vector3 }) =>
+    Math.max(Vector3.Distance(a.grip, b.grip), Vector3.Distance(a.tip, b.tip));
+
+  for (const firstPerson of [true, false]) {
+    for (const contact of ["hit", "blocked"] as const) {
+      test(`${firstPerson ? "first person" : "its body"}, a ${contact} swing`, () => {
+        const free = run(null, firstPerson), stopped = run(contact, firstPerson);
+        const fastest = Math.max(...free.slice(1).map((f, i) => moved(f, free[i]!)));
+        const held = stopped.flatMap((f, i) => f.held ? [i] : []);
+        assert.ok(held.length >= Math.floor((HIT_STOP_MS / 1000) * PER_SEC) - 1, `${held.length} frames held`);
+        for (const i of held.slice(1)) {
+          assert.ok(moved(stopped[i]!, stopped[i - 1]!) < 1e-6, `still at ${stopped[i]!.s.toFixed(2)}`);
+        }
+        for (let i = held[0]!; i < stopped.length; i++) {
+          const m = moved(stopped[i]!, stopped[i - 1]!);
+          assert.ok(m <= 3 * fastest, `${m.toFixed(3)} m in a frame at ${stopped[i]!.s.toFixed(2)}: a jump`);
+        }
+        if (contact === "hit") {
+          // The body's joints ease after the pose, so it's back in step a little later.
+          const after = held.at(-1)! + Math.ceil(((HIT_STOP_EASE_MS + (firstPerson ? 0 : 100)) / 1000) * PER_SEC) + 2;
+          assert.ok(moved(stopped[after]!, free[after]!) < (firstPerson ? 1e-6 : 0.002), "back in step with the fight");
+        }
+      });
+    }
+  }
 });

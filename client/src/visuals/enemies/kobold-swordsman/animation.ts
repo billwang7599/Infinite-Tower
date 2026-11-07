@@ -5,6 +5,8 @@ import {
 import { poseArm } from "../../battle/arm.js";
 import { BLADE_FROM_M, bladeEdge, cueBlade, dropCue, holdingOf, showCue, type BladeCue } from "../../battle/blade.js";
 import { fighter } from "../../battle/battle.js";
+import { heldSwing, swingHeld, type Swung } from "../../battle/impact.js";
+import type { ArenaScene } from "../../battle/scene.js";
 import { buildSlash, placeSlash, type Slash } from "../../battle/slash.js";
 import {
   MOTIONS, strokeOf, WEAPON_LOOKS, wayCut, type WeaponLook, type WeaponMotion,
@@ -22,9 +24,10 @@ const IDLE = { breathTime: 2.4, breathScale: 0.03, tailTime: 3.1, tailRad: 0.12 
 const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3(), gripAt = new Vector3();
 
 type KoboldNodes = KoboldModel & {
-  clock: number; blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion; look: WeaponLook | null;
-  cue: BladeCue | null;
+  ctx: ArenaScene; clock: number; blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion;
+  look: WeaponLook | null; cue: BladeCue | null;
   slash: Slash;
+  drawnSwing: Swung | null;
 };
 
 export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy", {
@@ -34,10 +37,10 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, look, wielder.armReachM, build);
     // Empty-handed, its hand still moves like a sword's.
     return {
-      ...model, clock: 0, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"],
-      look,
+      ...model, ctx, clock: 0, blade: new Quaternion(), handAt: null,
+      motion: MOTIONS[held ? WEAPONS[held].kind : "sword"], look,
       cue: look ? cueBlade(ctx.scene, model.swordArm.hand, look) : null,
-      slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx),
+      slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx), drawnSwing: null,
     };
   },
   dispose(nodes) {
@@ -55,14 +58,17 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.legs[0].rotation.x = Math.sin(nodes.gait) * amp;
     nodes.legs[1].rotation.x = -Math.sin(nodes.gait) * amp;
 
-    const swing = world.require(e, Wielder).swing;
+    const swing = world.require(e, Wielder).swing, stop = nodes.ctx.hitStops.get(e);
+    const shown = nodes.drawnSwing = heldSwing(stop, swing && { swing, step: swing.step }, nodes.drawnSwing);
+    const drawn = shown && { ...shown.swing, step: shown.step }, poseDt = swingHeld(stop) ? 0 : dt;
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
-    const cut = wayCut(swing?.way ?? "tb", true);
-    const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
-      swing ? strokeOf(swing) : null, nodes.motion.held(wayCut("tb", true)), swing?.attack === "heavy");
-    nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
-    nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
-    nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
+    const cut = wayCut(drawn?.way ?? "tb", true);
+    const state = health.hp <= 0 ? "dead" : drawn && !swing ? "weapon" : enemy.state;
+    const pose = koboldPose(state, t, k, cut, nodes.motion,
+      drawn ? strokeOf(drawn) : null, nodes.motion.held(wayCut("tb", true)), drawn?.attack === "heavy");
+    nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, poseDt);
+    nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, poseDt);
+    nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, poseDt);
     nodes.head.rotation.y = -nodes.chest.rotation.y * HEAD_COUNTER;
     nodes.clock += dt;
     nodes.tail.rotation.y = -nodes.hips.rotation.y * TAIL_TRAIL + Math.sin(nodes.gait) * amp * 0.4
@@ -73,18 +79,18 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const hand = nodes.swordArm.hand;
     holdingOf(pose.blade, pose.edge, nodes.blade);
     hand.rotationQuaternion ??= nodes.blade.clone();
-    Quaternion.SlerpToRef(hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, dt),
+    Quaternion.SlerpToRef(hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, poseDt),
       hand.rotationQuaternion);
     handTarget.set(pose.hand.x, pose.hand.y, pose.hand.z);
     nodes.handAt ??= handTarget.clone();
-    Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, dt), nodes.handAt);
+    Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, poseDt), nodes.handAt);
     offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.25);
     reachKobold(nodes, nodes.handAt, offTarget, nodes.look);
     const live = health.hp > 0 ? swing : null;
     if (nodes.cue) showCue(nodes.cue, live);
-    nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
-    nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);
-    nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, dt);
+    nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, poseDt);
+    nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, poseDt);
+    nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, poseDt);
 
     placeSlash(nodes.slash, nodes.motion.trail(live), nodes.look && bladeEdge(hand, nodes.look), dt);
 
