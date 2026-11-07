@@ -28,7 +28,7 @@ export function launchAt(from: Vec3, to: Vec3, speed: number, gravity: number): 
 }
 
 /** The share of `d` along which a step from `a` is first inside a fighter's upright cylinder; null if never. */
-function entersAt(a: Vec3, d: Vec3, body: BodyData, fighter: FighterData, radiusM: number): number | null {
+export function entersAt(a: Vec3, d: Vec3, body: BodyData, fighter: FighterData, radiusM: number): number | null {
   const fx = a.x - body.pos.x, fz = a.z - body.pos.z, r = fighter.radius + radiusM;
   const A = d.x * d.x + d.z * d.z, B = 2 * (fx * d.x + fz * d.z), C = fx * fx + fz * fz - r * r;
   let lo = 0, hi = 1;
@@ -52,7 +52,7 @@ function entersAt(a: Vec3, d: Vec3, body: BodyData, fighter: FighterData, radius
 }
 
 /** The share of `d` at which it reaches the floor (y = 0) or the arena's wall; past 1, neither this step. */
-function landsAt(a: Vec3, d: Vec3, wallM: number): number {
+export function landsAt(a: Vec3, d: Vec3, wallM: number): number {
   const floor = d.y < 0 ? Math.max(0, a.y / -d.y) : Infinity;
   const A = d.x * d.x + d.z * d.z, B = 2 * (a.x * d.x + a.z * d.z), C = a.x * a.x + a.z * a.z - wallM * wallM;
   const wall = C >= 0 ? 0 : A < EPS * EPS ? Infinity : (-B + Math.sqrt(B * B - 4 * A * C)) / (2 * A);

@@ -11,4 +11,5 @@ export {
 } from "./setup.js";
 export { chant, releaseChant, startCast } from "./skills/skilled.js";
 export { blocking } from "./weapons/defend.js";
+export { entersAt, landsAt } from "./weapons/projectile.js";
 export type { FightSnapshot } from "./state.js";

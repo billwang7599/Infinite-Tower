@@ -19,7 +19,7 @@ export interface BattleContext {
   polled: Polled;
   actions: Actions;
   settings: Settings;
-  /** The camera's orbit. Unlocked, its yaw is also the aim, and movement is camera-relative. */
+  /** The camera's orbit. Unlocked, movement is camera-relative and the aim goes where the screen's centre shows. */
   view: ArenaView;
   lock: Entity | null;
   /** The framing while locked on (V), for this session only. */

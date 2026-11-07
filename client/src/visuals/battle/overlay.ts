@@ -1,6 +1,7 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
-  Body, clamp, Health, Player, SCREEN_DIR, Skilled, Wielder, type SwingData, type SwingDir, type Vec3, type World,
+  Body, clamp, Health, Player, SCREEN_DIR, Skilled, Wielder, type PlayerAction, type PlayerData, type SwingData,
+  type SwingDir, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { LocalPlayer } from "../../modes/components.js";
 import { drawChantWords } from "./chantWords.js";
@@ -9,14 +10,16 @@ import type { ArenaScene } from "./scene.js";
 const WEDGES = 8;
 // Wedge 6 would be a swing from below: there is no upward swing.
 const SHOWN_WEDGES = [0, 1, 2, 3, 4, 5, 7];
-const RADIUS_M = 0.8;
-const WEDGE_LENGTH_M = 0.32;
-const WEDGE_THICK_M = 0.08;
-const STAB_SIZE_M = 0.08;
-const HEIGHT_M = 1.05;
-const DIM = "rgba(255, 255, 255, 0.3)";
-const GOLD = "rgba(232, 196, 90, 0.95)";
-const EDGE = "rgba(11, 13, 26, 0.5)";
+// In the HUD's CSS pixels. The ring's centre sits clear above the foe's bar and its statuses (BossBar, ~110 px up).
+export const AIM_HUD = {
+  ringAboveBottomPx: 160, ringRadiusPx: 30, wedgeLengthPx: 11, wedgeThickPx: 3, stabPx: 4, crossGapPx: 3,
+  crossArmPx: 5, crossThickPx: 1.5,
+};
+const AIMING: readonly PlayerAction[] = ["draw", "loose", "chant", "cast", "beam"];
+const DIM = "rgba(255, 255, 255, 0.28)";
+const GOLD = "rgba(232, 196, 90, 0.9)";
+const CROSS = "rgba(255, 255, 255, 0.85)";
+const EDGE = "rgba(11, 13, 26, 0.45)";
 const MARKER_GAP_M = 0.5;
 const MARKER_SPIN_RAD_PER_SEC = 2.5;
 const MARKER_WAIST_M = 0.17;
@@ -35,6 +38,21 @@ export interface RingLights { lit: number; stab: boolean }
 export function ringLights(way: SwingDir, swing: SwingData | null): RingLights {
   return { lit: wedgeOf(way), stab: swing !== null && swing.way === "stab" && swing.step < swing.liveAt };
 }
+
+export interface AimHud { ring: RingLights | null; crosshair: boolean }
+
+export function aimHud(
+  player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
+): AimHud {
+  if (hp <= 0 || !fighting) return { ring: null, crosshair: false };
+  return { ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action) };
+}
+
+export const aimLayout = (widthPx: number, heightPx: number, scale: number) => ({
+  ring: { x: widthPx / 2, y: heightPx - AIM_HUD.ringAboveBottomPx * scale },
+  crosshair: { x: widthPx / 2, y: heightPx / 2 },
+  scale,
+});
 
 export interface ScreenPoint { x: number; y: number; pxPerM: number }
 
@@ -77,39 +95,53 @@ export function arenaOverlay(
         if (skilled.chanting && node && !world.has(e, LocalPlayer)) drawChantWords(g, project, skilled, node.position);
       }
       drawMarker(g, ctx, world, project, spinRad);
-      drawRing(g, ctx, world, project);
+      drawAim(g, ctx, world, widthPx, heightPx);
     },
   };
 }
 
-function drawRing(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, project: Project): void {
-  const me = world.first(LocalPlayer, Player, Wielder, Body, Health), node = me && ctx.nodes.get(me[0]);
-  if (!me || !node || me[2].way === null || me[5].hp <= 0 || ctx.battle.outcome.state !== "fighting") return;
-  const at = project({ x: node.position.x, y: node.position.y - me[4].centerHeight + HEIGHT_M, z: node.position.z });
-  if (!at) return;
-  const lights = ringLights(ctx.battle.way, me[3].swing), s = at.pxPerM;
+function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, widthPx: number, heightPx: number): void {
+  const me = world.first(LocalPlayer, Player, Wielder, Health);
+  if (!me) return;
+  const fighting = ctx.battle.outcome.state === "fighting";
+  const { ring, crosshair } = aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting);
+  const { ring: { x, y }, crosshair: centre, scale: s } = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
   g.strokeStyle = EDGE;
-  g.lineWidth = devicePixelRatio;
-  for (const i of SHOWN_WEDGES) {
-    const a = (i * 2 * Math.PI) / WEDGES;
-    g.setTransform(1, 0, 0, 1, at.x + Math.cos(a) * RADIUS_M * s, at.y - Math.sin(a) * RADIUS_M * s);
-    g.rotate(-a);
-    g.fillStyle = i === lights.lit ? GOLD : DIM;
+  g.lineWidth = s;
+  if (ring) {
+    for (const i of SHOWN_WEDGES) {
+      const a = (i * 2 * Math.PI) / WEDGES;
+      g.setTransform(1, 0, 0, 1, x + Math.cos(a) * H.ringRadiusPx * s, y - Math.sin(a) * H.ringRadiusPx * s);
+      g.rotate(-a);
+      g.fillStyle = i === ring.lit ? GOLD : DIM;
+      g.beginPath();
+      g.rect((-H.wedgeThickPx * s) / 2, (-H.wedgeLengthPx * s) / 2, H.wedgeThickPx * s, H.wedgeLengthPx * s);
+      g.fill();
+      g.stroke();
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  if (ring?.stab) {
+    const r = H.stabPx * s;
+    g.fillStyle = GOLD;
     g.beginPath();
-    g.rect((-WEDGE_THICK_M * s) / 2, (-WEDGE_LENGTH_M * s) / 2, WEDGE_THICK_M * s, WEDGE_LENGTH_M * s);
+    g.moveTo(x + r, y);
+    g.lineTo(x, y - r);
+    g.lineTo(x - r, y);
+    g.lineTo(x, y + r);
+    g.closePath();
     g.fill();
     g.stroke();
   }
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  if (!lights.stab) return;
-  const r = STAB_SIZE_M * s;
-  g.fillStyle = GOLD;
+  if (!crosshair) return;
+  const gap = H.crossGapPx * s, arm = H.crossArmPx * s, thick = H.crossThickPx * s;
+  g.fillStyle = CROSS;
   g.beginPath();
-  g.moveTo(at.x + r, at.y);
-  g.lineTo(at.x, at.y - r);
-  g.lineTo(at.x - r, at.y);
-  g.lineTo(at.x, at.y + r);
-  g.closePath();
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    const w = dx === 0 ? thick : arm, h = dx === 0 ? arm : thick;
+    g.rect(centre.x + dx * (gap + arm / 2) - w / 2, centre.y + dy * (gap + arm / 2) - h / 2, w, h);
+  }
+  g.rect(centre.x - thick / 2, centre.y - thick / 2, thick, thick);
   g.fill();
   g.stroke();
 }

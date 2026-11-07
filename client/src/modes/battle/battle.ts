@@ -1,5 +1,5 @@
 import {
-  Body, copyInput, IDLE_INPUT, Player, sameSkill, type ServerMsgOf, type Skill,
+  Body, copyInput, Fighter, IDLE_INPUT, Player, sameSkill, type ServerMsgOf, type Skill,
   type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
@@ -13,7 +13,7 @@ import type { Store } from "../../ui/store.js";
 import { arenaCamera, CAMERA, cameraTuning, nextLockedView } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
-import { pickedWay, readPlayerInput } from "./input.js";
+import { crosshairAim, pickedWay, readPlayerInput } from "./input.js";
 import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
@@ -91,7 +91,11 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.lockedView = nextLockedView(ctx.lockedView, ctx.polled.pressed, ctx.lock !== null, action === "dodge");
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
-    readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, ctx.way, input);
+    const yaw = (target && lockYaw(me, target)) ?? ctx.view.yaw;
+    const { world } = fight;
+    const aimed = foes.map(({ e }) => ({ body: world.require(e, Body), fighter: world.require(e, Fighter) }));
+    const aim = target ? null : crosshairAim(ctx.view.eye, ctx.view.at, me, aimed, fight.arena.radius);
+    readPlayerInput(ctx.polled, yaw, ctx.way, input, aim);
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {
       const page = book[i];

@@ -187,10 +187,12 @@ Decided by the user:
     builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
   - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
     by its own chances. The boar and the Goblin Warlock just keep working. The 3D player blade follows the ways.
-  - A ring round you shows your aim all the time, For Honor style (the user: "it should bring back the ring (with the
+  - A ring shows your aim all the time, For Honor style (the user: "it should bring back the ring (with the
     bottom ring missing) to consistently show what stance we're using. not just the indication on attack. similar to
-    for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. Only you see yours;
-    enemies and other players get no ring, and their swings no marker.
+    for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. It's HUD, small at the
+    bottom centre of the screen, above the foe's bar, and the same in every camera view (the user: "attack position
+    should be the hud, so that its not hidden per view or whatever"; then the bottom centre, not the middle). Only you
+    see yours; enemies and other players get no ring, and their swings no marker.
   - Another's swing is read off its weapon (the user picked the weapon cue: "we need to make sure our models and
     animations clearly show the sword swing"): its blade drawn back on the side the swing comes from (each of the 7
     ways, and a stab's hand drawn back with the blade level), further for a heavy; a glint at the blade's tip just
@@ -273,6 +275,9 @@ Decided by the user:
   reaction); the boar doesn't. The wind-up, slower walking while winding up and the stamina cost keep skills from being
   spammed. The numbers (`followTurnRadPerSec` in `SKILL_EFFECTS`, the Kobold's `sidestep` in
   `server/src/core/enemies/kobold-swordsman.ts`) are the agent's picks, to tune.
+- A small crosshair at the screen's centre while you aim (the user: "there should be a small crosshair on the screen
+  when aiming (whether it be spells or bow and arrow)"): a bow drawn, a skill chanted, cast or streamed. Unlocked,
+  arrows and skills go the crosshair's way; locked on, they go at the target.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). Everyone
   has a very small base bag, and a backpack adds a grid of its own (the user: "the player has some base inventory
@@ -663,11 +668,17 @@ them; treat them as changeable, and still ask before deciding new ones):
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the
     old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
-  - The aim ring: 7 faint wedges 0.8 m round the chest, the aimed one gold, over everything, and a gold diamond on the
-    chest while a stab winds up; hidden with no sword in hand, once you're down and once the fight is decided
-    (`client/src/visuals/battle/overlay.ts`). It, the lock-on diamond and other fighters' chant words are HUD: drawn
-    sharp at full resolution over the pixel art, not pixelated (the user: "the indication should be part of the hud
-    (shouldnt be pixelated)").
+  - The aim ring: 7 faint wedges 30 px (the HUD's CSS pixels) round a point 160 px above the screen's bottom middle,
+    clear of the foe's bar and its statuses, the aimed one gold, and a gold diamond in its middle while a stab winds
+    up; hidden with no sword in hand, once you're down and once the fight is decided. The crosshair is a small white
+    cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any Form)
+    or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`). Unlocked,
+    the aim is the level way from you to the first foe, the floor or the wall on the screen's centre line
+    (`crosshairAim` in `client/src/modes/battle/input.ts`), so with a camera off to the side a shot still crosses the
+    centre line at what the crosshair shows (a foe under it is hit); nearer than 1 m ahead, it's the camera's way.
+    Both, the lock-on diamond and other fighters' chant words are HUD: drawn sharp at full resolution over the pixel
+    art, not pixelated (the user: "the indication should be part of the hud (shouldnt be pixelated)"); the diamond and
+    the words stay over who they mark.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -827,8 +838,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   only: the other hand isn't locked out) and the Arrow (1 x 1, stacks of 20, weight 0.05) come only from the admin
   panel's give: no shop, drop or quest has them. With a bow in hand the light attack, held, draws it (8 stamina as it
   starts, walking at half speed, no block; a dodge breaks it off and keeps the arrow), and let go looses one arrow
-  from the bag at the lock-on target, in the low arc that reaches it, or level where you face; a release before 0.25 s
-  looses at 0.25 s. The damage grows with the draw, from 30% at once to the bow's whole damage at 1 s, and heft
+  from the bag at the lock-on target, in the low arc that reaches it, or level the crosshair's way; a release before
+  0.25 s looses at 0.25 s. The damage grows with the draw, from 30% at once to the bow's whole damage at 1 s, and heft
   stretches the draw and its cost as it does a swing's. The heavy and the stab do nothing with a bow. An arrow flies
   at 30 m/s, falling at 9.8 m/s², for at most 3 s, and lands on the first foe in its way (poise 10) unless it's
   dodging or in hurt invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina)
