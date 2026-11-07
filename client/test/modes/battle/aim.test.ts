@@ -139,21 +139,21 @@ describe("the player's aim", () => {
   const view = { yaw: 0.3, pitch: 0.2, fovRad: 1, eye, at };
   const target = foeAt(3, 0, 1.8, 7);
 
-  test("locked on (the camera the lock's, or panned): at the target, level, the fight told; walking toward it", () => {
-    for (const freed of [null, "pan"] as const) {
-      const got = playerAim({ lock: 7, freeCamera: freed, view }, [target], me, 20);
-      assert.ok(near(got.walkYaw, Math.PI / 2), `${got.walkYaw}`);
-      nearWay(got.aim, way(1, 0));
-      nearSpot(got.aim.at, { x: Math.sqrt(400 - me.z * me.z), y: me.y, z: me.z });
-      assert.equal(got.locked, 7);
-    }
+  test("locked on (the camera the lock's): at the target, level, the fight told; walking toward it", () => {
+    const got = playerAim({ lock: 7, freeCamera: null, view }, [target], me, 20);
+    assert.ok(near(got.walkYaw, Math.PI / 2), `${got.walkYaw}`);
+    nearWay(got.aim, way(1, 0));
+    nearSpot(got.aim.at, { x: Math.sqrt(400 - me.z * me.z), y: me.y, z: me.z });
+    assert.equal(got.locked, 7);
   });
 
-  test("aiming, the crosshair's way and spot with the lock kept from the fight; walking by the camera", () => {
-    const got = playerAim({ lock: 7, freeCamera: "aim", view }, [target], me, 20);
-    assert.equal(got.walkYaw, view.yaw);
-    assert.deepEqual(got.aim, crosshairAim(eye, at, me, [target], 20));
-    assert.equal(got.locked, null);
+  test("aiming or panned: the crosshair's way and spot, the lock kept from the fight; walking by the camera", () => {
+    for (const freed of ["aim", "pan"] as const) {
+      const got = playerAim({ lock: 7, freeCamera: freed, view }, [target], me, 20);
+      assert.equal(got.walkYaw, view.yaw, freed);
+      assert.deepEqual(got.aim, crosshairAim(eye, at, me, [target], 20), freed);
+      assert.equal(got.locked, null, freed);
+    }
   });
 
   test("with no target, the crosshair; where it shows nothing ahead, the camera's way, level to the wall", () => {

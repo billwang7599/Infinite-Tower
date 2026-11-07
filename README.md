@@ -106,7 +106,8 @@ What's built so far:
   from the start or a click with Auto mouse lock off; menus and panels let it go, with the game's own pointer, and Esc
   opens Settings). Every key can be rebound in Settings. In a fight (always locked on, starting in
   first person): WASD move, Q switches to the enemy nearest the screen's middle, Right Shift to the closest, the
-  arrows or a middle- or right-button drag pan the camera (let go, it snaps to the enemy in view nearest the middle),
+  arrows or a middle- or right-button drag pan the camera (you walk and attack where it looks; let go, it snaps to
+  the enemy in view nearest the middle),
   a drawn bow or a skill cast aims with the mouse, the wheel zooms it into first person and out, V steps through the
   shoulder, close and first-person views, Space jumps, F dodges; a quick flick of the mouse aims, a left click is a
   light attack and a right click (not a drag) a heavy one, the back side button or K stabs, and Left Shift blocks.
