@@ -271,7 +271,7 @@ describe("a kobold raises its guard while its block is up", () => {
   });
 
   test("a weaker kobold's guard rises slower, its blade felt heavier", () => {
-    assert.ok(halfway(kobolds[0], BASE_STATS.strength / 2) > halfway(kobolds[0]) + 0.01);
+    assert.ok(halfway(kobolds[0], BASE_STATS.strength / 5) > halfway(kobolds[0]) + 0.01);
   });
 });
 

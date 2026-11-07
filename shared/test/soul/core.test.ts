@@ -23,9 +23,9 @@ describe("the ladder", () => {
     assert.deepEqual(newCore(), { steps: 0, fill: 0, points: {}, inscriptions: [] });
   });
 
-  test("the first step takes the first fill, and each step's fill doubles every few steps", () => {
+  test("the first step takes the first fill, and each step's fill grows", () => {
     assert.equal(fillToFinish(1), CORE.firstFill);
-    assert.equal(fillToFinish(1 + CORE.fillDoublingSteps), 2 * CORE.firstFill);
+    assert.equal(fillToFinish(2), Math.round(CORE.killGrowth * CORE.firstFill));
     for (let n = 2; n <= CORE_STEPS; n++) assert.ok(fillToFinish(n) > fillToFinish(n - 1), `step ${n}`);
     assert.ok(Number.isInteger(fillToFinish(2)));
   });

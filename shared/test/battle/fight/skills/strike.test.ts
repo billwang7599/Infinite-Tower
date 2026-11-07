@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   applyStatus, Body, damageTotal, dodgeCost, ELEMENTS, Enemy, Health, maxStacksOf, SKILL_EFFECTS, PLAYER, stacksOf,
-  Stamina, STATUS_DEFS, Statuses, statusOn, strikeDamage, timeLeft, WEAPONS, type EnemyDef, type SkillElement,
-  type StatusData, type Vec3,
+  Stamina, STAT_POWERS, STATUS_DEFS, Statuses, statusOn, strikeDamage, timeLeft, WEAPONS, type EnemyDef,
+  type SkillElement, type StatusData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -53,10 +53,10 @@ describe("each element", () => {
     });
   }
 
-  test("D grows with skillpower, by its square root", () => {
+  test("D grows with skillpower, by damage's power", () => {
     const fight = fightWith([NEAR], STATUE, STATS.skillpower * 4);
     nova(fight, "fire");
-    close(hitFor(fight, 0), E.fire.damage * D * 2);
+    close(hitFor(fight, 0), E.fire.damage * D * 4 ** STAT_POWERS.damage);
   });
 
   test("each element is its own damage type: an enemy resisting one takes less of it only", () => {

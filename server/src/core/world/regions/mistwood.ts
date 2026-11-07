@@ -53,6 +53,7 @@ export const MISTWOOD: RegionDef = {
   spawn: { x: -18, z: 0 },
   arenaId: WARLOCK_MIRE_ARENA.id,
   duelArenaId: KOBOLD_RUINS_ARENA.id,
+  enemySteps: 1,
   spawns: [
     { enemy: "wild-boar", at: { x: -8, z: 12.5 }, respawnTime: 8 },
     { enemy: "wild-boar", at: { x: -4, z: -14.5 }, respawnTime: 8 },

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  appliedStrength, AVERAGE_STAT, Body, CHAIN, damageTotal, emptyBag, packFor, FIXED_DT, GUARDS, guardOf,
-  guardRaiseTime, Health, HYBRID, knockbackTakenFactor, perfectBlockTime, Player, PLAYER, Stamina,
-  strikeCost, strikeDamage, toSteps, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData,
-  type Stats, type Weapon,
+  appliedStrength, AVERAGE_STAT, blockStaminaShare, Body, CHAIN, damageTotal, emptyBag, packFor, FIXED_DT, GUARDS,
+  guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor, perfectBlockTime, Player, PLAYER, Stamina, strikeCost,
+  strikeDamage, toSteps, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats,
+  type Weapon,
 } from "@infinite-tower/shared";
 import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS, armed } from "../fixtures.js";
@@ -309,21 +309,22 @@ describe("the guard: a shield, one blade, two blades", () => {
     });
   }
 
-  test("one blade in both hands costs 1 / TWO_HAND_STRENGTH_FACTOR the stamina, with one blade's chip", () => {
+  test("one blade in both hands costs less stamina, as a stronger blocker's, with one blade's chip", () => {
     const fight = withHands("sword", null);
     assert.ok(blockedHit(fight));
     close(FULL_HP - hp(fight, 1), SWORD * GUARDS.one.chipFraction, "chip");
     const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * HOLD_STEPS * FIXED_DT;
-    assert.ok(Math.abs(spent - SWORD * GUARDS.one.staminaFactor / TWO_HAND_STRENGTH_FACTOR) < 0.5, `${spent}`);
+    const want = SWORD * blockStaminaShare(GUARDS.one, STATS.strength * TWO_HAND_STRENGTH_FACTOR);
+    assert.ok(Math.abs(spent - want) < 0.5, `${spent} vs ${want}`);
   });
 
-  test("a stronger blocker spends less stamina, by AVERAGE_STAT / strength", () => {
+  test("a stronger blocker spends less stamina, by its block share", () => {
     for (const strength of [STATS.strength * 2, STATS.strength / 2]) {
       const fight = withHands("sword", "skillbook", { strength });
       const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword, strength)));
       assert.ok(blockedHit(fight, holdFrom(hitAt - hold)), `${strength}`);
       const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * hold * FIXED_DT;
-      const want = SWORD * GUARDS.one.staminaFactor * AVERAGE_STAT / strength;
+      const want = SWORD * blockStaminaShare(GUARDS.one, strength);
       assert.ok(Math.abs(spent - want) < 0.5, `${strength}: ${spent} vs ${want}`);
     }
   });

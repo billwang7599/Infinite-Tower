@@ -41,12 +41,11 @@ function masher(fight: Fight): PlayerInputData {
 }
 
 describe("the chicken", () => {
-  test("falls to the third light swing of the old stick, held in one hand or in both", () => {
+  test("falls to the third light swing of the old stick in one hand, sooner held in both", () => {
     const oneHand: Hands = { rightHand: "old-stick", leftHand: "skillbook" };
-    for (const held of [oneHand, { ...oneHand, leftHand: null }]) {
-      const hit = lightOnIt(held);
-      assert.ok(2 * hit < CHICKEN.maxHp && CHICKEN.maxHp <= 3 * hit, `${hit} a hit against ${CHICKEN.maxHp} HP`);
-    }
+    const hit = lightOnIt(oneHand), bothHands = lightOnIt({ ...oneHand, leftHand: null });
+    assert.ok(2 * hit < CHICKEN.maxHp && CHICKEN.maxHp <= 3 * hit, `${hit} a hit against ${CHICKEN.maxHp} HP`);
+    assert.ok(bothHands > hit && CHICKEN.maxHp <= 3 * bothHands);
   });
 
   test("pecks for a sliver of a fresh avatar's HP, far less than a boar bites", () => {

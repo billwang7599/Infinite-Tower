@@ -19,32 +19,37 @@ export type Stats = Record<Stat, number>;
 export const AVERAGE_STAT = 10;
 export const BASE_STATS: Stats = Object.fromEntries(STAT_KEYS.map((stat) => [stat, AVERAGE_STAT])) as Stats;
 
-export const HP_PER_VITALITY = 10;
-export const STAMINA_PER_POINT = 10;
-/** Damage taken × (DEFENSE_OFFSET + 10) / (DEFENSE_OFFSET + defense), so it never reaches 0. */
-export const DEFENSE_OFFSET = 40;
-/** HP a second = vitality × health regen / this. */
-export const HP_REGEN_DIVISOR = 200;
+export const BASE_HP = 100;
+export const BASE_STAMINA = 100;
+// Each effect goes × (stat / 10)^power. Damage's power is the bars' plus defense's, so equal stats take as many
+// hits at every step.
+export const STAT_POWERS = {
+  damage: 1, bar: 0.5, defense: 0.5, blockStamina: 0.5, toughness: 0.5, staminaRecovery: 0.5, move: 0.25, carry: 0.25,
+} as const;
+export const HP_REGEN_SHARE_PER_SEC = 0.005;
 export const HP_REGEN_PAUSE_TIME = 5;
 /** In item weight (items/items.ts). */
 export const CARRY_LIMIT_AT_AVERAGE = 60;
 export const KNOCKBACK_TAKEN = { strengthPower: 0.25, steadinessPower: 0.5, min: 0.25, max: 2 } as const;
 
+export const statFactor = (stat: number, power: keyof typeof STAT_POWERS): number =>
+  (stat / AVERAGE_STAT) ** STAT_POWERS[power];
 const ratio = (stat: number): number => stat / AVERAGE_STAT;
-const takenFactor = (defense: number): number => (DEFENSE_OFFSET + AVERAGE_STAT) / (DEFENSE_OFFSET + defense);
 
-export const physicalDamage = (base: number, stats: Stats): number => base * Math.sqrt(ratio(stats.strength));
-export const skillDamage = (base: number, stats: Stats): number => base * Math.sqrt(ratio(stats.skillpower));
-export const moveSpeed = (base: number, stats: Stats): number => base * ratio(stats.agility) ** 0.25;
-export const maxHpOf = (stats: Stats): number => HP_PER_VITALITY * stats.vitality;
-export const staminaMaxOf = (stats: Stats): number => STAMINA_PER_POINT * stats.stamina;
-export const physicalTakenFactor = (stats: Stats): number => takenFactor(stats.defense);
-export const skillTakenFactor = (stats: Stats): number => takenFactor(stats.specialDefense);
-export const stunTime = (time: number, stats: Stats): number => time / ratio(stats.toughness);
+export const physicalDamage = (base: number, stats: Stats): number => base * statFactor(stats.strength, "damage");
+export const skillDamage = (base: number, stats: Stats): number => base * statFactor(stats.skillpower, "damage");
+export const moveSpeed = (base: number, stats: Stats): number => base * statFactor(stats.agility, "move");
+/** `base`: an enemy's own HP at vitality 10. */
+export const maxHpOf = (stats: Stats, base = BASE_HP): number => Math.round(base * statFactor(stats.vitality, "bar"));
+export const staminaMaxOf = (stats: Stats): number => Math.round(BASE_STAMINA * statFactor(stats.stamina, "bar"));
+export const physicalTakenFactor = (stats: Stats): number => 1 / statFactor(stats.defense, "defense");
+export const skillTakenFactor = (stats: Stats): number => 1 / statFactor(stats.specialDefense, "defense");
+export const stunTime = (time: number, stats: Stats): number => time / statFactor(stats.toughness, "toughness");
 export const staminaRegenPerSec = (stats: Stats, regenFactor: number): number =>
-  PLAYER.staminaRegenPerSec * ratio(stats.staminaRecovery) * regenFactor;
-export const hpRegenPerSec = (stats: Stats): number => (stats.vitality * stats.healthRegen) / HP_REGEN_DIVISOR;
-export const carryLimit = (stats: Stats): number => CARRY_LIMIT_AT_AVERAGE * ratio(stats.strength) ** 0.25;
+  PLAYER.staminaRegenPerSec * statFactor(stats.staminaRecovery, "staminaRecovery") * regenFactor;
+export const hpRegenPerSec = (stats: Stats): number =>
+  maxHpOf(stats) * ratio(stats.healthRegen) * HP_REGEN_SHARE_PER_SEC;
+export const carryLimit = (stats: Stats): number => CARRY_LIMIT_AT_AVERAGE * statFactor(stats.strength, "carry");
 export const knockbackTakenFactor = (stats: Stats): number => {
   const { strengthPower, steadinessPower, min, max } = KNOCKBACK_TAKEN;
   return clamp(1 / (ratio(stats.strength) ** strengthPower * ratio(stats.steadiness) ** steadinessPower), min, max);

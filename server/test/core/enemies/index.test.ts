@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ENEMY_IDS, gripOf, itemDef, ITEMS, UNIQUE_ITEMS, type EnemyId, type ItemEffect, type ItemId,
+  CORE_STEPS, coreStats, damageTotal, ENEMY_IDS, essenceFactor, gripOf, grownStats, itemDef, ITEMS, maxHpOf, newCore,
+  physicalTakenFactor, STEP_NAMES, strikeDamage, UNIQUE_ITEMS, WEAPONS, type EnemyId, type ItemEffect, type ItemId,
 } from "@infinite-tower/shared";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
-import { ENEMIES, rollDrops, TREASURE, TREASURE_TIERS } from "../../../src/core/enemies/index.js";
+import { ENEMIES, enemyAt, rollDrops, TREASURE, TREASURE_TIERS } from "../../../src/core/enemies/index.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
 import { testOverworld } from "../overworld/helpers.js";
@@ -150,6 +151,36 @@ describe("ENEMIES", () => {
       const e = spawnActor(f.world, enemy.def.id, { x: 0, z: 0 }, enemy.overworld());
       touchSystem(f.ctx)(f.world, 0.1);
       assert.deepEqual(f.encounters, [{ player: f.player, source: e, enemy: id }]);
+    }
+  });
+});
+
+describe("enemies grown by core steps", () => {
+  test("at 0 steps an enemy is its own def", () => {
+    for (const id of ENEMY_IDS) assert.deepEqual(enemyAt(id, 0), ENEMIES[id].def, id);
+  });
+
+  test("grown, it has a core's gains on its own stats and HP by its vitality, as a player's", () => {
+    const { def } = ENEMIES["kobold-swordsman"], grown = enemyAt("kobold-swordsman", 7);
+    assert.deepEqual(grown.stats, grownStats(def.stats, 7));
+    assert.equal(grown.maxHp, maxHpOf(grown.stats, def.maxHp));
+    assert.ok(grown.maxHp > def.maxHp);
+    assert.equal(grown.steps, 7);
+  });
+
+  test("it drops its realm's share of essence, and its other drops as ever", () => {
+    const steps = 2 * STEP_NAMES.length, drops = rollDrops("wild-boar", () => 0, NONE_FREE, steps);
+    assert.equal(drops["boar-essence"], essenceFactor(steps));
+    assert.equal(drops["boar-meat"], rollDrops("wild-boar", () => 0, NONE_FREE)["boar-meat"]);
+  });
+
+  test("an equal-step player kills a Kobold Swordsman in about as many Basic Sword lights at every step", () => {
+    const hits = (steps: number) => {
+      const foe = enemyAt("kobold-swordsman", steps), me = coreStats({ ...newCore(), steps });
+      return foe.maxHp / (damageTotal(strikeDamage(WEAPONS.sword, "light", 1, me)) * physicalTakenFactor(foe.stats));
+    };
+    for (let steps = 1; steps <= CORE_STEPS; steps++) {
+      assert.ok(Math.abs(hits(steps) / hits(0) - 1) <= 0.1, `step ${steps}: ${hits(steps)} vs ${hits(0)}`);
     }
   });
 });

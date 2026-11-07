@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, ActiveHit, damageTotal, Health, strikeDamage, TWO_HAND_STRENGTH_FACTOR, wayShape, WEAPONS,
+  FIXED_DT, ActiveHit, damageTotal, Health, STAT_POWERS, strikeDamage, TWO_HAND_STRENGTH_FACTOR, wayShape, WEAPONS,
   Wielder, type EnemyDef, type WeaponId,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -75,11 +75,12 @@ describe("an enemy wielding a weapon", () => {
     }
   });
 
-  test("a lone blade in both hands hits √TWO_HAND_STRENGTH_FACTOR as hard", () => {
+  test("a lone blade in both hands hits harder by the grip's strength", () => {
     for (const item of ["sword", "kobold-blade"] satisfies WeaponId[]) {
       const one = firstHit(holding({ rightHand: item, leftHand: "skillbook" })).dealt;
       const two = firstHit(holding({ rightHand: item })).dealt;
-      assert.ok(Math.abs(two - one * Math.sqrt(TWO_HAND_STRENGTH_FACTOR)) < 1e-9, `${item}: ${one} then ${two}`);
+      const want = one * TWO_HAND_STRENGTH_FACTOR ** STAT_POWERS.damage;
+      assert.ok(Math.abs(two - want) < 1e-9, `${item}: ${one} then ${two}`);
     }
   });
 

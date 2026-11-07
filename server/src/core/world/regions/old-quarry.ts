@@ -49,6 +49,7 @@ export const OLD_QUARRY: RegionDef = {
   spawn: { x: 3, z: -13 },
   arenaId: QUARRY_ARENA.id,
   duelArenaId: QUARRY_ARENA.id,
+  enemySteps: 2,
   spawns: [
     { enemy: "kobold-swordsman", at: { x: 17.5, z: -0.5 }, respawnTime: 15 },
     { enemy: "kobold-swordsman", at: { x: -5.5, z: -3.5 }, respawnTime: 15 },

@@ -74,7 +74,7 @@ export function composeWorld(defs: readonly RegionDef[], patches: readonly Patch
     const spawn = toWorld(d.origin, d.spawn);
     return {
       ...labels[i]!, spawn, campfires: d.campfires.map((c) => toWorld(d.origin, c)), arenaId: d.arenaId,
-      duelArenaId: d.duelArenaId, grass: d.grass, priceFactor: d.priceFactor ?? 1,
+      duelArenaId: d.duelArenaId, grass: d.grass, priceFactor: d.priceFactor ?? 1, enemySteps: d.enemySteps ?? 0,
       spawns: d.spawns.map((s) => ({
         ...s, at: toWorld(d.origin, s.at), away: toWorld(d.origin, { x: -s.at.x, z: s.at.z }),
       })),

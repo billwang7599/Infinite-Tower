@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, feltHeft, ITEMS, WEAPON_KINDS, weaponDamage,
-  weaponIn, weaponItemIn, WEAPONS, type Damage, type Weapon,
+  AVERAGE_STAT, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, FELT_HEFT_FLOOR, feltHeft, ITEMS, strengthHeftFactor,
+  WEAPON_KINDS, weaponDamage, weaponIn, weaponItemIn, WEAPONS, type Damage, type Weapon,
 } from "@infinite-tower/shared";
 
 const swingOf = (damage: Damage) => damage.slash + damage.blunt;
@@ -37,17 +37,29 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Basic Sword is the measure: felt 1 at average strength, 2 at a quarter of it, half at 4 times", () => {
+  test("the Basic Sword is the measure: felt 1 at average strength, by strength's factor otherwise", () => {
     assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT), 1);
-    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT / 4), 2);
-    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT * 4), 0.5);
+    for (const strength of [AVERAGE_STAT / 4, AVERAGE_STAT * 4]) {
+      assert.equal(feltHeft(WEAPONS.sword, strength), strengthHeftFactor(strength));
+    }
   });
 
-  test("one rule for every weapon and guard: heft over the Basic Sword's, × √(10 / strength)", () => {
+  test("strength lightens a weapon a little, ever less, never under the floor; weakness makes it heavier", () => {
+    let last = Infinity;
+    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, 20, 40, 80, 1000, 1e9]) {
+      const factor = strengthHeftFactor(strength);
+      assert.ok(factor < last && factor > FELT_HEFT_FLOOR, `${strength}: ${factor}`);
+      last = factor;
+    }
+    assert.ok(strengthHeftFactor(AVERAGE_STAT / 2) > 1);
+    assert.ok(strengthHeftFactor(1e9) - FELT_HEFT_FLOOR < 1e-6);
+  });
+
+  test("one rule for every weapon and guard: heft over the Basic Sword's, × strength's factor", () => {
     const guards = [...Object.values(WEAPONS), ITEMS["wooden-shield"].shield];
     for (const guard of guards) {
       for (const strength of [1, AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
-        const want = (guard.heft / WEAPONS.sword.heft) * Math.sqrt(AVERAGE_STAT / strength);
+        const want = (guard.heft / WEAPONS.sword.heft) * strengthHeftFactor(strength);
         assert.ok(Math.abs(feltHeft(guard, strength) - want) < 1e-9, `${guard.heft} ${strength}`);
       }
     }

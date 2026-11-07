@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   AVERAGE_STAT, BASE_STATS, CHAIN, chainKind, DAMAGE_TYPES, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay,
-  physicalDamage, strikeCost, strikeDamage, STRIKES, SWING_DIRS, toSteps, wayShape, wayStepsAfter, weaponDamage,
-  WEAPONS, WAYS, windupTime, type ChainKind, type Weapon,
+  physicalDamage, strengthHeftFactor, strikeCost, strikeDamage, STRIKES, SWING_DIRS, toSteps, wayShape, wayStepsAfter,
+  weaponDamage, WEAPONS, WAYS, windupTime, type ChainKind, type Weapon,
 } from "@infinite-tower/shared";
 
 const KINDS: readonly ChainKind[] = ["opening", "reverse", "perpendicular", "other"];
@@ -71,8 +71,9 @@ describe("the sword's ways", () => {
     assert.equal(light.endAt - light.liveUntil, toSteps(CHAIN.recoverTime));
   });
 
-  test("the Basic Sword's times and costs double at a quarter of the strength and halve at 4 times it, floored", () => {
-    for (const [strength, factor] of [[AVERAGE_STAT, 1], [AVERAGE_STAT / 4, 2], [AVERAGE_STAT * 4, 0.5]] as const) {
+  test("the Basic Sword's times and costs go × strength's factor, wind-ups floored", () => {
+    for (const strength of [AVERAGE_STAT, AVERAGE_STAT / 4, AVERAGE_STAT * 4]) {
+      const factor = strengthHeftFactor(strength);
       for (const strike of STRIKES) {
         const heavy = strike === "heavy", live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
         const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
@@ -141,11 +142,12 @@ describe("the sword's ways", () => {
     assert.equal(strikeCost(WEAPONS.sword, "light", AVERAGE_STAT), HYBRID.light.cost);
   });
 
-  test("a stronger wielder swings any weapon sooner and for less stamina; a weaker one later and for more", () => {
+  test("a stronger wielder swings no later and for less stamina; a weaker one no sooner and for more", () => {
     for (const weapon of ["greatsword", "sword", "old-stick"] as const) {
       const steps = (strength: number) => wayStepsAfter(WEAPONS[weapon], CHAIN.startupTime.opening, false, strength);
       const weak = steps(AVERAGE_STAT / 4), average = steps(AVERAGE_STAT), strong = steps(AVERAGE_STAT * 4);
-      assert.ok(weak.endAt > average.endAt && average.endAt > strong.endAt, weapon);
+      assert.ok(weak.endAt >= average.endAt && average.endAt >= strong.endAt, weapon);
+      if (weapon !== "old-stick") assert.ok(weak.endAt > strong.endAt, weapon);
       const cost = (strength: number) => strikeCost(WEAPONS[weapon], "light", strength);
       assert.ok(cost(AVERAGE_STAT / 4) > cost(AVERAGE_STAT) && cost(AVERAGE_STAT) > cost(AVERAGE_STAT * 4), weapon);
     }

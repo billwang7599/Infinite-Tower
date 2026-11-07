@@ -9,7 +9,7 @@ import {
 } from "@infinite-tower/shared/fight";
 import { BattleRoom, type Kept, type RoomHooks, type Seat } from "../battle/room.js";
 import { fullVitals } from "../content/player.js";
-import { ENEMIES, rollDrops } from "../enemies/index.js";
+import { enemyAt, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { inViewWithSlack } from "../overworld/interact.js";
 import type { Region, SpawnDef } from "../world/region.js";
@@ -56,8 +56,8 @@ export const DROP_GAP_M = 0.5;
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
-export const foeOf = (id: EnemyId, rng: () => number): EnemySetup =>
-  ({ def: ENEMIES[id].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(rng) });
+export const foeOf = (id: EnemyId, rng: () => number, steps = 0): EnemySetup =>
+  ({ def: enemyAt(id, steps), at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(rng) });
 
 export const regionHere = (session: GameSession): Region =>
   regionOf(session.overworld.map, session.overworld.playerPos(session.me));
@@ -77,11 +77,11 @@ export function startFight(
 export function startBattle(
   session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
-  const { overworld } = session;
+  const { overworld } = session, region = regionHere(session);
   const setup: FightSetup = {
-    arena: getArena(spawn?.arenaId ?? regionHere(session).arenaId),
+    arena: getArena(spawn?.arenaId ?? region.arenaId),
     players: [{ ...fighterOf(session), at: PLAYER_START }],
-    enemies: [foeOf(enemyId, overworld.rng)],
+    enemies: [foeOf(enemyId, overworld.rng, spawn?.steps ?? region.enemySteps)],
   };
   const drops = newDrops(overworld.playerPos(session.me));
   startFight([session], setup, seatOf, { source, drops }, {
@@ -213,7 +213,7 @@ function dropSpot(fell: Vec2, enemyRadiusM: number): Vec2 {
 function dropInArena({ world, enemies }: Fight, drops: ArenaDrops, overworld: Overworld, uniques: Uniques): void {
   for (const e of enemies) {
     const { def } = world.require(e, Enemy);
-    const pile = overworld.holdPile(rollDrops(def.id, overworld.rng, (item) => uniques.isFree(item)));
+    const pile = overworld.holdPile(rollDrops(def.id, overworld.rng, (item) => uniques.isFree(item), def.steps));
     if (pile !== null) drops.piles = [...drops.piles, { pile, at: dropSpot(world.require(e, Body).pos, def.radius) }];
   }
 }

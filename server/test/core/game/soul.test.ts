@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  absorb, CORE_STEPS, coreStats, emptyBag, fillToFinish, FIXED_DT, Health, HP_PER_VITALITY, hpRegenPerSec,
+  absorb, CORE_STEPS, coreStats, emptyBag, fillToFinish, FIXED_DT, Health, hpRegenPerSec,
   IDLE_INPUT, ITEMS, maxHpOf, newCore, Player, pointsEarned, REST_RANGE_TILES, staminaMaxOf, useSteps, type Bag,
   type CoreState, type PlayerInputData, type UseSpot,
 } from "@infinite-tower/shared";
@@ -99,8 +99,10 @@ describe("free points", () => {
   test("the stats follow: more vitality, more HP to fill", () => {
     const { session } = startSession({ saved: { core: at(1), vitals: { ...HURT } } });
     session.statPoint("vitality", true);
-    assert.equal(maxHpOf(session.stats), maxHpOf(coreStats(at(1))) + HP_PER_VITALITY);
-    assert.equal(session.vitals.hp, HURT.hp + HP_PER_VITALITY);
+    const before = coreStats(at(1)), grown = maxHpOf(session.stats) - maxHpOf(before);
+    assert.equal(grown, maxHpOf({ ...before, vitality: before.vitality + 1 }) - maxHpOf(before));
+    assert.ok(grown > 0);
+    assert.equal(session.vitals.hp, HURT.hp + grown);
   });
 
   test("taken back only by a campfire", () => {

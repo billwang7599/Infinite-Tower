@@ -8,6 +8,30 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 
 - Every stat starts at the average, 10; the stat formulas and the core's fill curve, essence per monster
   (`shared/src/battle/stats.ts`, `CORE`, each enemy's essence item).
+- Scaling (the user: "just make sure things scale properly"; numbers in `CORE`, `STAT_POWERS`, `MOD_CAPS`,
+  `FELT_HEFT_FLOOR`; tested by formula, not hand-played):
+  - The step curve in kills: step n takes `killGrowth` (1.3) ^ (n − 1) times the first step's kills of its own
+    realm's foes: the first 5 boars or 2.5 Kobolds, Peak Tian's last about 197 boars; about 836 boar-kills in all.
+  - A foe grown into a higher realm drops `realmEssenceFactor` (2) ^ realm of its essence, so the fill grows × 2
+    more at each realm and farming a realm lower takes twice the kills.
+  - Stat effects as powers of stat / 10: damage 1 (was √), HP and the stamina bar 0.5 (were linear), defense 0.5 (was
+    50 / (40 + defense)), toughness and stamina recovery 0.5 (were linear), walking and carry ¼ (as before), a block's
+    stamina 0.5 (was 10 / strength). Equal stats take the same hits at every step (about 10 Basic Sword lights on a
+    Kobold Swordsman, 6 on another player); against the same foe each step is at least 15% more damage × HP held.
+  - HP regen is a share of the most HP (0.5% a second at health regen 10), so it keeps pace with √ HP.
+  - Enemies are grown by core steps per area (`enemySteps`, a spawn may set its own): the Waking Hollow, the Grass
+    Field and Highmere 0, the Mistwood 1, the Old Quarry 2 (all still Yan, so one essence each). Spars never grow.
+  - Buffs stop at `MOD_CAPS`: damage dealt × 2, damage taken × 0.5, stamina refill × 2, attack and dodge costs
+    × 0.5. All damage buffs at once made 2.37×.
+  - Blocks of an equal foe's light per bar stay level at every step.
+
+Decided by the user since (the agent's picks within them):
+
+- Strength quickens swings 20-30% at most, mostly adding damage: `FELT_HEFT_FLOOR` 0.74 (the agent's), so 0.74 +
+  0.26 × 10 / grip strength, about 0.75 (25% quicker) with every point in strength at Peak Tian.
+- No two-handed speed bonus: the grip only adds 1.5× strength.
+- Stamina matters less as you grow, on purpose: a swing's cost never grows while the bar does (the Basic Sword's
+  swings per bar 7.7 at the start, 32 at a whole core).
 - The core: a whole core takes no more essence and fill carries over; essence is an item (a 2 s Absorb, refused only
   by a whole core); a breakthrough counts at once, mid-fight too; points are placed free, outside fights, and taken
   back only by a campfire; death can cost a step across a realm; toughness doesn't shorten the counterplay's openings;
