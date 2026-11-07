@@ -1,8 +1,10 @@
 import { Fragment, type ReactNode } from "react";
 import {
-  HYBRID, itemDef, PLAYER, STRIKES, type Carried, type CoreState, type Faith, type Grip, type Hand, type Strike,
+  DAMAGE_TYPES, HYBRID, itemDef, PLAYER, STRIKES, type Carried, type CoreState, type Faith, type Grip, type Hand,
+  type Strike,
 } from "@infinite-tower/shared";
 import { LABEL } from "../../components/styles.js";
+import { DAMAGE_NAME, damageText } from "../inventory/itemInfo.js";
 import { combatNumbers, type CombatNumbers, type GuardNumbers, type HeldNumbers } from "./combatNumbers.js";
 
 type Row = readonly [label: string, value: string];
@@ -18,6 +20,7 @@ const GUARD_NAME: Record<Grip, string> = {
   shield: "Shield", one: "One blade", two: "One blade, both hands", dual: "Two blades",
 };
 const CELL = "py-px pl-3 text-right tabular-nums";
+const STRIKE_COLUMNS = ["Wind-up", "Live", "Recovery", "Stamina"];
 
 function guardRows(guard: GuardNumbers | null): Row[] {
   if (!guard) return [["Guard", "None"]];
@@ -95,7 +98,7 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
           <thead className="text-bone/55">
             <tr>
               <th />
-              {["Wind-up", "Live", "Recovery", "Stamina", "Damage"].map((name) => (
+              {[...STRIKE_COLUMNS, ...DAMAGE_TYPES.map((type) => DAMAGE_NAME[type])].map((name) => (
                 <th key={name} className={`${CELL} font-normal`}>{name}</th>
               ))}
             </tr>
@@ -106,10 +109,10 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
               return (
                 <tr key={strike} data-strike={strike}>
                   <td className="py-px text-bone/55">{STRIKE_NAME[strike]}</td>
-                  {[seconds(s.windupTime), seconds(s.liveTime), seconds(s.recoverTime), amount(s.stamina),
-                    amount(s.damage)].map(
-                    (value, i) => <td key={i} className={`${CELL} text-bone`}>{value}</td>,
-                  )}
+                  {[
+                    seconds(s.windupTime), seconds(s.liveTime), seconds(s.recoverTime), amount(s.stamina),
+                    ...DAMAGE_TYPES.map((type) => (s.damage[type] > 0 ? amount(s.damage[type]) : "–")),
+                  ].map((value, i) => <td key={i} className={`${CELL} text-bone`}>{value}</td>)}
                 </tr>
               );
             })}
@@ -121,6 +124,7 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
           Draw <span className="text-bone tabular-nums">{seconds(draw.minTime)}</span> at least,
           {" "}<span className="text-bone tabular-nums">{seconds(draw.fullTime)}</span> full
           {" · "}stamina <span className="text-bone tabular-nums">{amount(draw.stamina)}</span>
+          {" · "}fully drawn <span className="text-bone tabular-nums">{damageText(draw.damage)}</span>
         </p>
       )}
     </section>

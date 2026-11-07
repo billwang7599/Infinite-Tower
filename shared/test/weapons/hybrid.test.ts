@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, chainKind, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay, strikeCost, STRIKES,
-  SWING_DIRS, toSteps, wayShape, wayStepsAfter, WEAPONS, WAYS, windupTime, type ChainKind, type Weapon,
+  AVERAGE_STAT, BASE_STATS, CHAIN, chainKind, DAMAGE_TYPES, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay,
+  physicalDamage, strikeCost, strikeDamage, STRIKES, SWING_DIRS, toSteps, wayShape, wayStepsAfter, weaponDamage,
+  WEAPONS, WAYS, windupTime, type ChainKind, type Weapon,
 } from "@infinite-tower/shared";
 
 const KINDS: readonly ChainKind[] = ["opening", "reverse", "perpendicular", "other"];
@@ -160,5 +161,40 @@ describe("the sword's ways", () => {
     for (const way of SWING_DIRS) assert.equal(reach(way).range, reach("lr").range, way);
     assert.ok(reach("tb").minDot > reach("tlbr").minDot && reach("tlbr").minDot > reach("lr").minDot);
     assert.ok(reach("stab").range > reach("tb").range);
+  });
+});
+
+describe("a strike's damage, by type", () => {
+  const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
+
+  test("a swing deals the weapon's slash and blunt, each its own; a stab only its stab", () => {
+    for (const weapon of Object.values(WEAPONS)) {
+      const base = weaponDamage(weapon);
+      const light = strikeDamage(weapon, "light", 1, BASE_STATS), stab = strikeDamage(weapon, "stab", 1, BASE_STATS);
+      assert.deepEqual(light, { slash: base.slash, stab: 0, blunt: base.blunt });
+      assert.deepEqual(stab, { slash: 0, stab: base.stab * HYBRID.stab.damageFactor, blunt: 0 });
+    }
+  });
+
+  test("the stab has no flat bonus now: its own number is its damage", () => {
+    assert.equal(HYBRID.stab.damageFactor, 1);
+    assert.equal(HYBRID.light.damageFactor, 1);
+  });
+
+  test("a heavy deals every type of the light × its factor; power (momentum) multiplies every type", () => {
+    const light = strikeDamage(WEAPONS.greatsword, "light", 1, BASE_STATS);
+    const heavy = strikeDamage(WEAPONS.greatsword, "heavy", 1, BASE_STATS);
+    const charged = strikeDamage(WEAPONS.greatsword, "heavy", momentumDamage(2), BASE_STATS);
+    for (const type of DAMAGE_TYPES) {
+      close(heavy[type], light[type] * HYBRID.heavy.damageFactor, type);
+      close(charged[type], heavy[type] * momentumDamage(2), type);
+    }
+  });
+
+  test("strength scales each type on its own", () => {
+    const strong = { ...BASE_STATS, strength: 25 }, base = weaponDamage(WEAPONS.sword);
+    const light = strikeDamage(WEAPONS.sword, "light", 1, strong);
+    close(light.slash, physicalDamage(base.slash, strong), "slash");
+    close(light.blunt, physicalDamage(base.blunt, strong), "blunt");
   });
 });

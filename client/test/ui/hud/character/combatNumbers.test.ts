@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ActiveHit, addItem, BASE_STATS, BLESSING_FAITH, blessingsOf, Body, BOW, BURDEN, carryLimit, coreStats, copyInput,
-  drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden, guardOf, guardRaiseTime, Health,
-  HYBRID, IDLE_INPUT, ITEMS, maxHpOf, newCore, packFor, parryWindowTime, perfectBlockTime, Stamina, staminaMaxOf,
-  STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type Carried, type CoreState, type EnemyDef,
-  type Equipment, type Faith, type Grip, type LungeDef, type PlayerInputData, type Strike, type Vec3,
+  DAMAGE_TYPES, drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden, guardOf, guardRaiseTime,
+  Health, HYBRID, IDLE_INPUT, ITEMS, loosedDamage, maxHpOf, newCore, packFor, parryWindowTime, perfectBlockTime,
+  Stamina, staminaMaxOf, STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type Carried,
+  type CoreState, type Damage, type EnemyDef, type Equipment, type Faith, type Grip, type LungeDef,
+  type PlayerInputData, type Strike, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type PlayerSetup } from "@infinite-tower/shared/fight";
 import { combatNumbers } from "../../../../src/ui/hud/character/combatNumbers.js";
@@ -26,6 +27,7 @@ const BITE: LungeDef = {
 };
 const BITER: EnemyDef = { ...STATUE, turnRate: 3, attacks: { lunge: BITE } };
 const ORIGIN: Vec3 = { x: 0, y: 0.05, z: 0 };
+type Hit = Extract<FightEvent, { type: "hit" }>;
 
 const holding = (hands: Partial<Equipment>, bag = emptyBag()): Carried =>
   ({ bag, pack: packFor(null), quiver: packFor(null), equipment: { ...emptyEquipment(), ...hands } });
@@ -58,7 +60,6 @@ function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
   settle(fight);
   const steps = { windup: 0, live: 0, recover: 0 };
   fight.step([idle({ attack: strike })]);
-  const damage = fight.world.require(me, Wielder).swing!.damage;
   for (let s = 0; fight.world.require(me, Wielder).swing !== null && s < 600; s++) {
     if (fight.world.has(me, ActiveHit)) steps.live++;
     else if (steps.live === 0) steps.windup++;
@@ -66,7 +67,7 @@ function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
     fight.step([idle()]);
   }
   const time = (count: number) => count * FIXED_DT;
-  return { windupTime: time(steps.windup), liveTime: time(steps.live), recoverTime: time(steps.recover), damage };
+  return { windupTime: time(steps.windup), liveTime: time(steps.live), recoverTime: time(steps.recover) };
 }
 
 describe("the advanced stats' weapon numbers", () => {
@@ -80,7 +81,6 @@ describe("the advanced stats' weapon numbers", () => {
         close(shown.windupTime, fought.windupTime, `${strike} wind-up`);
         close(shown.liveTime, fought.liveTime, `${strike} live`);
         close(shown.recoverTime, fought.recoverTime, `${strike} recovery`);
-        close(shown.damage, fought.damage, `${strike} damage`);
       }
     });
   }
@@ -95,8 +95,33 @@ describe("the advanced stats' weapon numbers", () => {
     close(one!.appliedStrength, strength);
     close(two!.feltHeft, feltHeft(WEAPONS.greatsword, strength * TWO_HAND_STRENGTH_FACTOR));
     assert.ok(two!.strikes!.light.windupTime < one!.strikes!.light.windupTime);
-    close(two!.strikes!.light.damage, one!.strikes!.light.damage * Math.sqrt(TWO_HAND_STRENGTH_FACTOR));
+    for (const strike of STRIKES) {
+      for (const type of DAMAGE_TYPES) {
+        close(two!.strikes![strike].damage[type],
+          one!.strikes![strike].damage[type] * Math.sqrt(TWO_HAND_STRENGTH_FACTOR), `${strike} ${type}`);
+      }
+    }
   });
+
+  for (const [item, core, faith] of [
+    ["sword", newCore(), {}], ["greatsword", strong(10), {}], ["longsword", newCore(), { kaelith: BLESSING_FAITH }],
+  ] as const) {
+    test(`a ${item}'s damage by type at strength ${coreStats(core).strength}, as the fight deals it`, () => {
+      const gear = holding({ rightHand: item }), [held] = combatNumbers(gear, core, faith).held;
+      for (const strike of STRIKES) {
+        const fight = fightWith(gear, core, faith, undefined, 2), me = fight.players[0]!;
+        settle(fight);
+        let dealt: Damage | undefined;
+        fight.step([idle({ attack: strike })]);
+        for (let s = 0; s < 120 && !dealt; s++) {
+          const hit = fight.events.find((e): e is Hit => e.type === "hit" && e.by === me);
+          dealt = hit?.byType;
+          fight.step([idle()]);
+        }
+        for (const type of DAMAGE_TYPES) close(held!.strikes![strike].damage[type], dealt![type], `${strike} ${type}`);
+      }
+    });
+  }
 
   test("each hand holding a weapon, the right first; a swing's parry window, a bow's draw", () => {
     const core = strong(4), strength = coreStats(core).strength;
@@ -113,6 +138,7 @@ describe("the advanced stats' weapon numbers", () => {
     assert.deepEqual(bow!.draw, {
       minTime: drawTime(BOW, stave, strength, "minTime"), fullTime: drawTime(BOW, stave, strength, "fullTime"),
       stamina: drawCost(BOW, stave, strength),
+      damage: loosedDamage(BOW, stave, drawTime(BOW, stave, strength, "fullTime"), coreStats(core)),
     });
     assert.deepEqual(combatNumbers(holding({ leftHand: "skillbook" }), core, {}).held, []);
   });

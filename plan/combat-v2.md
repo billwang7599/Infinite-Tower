@@ -276,3 +276,8 @@ These override the spec above where they differ.
   blocked or dodged. FORMULAS.md, "Swing parries", has the numbers.
 - Decisions 1 and 2 (#326) pin the open question on stamina: the bar is 100 at the start (10 a point), and a save
   with more loads cut to it. FORMULAS.md, "Hits and pushback", has the rules.
+- Damage types are built as numbers and display only (the user's names: slash, stab and blunt for cut, pierce and
+  blunt): a weapon's three come from 3 × heft × quality split by its profile, a swing dealing slash and blunt and a
+  stab only its own stab (no × 1.25), so damage still scales with weight. Swords stab weakly; rapiers and spears, to
+  come, are the stab weapons. How each type meets guards and armour (the table above) is still open, for armour.
+  AGENTS.md, "Damage types", and FORMULAS.md, "Weapon attacks", have the rule and the numbers.

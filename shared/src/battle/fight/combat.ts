@@ -6,10 +6,10 @@ import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
 import { FIXED_DT, toSteps } from "../../core/time.js";
 import { STRIKES, strikeOf, type Strike, type Way } from "../../weapons/hybrid.js";
-import type { AttackKind, HitShape } from "../../weapons/weapons.js";
+import { damageTotal, scaleDamage, type AttackKind, type Damage, type HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData, type TeamId,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, HP_REGEN_PAUSE_TIME, knockbackTakenFactor } from "../stats.js";
@@ -18,7 +18,7 @@ import { EMBERS } from "../../soul/inscriptions.js";
 import type { FightContext, FightEvent } from "./context.js";
 import { stun } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
-import { hurt, lifesteal } from "./health.js";
+import { hurtPhysical, lifesteal } from "./health.js";
 import { defend } from "./weapons/defend.js";
 import { parries } from "./weapons/parry.js";
 import { endChain, endSwing } from "./weapons/swing.js";
@@ -28,7 +28,7 @@ export const HIT_FLASH_TIME = 0.12;
 const MIN_ANGLE_CHECK_DIST = 0.3;
 
 export interface HitSpec extends HitShape {
-  damage: number;
+  damage: Damage;
   knockback?: number;
   poiseDamage?: number;
   attack?: AttackKind | null;
@@ -158,19 +158,23 @@ export function stagger(world: World, e: Entity, time: number): void {
   }
 }
 
+function hurtBy(
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, team: TeamId, at?: Vec3,
+): void {
+  const byType = hurtPhysical(world, target, scaleDamage(hit.damage, modsOf(world, attacker).damageDealtFactor));
+  const damage = damageTotal(byType), weapon = hit.attack !== null;
+  world.require(target, Health).flash = HIT_FLASH_TIME;
+  lifesteal(world, attacker, damage, weapon);
+  burnOnHit(world, attacker, target, hit);
+  events.push({ type: "hit", by: attacker, target, team, damage, weapon, byType, ...(at && { at }) });
+}
+
 function hitPlayer(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
 ): void {
-  const health = world.require(target, Health);
-  const dealt = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
-  health.flash = HIT_FLASH_TIME;
-  health.invuln = PLAYER.hurtInvuln;
+  world.require(target, Health).invuln = PLAYER.hurtInvuln;
   endChain(world.require(target, Wielder));
-  lifesteal(world, attacker, dealt, hit.attack !== null);
-  burnOnHit(world, attacker, target, hit);
-  events.push({
-    type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null, ...(at && { at }),
-  });
+  hurtBy(world, events, attacker, hit, target, "player", at);
 }
 
 function strikeDummy(enemy: EnemyData, health: HealthData, strike: Strike): void {
@@ -191,12 +195,6 @@ function hitEnemy(
 ): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
   if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, strikeOf(hit.attack, hit.way));
-  const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
-  health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
-  lifesteal(world, attacker, damage, hit.attack !== null);
-  burnOnHit(world, attacker, target, hit);
-  events.push({
-    type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null, ...(at && { at }),
-  });
+  hurtBy(world, events, attacker, hit, target, "enemy", at);
 }

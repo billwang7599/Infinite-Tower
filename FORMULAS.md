@@ -111,9 +111,10 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, HP 10 more 
 
 ## Weapon attacks
 
-`CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`, with
-each weapon's numbers in its `weapon` (`ITEMS`); the rules in `fight/player/sword.ts` and `fight/weapons/`. A weapon's
-heft is on one scale with the Basic Sword's, 3 (the stored id is still `sword`; the shield and the bow weigh 3 too).
+`CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`,
+`DAMAGE_PER_HEFT`, `DAMAGE_PROFILES` and `weaponDamage` in `shared/src/weapons/weapons.ts`, with each weapon's numbers
+in its `weapon` (`ITEMS`); the rules in `fight/player/sword.ts` and `fight/weapons/`. A weapon's heft is on one scale
+with the Basic Sword's, 3 (the stored id is still `sword`; the shield and the bow weigh 3 too).
 Damage goes × √(strength / 10), and every time and stamina cost × the heft the wielder feels (`feltHeft`): (heft /
 the Basic Sword's 3) × 10 / strength, one linear rule for every weapon and guard, light ones too, so the Basic Sword
 feels 1 at strength 10, 2 at 5 and 0.5 at 20. Below a weapon's `minStrength` it can't be wielded at all (Basic Sword
@@ -141,8 +142,16 @@ hard.
 - **Momentum,** each hand its own (`WielderData.chains`): each chained swing adds `MOMENTUM.gain` (the reverse 0.25,
   another line 1, a perpendicular 0.5), at most 4, and both hands' is lost on a gap, a dodge, a block, a cast, the
   chant, the bag, a hit taken or being blocked perfectly.
-- **Damage:** a swing the weapon's damage × (1 + 0.25 × momentum, ×2 at most), a heavy ×2 more; a stab × 1.25 ×
-  (1 + 0.5 × momentum) and spends that hand's. **Stamina:** a light 13, a heavy 21, a stab 16 (× felt heft).
+- **A weapon's damage** (`weaponDamage`) comes in three types, slash, stab and blunt, each a whole number. Its swing is
+  `DAMAGE_PER_HEFT` 3 × heft × quality (1 for every weapon so far), and its profile (`DAMAGE_PROFILES`) splits it:
+  slash and blunt as shares of the swing, stab as a fraction of it, each rounded. A sword slash 0.9, blunt 0.1, stab
+  0.55; the longsword, the thrusting sword, stab 0.7; a greatsword slash 0.8, blunt 0.2, stab 0.4. Two are off the
+  rule by their own `baseDamage` (what the profile splits instead): the old stick, 3, all blunt, stab a third; and the
+  bow, 12, all stab (it's ranged).
+- **A strike's damage** (`strikeDamage`): a swing deals the weapon's slash and its blunt as two damages, a heavy both
+  × 2; a stab deals only its stab. A swing × (1 + 0.25 × momentum, ×2 at most); a stab × (1 + 0.5 × momentum) and
+  spends that hand's. Each type × √(strength / 10) and taken on its own (Damage taken). **Stamina:** a light 13, a
+  heavy 21, a stab 16 (× felt heft).
   **Poise:** 12, 24, 18. **Knockback**, pushing only a guard it's blocked by: 4, 8, 6 m/s (Hits and pushback, below).
 - **Reach** (`wayShape`): (arm reach + blade) × 1.15 for every swing (2.19 m with the Basic Sword), its arc by line:
   160° across, 110° on a diagonal, 60° down from the top; × 1.75 for a stab (16°), to the target's surface; arcs by
@@ -163,26 +172,26 @@ it recovers 0.1 s; whiffed, 0.1 + 0.2 = 0.3 s, carried another 0.45 m.
 By weapon, at strength 10 one-handed (something in the other hand, or a Kobold's), an opening swing (light / heavy;
 times in seconds, as the fight's steps round them):
 
-| Weapon | Heft (felt) | Damage | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
+| Weapon | Heft (felt) | Slash + blunt (light / heavy), stab | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
 |---|---|---|---|---|---|---|
-| Old stick | 0.385 (0.13) | 3 / 6 | 0.4 / 0.4 | 0.02 / 0.02 | 0.02 / 0.03 | 1.7 / 2.7 / 2.1 |
-| Basic Sword | 3 (1) | 9 / 18 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
-| Longsword | 3.57 (1.19) | 11 / 22 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
-| Greatsword | 4.86 (1.62) | 16 / 32 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
-| Kobold blade | 3 (1) | 14 / 28 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
-| Kobold greatsword | 4.86 (1.62) | 14 / 28 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
+| Old stick | 0.385 (0.13) | 0 + 3 / 0 + 6, 1 | 0.4 / 0.4 | 0.02 / 0.02 | 0.02 / 0.03 | 1.7 / 2.7 / 2.1 |
+| Basic Sword | 3 (1) | 8 + 1 / 16 + 2, 5 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 21 / 16 |
+| Longsword | 3.57 (1.19) | 10 + 1 / 20 + 2, 7 | 0.67 / 1.1 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 25 / 19 |
+| Greatsword | 4.86 (1.62) | 12 + 3 / 24 + 6, 6 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | 21.1 / 34 / 25.9 |
+| Kobold blade | 3 (1) | 8 + 1 / 16 + 2, 5 | 0.57 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | none |
+| Kobold greatsword | 4.86 (1.62) | 12 + 3 / 24 + 6, 6 | 0.9 / 1.48 | 0.22 / 0.25 | 0.17 / 0.42 | none |
 
 The Basic Sword's chained lights: the reverse 0.4 s, another line 0.48 s, a perpendicular one 0.6 s; its stab 0.45 s.
 The longsword's 0.48, 0.57, 0.72 and 0.53 s; the greatsword's 0.65, 0.78, 0.97 and 0.73 s.
 
 The same at strength 10 held in both hands (strength 20 put in, so each felt heft halved):
 
-| Weapon | Felt heft | Damage | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
+| Weapon | Felt heft | Slash + blunt (light / heavy), stab | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
 |---|---|---|---|---|---|---|
-| Old stick | 0.06 | 4.24 / 8.49 | 0.4 / 0.4 | 0.02 / 0.02 | 0 / 0.02 | 0.8 / 1.3 / 1 |
-| Basic Sword | 0.5 | 12.73 / 25.46 | 0.4 / 0.47 | 0.07 / 0.08 | 0.05 / 0.13 | 6.5 / 10.5 / 8 |
-| Longsword | 0.6 | 15.56 / 31.11 | 0.4 / 0.55 | 0.08 / 0.08 | 0.07 / 0.15 | 7.7 / 12.5 / 9.5 |
-| Greatsword | 0.81 | 22.63 / 45.25 | 0.45 / 0.75 | 0.1 / 0.12 | 0.08 / 0.22 | 10.5 / 17 / 13 |
+| Old stick | 0.06 | 0 + 4.24 / 0 + 8.49, 1.41 | 0.4 / 0.4 | 0.02 / 0.02 | 0 / 0.02 | 0.8 / 1.3 / 1 |
+| Basic Sword | 0.5 | 11.31 + 1.41 / 22.63 + 2.83, 7.07 | 0.4 / 0.47 | 0.07 / 0.08 | 0.05 / 0.13 | 6.5 / 10.5 / 8 |
+| Longsword | 0.6 | 14.14 + 1.41 / 28.28 + 2.83, 9.9 | 0.4 / 0.55 | 0.08 / 0.08 | 0.07 / 0.15 | 7.7 / 12.5 / 9.5 |
+| Greatsword | 0.81 | 16.97 + 4.24 / 33.94 + 8.49, 8.49 | 0.45 / 0.75 | 0.1 / 0.12 | 0.08 / 0.22 | 10.5 / 17 / 13 |
 
 Two-handed, the Basic Sword's and the longsword's chained lights and stabs are all at the 0.4 s floor; the
 greatsword's 0.4, 0.4, 0.48 and 0.4 s.
@@ -206,8 +215,11 @@ heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back
 waits its 1.2 s cooldown.
 
 Example: a Basic Sword light (one-handed) from the left, then down from the top left, then from the left again (another
-line each time): wind-ups 0.57, 0.48 and 0.48 s; momentum 1, then 2; damage 9, 11.25 and 13.5. A stab next deals 9 ×
-1.25 × 2 = 22.5 and spends it. Three reverses instead would build only 0.5 (damage 9, 9.56, 10.13), at 0.4 s each.
+line each time): wind-ups 0.57, 0.48 and 0.48 s; momentum 1, then 2; damage 8 + 1, 10 + 1.25 and 12 + 1.5 (slash +
+blunt). A stab next deals 5 × (1 + 0.5 × 2) = 10 stab and spends it. Three reverses instead would build only 0.5
+(damage 9, 9.56, 10.13 in all), at 0.4 s each. The Basic Sword's swing, 3 × 3 = 9, splits into slash 8.1 and blunt
+0.9, rounded 8 and 1, its stab 9 × 0.55 = 4.95, 5; the longsword's, 3 × 3.57 = 10.71, into 10 and 1, its stab 7.497,
+7. Held in both hands, every type is × √2 through the strength: a light 11.31 + 1.41, a stab 7.07.
 
 ## Bows (placeholder)
 
@@ -219,7 +231,8 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
   a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%.
 - **Nocking:** after loosing, `nock.quiverTime` 0.3 s before the next draw if the quiver holds an arrow, else
   `nock.bagTime` 0.8 s. A quiver's one cell holds 60 arrows (`holds.stackSize`; a bag cell 20); they're shot first.
-- **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
+- **Damage** = each type of the bow's (`weaponDamage`: its `baseDamage` 12, all stab, off the melee rule) ×
+  (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
 - **Speed** = the bow's `powerMps` × (t² + 2t) / 3, t the share drawn (at most 1): Minecraft's draw curve
   (`drawnPower`, which the draw meter shows).
 - **Flight** (Minecraft's, in metres: `flightAfter`): dv/dt = g − k v, gravity g = `gravityMps2` −20 m/s² (Minecraft's
@@ -233,16 +246,16 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
   can't. Poise 10 on an enemy, knockback 0.07 × its speed (pushing a guard: Hits and pushback); blocked like a light
   (below). Stuck, it lies `stuckTime` 2 s.
 
-Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
+Example: the Training bow (12 stab, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
 60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 12 at
 60 m/s. A full draw loosed level drops 7 cm by 5 m, 0.28 m by 10 m, 0.74 m by 16 m (the arena's middle to its wall),
 1.8 m by 25 m and 3.1 m by 32 m (wall to wall), and from chest height lands 17.5 m off.
 
 ## Body blows
 
-An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a
-player who isn't blocking, it only hurts, as every hit that lands (Hits and pushback, below); its `knockback` pushes
-only a guard that blocks it.
+An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10), all blunt
+(the agent's pick; bites too, for now). Landing on a player who isn't blocking, it only hurts, as every hit that lands
+(Hits and pushback, below); its `knockback` pushes only a guard that blocks it.
 
 | Blow | Damage | Knockback (m/s) |
 |---|---|---|
@@ -282,11 +295,11 @@ only a guard that blocks it.
 
 `HYBRID.block` in `hybrid.ts`; `fight/weapons/defend.ts`.
 
-- **Held block:** from in front (within 70°), a weapon chips 20% of its damage and costs a player its damage in
-  stamina (a heavy × `heavyStaminaFactor` 2), × 10 / the grip's strength (`blockStaminaShare`): a stronger blocker
-  spends less, and a blade in both hands half; a body blow costs its damage (× 10 / strength too) and pushes you back
-  at 60% of its knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime`
-  0.8 s.
+- **Held block:** from in front (within 70°), a weapon chips 20% of its damage (of each type) and costs a player its
+  damage, all types together, in stamina (a heavy × `heavyStaminaFactor` 2), × 10 / the grip's strength
+  (`blockStaminaShare`): a stronger blocker spends less, and a blade in both hands half; a body blow costs its damage
+  (× 10 / strength too) and pushes you back at 60% of its knockback. A hit that takes the last of the stamina (or
+  more) breaks the guard: staggered `brokenTime` 0.8 s.
   Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
   costs it the hit's poise instead (below), and pushes it back by the same rule as a player.
 - **By guard** (`GUARDS` in `hybrid.ts`, the hands' guard from `guardOf` in `kinds.ts`): a shield in either hand
@@ -318,8 +331,8 @@ only a guard that blocks it.
   parry or counter in it). Lights and stabs can't be feinted.
 
 Example (both one-handed, strength 10): blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword
-heavy 36 stamina and 3.6 HP; held in both hands, the blocker spends 4.5 and 18. A two-handed attacker's light is 12.73
-damage: 12.73 stamina and 2.55 HP to a one-handed blocker, 6.36 to a two-handed one; a
+heavy 36 stamina and 3.6 HP; held in both hands, the blocker spends 4.5 and 18. A two-handed attacker's light is 11.31
+slash + 1.41 blunt, 12.73 in all: 12.73 stamina and 2.55 HP to a one-handed blocker, 6.36 to a two-handed one; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
 5.4 stamina and 0.72 HP; with two blades 12.15 stamina and 2.88 HP. Backed flat against the wall, the light chips
 3.6 HP (shield 1.44); with 10 cm behind, a heavy's 19 cm slide loses about half, so about 1.5 × its 3.6.
@@ -512,8 +525,11 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 
 ## Damage taken
 
-`hurt` in `shared/src/battle/fight/health.ts` and `modsOf` in `shared/src/battle/statuses.ts`.
+`hurt` and `hurtPhysical` in `shared/src/battle/fight/health.ts` and `modsOf` in `shared/src/battle/statuses.ts`.
 
+- A weapon's or a body blow's damage is typed (slash, stab, blunt; Weapon attacks), and each type is dealt and taken on
+  its own, through the rules below (`hurtPhysical`); what the hit took is their sum, each shown as its own number.
+  No resistance by type yet (armour will bring them).
 - Dealt = damage × the attacker's statuses' damage dealt (Empowered 1.2, Cursed 0.85, Frenzy 1.1 a stack, Bloodrage
   1.35; weapon, body and skill hits alike).
 - Taken = dealt × 50 / (40 + defense) for a weapon or body hit, × 50 / (40 + special defense) for a skill's (a burn
@@ -534,7 +550,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 60, 8, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
 | Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | light 14, heavy 28 | staff 5; Bolt Fire 8 + 10 burning | light 4.24, heavy 8.49 (both hands) |
+| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | slash + blunt: light 8 + 1, heavy 16 + 2; stab 5 | light 12 + 3, heavy 24 + 6; stab 6 (about 1.6 × as slow) | light 8 + 1, heavy 16 + 2; stab 5 | staff 5; Bolt Fire 8 + 10 burning | blunt: light 4.24, heavy 8.49 (both hands) |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after

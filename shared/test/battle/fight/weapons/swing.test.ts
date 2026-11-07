@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, ActiveHit, Health, physicalDamage, TWO_HAND_STRENGTH_FACTOR, wayShape, WEAPONS, Wielder, type EnemyDef,
-  type WeaponId,
+  FIXED_DT, ActiveHit, damageTotal, Health, strikeDamage, TWO_HAND_STRENGTH_FACTOR, wayShape, WEAPONS,
+  Wielder, type EnemyDef, type WeaponId,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, IDLE, player, STATS, SWORDSMAN } from "../fixtures.js";
@@ -69,9 +69,9 @@ describe("an enemy wielding a weapon", () => {
   });
 
   test("hits for its weapon's damage, at the wielder's strength", () => {
-    for (const item of ["sword", "kobold-blade"] satisfies WeaponId[]) {
+    for (const item of ["sword", "longsword"] satisfies WeaponId[]) {
       const { dealt } = firstHit(holding({ rightHand: item, leftHand: "skillbook" }));
-      assert.equal(dealt, physicalDamage(WEAPONS[item].damage, SWORDSMAN.stats), item);
+      assert.equal(dealt, damageTotal(strikeDamage(WEAPONS[item], "light", 1, SWORDSMAN.stats)), item);
     }
   });
 

@@ -3,6 +3,7 @@ import { Enemy, Health, Player, Statuses } from "../components.js";
 import { FighterStats, HP_REGEN_PAUSE_TIME, hpRegenPerSec, physicalTakenFactor, skillTakenFactor } from "../stats.js";
 import { FIRST_DOOR } from "../../soul/inscriptions.js";
 import { applyStatus, endStatus, modsOf, statusDef, statusOn } from "../statuses.js";
+import { typedDamage, type Damage } from "../../weapons/weapons.js";
 
 export function hurt(world: World, e: Entity, damage: number, kind: "physical" | "skill"): number {
   if (world.get(e, Player)?.invulnerable || world.get(e, Enemy)?.def.dummy) return 0;
@@ -27,6 +28,9 @@ export function hurt(world: World, e: Entity, damage: number, kind: "physical" |
   } else health.hp = hp;
   return rest;
 }
+
+export const hurtPhysical = (world: World, e: Entity, damage: Damage): Damage =>
+  typedDamage((type) => (damage[type] > 0 ? hurt(world, e, damage[type], "physical") : 0));
 
 export function regenSystem(): System {
   return (world, dt) => {

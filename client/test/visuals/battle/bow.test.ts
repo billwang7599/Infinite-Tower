@@ -40,7 +40,7 @@ describe("an arrow in flight", () => {
     const e = world.spawn();
     const o = world.add<ProjectileData>(e, Projectile, {
       shooter, weapon: "training-bow", ...flightAfter(ARROW, { x: 0, y: 0.85, z: 0.6 }, { x: 0, y: 2, z: speedMps }, t),
-      damage: 1, left: lifeTime - t, stuck: false,
+      damage: { slash: 0, stab: 1, blunt: 0 }, left: lifeTime - t, stuck: false,
     });
     return { e, o };
   };
@@ -87,7 +87,7 @@ describe("an arrow's trail", () => {
     const e = world.spawn();
     const o = world.add<ProjectileData>(e, Projectile, {
       shooter: SHOOTER, weapon: "training-bow", pos: { x: 0, y: 0.85, z: 0.6 }, vel: { x: 1, y: 6, z: speedMps },
-      damage: 1, left: lifeTime, stuck: false,
+      damage: { slash: 0, stab: 1, blunt: 0 }, left: lifeTime, stuck: false,
     });
     const drawn = arrowVisual.spawn(ctx, world, e), nocks = [drawn.root.position.clone()];
     for (let i = 0; i < Math.round(forS / stepS); i++) {

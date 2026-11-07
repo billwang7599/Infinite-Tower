@@ -3,6 +3,7 @@ import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { ItemId } from "../../items/items.js";
 import type { Form, SkillElement } from "../../skills/skill.js";
+import type { Damage } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import type { TeamId } from "../components.js";
 import type { ArenaPhysics } from "./physics/arena-physics.js";
@@ -17,10 +18,12 @@ export interface FightOutcome {
 
 /**
  * Something that happened this step that the client shows (the screen shakes) but the fight doesn't need again. `at`:
- * where a projectile struck.
+ * where a projectile struck. `byType`: a physical hit's damage by type.
  */
 export type FightEvent =
-  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean; at?: Vec3 }
+  | {
+    type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean; at?: Vec3; byType?: Damage;
+  }
   /** A charging enemy slammed into the wall, or a slam came down. */
   | { type: "slam"; enemy: Entity }
   | { type: "block"; by: Entity; target: Entity; broken?: boolean; perfect?: boolean; at?: Vec3 }

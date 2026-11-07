@@ -5,7 +5,7 @@ import type {
   ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, SlamDef, WeaponAttackDef,
 } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
-import type { AttackKind, Hands, WeaponId } from "../weapons/weapons.js";
+import type { AttackKind, Damage, Hands, WeaponId } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { Using } from "../items/using.js";
@@ -87,7 +87,7 @@ export interface SwingData {
   liveAt: number;
   liveUntil: number;
   endAt: number;
-  damage: number;
+  damage: Damage;
   poiseDamage: number;
   whiffed: boolean;
   hand: Hand;
@@ -168,7 +168,7 @@ export interface ProjectileData {
   weapon: WeaponId;
   pos: Vec3;
   vel: Vec3;
-  damage: number;
+  damage: Damage;
   left: number;
   stuck: boolean;
 }
@@ -203,7 +203,7 @@ export interface ActiveHitData {
   minDot: number;
   attack: AttackKind | null;
   way: Way | null;
-  damage: number;
+  damage: Damage;
   knockback: number;
   poiseDamage: number;
   alreadyHit: Set<Entity>;

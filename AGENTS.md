@@ -208,6 +208,23 @@ Decided by the user:
   after a Basic Sword's guard, raised once free, is up. A player's parry or perfect block (of an enemy or another
   player) is as before. Its parry read isn't gated by the cooldown (off cooldown and in reach it's already swinging,
   so it would never read one), only the counter after it.
+- Damage types (the user: a swing is "2 different damages being inflicted"; "sword stabs should stay weak... balance it
+  for me. the plan is to add rapiers and spears in the future"; "help me balance things out"; the profiles' numbers are
+  the main chat's, tried by tests only, not hand-played): a weapon's damage is three numbers, slash, stab and blunt,
+  from one rule: its swing is 3 × heft × quality (`DAMAGE_PER_HEFT`; quality 1 for every weapon for now, no tiers or
+  durability yet), split by its profile (`DAMAGE_PROFILES`), slash and blunt as shares of the swing and stab as a
+  fraction of it, each a whole number. Swords slash 0.9, blunt 0.1, stab 0.55; the longsword, the thrusting sword,
+  stab 0.7; greatswords slash 0.8, blunt 0.2, stab 0.4. So, slash / stab / blunt: the Basic Sword and the Kobold blade
+  8 / 5 / 1 (the Kobold blade's swing was 14), the longsword 10 / 7 / 1, the greatsword and the Kobold greatsword
+  12 / 6 / 3. A swing deals its slash and its blunt as two damages, each through strength and defense on its own and
+  shown as its own floating number in its type's colour; a heavy doubles both; a stab deals only the stab number (the
+  flat × 1.25 is gone), its momentum cash-out unchanged. Swords' stabs stay weak: rapiers and spears, later, are the
+  stab weapons. Two are off the rule by their own data (`baseDamage`): the old stick (the user: "its a stick... it
+  shouldnt do any damage. just keep it like that"), a 3 blunt swing and a stab of 1; and the bow, its arrows 12 stab.
+  Enemies' blades go by the same rule, with no damage of their own. Resistances come later, with armour, by type: a
+  typed hit lands in one place (`hurtPhysical`). A beast's body blow is blunt for now (the agent's pick, bites too).
+  The item tooltip shows a weapon's numbers by type (zeros left out), and the Advanced stats each strike's at your
+  strength.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -568,8 +585,8 @@ Decided by the user:
   the same rule and keeps acting (the user: "block pushback applies to enemies too").
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
   fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, as every hit
-  that lands. It drops only its essence. It holds its own Kobold blade (the sword's
-  length, 14 damage), which never drops.
+  that lands. It drops only its essence. It holds its own Kobold blade (the Basic Sword's length, heft and damage since
+  damage types; it dealt 14), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
   back and turns its body, with a wind-up sound (its blade drawn), both bigger and lower before a heavy. There's no
@@ -924,9 +941,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     on H.
   - Attacks (the Basic Sword's; combat v2's numbers): a light winds up as the user set (above), is live 0.13 s and
     recovers 0.1 s, poise 12. A heavy: 0.36 s more wind-up, live 0.15 s, recovering 0.26 s, twice the damage, poise
-    24. The stab: 0.45 s, 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's heft, as its wielder's
-    strength feels it, stretches every part, a lighter one shortens it, and no wind-up goes under 0.4 s. Arcs by line:
-    160° across, 110° on a diagonal, 60° down from the top.
+    24. The stab: 0.45 s, the weapon's stab damage (damage types, above; it was 1.25 times the swing's), poise 18, a
+    16° arc. A heavier weapon's heft, as its wielder's strength feels it, stretches every part, a lighter one shortens
+    it, and no wind-up goes under 0.4 s. Arcs by line: 160° across, 110° on a diagonal, 60° down from the top.
   - Momentum: +0.25 a reverse, +1 any other, +0.5 a perpendicular, at most 4, each hand its own; each point 25% more
     damage (×2 at most), never speed; a stab adds 50% per point and spends that hand's. A swing down from the top has
     no reverse. An attack chains if it starts within 0.25 s of the end of the last swing by either hand; a dodge, a
@@ -1161,18 +1178,18 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
-- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 3.57, 11 damage; the Greatsword 1 x 4, 1.9 m,
-  weight 8, heft 4.86, 16 damage (about the Basic Sword's damage per second); the Kobold Greatsword's blade is the
-  greatsword with the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS`
-  (`shared/src/items/items.ts`).
+- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 3.57; the Greatsword 1 x 4, 1.9 m, weight 8, heft
+  4.86; the Kobold Greatsword's blade is the greatsword. Their damage goes by the rule (damage types, above). Numbers:
+  each item's `weapon` in `ITEMS` (`shared/src/items/items.ts`).
 - Bows (the user's rules above, building on the agent's earlier prep: "prep for future weapons (bows)", "make any
   assumptions you want as to not block me"): **placeholders, every rule below the user's and every number.** All of it
   is the agent's, tried by tests and a headless browser, never hand-played; the numbers are `BOW` in
   `shared/src/weapons/bow.ts` and the items' data (`ITEMS`). A weapon kind says what it does (`MOVES` in
   `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit shapes and timings) or ranged (the bow: a draw, a
   loose, a projectile), and the fight branches on that, not on the kind's name. The Training bow (1 x 3, length 1.2,
-  12 damage, power 60 m/s, heft 3, no least strength), the Arrow (1 x 1, stacks of 20 in a bag cell, weight 0.05) and
-  the Training quiver (1 x 2, weight 0.5) come only from the admin panel's give: no shop, drop or quest has them.
+  12 stab, off the swords' damage rule, power 60 m/s, heft 3, no least strength), the Arrow (1 x 1, stacks of 20 in a
+  bag cell, weight 0.05) and the Training quiver (1 x 2, weight 0.5) come only from the admin panel's give: no shop,
+  drop or quest has them.
   - Two hands: a bow (the kinds in `TWO_HANDED`, `weapons/weapons.ts`) and anything else are never held together.
     Whatever goes into a hand, if it or what the other hand holds is two-handed, sends the other hand's into the bag
     (then the backpack); with no room there the move is refused, and a corner notice says what didn't fit. With a
@@ -1401,9 +1418,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummies, best Bram in
     a spar (lore "Soft as dough"). A quest taken from the NPC its first step asks you to talk to does that step at
     once, so taking it from Bram gives the stick there and then.
-  - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, 3 damage, heft 0.385, no
-    strength needed; worth 5 copper (the forge buys it for 2). It goes into the bag, not a hand: Bram says to hold it,
-    and the bag works in a fight too.
+  - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, a 3 blunt swing and a stab of 1
+    (damage types, above), heft 0.385, no strength needed; worth 5 copper (the forge buys it for 2). It goes into the
+    bag, not a hand: Bram says to hold it, and the bag works in a fight too.
   - Both fights start from Bram's talk (Begin), in the region's arena, as a spar (`TRAINING_YIELD_SHARE`, 0.1, in
     `server/src/core/game/training.ts`): no fighter's HP goes under 10% of its most, and one at it has yielded, so
     the fight is decided. Nothing is lost or gained but the quest: HP and stamina come back as they went in, no drops,

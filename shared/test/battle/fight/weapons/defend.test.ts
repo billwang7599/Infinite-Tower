@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  appliedStrength, AVERAGE_STAT, Body, CHAIN, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health,
-  HYBRID, knockbackTakenFactor, perfectBlockTime, physicalDamage, Player, PLAYER, Stamina, strikeCost, toSteps,
-  TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
+  appliedStrength, AVERAGE_STAT, Body, CHAIN, damageTotal, emptyBag, packFor, FIXED_DT, GUARDS, guardOf,
+  guardRaiseTime, Health, HYBRID, knockbackTakenFactor, perfectBlockTime, Player, PLAYER, Stamina,
+  strikeCost, strikeDamage, toSteps, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData,
+  type Stats, type Weapon,
 } from "@infinite-tower/shared";
 import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS, armed } from "../fixtures.js";
@@ -50,7 +51,7 @@ function landsAt(at: number, strike: "light" | "heavy" | "stab" = "light"): numb
   return fight.steps;
 }
 const PRESS = 40;
-const SWORD = physicalDamage(WEAPONS.sword.damage, STATS);
+const SWORD = damageTotal(strikeDamage(WEAPONS.sword, "light", 1, STATS));
 const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon, STATS.strength));
 const RAISE = raiseSteps(WEAPONS.sword);
 const holdSteps = (raise: number) => raise + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;

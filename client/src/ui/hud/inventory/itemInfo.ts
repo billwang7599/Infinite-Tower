@@ -1,7 +1,8 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import {
-  footprint, isWeapon, itemDef, MOVES, movesOf, twoHanded, WEAPONS, type BagItem, type ItemDef, type ItemEffect,
-  type ItemId, type RangedMoves, type Rarity, type WeaponId, type WeaponStyle, type WornOn,
+  DAMAGE_TYPES, footprint, isWeapon, itemDef, MOVES, movesOf, twoHanded, weaponDamage, WEAPONS, type BagItem,
+  type Damage, type DamageType, type ItemDef, type ItemEffect, type ItemId, type RangedMoves, type Rarity,
+  type WeaponId, type WeaponStyle, type WornOn,
 } from "@infinite-tower/shared";
 
 const WIELDED: Record<WeaponStyle, string> = {
@@ -18,6 +19,11 @@ const WORN_ON: Record<WornOn, string> = {
   boots: "on your feet", belt: "round your waist", back: "on your back", hip: "at your hip", finger: "on a finger",
   wrist: "on a wrist",
 };
+
+export const DAMAGE_NAME: Record<DamageType, string> = { slash: "Slash", stab: "Stab", blunt: "Blunt" };
+
+export const damageText = (damage: Damage): string => DAMAGE_TYPES.filter((type) => damage[type] > 0)
+  .map((type) => `${DAMAGE_NAME[type]} ${Math.round(damage[type] * 10) / 10}`).join(" · ");
 
 export const RARITY_NAME: Record<Rarity, string> = {
   common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary", unique: "Unique",
@@ -42,6 +48,7 @@ interface ItemInfo {
   weight: string;
   /** What using it does; null for things that can't be used. */
   effect: string | null;
+  damage: string | null;
 }
 
 export const effectsText = (effects: readonly ItemEffect[]): string => effects
@@ -84,5 +91,6 @@ export function itemInfo(stack: BagItem): ItemInfo {
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`
       : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL : shotWith(stack.item) ? AMMO
       : HELD[stack.item] ?? wornText(def),
+    damage: isWeapon(stack.item) ? damageText(weaponDamage(WEAPONS[stack.item])) : null,
   };
 }
