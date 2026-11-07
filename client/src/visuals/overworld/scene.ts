@@ -47,7 +47,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
   camera.maxZ = 120;
   camera.inputs.clear();
   const sky = createSky(scene);
-  postProcess(camera, sky);
+  postProcess(camera);
   const sprite = (name: string, draw: SpriteDraw) => spriteMaterial(scene, name, draw);
   return {
     scene, camera, sky, state, yawRad: 0,
@@ -142,7 +142,7 @@ function blobMaterial(scene: Scene): StandardMaterial {
   return m;
 }
 
-function postProcess(camera: UniversalCamera, sky: Sky): void {
+function postProcess(camera: UniversalCamera): void {
   const scene = camera.getScene();
   const post = new DefaultRenderingPipeline("overworld-post", true, scene, [camera]);
   post.fxaaEnabled = false;
@@ -169,24 +169,15 @@ function postProcess(camera: UniversalCamera, sky: Sky): void {
   post.imageProcessing.vignetteEnabled = true;
   post.imageProcessing.vignetteWeight = 1.8;
   post.imageProcessing.vignetteColor = new Color4(0.05, 0.02, 0, 0);
-  tiltShift(camera, sky);
+  tiltShift(camera);
 }
 
-/** Over the ground past what's under the camera; `around` is its share of the sun's glow away from the sun. */
-const HAZE = { strength: 0.5, densityPerTile: 0.04, around: 0.1 };
-
-// The ground's distance is guessed from the camera's height over it (the overworld looks only down).
 Effect.ShadersStore["tiltShiftFragmentShader"] = `
 precision highp float;
 varying vec2 vUV;
 uniform sampler2D textureSampler;
 uniform vec2 texelSize;
 uniform float maxRadiusPx;
-uniform mat4 inverseViewProjection;
-uniform vec3 eye;
-uniform float heightTiles;
-uniform vec3 toSun;
-uniform vec3 haze;
 void main(void) {
   float d = clamp((abs(vUV.y - 0.5) - 0.17) / 0.33, 0.0, 1.0);
   float r = d * d * maxRadiusPx;
@@ -198,32 +189,16 @@ void main(void) {
     }
     sum /= 17.0;
   }
-  vec4 far = inverseViewProjection * vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
-  vec3 ray = normalize(far.xyz / far.w - eye);
-  float pastTiles = max(heightTiles / max(-ray.y, 0.05) - heightTiles, 0.0);
-  float s = max(dot(ray, toSun), 0.0);
-  vec3 h = haze * (1.0 - exp(-pastTiles * DENSITY)) * (AROUND + s * s * s);
-  gl_FragColor = vec4(sum.rgb + h * (1.0 - sum.rgb), sum.a);
+  gl_FragColor = sum;
 }`;
 
-function tiltShift(camera: UniversalCamera, sky: Sky): void {
-  const defines = `#define DENSITY ${HAZE.densityPerTile.toFixed(4)}\n#define AROUND ${HAZE.around.toFixed(3)}`;
+function tiltShift(camera: UniversalCamera): void {
   const pass = new PostProcess(
-    "overworld-tilt-shift", "tiltShift",
-    ["texelSize", "maxRadiusPx", "inverseViewProjection", "eye", "heightTiles", "toSun", "haze"], null, 1, camera,
-    Constants.TEXTURE_BILINEAR_SAMPLINGMODE, undefined, false, defines, Constants.TEXTURETYPE_HALF_FLOAT,
+    "overworld-tilt-shift", "tiltShift", ["texelSize", "maxRadiusPx"], null, 1, camera,
+    Constants.TEXTURE_BILINEAR_SAMPLINGMODE, undefined, false, undefined, Constants.TEXTURETYPE_HALF_FLOAT,
   );
-  const inverse = new Matrix(), toSun = new Vector3(), haze = new Color3();
   pass.onApply = (effect) => {
     effect.setFloat2("texelSize", 1 / pass.width, 1 / pass.height);
     effect.setFloat("maxRadiusPx", 5 * (pass.height / 720));
-    camera.getViewMatrix().multiplyToRef(camera.getProjectionMatrix(), inverse);
-    inverse.invert();
-    effect.setMatrix("inverseViewProjection", inverse);
-    effect.setVector3("eye", camera.position);
-    effect.setFloat("heightTiles", camera.position.y - camera.getTarget().y);
-    const sun = sky.glow.toSun;
-    effect.setVector3("toSun", toSun.set(sun.x, sun.y, sun.z));
-    effect.setColor3("haze", sky.glow.color.scaleToRef(HAZE.strength, haze));
   };
 }

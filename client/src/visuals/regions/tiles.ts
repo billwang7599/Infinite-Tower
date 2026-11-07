@@ -1,4 +1,4 @@
-import { seededRandom, tileAt, type Rect, type TileKind, type WorldMap } from "@infinite-tower/shared";
+import { seededRandom, tileAt, TILES, type Rect, type TileKind, type WorldMap } from "@infinite-tower/shared";
 import { PX_PER_TILE } from "../../gfx/grid.js";
 import type { Pen } from "../overworld/props.js";
 import type { Prop, PropKind } from "../overworld/scenery.js";
@@ -31,15 +31,28 @@ const tileRandom = (t: { x: number; z: number }, salt: number) => seededRandom(s
 
 export type LooksAt = (x: number, z: number) => TileLooks;
 
+const BORROWS_GROUND = new Set<TileKind>(["lamp"]);
+
+export function groundKind(map: WorldMap, x: number, z: number): TileKind | null {
+  const kind = tileAt(map, x + 0.5, z + 0.5);
+  if (!kind || !BORROWS_GROUND.has(kind)) return kind;
+  const counts = new Map<TileKind, number>();
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    const k = tileAt(map, x + dx + 0.5, z + dz + 0.5);
+    if (k && !TILES[k].solid) counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? kind;
+}
+
 export function* paintGround(pen: Pen, map: WorldMap, chunk: Rect, looksAt: LooksAt): Generator<void, void> {
   const north = chunk.z + chunk.h;
   let row = -1;
   for (const t of tilesOf(map, chunk)) {
     if (row >= 0 && t.z !== row) yield;
     row = t.z;
-    const ground = looksAt(t.x, t.z)[t.kind].ground;
+    const ground = looksAt(t.x, t.z)[groundKind(map, t.x, t.z) ?? t.kind].ground;
     const same = (dx: number, dy: number) => {
-      const x = t.x + dx, z = t.z - dy, next = tileAt(map, x + 0.5, z + 0.5);
+      const x = t.x + dx, z = t.z - dy, next = groundKind(map, x, z);
       return next === null || looksAt(x, z)[next].ground === ground;
     };
     ground(pen, (t.x - chunk.x) * PX_PER_TILE, (north - 1 - t.z) * PX_PER_TILE, tileRandom(t, 1), same);

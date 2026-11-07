@@ -42,6 +42,14 @@ describe("the sky's direct light", () => {
     assert.ok(night.skyLight.b > night.skyLight.r);
   });
 
+  test("the day's sun is warm, never bluer than white, so the overworld reads sunny", () => {
+    for (const f of fractions.filter((f) => altitudeDeg(sunAt(f)) > 10)) {
+      const { sunTint, skyLight } = daylightAt(f);
+      assert.ok(sunTint.r > sunTint.b && sunTint.g > sunTint.b, `sun at ${f}`);
+      assert.ok(skyLight.r >= skyLight.b, `sky light at ${f}`);
+    }
+  });
+
   test("a low sun is warmer than the noon sun", () => {
     const low = fractions.find((f) => f < 0.5 && altitudeDeg(sunAt(f)) > 3)!;
     assert.ok(warmth(daylightAt(low).sunTint) > warmth(daylightAt(0.5).sunTint));

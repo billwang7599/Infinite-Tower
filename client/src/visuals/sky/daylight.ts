@@ -18,10 +18,10 @@ const DAYLIGHT = [
     sunTint: [1, 0.6, 0.4], sunScale: 1, glow: 0.7 },
   { altDeg: 4, sky: [1.1, 0.88, 0.75], zenith: [0.75, 0.8, 1.25], skyLight: [1, 0.88, 0.78], skyLightScale: 1.6,
     sunTint: [1.1, 0.8, 0.58], sunScale: 1.7, glow: 1.4 },
-  { altDeg: 20, sky: [1, 1, 1], zenith: [0.8, 0.95, 1.45], skyLight: [1, 1, 1], skyLightScale: 1.3,
-    sunTint: [1.02, 1.04, 1.08], sunScale: 1.2, glow: 0.8 },
-  { altDeg: 45, sky: [1, 1, 1], zenith: [0.8, 0.95, 1.5], skyLight: [1, 1, 1], skyLightScale: 1,
-    sunTint: [1, 1.06, 1.14], sunScale: 1, glow: 0.55 },
+  { altDeg: 20, sky: [1.04, 1, 0.96], zenith: [0.8, 0.95, 1.45], skyLight: [1.04, 1, 0.94], skyLightScale: 1.3,
+    sunTint: [1.14, 1.02, 0.84], sunScale: 1.25, glow: 0.8 },
+  { altDeg: 45, sky: [1.03, 1, 0.97], zenith: [0.8, 0.95, 1.5], skyLight: [1.03, 1, 0.95], skyLightScale: 1.05,
+    sunTint: [1.1, 1.03, 0.88], sunScale: 1.08, glow: 0.55 },
 ] as const;
 
 let clock: DayClock = WALL_CLOCK;

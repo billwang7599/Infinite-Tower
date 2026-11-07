@@ -346,23 +346,8 @@ const statue: Draw = (pen) => {
   pen.outline("#151c19");
 };
 
-const lamp: Draw = (pen) => {
-  pen.rect(7, 12, 2, 34, IRON.dark);
-  pen.rect(7, 12, 1, 34, IRON.mid);
-  pen.rect(5, 44, 6, 4, IRON.dark);
-  pen.rect(4, 2, 8, 2, IRON.dark);
-  pen.rect(5, 4, 6, 7, "#f3c76a");
-  pen.rect(6, 5, 2, 5, "#fff0b8");
-  pen.rect(5, 4, 1, 7, IRON.dark);
-  pen.rect(10, 4, 1, 7, IRON.dark);
-  pen.rect(4, 11, 8, 1, IRON.dark);
-  pen.rect(7, 0, 2, 2, IRON.mid);
-  pen.outline(OUTLINE);
-};
-
 export const PROP_ART: Record<PropKind, PropArt> = {
   statue: { widthPx: 32, heightPx: 62, draw: statue },
-  lamp: { widthPx: 16, heightPx: 48, draw: lamp },
   tree: { widthPx: 48, heightPx: 64, draw: tree },
   pine: { widthPx: 32, heightPx: 64, draw: pine },
   deadTree: { widthPx: 32, heightPx: 56, draw: deadTree },

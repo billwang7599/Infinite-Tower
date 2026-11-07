@@ -24,6 +24,11 @@ const HOUSE = {
   plinthY: 0.35, plinthOut: 0.05, eaveOut: 0.32, gableOut: 0.22, roofThick: 0.14,
   door: { w: 0.9, h: 1.6, frame: 0.1, out: 0.09 }, window: { w: 0.56, h: 0.72, apart: 1.7 },
 };
+// × the sky's ambient, under the lit colour's clamp: faces in shade keep their own colour, sunlit ones don't change.
+const SHADE_FILL = 1.2;
+const LAMP = { postY: 2.15, lanternY: 2.6 };
+/** `pierW` tiles beside the way, `out` past the wall's faces; `lintelY` from the arch's top down to its spring. */
+const GATE = { pierW: 1.2, out: 0.35, lintelY: 1.9 };
 const WALL = { plinthY: 0.5, plinthOut: 0.09, merlonW: 0.55, merlonY: 0.6, parapetY: 0.22, depth: 0.42, bannerEvery: 7 };
 
 class Geo {
@@ -179,7 +184,45 @@ function buildHouse(g: Geo, ledge: Ledge, h: House): void {
     const ca = f.at(cl - 0.32, ledge.topY + 0.75, cs - 0.32), cb = f.at(cl + 0.32, ledge.topY + 0.9, cs + 0.32);
     g.box(minOf(ca, cb), maxOf(ca, cb), CELL.plinth, CELL.trim);
   }
-  for (const face of facesOf(ledge)) decorate(g, face, h, rand);
+  for (const face of facesOf(ledge)) {
+    decorate(g, face, h, rand);
+    if (h.use === "barracks") barracksFace(g, face, h);
+    if (h.use === "kitchen") kitchenFace(g, face, h);
+  }
+  if (h.use === "kitchen") {
+    for (const cl of [-L * 0.5, L * 0.5]) {
+      const a = f.at(cl - 0.35, h.wallY, -S * 0.4 - 0.35), b = f.at(cl + 0.35, ledge.topY + 1.1, -S * 0.4 + 0.35);
+      g.box(minOf(a, b), maxOf(a, b), CELL.chimney, CELL.iron);
+    }
+  }
+}
+
+function barracksFace(g: Geo, face: Face, h: House): void {
+  for (let at = -face.width / 2 + 0.15; at <= face.width / 2; at += face.width / Math.round(face.width / 2.2)) {
+    outOfFace(g, face, at, 0, 0.36, h.wallY * 0.9, 0, 0.32, CELL.plinth);
+    outOfFace(g, face, at, h.wallY * 0.9, 0.36, 0.18, 0, 0.18, CELL.plinth);
+  }
+  if (face.side !== h.door) return;
+  for (const side of [-1, 1]) {
+    onFace(g, face, side * 1.6, h.wallY - 2.25, 0.7, 1.8, 0.05, CELL.banner);
+    outOfFace(g, face, side * 2.6, 0, 0.5, 0.9, 0, 0.45, CELL.trim);
+    outOfFace(g, face, side * 2.6, 0.9, 0.06, 0.6, 0.15, 0.35, CELL.iron);
+  }
+}
+
+function kitchenFace(g: Geo, face: Face, h: House): void {
+  if (face.side !== h.door) return;
+  const along = (at: number, out: number): V => add(add(face.mid, scale(face.along, at)), scale(face.out, out));
+  const oven = along(face.width / 2 - 1.1, 0.75);
+  g.ring(oven[0], oven[2], 10, 0.75, 0, 0.75, 0.5, CELL.chimney);
+  g.ring(oven[0], oven[2], 10, 0.75, 0.5, 0.05, 1.3, CELL.chimney);
+  outOfFace(g, face, face.width / 2 - 1.1, 0.12, 0.42, 0.34, 1.48, 1.52, CELL.iron);
+  for (let k = 0; k < 3; k++) outOfFace(g, face, -face.width / 2 + 0.9, 0.18 * k, 1.1 - k * 0.2, 0.18, 0, 0.5, CELL.trim);
+  for (const [at, r] of [[-face.width / 2 + 1.9, 0.26], [-face.width / 2 + 2.5, 0.22]] as const) {
+    const p = along(at, 0.4);
+    g.ring(p[0], p[2], 8, r, 0, r, 0.62, CELL.planter);
+    g.disc(p[0], p[2], 8, r, 0.62, CELL.trim);
+  }
 }
 
 function gable(g: Geo, f: Frame, l: number, S: number, wallY: number, rise: number, cell: number): void {
@@ -286,6 +329,51 @@ function buildPlinth(g: Geo, ledge: Ledge): void {
   g.box([rect.x + 0.04, topY - 0.2, rect.z + 0.04], [x1 - 0.04, topY, z1 - 0.04], CELL.plinth, CELL.walk);
 }
 
+function buildLamp(g: Geo, ledge: Ledge): void {
+  const x = ledge.rect.x + 0.5, z = ledge.rect.z + 0.5, { postY, lanternY } = LAMP;
+  g.box([x - 0.2, 0, z - 0.2], [x + 0.2, 0.22, z + 0.2], CELL.plinth, CELL.walk);
+  g.ring(x, z, 8, 0.11, 0.22, 0.07, postY, CELL.iron);
+  g.box([x - 0.16, postY, z - 0.16], [x + 0.16, postY + 0.06, z + 0.16], CELL.iron, CELL.iron);
+  g.box([x - 0.13, postY + 0.06, z - 0.13], [x + 0.13, lanternY, z + 0.13], CELL.lantern, null, true);
+  g.ring(x, z, 4, 0.2, lanternY, 0.02, lanternY + 0.28, CELL.iron);
+}
+
+function buildGate(g: Geo, ledge: Ledge): void {
+  const { rect, topY } = ledge, alongX = rect.w > rect.h || (rect.w === rect.h && rect.h === 1);
+  const span = alongX ? rect.w : rect.h, f = frameOf(ledge, alongX), half = span / 2, d = 0.5 + GATE.out;
+  const archY = Math.max(2.4, topY - GATE.lintelY);
+  const box = (l0: number, l1: number, y0: number, y1: number, s0: number, s1: number, side: number, top: number | null) => {
+    const a = f.at(l0, y0, s0), b = f.at(l1, y1, s1);
+    g.box(minOf(a, b), maxOf(a, b), side, top, false);
+  };
+  for (const end of [-1, 1]) {
+    const inner = end * half, outer = end * (half + GATE.pierW);
+    box(Math.min(inner, outer), Math.max(inner, outer), 0, topY, -d, d, CELL.ashlar, CELL.walk);
+    box(Math.min(inner, outer) - 0.06, Math.max(inner, outer) + 0.06, 0, 0.6, -d - 0.06, d + 0.06, CELL.plinth, CELL.plinth);
+    for (const k of [0, 1]) {
+      const l = end * (half + GATE.pierW * (k === 0 ? 0.22 : 0.78));
+      box(l - 0.2, l + 0.2, topY, topY + 0.55, -d, d, CELL.ashlar, CELL.walk);
+    }
+    for (const side of [-1, 1]) {
+      const l = end * (half + GATE.pierW / 2), s = side * (d + 0.02);
+      const o = f.at(l - 0.38, topY - 2.6, s);
+      g.quad(o, f.dir(0.76, 0, 0), [0, 2.1, 0], CELL.banner, f.dir(0, 0, side), true);
+      box(l - 0.1, l + 0.1, 1.9, 2.2, side * d, side * (d + 0.3), CELL.iron, CELL.iron);
+      box(l - 0.14, l + 0.14, 1.5, 1.9, side * (d + 0.14), side * (d + 0.42), CELL.lantern, CELL.iron);
+    }
+  }
+  box(-half, half, archY, topY, -d + 0.05, d - 0.05, CELL.ashlar, CELL.walk);
+  const steps = 6;
+  for (let i = 0; i < steps; i++) {
+    const l0 = -half + (span * i) / steps, l1 = -half + (span * (i + 1)) / steps, mid = (l0 + l1) / 2 / half;
+    const drop = (1 - Math.sqrt(Math.max(0, 1 - mid * mid))) * Math.min(1.4, archY * 0.4);
+    box(l0, l1, archY - Math.min(1.4, archY * 0.4) + drop, archY, -d + 0.05, d - 0.05, CELL.ashlar, null);
+  }
+  box(-half - 0.05, half + 0.05, archY - 0.12, archY + 0.1, -d - 0.04, d + 0.04, CELL.plinth, CELL.plinth);
+  for (let l = -half + 0.25; l < half; l += 0.42) box(l - 0.035, l + 0.035, archY - 0.45, archY, -0.04, 0.04, CELL.iron, null);
+  box(-half, half, archY - 0.5, archY - 0.42, -0.05, 0.05, CELL.iron, CELL.iron);
+}
+
 function buildFountain(g: Geo, water: Geo, ledge: Ledge): void {
   const { rect, topY } = ledge, x = rect.x + rect.w / 2, z = rect.z + rect.h / 2;
   const r = Math.min(rect.w, rect.h) / 2 - 0.15, inner = r - 0.4, sides = 12;
@@ -326,6 +414,7 @@ export function townArt(scene: Scene): TownArt {
   material.diffuseTexture = pixelCanvas(scene, "town-atlas", CELL_PX * CELLS_ACROSS, CELL_PX * CELLS_ACROSS, paintAtlas, false);
   material.emissiveTexture = pixelCanvas(scene, "town-glow", CELL_PX * CELLS_ACROSS, CELL_PX * CELLS_ACROSS, paintGlow, false);
   material.specularColor = Color3.Black();
+  material.ambientColor = new Color3(SHADE_FILL, SHADE_FILL, SHADE_FILL);
   material.backFaceCulling = false;
   const waterMat = new StandardMaterial("town-water", scene);
   waterMat.diffuseColor = Color3.FromHexString("#1d4a58");
@@ -341,6 +430,8 @@ export function townArt(scene: Scene): TownArt {
       else if (ledge.look === "castle") buildWall(g, map, ledge);
       else if (ledge.look === "column") buildColumn(g, ledge);
       else if (ledge.look === "plinth") buildPlinth(g, ledge);
+      else if (ledge.look === "lamp") buildLamp(g, ledge);
+      else if (ledge.look === "gate") buildGate(g, ledge);
       else if (ledge.look === "fountain") {
         const water = new Geo();
         buildFountain(g, water, ledge);

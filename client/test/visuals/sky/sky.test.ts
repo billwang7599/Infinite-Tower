@@ -52,7 +52,7 @@ describe("the moon", () => {
     const { env } = REGION_LOOKS["grass-field"];
     const lit = litAt(env, 0.5);
     assert.ok(Math.abs(lit.skyLight - env.skyLight.intensity * daylightAt(0.5).skyLightScale) < 1e-9);
-    assert.ok(Math.abs(lit.body - env.sun.intensity) < 1e-9);
+    assert.ok(Math.abs(lit.body - env.sun.intensity * daylightAt(0.5).sunScale) < 1e-9);
   });
 
   test("a fight is lit by the moon of the region it's in", () => {

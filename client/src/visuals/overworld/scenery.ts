@@ -1,12 +1,12 @@
 import {
   inRect, isSolid, regionAt, seededRandom, tileAt, type Rect, type TileKind, type Vec2, type Vec3, type WorldMap,
 } from "@infinite-tower/shared";
-import { houseLedges, tileBlocks, wholeRuns, type House } from "./town.js";
+import { gateMouths, houseLedges, tileBlocks, wholeRuns, type House } from "./town.js";
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
   | "produce" | "potions" | "scales" | "embers" | "dummy" | "rubble" | "crane" | "cart" | "scrub" | "chips"
-  | "shack" | "statue" | "lamp";
+  | "shack" | "statue";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
@@ -15,7 +15,7 @@ export interface Awning { colors: readonly [string, string]; topY: number }
 export interface Ledge {
   rect: Rect;
   topY: number;
-  look?: "castle" | "column" | "house" | "counter" | "hearth" | "quarry" | "fountain" | "plinth";
+  look?: "castle" | "column" | "house" | "counter" | "hearth" | "quarry" | "fountain" | "plinth" | "lamp" | "gate";
   awning?: Awning;
   house?: House;
   /** Crenellated all round, not only toward the open air (the keep, standing in the castle's bulk). */
@@ -28,7 +28,7 @@ export interface Scenery {
 }
 
 const TALL = new Set<PropKind>([
-  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack", "statue", "lamp",
+  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack", "statue",
 ]);
 
 export function isTall(kind: PropKind): boolean {
@@ -45,6 +45,7 @@ export function groundY(ledges: readonly Ledge[], x: number, z: number): number 
 const WALKER_VIEW = { halfWidthTiles: 0.4, heightTiles: 1.3 };
 
 export function hidesWalker(ledge: Ledge, eye: Vec3, feet: Vec3): boolean {
+  if ((ledge.awning?.topY ?? ledge.topY) < WALKER_VIEW.heightTiles / 2) return false;
   const away = Math.hypot(feet.x - eye.x, feet.z - eye.z) || 1;
   const rightX = (feet.z - eye.z) / away, rightZ = (eye.x - feet.x) / away;
   const topY = ledge.awning?.topY ?? ledge.topY;
@@ -166,6 +167,8 @@ export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
   ledges.push(...houseLedges(map, chunk));
   for (const rect of wholeRuns(map, chunk, "fountain")) ledges.push({ rect, topY: FOUNTAIN_RIM_Y, look: "fountain" });
   for (const rect of wholeRuns(map, chunk, "statue")) ledges.push({ rect, topY: PLINTH_Y, look: "plinth" });
+  for (const rect of wholeRuns(map, chunk, "lamp")) ledges.push({ rect, topY: 0, look: "lamp" });
+  ledges.push(...gateMouths(map, chunk, (x, z) => blockAt(map, x, z)?.topY ?? WALL_Y));
   const castle = map.regions.find((r) => r.id === "kingdom");
   if (castle) {
     const midX = castle.area.x + castle.area.w / 2, northZ = castle.area.z + castle.area.h;
@@ -192,7 +195,6 @@ export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
       const kind = kindAt(map, x, z), rand = tileRandom(x, z, 3);
       const stall = STALLS.find((s) => s.kind === kind);
       if (stall) add(stall.goods, x + 0.5, z + 0.5, rand);
-      if (kind === "lamp") add("lamp", x + 0.5, z + 0.5, rand);
       if (kind === "cutStone" && rand() < TERRACE.propChance) add(rand() < 0.6 ? "chips" : "scrub", x + 0.5, z + 0.5, rand);
     }
   }
