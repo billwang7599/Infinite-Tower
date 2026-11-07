@@ -1,7 +1,7 @@
 import {
   inRect, isSolid, regionAt, seededRandom, tileAt, type Rect, type TileKind, type Vec2, type Vec3, type WorldMap,
 } from "@infinite-tower/shared";
-import { gateMouths, houseLedges, tileBlocks, wholeRuns, type House } from "./town.js";
+import { gateMouths, houseLedges, middleIn, tileBlocks, wholeRuns, type House } from "./town.js";
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
@@ -141,11 +141,9 @@ function blockAt(map: WorldMap, x: number, z: number): Block | null {
     : { topY: HEARTH_Y, look: "hearth" };
 }
 
-const clip = (r: Rect, to: Rect): Rect | null => {
-  const x0 = Math.max(r.x, to.x), x1 = Math.min(r.x + r.w, to.x + to.w);
-  const z0 = Math.max(r.z, to.z), z1 = Math.min(r.z + r.h, to.z + to.h);
-  return x0 < x1 && z0 < z1 ? { x: x0, z: z0, w: x1 - x0, h: z1 - z0 } : null;
-};
+export function castleTopAt(map: WorldMap, x: number, z: number): number {
+  return kindAt(map, x, z) === "castleWall" ? blockAt(map, x, z)!.topY : 0;
+}
 
 export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
   const keys = new Map<string, Block>(), keyAt = new Map<string, string>();
@@ -173,8 +171,8 @@ export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
   if (castle) {
     const midX = castle.area.x + castle.area.w / 2, northZ = castle.area.z + castle.area.h;
     for (const [x, z, w, h, topY] of KEEP) {
-      const rect = clip({ x: midX + x, z: northZ + z, w, h }, chunk);
-      if (rect) ledges.push({ rect, topY, look: "castle", crowned: true });
+      const rect = { x: midX + x, z: northZ + z, w, h };
+      if (middleIn(rect, chunk)) ledges.push({ rect, topY, look: "castle", crowned: true });
     }
   }
 
