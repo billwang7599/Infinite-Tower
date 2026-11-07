@@ -17,7 +17,7 @@ export const STARTER_BACKPACK = "canvas-backpack" satisfies ItemId;
 
 /** A player the store has never saved. */
 export const newPlayer = (): PlayerSave => ({
-  vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
+  vitals: fullVitals(PLAYER_STATS), settings: {}, character: null, bag: emptyBag(),
   pack: packFor(STARTER_BACKPACK), quiver: packFor(null), knownWords: [],
   equipment: { ...emptyEquipment(), back: STARTER_BACKPACK }, skillbook: blankSkillbook(), story: newStory(),
   pad: START_REGION, core: newCore(), shopsBought: [], faith: {},

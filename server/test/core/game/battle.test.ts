@@ -172,12 +172,10 @@ describe("the server runs the fight", () => {
     win(session);
     const result = link.last("battleResult");
     assert.equal(result.won, true);
-    assert.equal(result.wins, 1);
     assert.deepEqual(result.lost, {});
     assert.deepEqual(result.gear.bag, CARRIED);
     assert.deepEqual(session.bag, CARRIED);
     assert.equal(saves.length, 1);
-    assert.equal(saves[0]?.wins, 1);
     assert.deepEqual(saves[0]?.bag, CARRIED);
   });
 
@@ -232,7 +230,6 @@ describe("the server runs the fight", () => {
     assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
     assert.deepEqual(result.me, getRegion(session.pad).spawn);
-    assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
   });
@@ -296,7 +293,6 @@ describe("the server runs the fight", () => {
     const bag = session.bag;
     session.disconnect();
     assert.deepEqual(saves.at(-1)?.bag, bag);
-    assert.equal(saves.at(-1)?.wins, 1);
   });
 });
 

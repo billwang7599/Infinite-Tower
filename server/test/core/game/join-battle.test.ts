@@ -122,17 +122,14 @@ describe("joining another player's battle", () => {
 });
 
 describe("a battle fought together", () => {
-  test("won: each of them counts a win and gets a result of their own", async () => {
+  test("won: each of them gets a result of their own", async () => {
     const { online, host, guest, all } = await hosting();
     guest.joinBattle();
     play(online, [host, guest], 3);
     const fight = host.battle!.room.fight;
     fight.world.require(fight.enemies[0]!, Health).hp = 0;
     play(online, [host, guest], 2);
-    for (const { link, session } of all) {
-      assert.equal(link.last("battleResult").won, true);
-      assert.equal(session.wins, 1);
-    }
+    for (const { link } of all) assert.equal(link.last("battleResult").won, true);
   });
 
   test("won: the enemy's drops are rolled once for the fight, in one pile where it fell, for any of them", async (t) => {

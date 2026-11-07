@@ -150,7 +150,6 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
 
   if (won) {
     if (afterFightMs !== null) battle.drops.closesAtMs ??= Date.now() + afterFightMs;
-    session.wins++;
     const { world, enemies } = battle.room.fight;
     progressStory(session, [], enemies.map((e) => world.require(e, Enemy).def.id));
     // A winner is standing, though a teammate's win may have left them down.
@@ -170,7 +169,7 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
   }
   session.save();
   session.link.send({
-    t: "battleResult", won, me, wins: session.wins, vitals: session.vitals,
+    t: "battleResult", won, me, vitals: session.vitals,
     lost, gear: session.gear, skillbook: session.skillbook, afterFightMs, core: session.core, coreLost,
   });
 }
@@ -198,7 +197,7 @@ function settleSpar(
   session.save();
   if (result === "left") return;
   session.link.send({
-    t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
+    t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me),
     vitals: session.vitals, lost: {}, gear: session.gear, skillbook: session.skillbook, afterFightMs: null,
     core: session.core, coreLost: null, ...against,
   });

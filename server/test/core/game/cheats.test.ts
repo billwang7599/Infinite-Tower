@@ -199,19 +199,17 @@ describe("give", () => {
 });
 
 describe("kill", () => {
-  test("in a fight the enemy goes down at once, and it's won as any win is: the result, the win, its drops", (t) => {
+  test("in a fight the enemy goes down at once, and it's won as any win is: the result, its drops", (t) => {
     t.mock.method(Math, "random", () => 0);
     const { session, link } = startSession({ cheats: true });
     fightBoar(session);
     standStill(session, 0.2);
-    const wins = session.wins;
     session.cheat({ kind: "kill" });
     const fight = fightOf(session);
     assert.equal(fight.world.require(fight.enemies[0]!, Health).hp, 0);
     assert.equal(link.last("battleSync").fight.enemies[0]!.health.hp, 0, "the client gets the fight");
     standStill(session, FIXED_DT);
     assert.equal(link.last("battleResult").won, true);
-    assert.equal(session.wins, wins + 1);
     assert.ok(session.afterFight, "still in the arena");
     assert.equal(link.last("arenaDrops").piles.length, 1);
   });
@@ -329,7 +327,7 @@ describe("completeQuest", () => {
 describe("resetSave", () => {
   const SETTINGS = { camera: { sensitivity: 2 } };
   const played = (): PlayerSave => ({
-    ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS, vitals: { ...HURT }, wins: 5,
+    ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS, vitals: { ...HURT },
     bag: bagWith({ "boar-meat": 3 }), shopsBought: ["grocer"], pad: "grass-field", knownWords: ["bolt"],
     story: { quests: { [Object.keys(QUESTS)[0]!]: { step: null, kills: 0 } }, flags: ["x"] },
     core: coreAtStep(newCore(), 3),
@@ -357,7 +355,7 @@ describe("resetSave", () => {
     const link = new FakeLink();
     await online.join(link, ACCOUNT);
     const welcome = link.last("welcome");
-    assert.deepEqual([welcome.wins, welcome.questbook, welcome.character], [0, [], TEST_CHARACTER]);
+    assert.deepEqual([welcome.questbook, welcome.character], [[], TEST_CHARACTER]);
     assert.deepEqual(welcome.core, newCore());
     assert.deepEqual(link.last("world").me, getRegion(START_REGION).spawn);
   });
