@@ -29,7 +29,11 @@ export function gameSockets(online: OnlinePlayers, ping: PingOptions) {
       if (!account) { conn.close(CLOSE_CODES.notLoggedIn, "not logged in"); return; }
       void online.join(conn, account).then((session) => {
         if (!session) return;
-        conn.onMessage((msg) => { if (online.isOn(session)) dispatch(handlers, msg, session); });
+        conn.onMessage((msg) => {
+          if (!online.isOn(session)) return;
+          online.heard(session, msg);
+          dispatch(handlers, msg, session);
+        });
         conn.onClose(() => online.leave(session));
       });
     },

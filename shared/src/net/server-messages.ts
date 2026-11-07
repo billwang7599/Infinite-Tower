@@ -207,6 +207,7 @@ export const CLOSE_CODES = {
   notLoggedIn: 4001,
   full: 4002,
   saveReset: 4003,
+  idle: 4004,
   /** Loading the player's save failed (WebSocket's "internal error"). */
   loadFailed: 1011,
 } as const;

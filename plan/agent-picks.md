@@ -86,6 +86,9 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 - Multiplayer: the server list, `MAX_PLAYERS`, the shared overworld (tall grass per player, crossed swords over a
   fighter), duels (T to challenge within a short range, Y / N, a time limit), joining a fight (up to 4, at the edge).
 - Chat: / opens it as its own input layer; line and rate limits; the last lines kept in memory only.
+- Idle players are disconnected after 15 minutes (`IDLE_KICK_MS`) with no message the player caused, anywhere, a fight
+  too (its 10-minute limit ends an idle fight first); a fight's heartbeat and resyncs don't count; close 4004, told on
+  the title.
 - Key bindings: a new default key a player already uses stays theirs, and the new action is left unbound.
 - The admin panel's buttons: Complete current quest (to speedrun) and Reset my save (replay the start without wiping
   the database), and the other cheats.

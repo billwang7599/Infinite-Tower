@@ -122,8 +122,8 @@ cookie's account; then `ws/` wraps the socket in a `Connection` (the `PlayerLink
 which closes the account's other tab, loads the save and makes a `GameSession`. Each message then flows:
 
 ```
-socket -> Connection (rate and size caps, Zod check; flooding or repeated bad messages close it) -> ws/handlers.ts
-       -> GameSession -> link.send(...)
+socket -> Connection (rate and size caps, Zod check; flooding or repeated bad messages close it)
+       -> OnlinePlayers.heard (idle tracking) -> ws/handlers.ts -> GameSession -> link.send(...)
 ```
 
 Overworld `state` and fight hashes aren't answers: the clock sends them. Client messages are in
