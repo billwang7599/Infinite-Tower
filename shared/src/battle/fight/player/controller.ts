@@ -21,7 +21,8 @@ import { breakOff, canPayStamina, payStamina, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { modsOf, type StatMods } from "../../statuses.js";
-import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
+import { carrySpeed, committed, steer } from "../weapons/commit.js";
+import { endChain, endSwing, handsOf } from "../weapons/swing.js";
 import { attackOrBlock, readSword, type SwordTurn } from "./sword.js";
 
 const carried = (spot: Spot) => spot.in !== "cloth" && spot.in !== "pile";
@@ -98,7 +99,7 @@ function controlPlayer(
   const player = world.require(e, Player), input = world.require(e, PlayerInput), last = player.last;
   const health = world.require(e, Health), skilled = world.require(e, Skilled), wielder = world.require(e, Wielder);
   const swing = wielder.swing, stunned = health.hp <= 0 || health.hitstun > 0;
-  const locked = swing !== null && swing.step < swing.liveUntil;
+  const locked = swing !== null && committed(swing);
   if (input.switchHand && !last.switchHand && dualWielding(wielder.hands)) player.handSwitchQueued = true;
   if (player.handSwitchQueued && !locked && !stunned) {
     player.handSwitchQueued = false;
@@ -221,9 +222,11 @@ function moveByAction({ world, e, dt, player, input, wielder, stamina, stats, mo
   switch (player.action) {
     case "attack": {
       const swing = wielder.swing;
-      if (swing && bladeLive(swing)) {
-        v.x = dir.x * HYBRID.swinging.lungeSpeed;
-        v.z = dir.z * HYBRID.swinging.lungeSpeed;
+      if (swing) steer(world, e, swing, { x: input.aimX, z: input.aimZ }, dt);
+      const carry = swing && carrySpeed(swing);
+      if (swing && carry !== null) {
+        v.x = swing.dir.x * carry;
+        v.z = swing.dir.z * carry;
       } else shuffle(input, v, dt, walkSpeed * HYBRID.swinging.moveFactor);
       if (!swing || swing.step >= swing.endAt) player.action = "none";
       break;

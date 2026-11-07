@@ -20,9 +20,10 @@ const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
   (step) => input({ ...(step === SWING_AT ? { attack: "light" } : {}), ...presses[step] });
 
+// In reach: a swing that misses overextends, so lets go later.
 const newFight = (vitals?: Vitals) => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, vitals ? { vitals } : {})],
-  enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
+  enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 2.4 })],
 });
 
 interface Played { fight: Fight; actions: PlayerAction[]; dodgeStarts: number[]; staminas: number[] }

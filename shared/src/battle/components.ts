@@ -89,6 +89,7 @@ export interface SwingData {
   endAt: number;
   damage: number;
   poiseDamage: number;
+  whiffed: boolean;
 }
 
 export interface WielderData {
@@ -98,6 +99,7 @@ export interface WielderData {
   combo: Way | null;
   comboTime: number;
   momentum: number;
+  feintRecoverSteps: number;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
 

@@ -15,7 +15,8 @@ import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { canPayStamina, payStamina, spend } from "../combat.js";
 import { modsOf } from "../../statuses.js";
-import { endChain, endSwing, startWaySwing } from "../weapons/swing.js";
+import { canSwing, committed, feint } from "../weapons/commit.js";
+import { endChain, startWaySwing } from "../weapons/swing.js";
 import { drawBow } from "./bow.js";
 import { startAction } from "./controller.js";
 
@@ -38,7 +39,7 @@ const UNAIMED = "tb";
 
 export function readSword(t: SwordTurn): void {
   const { player, input, wielder, guard, dt } = t, swing = wielder.swing;
-  const locked = swing !== null && swing.step < swing.liveUntil;
+  const locked = swing !== null && committed(swing);
   const attackPressed = t.weapon !== null && input.attack !== null && input.attack !== player.last.attack;
   player.way = meleeOf(t.weapon) ? input.way : null;
   if (attackPressed) {
@@ -46,11 +47,11 @@ export function readSword(t: SwordTurn): void {
     player.attackBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
   const blockPressed = input.block && !player.last.block;
-  const feint = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
+  const feinted = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   if (blockPressed) {
     const strength = t.world.require(t.e, FighterStats).strength;
-    player.perfectBlockLeft = guard && !feint && player.sinceBlockPress >= HYBRID.block.remashTime
+    player.perfectBlockLeft = guard && !feinted && player.sinceBlockPress >= HYBRID.block.remashTime
       ? guardRaiseTime(guard, strength) + perfectBlockTime(guard) : 0;
     player.sinceBlockPress = 0;
   } else {
@@ -61,13 +62,11 @@ export function readSword(t: SwordTurn): void {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);
   }
-  if (feint) {
-    endSwing(t.world, t.e);
-    endChain(wielder);
+  if (feinted) {
+    feint(t.world, t.e, t.events);
     spend(t.stamina, HYBRID.feint.cost);
     player.action = "none";
     player.attackBuffer = 0;
-    t.events.push({ type: "feint", by: t.e });
   }
 }
 
@@ -99,7 +98,7 @@ export function attackOrBlock(t: SwordTurn): boolean {
   const cost = meleeOf(weapon) && player.queued !== null
     ? strikeCost(weapon!, player.queued, world.require(e, FighterStats).strength) * modsOf(world, e).attackCostFactor
     : 0;
-  if (t.free && meleeOf(weapon) && player.attackBuffer > 0 && player.queued !== null
+  if (t.free && meleeOf(weapon) && player.attackBuffer > 0 && player.queued !== null && canSwing(wielder)
     && canPayStamina(world, e, stamina, cost)) {
     strike(t, player.queued);
     payStamina(world, e, stamina, cost);

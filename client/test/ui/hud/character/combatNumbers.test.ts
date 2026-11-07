@@ -43,16 +43,18 @@ function setupOf(gear: Carried, core: CoreState, at = ORIGIN, faith: Faith = {},
   };
 }
 
-const fightWith = (gear: Carried, core: CoreState, faith: Faith = {}, stamina?: number): Fight => new Fight({
-  arena: ARENA, players: [setupOf(gear, core, ORIGIN, faith, stamina)],
-  enemies: [{ def: STATUE, at: { x: 0, y: 0.05, z: -10 }, yaw: 0 }],
-});
+const fightWith = (gear: Carried, core: CoreState, faith: Faith = {}, stamina?: number, statueZ = -10): Fight =>
+  new Fight({
+    arena: ARENA, players: [setupOf(gear, core, ORIGIN, faith, stamina)],
+    enemies: [{ def: STATUE, at: { x: 0, y: 0.05, z: statueZ }, yaw: 0 }],
+  });
 
 const idle = (over: Partial<PlayerInputData> = {}): PlayerInputData => ({ ...copyInput(IDLE_INPUT), ...over });
 const settle = (fight: Fight) => { for (let s = 0; s < 10; s++) fight.step([idle()]); };
 
+// A swing that meets no one recovers longer (overextended), so this one lands.
 function swungInFight(gear: Carried, core: CoreState, strike: Strike) {
-  const fight = fightWith(gear, core), me = fight.players[0]!;
+  const fight = fightWith(gear, core, {}, undefined, 2), me = fight.players[0]!;
   settle(fight);
   const steps = { windup: 0, live: 0, recover: 0 };
   fight.step([idle({ attack: strike })]);

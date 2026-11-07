@@ -7,6 +7,7 @@ export function swingAt(attack: AttackKind, way: Way, step: number, aimYaw = 0):
   return {
     attack, way, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
     ...wayStepsAfter(WEAPONS.sword, windup, heavy, AVERAGE_STAT), damage: 9, poiseDamage: 12,
+    whiffed: false,
   };
 }
 

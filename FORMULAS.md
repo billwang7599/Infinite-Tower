@@ -133,8 +133,15 @@ Kobolds' blades as theirs).
   across, 110° on a diagonal, 60° down from the top; × 1.75 for a stab (16°), to the target's surface; arcs by angle
   to its centre (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also
   0.8).
-- While an attack's blade is live it carries you forward at `HYBRID.swinging.lungeSpeed` 4 m/s; otherwise you walk at
-  25% (`moveFactor`) while attacking.
+- **The body** (`HYBRID.swinging`, `fight/weapons/commit.ts`; players and swordsmen alike): from the press to the
+  swing's end you walk at `moveFactor` 25% (a swordsman at 25% of its walk up), and while the blade is live it carries
+  you forward along it at `lungeSpeed` 4 m/s. A live blade turns toward the aim (a swordsman's toward its target) at
+  most `liveTurnRadPerSec` 3 rad/s. A swing whose live time meets no one (out of reach, dodged) overextends: its
+  recovery runs `whiffRecoverTime` 0.2 s × felt heft longer, you're carried on at `whiffCarrySpeed` 1.5 m/s all through
+  it, and nothing else starts until it ends (a press waits); the chain's gap counts from that later end.
+
+Example: a sword light at strength 10 is live 8 steps (0.13 s), carrying you 0.53 m and turning at most 0.4 rad (23°).
+Landed, it recovers 0.1 s; whiffed, 0.1 + 0.27 = 0.37 s, carried another 0.55 m.
 
 By weapon, at strength 10, an opening swing (light / heavy; times in seconds, as the fight's steps round them):
 
@@ -151,7 +158,8 @@ Example: a greatsword (heft 2.1) feels 1.55 at strength 20, 2.1 at 10 and 2.22 a
 winds up 0.55, 0.73 or 0.78 s and costs 15.5, 21 or 22.2 stamina. A sword (heft 1.3) feels 1.15 at strength 20: its
 light winds up 0.4 s for 11.5 stamina.
 
-An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
+An enemy's swing deals the same damage, costs no stamina and holds its body by the same rules (the body, above).
+**The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
 0.45 s (a heavy 0.35 s more), and 0.5 s of recovery after a chain, all × its blade's heft (1.43, 0.58 and 0.65 s with
 the Kobold blade, 2.32, 0.95 and 1.05 s with the Kobold greatsword); it blocks walking up (from 0.3 s
@@ -276,7 +284,9 @@ moves.
   before. Body blows can't be blocked perfectly.
 - **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
   pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
-  the next 0.5 s's) and ends the chain. Lights and stabs can't be feinted.
+  the next 0.5 s's) and ends the chain. Then the blade recovers `feint.recoverTime` 0.3 s × felt heft (sword 0.38 s
+  at strength 10) before any swing can start, the guard held meanwhile; a swordsman's feint too (no parry or answer
+  in it). Lights and stabs can't be feinted.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
@@ -295,7 +305,8 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
   after, and the attacker's blade parries it. Within `clashTime` 0.05 s of each other: a clash.
 - **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy.
 - **Recoil** of the parried: base (`fullRecoilTime` 0.8 s, `partialRecoilTime` 0.5 s) × clamp(parrier's weight /
-  parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both the base time.
+  parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both
+  `clashStaggerTime` 0.3 s, whatever the ways and weights.
 - **The Kobold** parries `parryChance` 15% of the swings it reads (those it doesn't perfect-block).
 
 Example: a sword heavy fully parrying a sword light: weights 2.6 and 1.3, the light recoils 0.8 × 2 = 1.6 s; a light
@@ -497,7 +508,8 @@ Each in `server/src/core/enemies/<id>.ts`.
   first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 30).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
   heavy 30% of the time; its first goes live 1.1 s after it starts and the rest 0.45 s (a heavy 0.35 s more), × its
-  blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover (× the heft too) and 1.2 s more before the next
+  blade's heft, creeping up at a quarter of its walk while winding up and carried at 4 m/s while live, as a player
+  (the body, under the sword); then 0.5 s to recover (× the heft too) and 1.2 s more before the next
   chain; first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
   perfect-blocks 30% of a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.

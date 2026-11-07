@@ -68,7 +68,7 @@ const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
 
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({
-  hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0,
+  hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0,
 });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {

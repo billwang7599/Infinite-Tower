@@ -25,7 +25,7 @@ export function startWaySwing(
     attack: strike === "heavy" ? "heavy" : "light", way, dir, step: 0,
     ...melee.steps(weapon, windupTime, strike === "heavy", stats.strength),
     damage: strikeDamage(weapon, strike, power, stats),
-    poiseDamage: HYBRID[strike].poiseDamage,
+    poiseDamage: HYBRID[strike].poiseDamage, whiffed: false,
   };
 }
 

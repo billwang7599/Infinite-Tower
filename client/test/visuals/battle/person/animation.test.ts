@@ -227,7 +227,7 @@ describe("switching hands with a blade in each", () => {
     world.add(e, Body, { pos: { ...feet }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.8, collider: 0 });
     world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
     const wielder = world.add(e, Wielder, { hands: { rightHand: "sword", leftHand: "sword", active: "rightHand" },
-      armReachM: PLAYER.armReachM, swing: null, combo: null, comboTime: 0, momentum: 0 });
+      armReachM: PLAYER.armReachM, swing: null, combo: null, comboTime: 0, momentum: 0, feintRecoverSteps: 0 });
     const p = newPerson(), swing = swingAt("light", "lr", 0);
     // Pressed mid-swing, a switch waits for the blade's live time to end.
     const swingFrom = SWITCH_TIME - (swing.liveUntil + 2) * FIXED_DT;

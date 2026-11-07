@@ -27,6 +27,7 @@ import { regenSystem } from "./health.js";
 import { statusSystem } from "./statuses.js";
 import { ATTACKS, spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
+import { commitSystem } from "./weapons/commit.js";
 import { projectileSystem } from "./weapons/projectile.js";
 import { weaponSystem } from "./weapons/swing.js";
 
@@ -102,7 +103,7 @@ export class Fight {
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(ctx), projectileSystem(ctx),
+      playerGroundSystem(this.physics), combatSystem(ctx), commitSystem(), projectileSystem(ctx),
       statusSystem(),
       regenSystem(),
       skillSystem(ctx), useSystem(ctx),
