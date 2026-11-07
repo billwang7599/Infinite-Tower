@@ -8,13 +8,13 @@ import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
-import { facingSeen, playerBlade, spritePose, STAGGERED } from "./pose.js";
+import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
+import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
 import { lookOf } from "./skillLooks.js";
 import { buildSlash, placeSlash, type Slash } from "./slash.js";
 import { MOTIONS } from "./weapons.js";
 
-const SPRITE_SIZE = 1.8;
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
 const SHADOW_LENGTH_M = 1.1;
@@ -40,26 +40,27 @@ interface PlayerSprite {
   facing: BattleFacing;
   sword: StandardMaterial;
   blade: HeldBlade | null;
+  person: PersonDrawing | null;
 }
 
-interface Stance extends Pick<PlayerData, "action" | "actionDir" | "way" | "grounded"> {
+interface Stance extends Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> {
   leaving: boolean;
   aim: Vec2;
 }
 type StanceOf = (world: World, e: Entity) => Stance;
 
 const playerStance: StanceOf = (world, e) => {
-  const { action, actionDir, way, grounded, leftArena } = world.require(e, Player);
-  return { action, actionDir, way, grounded, leaving: leftArena, aim: world.require(e, Skilled).aim };
+  const { action, actionTime, actionDir, way, grounded, leftArena } = world.require(e, Player);
+  return { action, actionTime, actionDir, way, grounded, leaving: leftArena, aim: world.require(e, Skilled).aim };
 };
 
 const ENEMY_STAGGERS = ["staggered", "stunned"];
 
 const enemyStance: StanceOf = (world, e) => {
-  const { state, yaw } = world.require(e, Enemy), facing = { x: Math.sin(yaw), z: Math.cos(yaw) };
+  const { state, stateTime, yaw } = world.require(e, Enemy), facing = { x: Math.sin(yaw), z: Math.cos(yaw) };
   const action = ENEMY_STAGGERS.includes(state) ? "stagger" : blocking(world, e) ? "block" : "none";
-  return { action, actionDir: world.require(e, Wielder).swing?.dir ?? facing, way: null, grounded: true,
-    leaving: false, aim: facing };
+  return { action, actionTime: stateTime, actionDir: world.require(e, Wielder).swing?.dir ?? facing, way: null,
+    grounded: true, leaving: false, aim: facing };
 };
 
 const personVisual = (kind: "player" | "enemy", stanceOf: StanceOf) => fighter<PlayerSprite>(kind, {
@@ -77,13 +78,14 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   plane.position.y = spriteY(1, 0);
   plane.billboardMode = Mesh.BILLBOARDMODE_Y;
   plane.material = materials.player.back.stand[0]!;
+  plane.setEnabled(!ctx.pixel.player3d);
 
   const shadows = ctx.sky.blobs(materials.blobShadow, SHADOW_LENGTH_M, 0.7);
 
   return {
     ctx, node, plane, shadows, slash: buildSlash(scene, `${e}`, materials.slashFx), walkPhase: 0, stretch: 1,
     staggerTime: 0, fading: null, facing: "back",
-    sword: materials.slashFx, blade: null,
+    sword: materials.slashFx, blade: null, person: ctx.pixel.player3d ? newPerson() : null,
   };
 }
 
@@ -107,9 +109,33 @@ function dispose(sprite: PlayerSprite): void {
   sprite.fading?.dispose();
   sprite.slash.root.dispose();
   dropBlade(sprite.blade);
+  if (sprite.person) dropPerson(sprite.person);
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player: Stance): void {
+  const { ctx } = sprite, health = world.require(e, Health), { swing, hands } = world.require(e, Wielder);
+  const weapon = weaponItemIn(hands), motion = weapon && MOTIONS[WEAPONS[weapon].kind], p = sprite.node.position;
+  sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
+  const stagger = { left: health.hitstun, of: sprite.staggerTime };
+  if (sprite.person) framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
+  else drawSprite(sprite, world, e, dt, player, stagger);
+
+  placeSlash(sprite.slash, motion?.trail(swing) ?? null, { x: p.x, y: p.y + 0.35, z: p.z }, player.actionDir);
+
+  let imbued = null;
+  for (const [, o] of world.query(SkillObject)) {
+    if (o.kind === "imbue" && o.caster === e) imbued = lookOf(o.skill.segments[o.segment]!.elements);
+  }
+  const sword = ctx.skills.slashFor(imbued);
+  if (sword !== sprite.sword) {
+    sprite.sword = sword;
+    sprite.slash.mesh.material = sword;
+  }
+}
+
+function drawSprite(
+  sprite: PlayerSprite, world: World, e: Entity, dt: number, player: Stance, stagger: { left: number; of: number },
+): void {
   const { ctx } = sprite;
   const body = world.require(e, Body), health = world.require(e, Health);
   const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponItemIn(hands);
@@ -128,8 +154,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     : swing?.attack === "heavy" && swing.step < swing.liveAt ? HEAVY_WINDUP_STRETCH
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
-  sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
-  const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
+  const pose = spritePose(player, wielder, alive, sprite.stretch, stagger);
   const { aim } = player;
   sprite.facing = facingSeen(ctx.battle.view.eye, p, aim, sprite.facing);
   const look = ctx.looks.get(e);
@@ -160,7 +185,6 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   }
   if (sprite.blade) showCue(sprite.blade.cue, alive ? swing : null);
 
-  placeSlash(sprite.slash, motion?.trail(swing) ?? null, { x: p.x, y: p.y + 0.35, z: p.z }, player.actionDir);
 
   const below = ctx.battle.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;
   if (below !== null) {
@@ -171,15 +195,5 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     sprite.shadows.place({ x: p.x, y: floorY, z: p.z }, below, scale, sprite.plane.visibility);
   } else {
     sprite.shadows.place(null, 0);
-  }
-
-  let imbued = null;
-  for (const [, o] of world.query(SkillObject)) {
-    if (o.kind === "imbue" && o.caster === e) imbued = lookOf(o.skill.segments[o.segment]!.elements);
-  }
-  const sword = ctx.skills.slashFor(imbued);
-  if (sword !== sprite.sword) {
-    sprite.sword = sword;
-    sprite.slash.mesh.material = sword;
   }
 }

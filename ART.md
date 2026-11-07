@@ -242,7 +242,9 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 - **Title screen**: a low-poly, cartoony tower with shader-like lighting, drawn on a 2D canvas
   (`ui/screens/title/backdrop/`): dark-fantasy night around a glowing white and gold tower.
 - **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld and the player in the arena, simple 3D
-  models for enemies.
+  models for enemies. A dev-only flag (`&player3d`) tries the arena's people as 3D models too, built from the look's
+  colours and the battle sprite's proportions and posed in code, pose to pose (`visuals/battle/person/`); no drawing
+  is needed for them.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

@@ -1632,7 +1632,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
                          impact
         pixel.ts         A dev-only pixel-art render to try (?pixel=<n>, &outline, &palette[=bands]): pixelFlags,
-                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes
+                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes; also
+                         the 3D person's flags (&player3d, &steps=<fps>)
+        person/          A dev-only 3D person in place of the sprite (&player3d): model.ts (personBuild: a look's
+                         colours and the sprite's proportions in metres, tested; buildPerson from primitives, casting
+                         real shadows), pose.ts (personPose: pose to pose, each key eased into over KEY_EASE_TIME and
+                         held, for the swing, dodge, stagger, defeat, chant, cast and walk; no Babylon: tested),
+                         animation.ts (framePerson: the pose on the model, the 3D blade in its hand; with &steps only
+                         that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); impactPose and
@@ -1649,7 +1656,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
                          trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to
                          fade; personEnemyVisual, the same drawing for an NPC fought as an enemy (its stance from its
-                         state)
+                         state); with &player3d, every one of them (you, a duel's rival, Bram) a 3D person (person/)
         slash.ts         A swing's crescent trail across the swinger's view (buildSlash, placeSlash from the motion's
                          TrailPose): every player's and the Kobolds'
         blade.ts         The 3D sword: buildBlade (grip, guard and blade along a hand's +y, from WEAPON_LOOKS: the
