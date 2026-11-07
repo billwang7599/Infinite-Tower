@@ -151,7 +151,7 @@ export const ITEMS = {
     name: "Training bow", rarity: "common",
     description: "A plain ash bow strung for the butts, light to draw. It's no use without arrows.", cols: 1, rows: 3,
     stackSize: 1, weight: 1, wearable: { on: "hand" },
-    weapon: { kind: "bow", length: 1.2, damage: 12, heft: 1, minStrength: 0, powerMps: 40 },
+    weapon: { kind: "bow", length: 1.2, damage: 12, heft: 1, minStrength: 0, powerMps: 60 },
   },
   "training-quiver": {
     name: "Training quiver", rarity: "common",

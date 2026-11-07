@@ -159,23 +159,31 @@ Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35,
 
 ## Bows (placeholder)
 
-Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `loosedDamage`, `loosedSpeed` and
-`nockTime` in `shared/src/weapons/bow.ts`, a bow's `powerMps` and a quiver's `pack.holds` in `ITEMS`; the draw in
-`fight/player/bow.ts`, the flight in `fight/weapons/projectile.ts`.
+Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `loosedDamage`, `drawnPower`,
+`loosedSpeed`, `flightAfter` and `nockTime` in `shared/src/weapons/bow.ts`, a bow's `powerMps` and a quiver's
+`pack.holds` in `ITEMS`; the draw in `fight/player/bow.ts`, the flight in `fight/weapons/projectile.ts`.
 
 - **Draw:** costs `draw.cost` 8 stamina × felt heft as it starts; full after `draw.fullTime` 1 s × felt heft, and
   a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%.
 - **Nocking:** after loosing, `nock.quiverTime` 0.3 s before the next draw if the quiver holds an arrow, else
   `nock.bagTime` 0.8 s. A quiver's one cell holds 60 arrows (`holds.stackSize`; a bag cell 20); they're shot first.
 - **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
-- **Speed** = the bow's `powerMps` × (`minSpeedShare` 0.4 + 0.6 × the share drawn, at most 1).
-- **Flight:** gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle. It's
-  aimed in the low arc at that speed that meets the aim's spot (straight at it if it can't): locked on, the target's
-  middle; with no lock-on, the spot under the crosshair (`aimAt`). Each step moves it along the exact arc, so it lands
-  there. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
+- **Speed** = the bow's `powerMps` × (t² + 2t) / 3, t the share drawn (at most 1): Minecraft's draw curve
+  (`drawnPower`, which the draw meter shows).
+- **Flight** (Minecraft's, in metres: `flightAfter`): dv/dt = g − k v, gravity g = `gravityMps2` −20 m/s² (Minecraft's
+  0.05 blocks a tick²) and drag k = `dragPerSec` 0.2 /s, so it keeps e^−0.2 = 82% of its speed a second (Minecraft's
+  0.99 a 1/20 s tick). After t s: v = v₀ e^−kt + g (1 − e^−kt) / k, and it has gone v₀ c + g (t − c) / k with
+  c = (1 − e^−kt) / k. Each step moves it there exactly (sweeping the chord), so the trail drawn back along it is the
+  path flown. At most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle.
+- **Aim:** with no lock-on, straight at the spot under the crosshair (`aimAt`), no arc; locked on, in the low arc at
+  that speed that meets the target's middle under the drag and gravity (`launchAt`: the pitch stepped up by 0.5° from
+  the straight line until the flight reaches the middle's height there, then halved 50 times), straight at it if it
+  can't. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
 
-Example: the Training bow (12 damage, 40 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
-40 × (0.4 + 0.6 × 0.25) = 22 m/s; held 1 s or more, 12 at 40 m/s.
+Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
+60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 12 at
+60 m/s. A full draw loosed level drops 7 cm by 5 m, 0.28 m by 10 m, 0.74 m by 16 m (the arena's middle to its wall),
+1.8 m by 25 m and 3.1 m by 32 m (wall to wall), and from chest height lands 17.5 m off.
 
 ## Body blows
 

@@ -48,13 +48,13 @@ describe("the bow's draw", () => {
     assert.equal(drawnShare(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), 0.5);
   });
 
-  test("the arrow leaves at the bow's power fully drawn, and slower the less it's drawn", () => {
+  test("the arrow leaves at the bow's power × (t² + 2t) / 3, t the share drawn, as Minecraft's bow", () => {
     const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), power = TRAINING_BOW.powerMps!;
-    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full), power);
+    for (const t of [0, BOW.draw.minTime / BOW.draw.fullTime, 0.5, 0.8, 1]) {
+      const speed = loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full * t);
+      assert.ok(Math.abs(speed - (power * (t * t + 2 * t)) / 3) < 1e-9, `${t}: ${speed}`);
+    }
     assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full * 3), power);
-    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, 0), power * BOW.draw.minSpeedShare);
-    const half = power * (BOW.draw.minSpeedShare + (1 - BOW.draw.minSpeedShare) / 2);
-    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), half);
     assert.equal(loosedSpeed(BOW, { ...TRAINING_BOW, powerMps: 2 * power }, AVERAGE_STAT, full), 2 * power);
   });
 

@@ -99,15 +99,23 @@ describe("an arrow loosed at the crosshair", () => {
     throw new Error("the arrow never landed");
   }
 
-  const lands = (spot: Vec3, wallM: number) => {
-    const got = stuckAt(spot, wallM), offM = Math.hypot(got.x - spot.x, got.y - spot.y, got.z - spot.z);
-    assert.ok(offM < BOW.projectile.radiusM, `${offM.toFixed(2)} m off: ${JSON.stringify(got)}`);
+  const under = (spot: Vec3, wallM: number): number => {
+    const got = stuckAt(spot, wallM);
+    assert.ok(Math.hypot(got.x - spot.x, got.z - spot.z) < 0.01, `straight under it: ${JSON.stringify(got)}`);
+    return spot.y - got.y;
   };
 
-  test("near, down on the floor", () => lands({ x: 0.5, y: 0, z: 6 }, 8));
-  test("near, up on the wall", () => lands({ x: 1, y: 2.5, z: Math.sqrt(63) }, 8));
-  test("25 m off, down on the floor", () => lands({ x: 0, y: 0, z: 25 }, 30));
-  test("25 m off, up on the wall", () => lands({ x: -2, y: 4, z: Math.sqrt(621) }, 25));
+  test("on the wall, it sticks straight under the spot, a little low near and far lower 25 m off", () => {
+    const near = under({ x: 1, y: 2.5, z: Math.sqrt(63) }, 8), far = under({ x: -2, y: 4, z: Math.sqrt(621) }, 25);
+    assert.ok(near > 0 && far > 4 * near, `${near} m low near, ${far} m 25 m off`);
+  });
+
+  test("on the floor, it sticks in the floor short of the spot", () => {
+    for (const [spot, wallM] of [[{ x: 0.5, y: 0, z: 6 }, 8], [{ x: 0, y: 0, z: 25 }, 30]] as const) {
+      const got = stuckAt(spot, wallM);
+      assert.ok(Math.abs(got.y) < 1e-9 && got.z < spot.z && got.x >= 0 && got.x <= spot.x, JSON.stringify(got));
+    }
+  });
 });
 
 describe("freeCamera", () => {
