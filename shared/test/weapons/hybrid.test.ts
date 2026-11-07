@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   AVERAGE_STAT, CHAIN, chainKind, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay, startupTime, strikeCost,
-  SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS, windupTime,
+  SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS, windupTime, type AttackSteps,
 } from "@infinite-tower/shared";
 
 describe("the sword's ways", () => {
@@ -74,8 +74,25 @@ describe("the sword's ways", () => {
     for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
       assert.equal(strikeCost(WEAPONS.greatsword, "light", strength),
         HYBRID.light.cost * feltHeft(WEAPONS.greatsword, strength), `${strength}`);
-      assert.deepEqual(wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, strength),
-        wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT), `${strength}`);
+      assert.deepEqual(wayStepsAfter(WEAPONS["old-stick"], CHAIN.startupTime.opening, false, strength),
+        wayStepsAfter(WEAPONS["old-stick"], CHAIN.startupTime.opening, false, AVERAGE_STAT), `${strength}`);
+    }
+  });
+
+  test("a sword has weight: at strength 10 it swings 25-30% slower than a weightless blade, less if stronger", () => {
+    const share = feltHeft(WEAPONS.sword, AVERAGE_STAT) - 1;
+    assert.ok(share >= 0.25 && share <= 0.3 + 1e-9, `${share}`);
+    const weightless = { ...WEAPONS.sword, heft: 1 };
+    for (const strike of ["light", "heavy", "stab"] as const) {
+      const windup = windupTime(strike, "opening", 0), heavy = strike === "heavy";
+      const steps = (strength: number) => wayStepsAfter(WEAPONS.sword, windup, heavy, strength);
+      const bare = wayStepsAfter(weightless, windup, heavy, AVERAGE_STAT), average = steps(AVERAGE_STAT);
+      const strong = steps(AVERAGE_STAT * 2), weak = steps(AVERAGE_STAT / 2);
+      const recovery = (steps: AttackSteps) => steps.endAt - steps.liveUntil;
+      assert.ok(average.liveAt > bare.liveAt && recovery(average) > recovery(bare), strike);
+      assert.ok(weak.liveAt > average.liveAt && average.liveAt > strong.liveAt, strike);
+      assert.ok(weak.endAt > average.endAt && average.endAt > strong.endAt, strike);
+      assert.ok(strikeCost(WEAPONS.sword, strike, AVERAGE_STAT) > HYBRID[strike].cost, strike);
     }
   });
 

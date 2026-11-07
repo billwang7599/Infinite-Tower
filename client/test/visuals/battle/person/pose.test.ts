@@ -86,8 +86,11 @@ describe("the 3D player's swing", () => {
       for (let step = EASE_STEPS + 1; step < driveAt - 1; step++) {
         assert.ok(along[step + 1]! < along[step]!, `${attack}: creeping back at step ${step}`);
       }
-      for (let step = driveAt + 2; step < endAt - 2; step++) {
+      for (let step = driveAt + 2; step < endAt - Math.ceil((endAt - liveAt) / 8); step++) {
         assert.ok(along[step + 1]! > along[step]! + 0.004, `${attack}: sweeping round at step ${step}`);
+      }
+      for (let step = driveAt + 2; step < endAt - 1; step++) {
+        assert.ok(along[step + 1]! > along[step]!, `${attack}: still going round at step ${step}`);
       }
       assert.ok(at(driveAt).blade.z < 0, "drawn back behind");
       assert.ok(Math.abs(at(liveAt).blade.x) < 0.05 && at(liveAt).blade.z > 0.9, "straight ahead on the hit");

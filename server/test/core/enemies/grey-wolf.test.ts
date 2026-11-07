@@ -28,7 +28,7 @@ function punish(fight: Fight): PlayerInputData {
   if (wolf.state !== "pounceRecover" && wolf.state !== "staggered") return aimed;
   const far = dist > 1.8;
   return { ...aimed, moveX: far ? aimed.aimX : 0, moveZ: far ? aimed.aimZ : 0,
-    attack: fight.steps % 2 === 0 ? "light" : null };
+    attack: !far && fight.steps % 2 === 0 ? "light" : null };
 }
 
 function sidestepper(fight: Fight): PlayerInputData {

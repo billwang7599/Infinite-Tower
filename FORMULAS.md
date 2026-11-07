@@ -114,8 +114,8 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
 `CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`, with
 each weapon's numbers in its `weapon` (`ITEMS`); the rules in `fight/player/sword.ts` and `fight/weapons/`. Damage
 goes × √(strength / 10), and every time and stamina cost × the heft the wielder feels (`feltHeft`): 1 + (heft − 1) ×
-10 / strength. Strength 10 feels a weapon's heft as it is, 20 half the extra, 5 twice it; a sword (heft 1) feels the
-same to everyone. Below a weapon's `minStrength` it can't be wielded at all (sword 0, longsword 6, greatsword 9; the
+10 / strength. Strength 10 feels a weapon's heft as it is, 20 half the extra, 5 twice it; the old stick (heft 1) feels
+the same to everyone. Below a weapon's `minStrength` it can't be wielded at all (sword 0, longsword 6, greatsword 9; the
 Kobolds' blades as theirs).
 
 - **Wind-up** (press to the blade going live): a light `CHAIN.startupTime` by how it follows the last swing (an
@@ -136,19 +136,20 @@ Kobolds' blades as theirs).
 - While an attack's blade is live it carries you forward at `HYBRID.swinging.lungeSpeed` 4 m/s; otherwise you walk at
   25% (`moveFactor`) while attacking.
 
-By weapon, at strength 10, an opening swing (light / heavy; times in seconds):
+By weapon, at strength 10, an opening swing (light / heavy; times in seconds, as the fight's steps round them):
 
-| Weapon | Heft | Damage | Wind-up | Stamina (light / heavy / stab) |
-|---|---|---|---|---|
-| Old stick | 1 | 5 / 10 | 0.35 / 0.7 | 10 / 16 / 12 |
-| Sword | 1 | 9 / 18 | 0.35 / 0.7 | 10 / 16 / 12 |
-| Longsword | 1.2 | 11 / 22 | 0.42 / 0.84 | 12 / 19.2 / 14.4 |
-| Greatsword | 1.6 | 16 / 32 | 0.56 / 1.12 | 16 / 25.6 / 19.2 |
-| Kobold blade | 1 | 14 / 28 | (its own, below) | none |
-| Kobold greatsword | 1.6 | 14 / 28 | (its own, below) | none |
+| Weapon | Heft | Damage | Wind-up | Live | Recovery | Stamina (light / heavy / stab) |
+|---|---|---|---|---|---|---|
+| Old stick | 1 | 5 / 10 | 0.35 / 0.7 | 0.1 / 0.12 | 0.08 / 0.2 | 10 / 16 / 12 |
+| Sword | 1.3 | 9 / 18 | 0.45 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 20.8 / 15.6 |
+| Longsword | 1.55 | 11 / 22 | 0.55 / 1.08 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 24.8 / 18.6 |
+| Greatsword | 2.1 | 16 / 32 | 0.73 / 1.47 | 0.22 / 0.25 | 0.17 / 0.42 | 21 / 33.6 / 25.2 |
+| Kobold blade | 1 | 14 / 28 | (its own, below) | 0.1 / 0.12 | (its own) | none |
+| Kobold greatsword | 1.6 | 14 / 28 | (its own, below) | 0.17 / 0.2 | (its own) | none |
 
-Example: a greatsword (heft 1.6) feels 1.3 at strength 20, 1.6 at 10 and 2.2 at 5: an opening light winds up 0.46,
-0.56 or 0.77 s and costs 13, 16 or 22 stamina.
+Example: a greatsword (heft 2.1) feels 1.55 at strength 20, 2.1 at 10 and 2.22 at 9 (its least): an opening light
+winds up 0.55, 0.73 or 0.78 s and costs 15.5, 21 or 22.2 stamina. A sword (heft 1.3) feels 1.15 at strength 20: its
+light winds up 0.4 s for 11.5 stamina.
 
 An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
@@ -158,7 +159,8 @@ of its heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pul
 chain and waits its 1.2 s cooldown.
 
 Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35, 0.25 and 0.25 s (the reverse's
-0.25 can't go lower); damage 9, 11.25 and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
+0.25 can't go lower) × the sword's felt 1.3, so 0.45, 0.33 and 0.33 s at strength 10; damage 9, 11.25 and 13.5;
+momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
 
 ## Bows (placeholder)
 
@@ -235,8 +237,8 @@ How far it slides, walking (in 1/60 s steps):
 | Heavy | 8 | 1.2 m | 0.58 m | 0.1 m |
 | Arrow, full draw (~55 m/s) | ~3.9 | 0.3 m | 0.15 m | 0.02 m |
 
-Example: a sword light lands as the blade goes live and carries its swinger on at 4 m/s for its 0.1 s (0.4 m), so a
-Kobold slid 0.29 m ends 0.1 m nearer than before (0.4 m with no knockback); a heavy (0.48 m of step) leaves it 0.7 m
+Example: a sword light lands as the blade goes live and carries its swinger on at 4 m/s for its 0.13 s (0.53 m), so a
+Kobold slid 0.29 m ends 0.24 m nearer than before (0.53 m with no knockback); a heavy (0.6 m of step) leaves it 0.6 m
 further off. A Kobold blocking the heavy is pushed at 0.6 × 8 = 4.8 m/s, about 0.45 m. A training dummy (0) never
 moves.
 
@@ -263,8 +265,9 @@ moves.
   × 1 + (2 − 1) × the share stopped (`pinnedShare` in `defend.ts`, swept by the physics). Players and enemies alike.
   Body blows chip nothing, so nothing more.
 - **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.05 s +
-  `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.05, longsword 0.08,
-  greatsword 0.15 s at strength 10, 0.1 s at 20. An enemy's rises after its `blockReactTime`.
+  `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.1, longsword 0.14,
+  greatsword 0.24 s at strength 10 (0.08, 0.1 and 0.14 s at 20); a heft-1 blade 0.05 s. An enemy's rises after its
+  `blockReactTime`.
 - **Perfect block:** the window opens as the guard comes up and lasts `perfectTime` 0.2 s × blade length /
   `perfectAtLengthM` 1.1 (`perfectBlockTime`): sword 0.2, longsword 0.25, greatsword 0.35 s. A weapon landing in it
   (even with block let go again) is stopped with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina
@@ -294,8 +297,9 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
   parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both the base time.
 - **The Kobold** parries `parryChance` 15% of the swings it reads (those it doesn't perfect-block).
 
-Example: a sword heavy fully parrying a sword light: weights 2 and 1, the light recoils 0.8 × 2 = 1.6 s; a light
-partly parrying a heavy: 0.5 × 0.5 = 0.25 s.
+Example: a sword heavy fully parrying a sword light: weights 2.6 and 1.3, the light recoils 0.8 × 2 = 1.6 s; a light
+partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kobold blade's (weight 1): the Kobold
+recoils 0.8 × 1.3 = 1.04 s.
 
 ## Poise and stagger (enemies)
 
@@ -342,7 +346,7 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 | Action | Cost at strength 10 | Where |
 |---|---|---|
-| Light / heavy / stab | 10 / 16 / 12 × felt heft: longsword 12 / 19.2 / 14.4, greatsword 16 / 25.6 / 19.2 | `HYBRID`, `strikeCost` |
+| Light / heavy / stab | 10 / 16 / 12 × felt heft: sword 13 / 20.8 / 15.6, longsword 15.5 / 24.8 / 18.6, greatsword 21 / 33.6 / 25.2 | `HYBRID`, `strikeCost` |
 | Holding a block | 5 a second | `HYBRID.block.holdStaminaPerSec` |
 | A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
 | Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |
