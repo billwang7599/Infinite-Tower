@@ -76,6 +76,16 @@ describe("a unique thing", () => {
     assert.equal(kept.equipment.rightHand, "sword");
   });
 
+  test("a copy in their backpack is taken out the same way, and one there holds it", async () => {
+    const { uniques } = await loaded();
+    const inPack = (): PlayerSave => ({ ...newPlayer(), pack: addItem(newPlayer().pack, UNIQUE, 1).bag });
+    uniques.saved(OTHER.id, carrying(UNIQUE));
+    assert.deepEqual(uniques.kept(ACCOUNT.id, inPack()).pack.items, []);
+    uniques.saved(OTHER.id, newPlayer());
+    uniques.saved(ACCOUNT.id, inPack());
+    assert.deepEqual(bagCounts(uniques.kept(ACCOUNT.id, inPack()).pack), { [UNIQUE]: 1 });
+  });
+
   test("goes back to the world once its holder hasn't been on for 7 days, and leaves their save", async (t) => {
     t.mock.timers.enable({ apis: ["Date"], now: 0 });
     const { uniques, store } = await loaded();

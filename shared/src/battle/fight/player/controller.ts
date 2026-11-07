@@ -21,7 +21,7 @@ import { modsOf, type StatMods } from "../../statuses.js";
 import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
 import { attackOrBlock, readSword, type SwordTurn } from "./sword.js";
 
-const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
+const carried = (spot: Spot) => spot.in === "bag" || spot.in === "pack" || spot.in === "slot";
 const STUNNED: readonly PlayerAction[] = ["stagger"];
 const STILL: readonly PlayerAction[] = ["none", "chant", "write", "bag", "use"];
 
@@ -146,8 +146,8 @@ function chooseAction(t: Turn): void {
   const dodgeStamina = burdenCost === null ? null : burdenCost * t.mods.dodgeCostFactor;
   const chanting = player.action === "chant" || player.action === "write";
   const inBag = player.action === "bag", usingNow = player.action === "use";
-  const using = inBag && input.use !== null && last.use === null && input.use.in === "bag"
-    ? startUse(player.gear.bag, input.use, {
+  const using = inBag && input.use !== null && last.use === null && input.use.in !== "cloth"
+    ? startUse(player.gear[input.use.in], input.use, {
       hp: health.hp, max: health.max, stamina: stamina.value, staminaMax: stamina.max, core: player.core,
     }) : null;
   let queuedCast = player.castQueued;
@@ -251,7 +251,7 @@ function moveGearInBag({ player, input, wielder, stats }: Turn): void {
   const gear = { ...player.gear, cloth: emptyCloth(), pile: NO_PILE };
   const moved = moveGear(gear, move.from, move.to, move.turned, stats.strength);
   if (moved) {
-    player.gear = { bag: moved.bag, equipment: moved.equipment };
+    player.gear = { bag: moved.bag, pack: moved.pack, equipment: moved.equipment };
     wielder.hands = handsOf(moved.equipment);
   }
 }

@@ -45,6 +45,7 @@ const RAMPS = {
   murk: ["#10140a", "#262f16", "#434f24", "#677836", "#94a555", "#cfdc92"],
   stone: ["#18181b", "#2c2d31", "#46474c", "#64656b", "#8a8b91", "#b8b9bd"],
   pearl: ["#1d2820", "#3a4d40", "#617768", "#93a897", "#c6d6c8", "#f2f9f2"],
+  canvas: ["#24211b", "#433d33", "#675e4f", "#8c8270", "#afa692", "#d3ccb8"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -316,6 +317,99 @@ const sigil = (glow: Material) => (px: Pixels): void => {
   rune.fill(ellipse(8, 8.5, 1.2, 1.2), ink(glow, SHINE));
 };
 
+function backpack(px: Pixels): void {
+  const sack = new Pen(px, 0);
+  const body = union(rect(6, 10, 25, 28), ellipse(15.5, 10.5, 10, 5), ellipse(15.5, 27, 10, 2.5));
+  sack.fill(body, ink("canvas", BASE));
+  sack.shade(litEdge(body, 2), LIGHT);
+  sack.shade(darkEdge(body, 2), SHADOW);
+  sack.shade(both(body, speckle(3, 5, 11)), SHADOW);
+  const pocket = rect(10, 20, 21, 26);
+  sack.shade(pocket, LIGHT);
+  sack.shade(rect(10, 26, 21, 26), SHADOW);
+  sack.shade(rect(10, 20, 21, 20), DEEP);
+
+  const flap = new Pen(px, 1);
+  const cover = both(union(ellipse(15.5, 11, 10.5, 7), rect(5, 4, 26, 11)), ellipse(15.5, 10.5, 11, 7.5));
+  flap.fill(cover, ink("canvas", BASE));
+  flap.shade(litEdge(cover, 1), LIGHT);
+  flap.shade(darkEdge(cover, 2), SHADOW);
+  const loop = (x: number, y: number) => Math.abs(Math.hypot(x + 0.5 - 15.5, y + 0.5 - 4) - 2.2) < 0.8 && y < 4;
+  flap.fill(loop, ink("leather", BASE));
+  for (const x of [10, 20]) {
+    const strap = rect(x, 9, x + 1, 25);
+    flap.fill(strap, ink("leather", BASE));
+    flap.shade(rect(x, 9, x, 25), LIGHT, "leather");
+    flap.fill(minus(rect(x - 1, 15, x + 2, 18), rect(x, 16, x + 1, 17)), ink("brass", BASE));
+    flap.shade(rect(x - 1, 15, x + 2, 15), LIGHT, "brass");
+  }
+}
+
+function cap(px: Pixels): void {
+  const pen = new Pen(px, 0);
+  const dome = both(ellipse(16, 12, 10.5, 9.5), rect(0, 0, 31, 11));
+  const rim = union(rect(5, 10, 26, 13), ellipse(5.5, 11.5, 1.5, 2), ellipse(26.5, 11.5, 1.5, 2));
+  pen.fill(union(dome, rim), ink("greyfur", BASE));
+  pen.shade(litEdge(dome, 2), LIGHT);
+  pen.shade(darkEdge(dome, 1), SHADOW);
+  pen.shade(both(dome, (x, y) => (x + y) % 4 === 0), SHADOW);
+  pen.shade(both(rim, (x, _y) => x % 2 === 0), SHADOW);
+  pen.shade(rect(5, 10, 26, 10), LIGHT);
+  const bobble = new Pen(px, 1), ball = ellipse(16, 3, 2.6, 2.4);
+  bobble.fill(ball, ink("fat", BASE));
+  bobble.shade(darkEdge(ball, 1), SHADOW);
+  bobble.shade(ellipse(15.2, 2.3, 0.9, 0.9), SHINE);
+}
+
+function belt(px: Pixels): void {
+  const strap = new Pen(px, 0);
+  const band = union(rect(5, 6, 28, 10), ellipse(28.5, 8, 2, 2.5));
+  strap.fill(band, ink("leather", BASE));
+  strap.shade(rect(5, 6, 30, 6), LIGHT);
+  strap.shade(rect(5, 10, 30, 10), SHADOW);
+  for (const x of [18, 21, 24]) strap.dot(x, 8, ink("leather", DEEP));
+  const buckle = new Pen(px, 1), frame = minus(rect(2, 3, 9, 13), rect(4, 5, 7, 11));
+  buckle.fill(frame, ink("steel", BASE));
+  buckle.shade(litEdge(frame, 1), LIGHT);
+  buckle.shade(darkEdge(frame, 1), SHADOW);
+  buckle.fill(rect(5, 7, 9, 9), ink("steel", LIGHT));
+}
+
+const band = (inner: number, outer: number) => (x: number, y: number) => {
+  const d = Math.hypot(x + 0.5 - 8, y + 0.5 - 8.5);
+  return d >= inner && d <= outer;
+};
+
+function ring(px: Pixels): void {
+  const pen = new Pen(px, 0), hoop = band(2.8, 5.8);
+  pen.fill(hoop, ink("copper", BASE));
+  pen.shade((x, y) => hoop(x, y) && x + y < 14, LIGHT);
+  pen.shade((x, y) => hoop(x, y) && x + y > 19, SHADOW);
+  pen.fill(ellipse(5.5, 5, 0.9, 0.9), ink("copper", SHINE));
+}
+
+function bracelet(px: Pixels): void {
+  const pen = new Pen(px, 0), hoop = band(3, 6.8);
+  pen.fill(hoop, ink("leather", BASE));
+  pen.shade(both(hoop, (x, y) => (x + 2 * y) % 5 === 0), DEEP);
+  pen.shade(both(hoop, (x, y) => (x + 2 * y) % 5 === 2), LIGHT);
+  pen.shade((x, y) => hoop(x, y) && x + y > 21, SHADOW);
+}
+
+function featheredHat(px: Pixels): void {
+  const felt = new Pen(px, 0);
+  const crown = union(both(ellipse(14, 9, 7, 6.5), rect(0, 0, 31, 10)), rect(7, 9, 21, 11));
+  const brim = ellipse(15, 12.5, 13.5, 2.2);
+  felt.fill(union(crown, brim), ink("oxblood", BASE));
+  felt.shade(litEdge(crown, 2), LIGHT);
+  felt.shade(both(brim, rect(0, 13, 31, 15)), SHADOW);
+  felt.shade(rect(7, 9, 21, 10), DEEP);
+  const plume = new Pen(px, 1), feather = horn([19, 9], [30, 2.5], 2.6, 2.2, 0.7);
+  plume.fill(feather, ink("fat", LIGHT));
+  plume.shade((x, y) => feather(x, y) && !feather(x, y + 1), SHADOW);
+  plume.shade(both(feather, speckle(2, 3, 4)), BASE);
+}
+
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
@@ -326,7 +420,8 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),
   "gold-coin": coin("gold"), "bog-pearl": pearl, "sigil-of-grit": sigil("moss"), "sigil-of-embers": sigil("frost"),
   "sigil-of-the-last-breath": sigil("wisp"), "sigil-of-the-red-blade": sigil("gold"),
-  "sigil-of-the-first-door": sigil("blood"),
+  "sigil-of-the-first-door": sigil("blood"), "canvas-backpack": backpack, "wool-cap": cap, "leather-belt": belt,
+  "copper-ring": ring, "braided-bracelet": bracelet, "feathered-hat": featheredHat,
 };
 
 const drawn = new Map<ItemId, Picture>();

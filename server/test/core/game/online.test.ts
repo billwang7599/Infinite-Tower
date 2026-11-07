@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, MODIFIERS, CLOSE_CODES, ELEMENTS, emptyEquipment, FIXED_DT, FORMS, type ItemId,
+  bagCounts, MODIFIERS, CLOSE_CODES, ELEMENTS, emptyEquipment, FIXED_DT, FORMS, ITEMS, packFor, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
-import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { fullVitals, keptSave, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { START_REGION } from "../../../src/core/world/index.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { newStory } from "../../../src/core/game/story.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/world.js";
-import { ACCOUNT } from "./helpers.js";
+import { ACCOUNT, pileAt } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -36,7 +36,8 @@ describe("joining", () => {
     const welcome = link.last("welcome");
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
-        bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
+        bag: welcome.gear.bag, pack: welcome.gear.pack, equipment: welcome.gear.equipment,
+        knownWords: welcome.knownWords,
         skillbook: welcome.skillbook, story: newStory(), pad: START_REGION, core: welcome.core, shopsBought: [],
         faith: welcome.faith },
       newPlayer(),
@@ -91,8 +92,9 @@ describe("joining", () => {
     const { link } = await joinNew(online);
     const welcome = link.last("welcome");
     assert.deepEqual(welcome.knownWords, ["nova"]);
-    assert.deepEqual(welcome.gear.equipment, emptyEquipment());
+    assert.deepEqual(welcome.gear.equipment, newPlayer().equipment);
     assert.deepEqual(welcome.gear.bag, bag);
+    assert.deepEqual(welcome.gear.pack, newPlayer().pack);
   });
 
   test("the skill words a player knows come back from the store and are saved again", async () => {
@@ -134,6 +136,24 @@ describe("joining", () => {
     store.saved.set(ACCOUNT.id, { ...save, bag: { ...save.bag, items: [meat, gone] } });
     const { link } = await joinNew(online);
     assert.deepEqual(link.last("welcome").gear.bag.items, [meat]);
+  });
+});
+
+describe("a save from before the backpack", () => {
+  test("what its old bag held that fits in neither grid lies in a pile at their feet", async () => {
+    const { online, store } = setup({ withCharacter: true });
+    const meat = ITEMS["boar-meat"].stackSize, old = { cols: 6, rows: 4 };
+    const items = Array.from({ length: old.cols * old.rows }, (_, i) =>
+      ({ item: "boar-meat", count: meat, x: i % old.cols, y: Math.floor(i / old.cols), turned: false }) as const);
+    const save = store.saved.get(ACCOUNT.id)!;
+    store.saved.set(ACCOUNT.id, { ...save, bag: { ...old, items }, pack: packFor(null), equipment: emptyEquipment() });
+    const { spilled } = keptSave(store.saved.get(ACCOUNT.id)!);
+    assert.ok((spilled["boar-meat"] ?? 0) > 0);
+    const { session } = await joinNew(online);
+    const pile = pileAt(session.overworld, session.overworld.playerPos(session.me));
+    assert.ok(pile !== null, "a pile at their feet");
+    assert.deepEqual(bagCounts(session.overworld.pileItems(pile)!), spilled);
+    assert.equal(keptSave(store.saved.get(ACCOUNT.id)!).spilled["boar-meat"], undefined, "saved at once, refitted");
   });
 });
 

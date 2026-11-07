@@ -96,8 +96,9 @@ Decided by the user:
   ("Harl of the Pit", "Sorrel by-the-Fen"); nobles a house name or "of <seat>" ("Osric of House Vantmere, King of
   Highmere"); the imperial dynasty is the Aurelian line (Valerian Aurelius IX). In dialogue a short name is fine where
   people would really use one. Only the NPCs added or renamed with Highmere's wards have them so far.
-- New players start with nothing (the user: "start with nothing"): an empty bag, empty hands, no skill words. The
-  herald sends you to an old man who gives you an old stick (the training yard, below). No spells to start.
+- New players start with nothing (the user: "start with nothing"): an empty bag, empty hands, no skill words, only a
+  starter backpack on their back (gear slots, below). The herald sends you to an old man who gives you an old stick (the
+  training yard, below). No spells to start.
 - The start is linear (the user: "the tutorial/start should be linear. i dont want to confuse the player as to where to
   start"): on the platform only the herald is in sight, and he sends you to Bram. Odo's and Captain Edda's quests wait
   for Bram's yard; Wenna's and Tamsin's are offered from the start (the user, asked whether they should wait: "no").
@@ -236,11 +237,15 @@ Decided by the user:
   skillbook (in hand) has 4 pages of saved skills, quick-cast with 1-4 (rebindable), written outside fights or in one
   (like chanting: standing still, a stagger cancels it, it takes time). The pages are saved with the player and the
   server checks every page and cast against the words they know. Death keeps the pages and the words.
-- The sword and the skillbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
-  character starts with neither, swinging needs a weapon and quick-casting a skillbook. Dying drops them with the rest
-  of what you carry. Equipped things count toward the carry weight but take
-  no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for a
-  while; what's left on it when the screen closes is lost), then the bag.
+- The sword and the skillbook are items you equip; a new character starts with neither, swinging needs a weapon and
+  quick-casting a skillbook. Dying drops them with the rest of what you carry. Equipped things count toward the carry
+  weight but take no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort
+  things on for a while; what's left on it when the screen closes is lost), then the bag and the backpack.
+- Gear slots (the user: "the backpack is a wearable item. we also have caps, belt, ring (5 per finger), bracelets.
+  each major armor piece should also get a cosmetic slot too so that we can have cosmetics over it"): left and right
+  hand, cap, head, body, legs, boots, belt, back (the backpack), two wrists (a bracelet each), five rings (one a finger
+  of one hand), and a cosmetic slot over the cap, head, body, legs and boots. A cosmetic changes only how you look,
+  never stats. Weapons beyond the sword (bows) are a later change ("maybe prep for that").
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -268,12 +273,14 @@ Decided by the user:
   spammed. The numbers (`followTurnRadPerSec` in `SKILL_EFFECTS`, the Kobold's `sidestep` in
   `server/src/core/enemies/kobold-swordsman.ts`) are the agent's picks, to tune.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
-  turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
-  fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
+  turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). Everyone
+  has a very small base bag, and a backpack adds a grid of its own (the user: "the player has some base inventory
+  (very very small), the backpack adds more space (but seperate from the base inventory -- so tetris isnt
+  combined)"): the two grids never join, and each item lies in one or the other. No stash for now.
 - What you carry also has a weight, against a carry limit that grows with strength. Like Dark Souls' equip load:
   up to the limit, nothing; over it, a dodge costs more stamina; over 120% of it, no dodging and you walk at half
-  speed (overworld and arena). Stamina recovery isn't affected. Equipped things will count toward it without taking
-  bag space.
+  speed (overworld and arena). Stamina recovery isn't affected. Worn things count toward it without taking bag
+  space.
 - Drops are piles of items, not packed into the bag ([plan/drops.md](plan/drops.md)). A pile is opened and what you
   want dragged into the bag; anyone may take from it, first come first served. The overworld's E is Interact: it
   rests at a campfire, joins a fight or opens a pile, the nearest in reach winning ("e can be our interact button").
@@ -294,16 +301,18 @@ Decided by the user:
   stay where they lie. A player who leaves the arena
   early fades out for the others ("the player who leaves early should fade"). Confirmed as built: disconnecting after
   a win isn't a loss, nobody joins a fight that's already won, and the win banner fades after 4 s. Death drops
-  ("we can do death drops now"): dying drops all you carry, the bag and every slot, as a pile where you fell; a
-  disconnect mid-fight is a death here too. In the arena the others still there get first pick, by the same rules as
-  the enemy's drops; what's left goes to the overworld pile where the fight began when the arena empties, and a solo
-  loss sends it all there at once.
+  ("we can do death drops now"): dying drops all you carry, the bag, every slot and the backpack with all in it, as a
+  pile where you fell; a disconnect mid-fight is a death here too. In the arena the others still there get first
+  pick, by the same rules as the enemy's drops; what's left goes to the overworld pile where the fight began when the
+  arena empties, and a solo loss sends it all there at once.
 - Dying is hardcore: all you carry drops where you fell (above), for anyone to take. The skillbook's pages are kept
   (the user: the saved spells survive death). The core loses the fill inside its step, or with none, a whole step
   (the core, below); the words and the story are kept. The starter kit (every word and weapon, kept on death) is gone:
   players saved with it keep what they carry until they lose it.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
-  swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, and the three coins.
+  swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, the three coins, and one
+  thing for each new slot (a canvas backpack, a wool cap, a leather belt, a copper ring, a braided bracelet and a
+  feathered hat, a cosmetic).
 - Rarity and unique things (the user: "give items rarity"; "unique items must have user activity within 7 days";
   "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
   only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
@@ -692,15 +701,35 @@ them; treat them as changeable, and still ask before deciding new ones):
   the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand means no attacks and no
   block (you block with the blade); no skillbook, no quick-casting or writing pages. Head, body, legs and boots stay
   empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
+- Gear slots and the backpack (the user's rules above; these are the main chat's and the agent's picks, tried by tests
+  and a headless browser, not hand-played; numbers in `shared/src/items/`):
+  - The base bag is 3 x 2 (was 6 x 4, `BASE_BAG`). A backpack's grid is its item's (`pack` in `ITEMS`), so bigger
+    ones can come; the Canvas backpack is 4 x 4, itself 2 x 2 and weight 1. Every new character wears one.
+  - Worn, its grid opens empty; it comes off only empty, and never into its own grid; a second goes on only once
+    the first is off. Nothing else goes in the back slot.
+  - Whatever's given (a shop's goods and change, a quest's reward, the admin's give) goes into the bag first, then the
+    backpack, then (a shop's) onto the cloth or (a reward) a pile at your feet. Whatever's taken (a handover, coins,
+    essence) comes off the cloth first, then the bag, then the backpack. A gather step and the questbook's tally count
+    both grids.
+  - A cosmetic slot takes only cosmetics (an item marked `cosmetic`), and a cosmetic goes only in the cosmetic slot
+    over its piece; a real cap can't be worn as a look. The rings are by finger: thumb, index, middle, ring, little.
+  - The new items have no stats (stats on rings or belts would be a mechanic to ask about) and none is sold or
+    dropped yet; the admin's give has them. Nothing worn is drawn on the person yet but the sword: cosmetics and the
+    new slots show in the bag screen only.
+  - Saves from before: a bag of another size than the base bag's is from before the backpack, so on load the player
+    gets a Canvas backpack on (if their back is empty) and everything is laid out again, biggest first, in the bag
+    then the backpack; what fits in neither (an old bag fuller than 22 cells) lies in a pile at their feet on that
+    first login, saved at once so it can't spill twice. A backpack's grid of another size than its backpack's is
+    laid out again the same way.
 - The cloth is 8 x 6 (it was 4 x 4; `CLOTH` in `shared/src/items/gear.ts`), overworld only, and laid on the ground, so
   what's on it weighs nothing. It lives on the server, which drops what's on it when the bag closes, when you walk (the
   bag must be shut), when a fight starts and on disconnect; it's never saved. Things on it can be eaten from there.
 - The bag in a fight: B opens the bag screen in the arena too, without the cloth; the fight goes on, it holds you
-  still while the bag is open (stamina still recovers), and B or Esc close it. Things move between the bag and the
-  equipment slots, and within the bag, at once, as the shared fight's inputs (`bag` held, `gear` pressed), so the
-  server runs and checks them with the same gear rules; what the fight's bag and slots end up as is its result. A
-  stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Meat is eaten from it as on
-  the overworld (the pressed input `use`).
+  still while the bag is open (stamina still recovers), and B or Esc close it. Things move between the bag, the
+  backpack and the equipment slots, and within a grid, at once, as the shared fight's inputs (`bag` held, `gear`
+  pressed), so the server runs and checks them with the same gear rules; what the fight's grids and slots end up as is
+  its result. A stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Meat is eaten
+  from either grid as on the overworld (the pressed input `use`).
   The skillbook opens from it (book in hand) and writes a page in the fight's 2 s; with the book open over the bag,
   no dodge gets through.
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
@@ -952,8 +981,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     from the forge, changes coins and sells nothing. Changing is one tier at a time: 1 coin for 100 of the next smaller
     or 100 for 1 of the next bigger, no fee, a click each.
   - Paying takes the smallest coins first, as many as go into the price whole, then the smallest coin that covers
-    the rest; coins on the cloth go before the bag's. A purchase or a sale whose items and change can't all fit in the
-    bag and on the cloth doesn't happen, and says so.
+    the rest; coins on the cloth go before the bag's, and the bag's before the backpack's. A purchase or a sale whose
+    items and change can't all fit in the bag, the backpack and on the cloth doesn't happen, and says so.
   - The shop opens from the keeper's talk (Trade, or going on past the last line), in the bag screen where the
     equipment shows otherwise; selecting something in the bag or on the cloth that the shop buys shows Sell (one) and,
     for a stack, Sell all. It closes with the bag, on walking, and when a fight starts. A trade is

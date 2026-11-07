@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSkillbook, releaseTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, Skilled,
+  blankSkillbook, releaseTime, emptyBag, packFor, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, Skilled,
   type PlayerInputData, type Skill, type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -16,6 +16,7 @@ const BOLT_FIRE = skill(segment("bolt", ["fire"]));
 const NOVA_WATER = skill(segment("nova", ["water"]));
 const CHANT = input({ chant: true });
 const NO_BOOK = { ...armed(), leftHand: null };
+const BOOKLESS = { bag: emptyBag(), pack: packFor(null), equipment: NO_BOOK };
 
 function alone(book = blankSkillbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });
@@ -57,7 +58,7 @@ describe("chanting", () => {
 
   test("it needs no skillbook: chanted and released without one", () => {
     const fight = new Fight({
-      arena: ARENA, players: [player(at(0, -4), { gear: { bag: emptyBag(), equipment: NO_BOOK } })],
+      arena: ARENA, players: [player(at(0, -4), { gear: BOOKLESS })],
       enemies: [enemy(STATUE, at(0, 6))],
     });
     run(fight, 0.3);
@@ -143,7 +144,7 @@ describe("what may be cast", () => {
 
 describe("without the skillbook in hand", () => {
   const bookless = (book = blankSkillbook()) => new Fight({
-    arena: ARENA, players: [player(at(0, -4), { book, gear: { bag: emptyBag(), equipment: NO_BOOK } })],
+    arena: ARENA, players: [player(at(0, -4), { book, gear: BOOKLESS })],
     enemies: [enemy(STATUE, at(0, 6))],
   });
 

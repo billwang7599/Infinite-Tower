@@ -1,6 +1,6 @@
 import {
-  addItem, bagCounts, COIN_VALUE, COINS, coinsFor, exchangeRate, itemAt, takeAt, takeItems, type CoinId, type Gear,
-  type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
+  addItem, bagCounts, carriedCounts, COIN_VALUE, COINS, coinsFor, exchangeRate, itemAt, stow, takeAt, takeItems,
+  unstow, type CoinId, type Gear, type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
 } from "@infinite-tower/shared";
 import {
   CARVE_PRICES, CARVING_SHOP, FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, REMOVE_PRICES, SELL_SHARE, SHOPS,
@@ -31,30 +31,30 @@ export function shopView(id: ShopId, region: string, boughtThere: boolean): Shop
 }
 
 export function receive(gear: Gear, items: ItemCounts): Trade | null {
-  let { bag, cloth } = gear, onCloth = false;
+  let got = gear, onCloth = false;
   for (const [item, count] of Object.entries(items) as [ItemId, number][]) {
-    const packed = addItem(bag, item, count);
-    bag = packed.bag;
-    if (packed.left === 0) continue;
-    const dropped = addItem(cloth, item, packed.left);
+    const stowed = stow(got, item, count);
+    got = stowed.gear;
+    if (stowed.left === 0) continue;
+    const dropped = addItem(got.cloth, item, stowed.left);
     if (dropped.left > 0) return null;
-    cloth = dropped.bag;
+    got = { ...got, cloth: dropped.bag };
     onCloth = true;
   }
-  return { gear: { ...gear, bag, cloth }, onCloth };
+  return { gear: got, onCloth };
 }
 
-/** Off the cloth first, then the bag. */
+/** Off the cloth first, then the bag, then the backpack. */
 export function take(gear: Gear, item: ItemId, count: number): Gear | null {
   const fromCloth = Math.min(count, bagCounts(gear.cloth)[item] ?? 0);
-  const cloth = takeItems(gear.cloth, item, fromCloth), bag = takeItems(gear.bag, item, count - fromCloth);
-  return cloth && bag ? { ...gear, cloth, bag } : null;
+  const cloth = takeItems(gear.cloth, item, fromCloth), stowed = unstow(gear, item, count - fromCloth);
+  return cloth && stowed ? { ...stowed, cloth } : null;
 }
 
 /** Smallest coins first; if that's short, the smallest coin that covers the rest, its change in the fewest coins. */
 export function pay(gear: Gear, price: number): { gear: Gear; change: number } | null {
-  const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
-  const have = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);
+  const counts = carriedCounts(gear);
+  const have = (coin: CoinId) => counts[coin] ?? 0;
   const given: ItemCounts = {};
   let left = price;
   for (const coin of [...COINS].reverse()) {

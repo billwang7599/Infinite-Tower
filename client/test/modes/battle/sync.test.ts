@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BASE_STATS, Body, dodgeCost, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, maxHpOf, newCore, Player,
-  quantizeInput, Stamina, staminaMaxOf, type ClientMsg, type EnemyDef, type PlayerInputData, type ServerMsgOf,
+  BASE_STATS, Body, dodgeCost, emptyBag, packFor, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, maxHpOf, newCore,
+  Player, quantizeInput, Stamina, staminaMaxOf, type ClientMsg, type EnemyDef, type PlayerInputData, type ServerMsgOf,
   type StepInput,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
@@ -25,7 +25,7 @@ const SETUP: FightSetup = {
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: FULL_HP, stamina: staminaMaxOf(STATS) }, stats: STATS,
     core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), equipment: armed() }, book: [],
+    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: [],
   }],
   enemies: [{ def: WALKER, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
 };

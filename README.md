@@ -124,11 +124,13 @@ What's built so far:
   with its rings, and your faith with each god.
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
-- **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
+- **Inventory:** a small 3 x 2 bag that items fit into by size, and a backpack worn on your back with a grid of its
+  own (4 x 4 to start; the two never join), and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Every monster drops its
   essence, boars sometimes meat (heals), a hide or a tusk, and wolves a pelt or a fang (the forge buys both). Dying
-  drops all you carry. The
-  bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked
+  drops all you carry, the backpack and all in it too. Slots for both hands, a cap, head, body, legs, boots, a belt,
+  the back, two wrists and five rings, and cosmetic slots (looks only) over the cap, head, body, legs and boots. The
+  bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and both grids, worked
   with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
   or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or
   mid-fight, and a hit stops it.
@@ -178,8 +180,8 @@ What's built so far:
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
   effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),
   return to title.
-- **Saving:** your character, vitals, core, wins, bag, equipment, story, settings and first purchases are kept with your
-  account in Postgres.
+- **Saving:** your character, vitals, core, wins, bag, backpack, equipment, story, settings and first purchases are kept
+  with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
   inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's

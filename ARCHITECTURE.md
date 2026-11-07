@@ -498,21 +498,23 @@ main.ts
   or staggered is broken off the same way (`cantCast`).
   The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
   still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
-  the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
-  equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the battle with the
-  fight's gear (and its HP).
+  the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag, the
+  backpack's grid and the equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the
+  battle with the fight's gear (and its HP).
 - **Shops** (`core/game/shop.ts`; their stock, what they buy and every price in `core/content/shops.ts`, server only):
   a keeper's talk offers `{ shop }`, and taking it (Trade, or going on past the last line) sends `openShop`; the session
   opens the shop of the NPC in view (`shopInView` in `talk.ts`), keeps its id in `GameSession.shop` and sends its
   `ShopView` (prices already worked out: the region's `priceFactor`, the first purchase there cheaper until the
   player's `shopsBought` has it). The client shows it in the bag screen in place of the equipment (`ShopColumn.tsx`).
   `buy`, `sell` and `exchange` run on the gear: coins (`shared/src/items/coins.ts`, three items, 100 of one make one of
-  the next) are paid off the cloth and then the bag, smallest first, the last coin's change in the fewest coins; what's
-  got goes into the bag and what doesn't fit onto the cloth, or nothing happens. Coins are never packed up by
+  the next) are paid off the cloth, then the bag, then the backpack, smallest first, the last coin's change in the
+  fewest coins; what's got goes into the bag, then the backpack (`stow`), and what doesn't fit onto the cloth, or
+  nothing happens. Coins are never packed up by
   themselves: changing them is `exchange`, one tier at a time. Each answer is a `trade` (the news, the gear, the shop).
   The shop closes with the bag (`closeBag`, walking, a fight starting).
 - **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`, `useTime`,
-  `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't ECS
+  `effects`), `wearable` (`on`: the slot kind, the use button's `verb` where it's worn, and `cosmetic` for a look worn
+  in the cosmetic slot over that piece) and `pack` (a backpack's own grid, cols × rows). They aren't ECS
   entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set by
   hand, the same for every one of that kind; a sigil also names the `inscription` it carves. The bag screen draws a
   stack's name in its rarity's colour (tooltip, the selected item, the shop) and its cells with a tinted edge above
@@ -635,11 +637,11 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `character` | made your character (ignored if you have one) |
 | `rest` | Interact by a campfire (the server checks you're there) |
 | `bindPad` | Interact facing a summoning pad: bind to it (the server checks it's in reach and in view) |
-| `useItem {at}` | use the consumable in a bag or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
-| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
+| `useItem {at}` | use the consumable in a bag, backpack or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, backpack, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, the bag, the backpack and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile and an open shop close |
 | `openShop` | Trade on a keeper's offer: open the shop of the NPC in view beside the bag |
-| `buy {item}` | buy one of what the open shop sells, paid in coins from the cloth and the bag |
+| `buy {item}` | buy one of what the open shop sells, paid in coins from the cloth, the bag and the backpack |
 | `sell {at, count}` | sell `count` of the stack at a bag or cloth cell to the open shop, if it buys that |
 | `exchange {from, to}` | change one coin for 100 of the next smaller, or 100 for one of the next bigger, at the open shop |
 | `carve {at}` | at the Collegium: carve the sigil at that bag or cloth spot into the core, for its rarity's coins and essence |
@@ -687,7 +689,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
 | `healed`, `given`, `invulnerable`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off, no quest left to complete |
-| `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
+| `gear` | your bag, backpack grid (`pack`), cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if in the world, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
@@ -754,7 +756,10 @@ round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
-equipment (items gone from the game, or in the wrong slot, are dropped on load, from the bag too), the skill words they
+the backpack's grid (`pack`, `0023_backpack`), equipment (items gone from the game, or in the wrong slot, are dropped
+on load, from the bag too; a bag or backpack grid of a size the game no longer has is laid out again on load,
+`refitted`, a bag from before the backpack getting the starter one, and what fits in neither is dropped as a pile at
+the player's feet by `OnlinePlayers` and saved at once), the skill words they
 know (`knownWords`), the skillbook's 4 pages (`skillbook`, each a skill or null) and the story (`story`, one `jsonb`:
 the quests taken and their steps by id, kills counted, flags), keyed by account; words not in the shared `WORDS` are
 dropped on load, and so is a page that's no longer a skill of known words, and a quest gone from `QUESTS` or on a step
@@ -790,7 +795,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`soul/core.test.ts`: the ladder and its names, each step's fill, absorbing with breakthroughs and the rest carried,
   a whole core, each step's gains and points, placing and taking back, what a death takes, a saved core made right;
   `soul/inscriptions.test.ts`: the slots by step, carving with no doubles, Grit's stats, death keeping them),
-  essence absorbed (`items/using.test.ts`), and the arena fight run headless with
+  essence absorbed (`items/using.test.ts`), the bag and the backpack (`items/gear.test.ts`: two grids apart, a
+  backpack on and off, stowing into and out of both, each slot and the cosmetics), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
   each way's reach and
@@ -839,6 +845,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   world (`testWorld`) whose numbers the tests own. Joining, a second tab, saving, the overworld's input replay and
   encounters, resting, items (eating taking its `useTime`, stopped by closing the bag, walking or a fight; mid-fight
   only as the fight's input), accounts and passwords are all tested without a database or a socket, and so are battles:
+  loading a save from before the backpack (`content/player.test.ts`: the starter one given, the old bag laid out again
+  in both grids, the rest spilled, as a pile at their feet in `online.test.ts`),
   the server deciding a win from the player's inputs alone, a loss emptying the bag, leaving mid-fight (or a second tab)
   losing it, the time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an
   in-order wire that can hold messages back): waiting for the first input, each input on its own step hash for hash,
@@ -1163,14 +1171,16 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
   items/           items.ts (ITEMS: name, rarity, description, size in cells, stack size, weight, and its
-                   components: consumable, wearable, inscription (a sigil's); each monster's essence, absorbed in
-                   ABSORB_TIME; RARITIES, UNIQUE_ITEMS; ItemCounts = item id ->
-                   count), bag.ts (Bag: a grid of placed stacks;
+                   components: consumable, wearable, inscription (a sigil's), pack (a backpack's grid); each
+                   monster's essence, absorbed in ABSORB_TIME; RARITIES, UNIQUE_ITEMS; ItemCounts = item id ->
+                   count), bag.ts (Bag: a grid of placed stacks; BASE_BAG, everyone's own bag's size;
                    fits, addItem, moveItem, takeAt, takeItems, bagWeight, bagProblems: the rules both sides fit
                    items by),
-                   gear.ts (Gear: the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment
-                   slots; Spot, UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth
-                   or pile, heldIn, carriedCounts), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and
+                   gear.ts (Gear: the bag, the worn backpack's grid (`pack`, packFor), the cloth (CLOTH), an open
+                   pile (NO_PILE for none) and the Equipment slots (SLOTS, what each takes, the cosmetic ones);
+                   Spot, UseSpot, moveGear between them (nothing onto a pile; a backpack off only empty), stow and
+                   unstow (into / out of the bag, then the backpack), gearWeight without the cloth or pile, heldIn,
+                   stowedCounts, carriedCounts), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and
                    what each does to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
                    consumable used from the bag, the same on the overworld and in a fight), coins.ts (COINS,
                    COIN_VALUE in copper, coinsFor: an amount in the fewest coins, formatPrice ("1g 20s 5c"),
@@ -1475,12 +1485,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        at most 30 times a second, for the card and the Core tab), inventory/ (the bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
                        coins and changing them; at the Collegium your rings and Unmake), an open pile over the
-                       cloth, and the bag, in a row (in a window taller than it's wide, the pile and the cloth below
-                       the other two), wires the mouse and the bag keys, and shows the selected item (with Sell when
-                       a shop buys it, Carve for a sigil at the Collegium), the
+                       cloth, and the bag and the backpack side by side, in a row (in a window taller than it's wide,
+                       the pile and the cloth below the other two), wires the mouse and the bag keys, and shows the
+                       selected item (with Sell when a shop buys it, Carve for a sigil at the Collegium), the
                        dragged ghost and the tooltip;
-                       BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
-                       hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
+                       BagGrid.tsx draws a grid (the bag, the backpack, the cloth or a pile) and its
+                       hovered / selected / landing states, EquipmentSlots.tsx the slots (the worn ones 3 by 3, the
+                       wrists and rings, the cosmetics); bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines and the rarity colours' classes,
                        grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
@@ -1940,6 +1951,11 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
   the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its
   sprite poses).
+- **A wearable or a backpack.** An item in `ITEMS` with `wearable: { on }` (the kind of slot; `cosmetic: true` for a
+  look worn over that piece) and its bag picture (`client/src/gfx/items/items.ts`); a backpack also has `pack: { cols,
+  rows }`, the grid it brings. A new kind of slot is a name in `SLOTS` and its `SLOT_TAKES` (`shared/src/items/gear.ts`),
+  a `WornOn` (`items.ts`, with its words in `WORN_ON`, `itemInfo.ts`) and a place in `EquipmentSlots.tsx`'s layout;
+  the save needs nothing (a missing slot loads empty).
 - **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },
   armReachM }`) gives it a `Wielder`; a `weapon` attack makes it fight like the Kobold, or its own AI calls
   `startSwing` (`fight/weapons/swing.ts`) with the attack's kind, side and place in its chain. The weapon system does
@@ -2024,13 +2040,14 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Each item's rarity; the rarity colours | `shared/src/items/items.ts`; `--color-rarity-*` in `client/src/ui/styles.css` |
 | How long a unique thing's holder may be away before it's free again | `UNIQUE_HOLD_MS` in `server/src/core/game/uniques.ts` |
 | Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |
-| Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
+| Bag size; a backpack's grid | `shared/src/items/bag.ts` (`BASE_BAG`); each backpack's `pack` in `ITEMS` (`shared/src/items/items.ts`) |
 | Piles: how long one lies, how wide it's laid out; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`); `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
 | A trace's (an NPC's bedroll) size on screen | `BEDROLL_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
 | The reach to open a pile or talk to an NPC (overworld and arena alike), how far round from the way you face, and their slack | `INTERACT_RANGE_M`, `INTERACT_LOOK_RAD` in `shared/src/world/interact.ts`; `INTERACT_LAG_SLACK_M`, `INTERACT_LOOK_SLACK_RAD` in `server/src/core/overworld/interact.ts` |
 | The arena after a win: how long it stays open, where the drops lie; the banner's time; the sack's size | `AFTER_FIGHT_MS`, `DROP_GAP_M` in `server/src/core/game/battle.ts`; `AFTER_FIGHT_BANNER_TIME` in `client/src/modes/battle/context.ts`; `PILE_SIZE_M` in `client/src/visuals/battle/battle.ts` |
 | A dead enemy crumbling, a leaving player fading | `DISSOLVE_DELAY_TIME`, `DISSOLVE_TIME`, `DISSOLVE_SINK_M`, `ASH_PER_SEC`, `LEAVE_FADE_TIME` in `client/src/visuals/battle/battle.ts`; the ash's look in `PARTICLE_LOOKS` (`skillLooks.ts`) |
-| Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
+| Cloth size, slots and what each takes | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `SLOT_TAKES`, `COSMETIC_SLOTS`) |
+| What a new player wears (the starter backpack) | `server/src/core/content/player.ts` (`STARTER_BACKPACK`, `newPlayer`) |
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY_LIMIT_AT_AVERAGE`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |

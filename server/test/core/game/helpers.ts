@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, distXZ, isSolid, regionAt, WORDS, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag,
+  addItem, distXZ, isSolid, regionAt, WORDS, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, packFor,
+  type Bag,
   type DialogueOffer, type EnemyId, type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, Pile } from "../../../src/core/overworld/components.js";
@@ -32,7 +33,8 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
   const saved: PlayerSave = {
-    ...newPlayer(), character: TEST_CHARACTER, pad: HOLLOW, equipment: armed(), knownWords: [...WORDS], ...opts.saved,
+    ...newPlayer(), character: TEST_CHARACTER, pad: HOLLOW, equipment: armed(), pack: packFor(null),
+    knownWords: [...WORDS], ...opts.saved,
   };
   let overworld: Overworld | null = null;
   const overworldOf = () => overworld ??= new Overworld(WORLD);
@@ -107,8 +109,9 @@ export function winFight(session: GameSession, enemy: EnemyId): void {
 export const offeredQuest = (offer: DialogueOffer | null): string | undefined =>
   offer && "quest" in offer ? offer.quest : undefined;
 
+/** Roomier than the base bag, so a test's things fit; a session takes a bag of any size. */
 export function bagWith(items: ItemCounts): Bag {
-  let bag = emptyBag();
+  let bag: Bag = { cols: 6, rows: 4, items: [] };
   for (const [item, count] of Object.entries(items) as [ItemId, number][]) bag = addItem(bag, item, count).bag;
   return bag;
 }

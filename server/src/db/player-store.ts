@@ -60,7 +60,7 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
-  character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
+  character: data.character, bag: data.bag, pack: data.pack, equipment: data.equipment, knownWords: data.knownWords,
   skillbook: data.skillbook, story: data.story, pad: data.pad, coreSteps: data.core.steps,
   coreFill: data.core.fill, statPoints: data.core.points, inscriptions: data.core.inscriptions,
   shopsBought: data.shopsBought, faith: data.faith,
@@ -69,8 +69,8 @@ const toRow = (data: PlayerSave): PlayerRow => ({
 function fromRow(row: typeof players.$inferSelect): StoredSave {
   return {
     vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings, character: row.character,
-    bag: row.bag, equipment: row.equipment, knownWords: row.knownWords, skillbook: row.skillbook, story: row.story,
-    pad: row.pad, shopsBought: row.shopsBought, faith: row.faith,
+    bag: row.bag, pack: row.pack, equipment: row.equipment, knownWords: row.knownWords, skillbook: row.skillbook,
+    story: row.story, pad: row.pad, shopsBought: row.shopsBought, faith: row.faith,
     core: { steps: row.coreSteps, fill: row.coreFill, points: row.statPoints, inscriptions: row.inscriptions },
   };
 }

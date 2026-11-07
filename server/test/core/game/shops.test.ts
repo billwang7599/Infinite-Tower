@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, bagCounts, COIN_VALUE, emptyBag, emptyCloth, type Bag, type ItemCounts, type ItemId, type NpcId,
+  addItem, bagCounts, COIN_VALUE, emptyBag, emptyCloth, emptyEquipment, packFor, type Bag, type ItemCounts,
+  type ItemId, type NpcId,
 } from "@infinite-tower/shared";
 import {
   FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, SELL_SHARE, SHOPS,
@@ -110,6 +111,21 @@ describe("shops", () => {
     full.session.buy("bread");
     assert.deepEqual(full.session.bag, bag);
     assert.deepEqual(full.link.last("trade").news, { kind: "refused", reason: "noRoom" });
+  });
+
+  test("coins in the backpack pay too, and what's bought goes into the backpack once the bag is full", () => {
+    const bag = packed(emptyBag());
+    const pack = addItem(packFor("canvas-backpack"), "gold-coin", 1).bag;
+    const equipment = { ...emptyEquipment(), back: "canvas-backpack" } as const;
+    const { session, link } = atShop("grocer", bag, { pack, equipment });
+    session.buy("bread");
+    const bought = { kind: "bought", item: "bread", price: firstPrice("bread"), onCloth: false };
+    assert.deepEqual(link.last("trade").news, bought);
+    assert.deepEqual(session.bag, bag);
+    const change = GOLD - firstPrice("bread");
+    assert.deepEqual(counts(session.gear.pack), {
+      "silver-coin": Math.floor(change / SILVER), "copper-coin": change % SILVER, bread: 1,
+    });
   });
 
   test("a shop sells only its stock", () => {

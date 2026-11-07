@@ -162,7 +162,7 @@ describe("taking from the arena's drops", () => {
   });
 
   test("taking the last of it: the pile is gone, and the arena's drops say so", (t) => {
-    const { session, link, items, spotOf } = opened(t);
+    const { session, link, items, spotOf } = opened(t, { bag: { cols: 6, rows: 4, items: [] } });
     for (let i = 0; items() && i < 12; i++) {
       const [stack] = items()!.items;
       session.moveItem(spotOf(stack!.item), bagSpot((i * 2) % 6, 2 * Math.floor(i / 3)), false);

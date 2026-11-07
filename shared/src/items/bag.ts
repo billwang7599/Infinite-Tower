@@ -23,9 +23,9 @@ export interface Bag {
   items: BagItem[];
 }
 
-export const STARTER_BAG = { cols: 6, rows: 4 } as const;
+export const BASE_BAG = { cols: 3, rows: 2 } as const;
 
-export const emptyBag = (): Bag => ({ cols: STARTER_BAG.cols, rows: STARTER_BAG.rows, items: [] });
+export const emptyBag = (): Bag => ({ cols: BASE_BAG.cols, rows: BASE_BAG.rows, items: [] });
 
 export function footprint(item: ItemId, turned: boolean): { cols: number; rows: number } {
   const { cols, rows } = ITEMS[item];

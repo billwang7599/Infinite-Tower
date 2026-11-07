@@ -284,10 +284,12 @@ The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds
 
 `CARRY_LIMIT_AT_AVERAGE` in `shared/src/battle/stats.ts`, `BURDEN` in `shared/src/items/burden.ts`.
 
-- limit = 60 × (strength / 10)^¼ = 60; weight = the bag's and the equipment's items (the cloth weighs nothing).
+- limit = 60 × (strength / 10)^¼ = 60; weight = the bag's, the backpack's and every slot's items, the backpack itself
+  too (the cloth weighs nothing).
 - light up to the limit; heavy over it (a dodge × 1.3); overloaded over `overloadedAt` 1.2 × it, 72 (no dodging,
   walking × `overloadedPace` 0.5, in the arena and on the overworld).
-- A new player carries 17: sword 3, longsword 4.5, greatsword 8, skillbook 1.5.
+- A new player carries 1: the canvas backpack, empty. A sword weighs 3, a longsword 4.5, a greatsword 8, the
+  skillbook 1.5.
 
 ## Skills
 

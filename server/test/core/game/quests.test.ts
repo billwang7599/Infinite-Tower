@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, bagCounts, emptyBag, Health, IDLE_INPUT, type Bag, type ItemCounts,
+  addItem, bagCounts, emptyBag, Health, packFor, IDLE_INPUT, type Bag, type ItemCounts,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { LORE } from "../../../src/core/content/lore.js";
@@ -16,7 +16,7 @@ import { bagWith, offeredQuest, pileAt, startSession, tick, winFight } from "./h
 before(() => initPhysics());
 
 const STOP = stopFor(newStory(), NPCS.hollis)!;
-const OPENING = dialogueOf(STOP.talk, newStory(), emptyBag())!;
+const OPENING = dialogueOf(STOP.talk, newStory(), { bag: emptyBag(), pack: packFor(null) })!;
 assert.ok(OPENING.offer?.kind === "quest", "Hollis offers a quest the first time");
 const FIRST = OPENING.offer.quest;
 const SECOND = Object.keys(QUESTS).find((id) => {
@@ -173,7 +173,7 @@ describe("Hollis's quests", () => {
 
   test("the talk step: Hollis tells what it reveals, and it's done with its reward; then he says what's next", () => {
     const { session, link } = started({ story: on(SECOND, TALK_STEP) });
-    const told = dialogueOf(STOP.talk, session.story, session.bag)!;
+    const told = dialogueOf(STOP.talk, session.story, session.gear)!;
     const forStep = STOP.talk.find((t) => isDeepStrictEqual(t.when, { quest: SECOND, step: TALK_STEP.id }));
     assert.equal(told.lines, forStep?.lines, "his lines for that step");
     session.talk();

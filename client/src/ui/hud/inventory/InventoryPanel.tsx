@@ -1,7 +1,7 @@
 /**
- * The bag screen: what's worn, an open pile above the cloth (neither in a fight) and the bag side by side, the weight
- * against what you can carry, and the selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go
- * to the server (in a fight, as the fight's inputs), which has the last word on all of it.
+ * The bag screen: what's worn, an open pile above the cloth (neither in a fight), and the bag and the backpack side by
+ * side, the weight against what you can carry, and the selected item. Worked with the mouse (bagMouse.ts) and the bag
+ * keys. Moves go to the server (in a fight, as the fight's inputs), which has the last word on all of it.
  */
 import {
   carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type CarvePrice,
@@ -176,10 +176,21 @@ export function InventoryPanel(props: PanelProps) {
     </Column>
   );
   const bag = (
-    <Column title="Bag">
-      <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
+    <div className="flex flex-col gap-2">
+      <Row>
+        <Column title="Bag">
+          <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
+        </Column>
+        <Column title="Backpack">
+          {gear.pack.cols > 0 ? <BagGrid name="pack" gear={gear} mouse={mouse} fits={fits} area={area("pack")} /> : (
+            <p id="no-backpack" className="max-w-32 text-[11px] text-white/40 italic">
+              None on. Wear one on your back for more room.
+            </p>
+          )}
+        </Column>
+      </Row>
       {stats && <Weight gear={gear} stats={stats} />}
-    </Column>
+    </div>
   );
 
   return (
@@ -304,7 +315,7 @@ interface Carving {
 }
 
 function saleOf(selected: Spot | null, trade: Trading, request: GameRequests["request"]): ((stack: BagItem) => Sale | Carving | null) | null {
-  if (!selected || (selected.in !== "bag" && selected.in !== "cloth")) return null;
+  if (!selected || selected.in === "slot" || selected.in === "pile") return null;
   const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
   return (stack) => {
     const def = itemDef(stack.item), carving = trade.shop.carving;
@@ -330,7 +341,8 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   if (!stack) {
     return (
       <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-white/45 italic`}>
-        {gear.bag.items.length === 0 ? "Nothing in the bag yet. Boars sometimes drop things." : ""}
+        {gear.bag.items.length + gear.pack.items.length === 0
+          ? "Nothing in the bag yet. Boars sometimes drop things." : ""}
       </p>
     );
   }

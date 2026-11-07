@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CLOTH, emptyCloth, ITEMS, NO_PILE, WEAPONS, type BagItem, type Equipment, type Gear,
-  type ItemId, type Slot, type Spot,
+  AVERAGE_STAT, CLOTH, emptyCloth, emptyEquipment, ITEMS, NO_PILE, packFor, WEAPONS, type BagItem, type Equipment,
+  type Gear, type ItemId, type Slot, type Spot,
 } from "@infinite-tower/shared";
 import {
   canDrop, cancel, DRAG_START_PX, doubleClick, hoveredStack, itemToUse, keepUp, landing, NO_MOUSE, pointerDown,
@@ -12,14 +12,15 @@ import {
 import { armed } from "../../../fixtures/armed.js";
 
 const STRENGTH = AVERAGE_STAT;
-const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
+const NOTHING_WORN: Equipment = emptyEquipment();
 const bag = (cols: number, rows: number, ...items: BagItem[]): Gear =>
-  ({ bag: { cols, rows, items }, cloth: emptyCloth(), pile: NO_PILE, equipment: NOTHING_WORN });
+  ({ bag: { cols, rows, items }, pack: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: NOTHING_WORN });
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
 const at = (x: number, y: number): Spot => ({ in: "bag", x, y });
 const onCloth = (x: number, y: number): Spot => ({ in: "cloth", x, y });
 const onPile = (x: number, y: number): Spot => ({ in: "pile", x, y });
+const inPack = (x: number, y: number): Spot => ({ in: "pack", x, y });
 const slot = (name: Slot): Spot => ({ in: "slot", slot: name });
 
 /** A 6x4 bag: meat x3 at 0,0; a hide at 2,0 (2x2); a tusk standing at 5,0 (1x2). */
@@ -403,6 +404,38 @@ describe("the cloth and the equipment", () => {
     const clicked =
       pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.equal(keepUp(clicked.mouse, { ...g, equipment: NOTHING_WORN }).selected, null);
+  });
+});
+
+describe("the backpack", () => {
+  const WORN: Gear = {
+    ...BAG, equipment: { ...NOTHING_WORN, back: "canvas-backpack" },
+    pack: { ...packFor("canvas-backpack"), items: [stack("boar-meat", 1, 1, 2)] },
+  };
+  const fromPack = (x: number, y: number, g: Gear = WORN) =>
+    pointerMove(pointerDown(NO_MOUSE, g, overSpot(inPack(x, y))), g, overSpot(inPack(x, y), FAR), 0);
+
+  test("dragged from its grid into the bag, and from the bag into it: moves between the two", () => {
+    const out = pointerMove(fromPack(1, 1), WORN, over(1, 2), 0);
+    assert.deepEqual(pointerUp(out, WORN, over(1, 2), 0, STRENGTH).move,
+      { from: inPack(1, 1), to: at(1, 2), turned: false });
+    const into = pointerMove(dragFrom(5, 1, WORN), WORN, overSpot(inPack(3, 3)), 0);
+    assert.deepEqual(landing(into, WORN), inPack(3, 2));
+    assert.deepEqual(pointerUp(into, WORN, overSpot(inPack(3, 3)), 0, STRENGTH).move,
+      { from: at(5, 0), to: inPack(3, 2), turned: false });
+  });
+
+  test("what's in it is used from there", () => {
+    const clicked =
+      pointerUp(pointerDown(NO_MOUSE, WORN, overSpot(inPack(1, 1))), WORN, overSpot(inPack(1, 1)), 0, STRENGTH);
+    assert.deepEqual(itemToUse(clicked.mouse, WORN, false), inPack(1, 1));
+  });
+
+  test("it can't be taken off with things in it", () => {
+    const press = pointerDown(NO_MOUSE, WORN, overSpot(slot("back")));
+    const dragging = pointerMove(press, WORN, overSpot(slot("back"), FAR), 0);
+    const onto = pointerMove(dragging, WORN, over(1, 3), 0);
+    assert.equal(canDrop(onto, WORN, STRENGTH), false);
   });
 });
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, STARTER_BAG, takeAt,
+  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, BASE_BAG, takeAt,
   type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
 
@@ -43,8 +43,8 @@ describe("item sizes", () => {
 });
 
 describe("emptyBag", () => {
-  test("is the starter bag's size, with nothing in it", () => {
-    assert.deepEqual(emptyBag(), { cols: STARTER_BAG.cols, rows: STARTER_BAG.rows, items: [] });
+  test("is the base bag's size, with nothing in it", () => {
+    assert.deepEqual(emptyBag(), { cols: BASE_BAG.cols, rows: BASE_BAG.rows, items: [] });
   });
 
   test("is a new bag each time", () => {

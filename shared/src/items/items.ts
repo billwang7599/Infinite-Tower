@@ -2,7 +2,7 @@
 import type { InscriptionId } from "../soul/inscriptions.js";
 import type { Weapon } from "../weapons/weapons.js";
 
-export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
+export type WornOn = "hand" | "cap" | "head" | "body" | "legs" | "boots" | "belt" | "back" | "finger" | "wrist";
 
 export type ItemEffect = { healShare: number } | { staminaShare: number } | { essence: number };
 
@@ -15,6 +15,8 @@ export interface Consumable {
 export interface Wearable {
   on: WornOn;
   verb?: string;
+  /** Worn in the cosmetic slot over `on`: a look only, never stats. */
+  cosmetic?: boolean;
 }
 
 export const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "unique"] as const;
@@ -34,6 +36,8 @@ export interface ItemDef {
   wearable?: Wearable;
   inscription?: InscriptionId;
   weapon?: Weapon;
+  /** A backpack: the grid of its own it brings, worn. */
+  pack?: { cols: number; rows: number };
 }
 
 const ABSORB_TIME = 2;
@@ -144,6 +148,32 @@ export const ITEMS = {
     name: "Skillbook", rarity: "common",
     description: "A worn book of four pages. You need it in hand to use skills, and to write in it.",
     cols: 2, rows: 2, stackSize: 1, weight: 1.5, wearable: { on: "hand", verb: "Open" },
+  },
+  "canvas-backpack": {
+    name: "Canvas backpack", rarity: "common",
+    description: "A plain canvas sack on two straps. Worn on your back, it holds a grid of its own.", cols: 2,
+    rows: 2, stackSize: 1, weight: 1, wearable: { on: "back" }, pack: { cols: 4, rows: 4 },
+  },
+  "wool-cap": {
+    name: "Wool cap", rarity: "common", description: "A soft grey cap. It keeps the drizzle off.", cols: 2, rows: 1,
+    stackSize: 1, weight: 0.2, wearable: { on: "cap" },
+  },
+  "leather-belt": {
+    name: "Leather belt", rarity: "common", description: "A plain strap with an iron buckle.", cols: 2, rows: 1,
+    stackSize: 1, weight: 0.4, wearable: { on: "belt" },
+  },
+  "copper-ring": {
+    name: "Copper ring", rarity: "common", description: "A thin band that leaves a green mark.", cols: 1, rows: 1,
+    stackSize: 1, weight: 0.05, wearable: { on: "finger" },
+  },
+  "braided-bracelet": {
+    name: "Braided bracelet", rarity: "common", description: "Three leather cords, plaited tight round the wrist.",
+    cols: 1, rows: 1, stackSize: 1, weight: 0.05, wearable: { on: "wrist" },
+  },
+  "feathered-hat": {
+    name: "Feathered hat", rarity: "uncommon",
+    description: "A wide red hat with a long plume. Worn over your cap, it changes only how you look.", cols: 2,
+    rows: 1, stackSize: 1, weight: 0.3, wearable: { on: "cap", cosmetic: true },
   },
   "sigil-of-grit": sigil(
     "Sigil of Grit", "uncommon", "A clenched fist, cut in grey stone. Carved into a core, it makes you stronger.",

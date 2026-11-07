@@ -1,5 +1,5 @@
 import {
-  bagCounts, carve, coinsFor, itemAt, itemDef, takeAt, ITEM_IDS, sigilOf, uncarve, type CarvePrice, type Gear,
+  carriedCounts, carve, coinsFor, itemAt, itemDef, takeAt, ITEM_IDS, sigilOf, uncarve, type CarvePrice, type Gear,
   type InscriptionId, type ItemId, type UseSpot,
 } from "@infinite-tower/shared";
 import { CARVE_PRICES, CARVING_SHOP, REMOVE_PRICES } from "../content/shops.js";
@@ -13,10 +13,10 @@ const worthOf = (item: ItemId): number => {
 const ESSENCES = ITEM_IDS.filter((item) => worthOf(item) > 0).sort((a, b) => worthOf(a) - worthOf(b));
 
 function payEssence(gear: Gear, count: number): Gear | null {
-  const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
+  const counts = carriedCounts(gear);
   let left = count, paid: Gear | null = gear;
   for (const item of ESSENCES) {
-    const n = Math.min(left, (bag[item] ?? 0) + (cloth[item] ?? 0));
+    const n = Math.min(left, counts[item] ?? 0);
     if (n > 0) paid = paid && take(paid, item, n);
     left -= n;
   }

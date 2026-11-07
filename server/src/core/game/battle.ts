@@ -1,6 +1,6 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  bagCounts, blessingsOf, Body, carriedCounts, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo,
+  bagCounts, blessingsOf, Body, carriedCounts, coreAfterDeath, emptyEquipment, Enemy, packFor, PlayerInput, roundTo,
   type CoreLoss, type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -120,9 +120,10 @@ export function seatInBattle(
 /** Closes their bag: it isn't taken into a fight. */
 export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
   session.closeBag();
-  const { bag, equipment } = session.gear;
+  const { bag, pack, equipment } = session.gear;
   return {
-    vitals: session.vitals, stats: session.stats, core: session.core, burden: session.burden, gear: { bag, equipment },
+    vitals: session.vitals, stats: session.stats, core: session.core, burden: session.burden,
+    gear: { bag, pack, equipment },
     book: session.skillbook, seed: randomSeed(session.overworld.rng), invulnerable: session.invulnerable,
     who: { name: session.name, character: session.character! }, blessings: blessingsOf(session.faith),
   };
@@ -155,9 +156,9 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    const { bag } = session;
-    lost = carriedCounts({ bag, equipment: session.gear.equipment });
-    session.gear = { ...session.gear, bag: { ...bag, items: [] }, equipment: emptyEquipment() };
+    const { bag, pack, equipment } = session.gear;
+    lost = carriedCounts({ bag, pack, equipment });
+    session.gear = { ...session.gear, bag: { ...bag, items: [] }, pack: packFor(null), equipment: emptyEquipment() };
     dropWhereFell(battle, overworld, lost);
     me = session.wakeOnPad();
     session.core = coreAfterDeath(core);
