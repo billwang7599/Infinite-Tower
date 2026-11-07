@@ -144,8 +144,8 @@ By weapon, at strength 10, an opening swing (light / heavy; times in seconds, as
 | Sword | 1.3 | 9 / 18 | 0.45 / 0.92 | 0.13 / 0.15 | 0.1 / 0.27 | 13 / 20.8 / 15.6 |
 | Longsword | 1.55 | 11 / 22 | 0.55 / 1.08 | 0.15 / 0.18 | 0.12 / 0.32 | 15.5 / 24.8 / 18.6 |
 | Greatsword | 2.1 | 16 / 32 | 0.73 / 1.47 | 0.22 / 0.25 | 0.17 / 0.42 | 21 / 33.6 / 25.2 |
-| Kobold blade | 1 | 14 / 28 | (its own, below) | 0.1 / 0.12 | (its own) | none |
-| Kobold greatsword | 1.6 | 14 / 28 | (its own, below) | 0.17 / 0.2 | (its own) | none |
+| Kobold blade | 1.3 | 14 / 28 | (its own, below) | 0.13 / 0.15 | (its own) | none |
+| Kobold greatsword | 2.1 | 14 / 28 | (its own, below) | 0.22 / 0.25 | (its own) | none |
 
 Example: a greatsword (heft 2.1) feels 1.55 at strength 20, 2.1 at 10 and 2.22 at 9 (its least): an opening light
 winds up 0.55, 0.73 or 0.78 s and costs 15.5, 21 or 22.2 stamina. A sword (heft 1.3) feels 1.15 at strength 20: its
@@ -153,7 +153,8 @@ light winds up 0.4 s for 11.5 stamina.
 
 An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
-0.45 s (a heavy 0.35 s more), × its blade's heft; 0.5 s of recovery after a chain; it blocks walking up (from 0.3 s
+0.45 s (a heavy 0.35 s more), and 0.5 s of recovery after a chain, all × its blade's heft (1.43, 0.58 and 0.65 s with
+the Kobold blade, 2.32, 0.95 and 1.05 s with the Kobold greatsword); it blocks walking up (from 0.3 s
 in), and perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`). It feints 20%
 of its heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back into its block, ends the
 chain and waits its 1.2 s cooldown.
@@ -298,8 +299,8 @@ boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no 
 - **The Kobold** parries `parryChance` 15% of the swings it reads (those it doesn't perfect-block).
 
 Example: a sword heavy fully parrying a sword light: weights 2.6 and 1.3, the light recoils 0.8 × 2 = 1.6 s; a light
-partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kobold blade's (weight 1): the Kobold
-recoils 0.8 × 1.3 = 1.04 s.
+partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kobold blade's light (the same weight,
+1.3): the Kobold recoils 0.8 s.
 
 ## Poise and stagger (enemies)
 
@@ -313,9 +314,15 @@ recoils 0.8 × 1.3 = 1.04 s.
 - Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s × 10 / toughness
   (`elements.lightning`).
 - Enemies have no hurt invulnerability, and a hit doesn't stun them; it knocks them back (Knockback, above).
+- Any stun or stagger (those above, and a perfect block's or a parry's recoil) ends the attack under way (`stun` in
+  `fight/behaviors/common.ts`): a Kobold's swing, the rest of its chain and its quick answer are dropped, and every
+  attack waits its whole `cooldown` once the stun is over (the stun's time + `cooldown`; the wolf's, which counts only
+  while it circles, `cooldown`). A skill's cooldown already starts with the cast, so it's left alone.
 
 Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword lights 0.5 s apart: 36 − 3 × 12 + 8 × 1
-= 8 after three, so the next staggers it; two heavies and a light (24 + 24) do it on the second.
+= 8 after three, so the next staggers it; two heavies and a light (24 + 24) do it on the second. A Kobold blocked
+perfectly mid-chain recoils 0.4 s, waits its 1.2 s cooldown, then winds up a fresh chain's first swing (1.43 s): its
+next blade is live 3.03 s after the block.
 
 ## Stun and invulnerability (players)
 
@@ -473,7 +480,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
 | Knockback taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 14 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
+| Hits | bite 16, charge 30 | bite 14 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -490,9 +497,9 @@ Each in `server/src/core/enemies/<id>.ts`.
   first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 30).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
   heavy 30% of the time; its first goes live 1.1 s after it starts and the rest 0.45 s (a heavy 0.35 s more), × its
-  blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover and 1.2 s more before the next chain; first
-  after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it perfect-blocks 30% of
-  a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
+  blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover (× the heft too) and 1.2 s more before the next
+  chain; first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
+  perfect-blocks 30% of a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, its first live 1.3 s after it
   starts and the rest 0.6 s, 0.7 s to recover and 1.8 s more; first after 2 s; blocks from 0.35 s in walking up,

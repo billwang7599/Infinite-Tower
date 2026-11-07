@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  CHAIN, Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, parryWay, Player, Stamina,
-  WeaponAttack, Wielder, wayStepsAfter, type EnemyDef, type PlayerInputData, type SwingDir,
+  CHAIN, Enemy, feltHeft, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, parryWay, Player, Stamina,
+  toSteps, WeaponAttack, Wielder, wayStepsAfter, type EnemyDef, type Entity, type PlayerInputData, type SwingDir,
   type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -126,6 +126,60 @@ describe("a swordsman", () => {
     assert.ok(blocks(holding("sword", at - raise("sword") - 2 * FIXED_DT)), "up");
     assert.ok(lands(holding("greatsword", at - raise("sword") - 2 * FIXED_DT)), "a greatsword's still rising");
     assert.ok(blocks(holding("greatsword", at - raise("greatsword") - 2 * FIXED_DT)), "a greatsword's up");
+  });
+});
+
+describe("a swordsman stunned mid-chain", () => {
+  const def = kobold({ minChain: 3, maxChain: 3, cooldown: 1 }), attackDef = def.attacks.weapon!;
+  const blade = WEAPONS[def.wielder!.hands.rightHand as keyof typeof WEAPONS];
+  const opening = wayStepsAfter(blade, attackDef.windup, false, STATS.strength).liveAt;
+
+  function swingsAfterStun(
+    stun: (fight: Fight, it: Entity) => void, script: (fight: Fight, it: Entity) => Partial<PlayerInputData>,
+  ) {
+    const { fight, it } = play(def, 0);
+    const enemy = fight.world.require(it, Enemy), wielder = fight.world.require(it, Wielder);
+    const until = (done: () => boolean) => {
+      for (let i = 0; i < 1200 && !done(); i++) fight.step([input({ locked: 0, ...script(fight, it) })]);
+      assert.ok(done(), `stuck ${enemy.state}`);
+    };
+    const swingStarted = () => wielder.swing?.step === 1;
+    until(swingStarted);
+    stun(fight, it);
+    until(() => enemy.state === "staggered");
+    until(() => enemy.state !== "staggered");
+    const back = fight.steps;
+    until(swingStarted);
+    return { waited: fight.steps - back, liveAt: wielder.swing!.liveAt };
+  }
+
+  const checks = (r: { waited: number; liveAt: number }) => {
+    assert.ok(r.waited >= toSteps(attackDef.cooldown) - 1, `swung ${r.waited} steps after`);
+    assert.equal(r.liveAt, opening, "its opening wind-up");
+  };
+
+  test("poise broken, it drops the chain and its answer, waits its whole cooldown, then winds up afresh", () => {
+    checks(swingsAfterStun((fight, it) => {
+      fight.world.require(it, Enemy).poise = 0;
+      fight.world.require(it, WeaponAttack).riposte = true;
+    }, () => ({})));
+  });
+
+  test("blocked perfectly, it recoils, waits its whole cooldown, then winds up afresh", () => {
+    const blockLead = toSteps(guardRaiseTime(WEAPONS.sword, STATS.strength)) + 2;
+    checks(swingsAfterStun(() => {}, (fight, it) => {
+      const swing = fight.world.require(it, Wielder).swing;
+      return { block: fight.world.require(it, Enemy).state === "weaponWindup" && swing !== null
+        && swing.liveAt - swing.step <= blockLead };
+    }));
+  });
+
+  test("recovers after a chain in its def's time × the heft its blade feels", () => {
+    const { fight, it } = play(def, 0);
+    const enemy = fight.world.require(it, Enemy);
+    for (let i = 0; i < 1200 && enemy.state !== "weaponRecover"; i++) fight.step([input({ locked: 0 })]);
+    assert.equal(enemy.duration, attackDef.recover * feltHeft(blade, STATS.strength));
+    assert.ok(blade.heft > 1);
   });
 });
 

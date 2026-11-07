@@ -1,7 +1,9 @@
 /** Helpers shared by the enemy behaviors. */
 import type { Entity, World } from "../../../core/ecs.js";
 import { nextRandom } from "../../../core/math.js";
-import type { EnemyData, EnemyState } from "../../components.js";
+import {
+  ChargeAttack, LungeAttack, PounceAttack, SlamAttack, WeaponAttack, type EnemyData, type EnemyState,
+} from "../../components.js";
 import { FighterStats, physicalDamage } from "../../stats.js";
 import { addHit, type HitSpec } from "../combat.js";
 import { endSwing } from "../weapons/swing.js";
@@ -11,6 +13,18 @@ export function enter(world: World, e: Entity, enemy: EnemyData, state: EnemySta
   enemy.stateTime = 0;
   enemy.duration = duration;
   endSwing(world, e);
+}
+
+export function stun(world: World, e: Entity, enemy: EnemyData, state: "staggered" | "stunned", time: number): void {
+  enter(world, e, enemy, state, time);
+  const weapon = world.get(e, WeaponAttack);
+  if (weapon) Object.assign(weapon, { swingsLeft: 0, riposte: false, feint: false });
+  for (const attack of [weapon, world.get(e, LungeAttack), world.get(e, ChargeAttack), world.get(e, SlamAttack)]) {
+    if (attack) attack.cooldown = Math.max(attack.cooldown, time + attack.def.cooldown);
+  }
+  // Its cooldown counts only while it circles, not through the stun.
+  const pounce = world.get(e, PounceAttack);
+  if (pounce) pounce.cooldown = Math.max(pounce.cooldown, pounce.def.cooldown);
 }
 
 export function addHitAhead(world: World, e: Entity, enemy: EnemyData, attack: HitSpec): void {

@@ -108,12 +108,13 @@ export function weaponAttackSystem(events: FightEvent[]): System {
             windUp(world, e, enemy, attack, weapon, def.chainWindup);
           } else {
             // Not `enter`: the blade recovers.
-            Object.assign(enemy, { state: "weaponRecover", stateTime: 0, duration: def.recover });
-            attack.cooldown = def.recover + def.cooldown;
+            const recover = def.recover * (weapon ? feltHeft(weapon, world.require(e, FighterStats).strength) : 1);
+            Object.assign(enemy, { state: "weaponRecover", stateTime: 0, duration: recover });
+            attack.cooldown = recover + def.cooldown;
           }
           break;
         case "weaponRecover":
-          if (enemy.stateTime >= def.recover) enter(world, e, enemy, "approach");
+          if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");
           break;
       }
     }

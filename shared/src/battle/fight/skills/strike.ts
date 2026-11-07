@@ -6,7 +6,7 @@ import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
 import { FighterStats, skillDamage, stunTime } from "../../stats.js";
 import { HIT_FLASH_TIME, knock, knockbackOf } from "../combat.js";
 import type { FightEvent } from "../context.js";
-import { enter } from "../behaviors/common.js";
+import { stun } from "../behaviors/common.js";
 import { heal, hurt, lifesteal } from "../health.js";
 import { applyStatus, endStatus, maxStacksOf, modsOf, stacksOf, statusOn, timeLeft } from "../../statuses.js";
 
@@ -114,8 +114,8 @@ export function strike(
   if (stacksOf(s.on, "shocked") >= maxStacksOf("shocked")) {
     endStatus(s.on, "shocked");
     if (enemy && world.require(target, Health).hp > 0) {
-      const stun = stunTime(E.lightning.stunTime, world.require(target, FighterStats));
-      enter(world, target, enemy, "stunned", stun * modsOf(world, target).stunTimeFactor);
+      const time = stunTime(E.lightning.stunTime, world.require(target, FighterStats));
+      stun(world, target, enemy, "stunned", time * modsOf(world, target).stunTimeFactor);
     }
   }
 }

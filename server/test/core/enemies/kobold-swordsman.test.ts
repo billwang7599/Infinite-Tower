@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, Wielder, type EnemyDef, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, Health, HYBRID, IDLE_INPUT, wayStepsAfter, WEAPONS, Wielder, type EnemyDef,
+  type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
@@ -42,6 +43,17 @@ describe("the Kobold Swordsman", () => {
   test("winds up its swings as long as it used to: the first a long tell, the ones after it shorter", () => {
     assert.equal(KOBOLD.attacks.weapon!.windup, 1.1);
     assert.equal(KOBOLD.attacks.weapon!.chainWindup, 0.45);
+  });
+
+  test("its blade is as heavy as a sword, so its first swing winds up slower than the def's seconds", () => {
+    const fight = fightWith(KOBOLD, 1), wielder = fight.world.require(fight.enemies[0]!, Wielder);
+    for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
+    assert.equal(wielder.swing?.step, 1);
+    const extra = wielder.swing!.attack === "heavy" ? HYBRID.heavy.extraTime : 0, windup = KOBOLD.attacks.weapon!.windup;
+    const liveAt = (blade: "sword" | "old-stick") =>
+      wayStepsAfter(WEAPONS[blade], windup + extra, extra > 0, KOBOLD.stats.strength).liveAt;
+    assert.equal(wielder.swing!.liveAt, liveAt("sword"));
+    assert.ok(liveAt("sword") > liveAt("old-stick"));
   });
 
   test("a player who reads it beats it, whatever its seed", () => {
