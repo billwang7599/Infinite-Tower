@@ -65,7 +65,7 @@ describe("walking from one region into the next", () => {
   });
 
   test("does nothing in a battle", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: "grass-field" } });
+    const { session, link } = startSession({ cheats: true, saved: { pad: "grass-field" } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.overworld.place(session.me, { x: BORDER_X + 3, z: ROAD_Z });
     tick(session, 5);

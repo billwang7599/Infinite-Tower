@@ -78,7 +78,7 @@ describe("talking to an NPC", () => {
   });
 
   test("not mid-fight", () => {
-    const { session, link } = start({ dev: true });
+    const { session, link } = start({ cheats: true });
     standBy(session, 1);
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.talk();

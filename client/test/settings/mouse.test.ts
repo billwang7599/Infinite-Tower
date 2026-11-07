@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { MouseSettings, FLICK_SENSITIVITY } from "../../src/settings/mouse.js";
+import { FLICK_SENSITIVITY } from "@infinite-tower/shared";
+import { MouseSettings } from "../../src/settings/mouse.js";
 
 const autoLock = (m: MouseSettings) => m.get().autoLock;
 

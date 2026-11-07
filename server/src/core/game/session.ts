@@ -91,7 +91,7 @@ export class GameSession {
   constructor(
     readonly account: Account,
     readonly link: PlayerLink,
-    private readonly dev: boolean,
+    private readonly cheats: boolean,
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
     private readonly overworldOf: () => Overworld,
@@ -141,7 +141,7 @@ export class GameSession {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, core: this.core, settings: this.settings,
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
-      chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev, faith: this.faith,
+      chat: this.others.chat.recent(), questbook: questbookOf(this.story), cheats: this.cheats, faith: this.faith,
     });
     if (this.character) this.enterWorld();
   }
@@ -226,7 +226,7 @@ export class GameSession {
   }
 
   cheat(cheat: Cheat): void {
-    if (this.dev) runCheat(this, cheat);
+    if (this.cheats) runCheat(this, cheat);
   }
 
   /** Only once: a character is kept for good. */

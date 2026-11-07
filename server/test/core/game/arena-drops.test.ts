@@ -44,7 +44,7 @@ function won(t: TestContext, opts: { random?: number; bag?: Bag; knownWords?: Wo
   t.mock.method(Math, "random", () => opts.random ?? 0);
   const { bag = emptyBag(), knownWords = [], vitals } = opts;
   const saved = { bag, knownWords, ...(vitals && { vitals }) };
-  const started = startSession({ dev: true, saved });
+  const started = startSession({ cheats: true, saved });
   const { session } = started;
   const home = { ...session.overworld.playerPos(session.me) };
   session.cheat({ kind: "encounter", enemy: "wild-boar" });
@@ -99,7 +99,7 @@ describe("a won fight's drops", () => {
   });
 
   test("a loss doesn't keep the arena open", () => {
-    const { session, link } = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 } } });
+    const { session, link } = startSession({ cheats: true, saved: { vitals: { hp: 1, stamina: 40 } } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     step(session, 2);
     fightOf(session).world.require(fightOf(session).players[0]!, Health).hp = 0;
@@ -109,7 +109,7 @@ describe("a won fight's drops", () => {
   });
 
   test("can't be opened mid-fight", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     step(session, 2);
     const sent = link.all("gear").length;

@@ -106,7 +106,7 @@ describe("Highmere's townsfolk", () => {
   for (const [npc, chain] of TOWNSFOLK.filter(([, chain]) => chain.length > 0)) {
     test(`${npc}'s quest, played through the server: every step done, rewarded and told; then what's next`, () => {
       const home = regionOf(newStory(), npc);
-      const p = startIn(home, { dev: true, saved: { story: yardDone() } });
+      const p = startIn(home, { cheats: true, saved: { story: yardDone() } });
       for (const id of chain) {
         goTo(p, home);
         assert.equal(offeredQuest(talkTo(p.session, p.link, npc).offer), id, `${npc} offers ${id}`);

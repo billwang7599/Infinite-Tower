@@ -50,9 +50,9 @@ function winFight(session: GameSession): void {
   assert.ok(session.afterFight, "won, and still in the arena");
 }
 
-describe("on a production server", () => {
+describe("without CHEATS", () => {
   test("every cheat is ignored", () => {
-    const { session, link, saves } = startSession({ dev: false, saved: { vitals: { ...HURT } } });
+    const { session, link, saves } = startSession({ cheats: false, saved: { vitals: { ...HURT } } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.cheat({ kind: "invulnerable", on: true });
     session.cheat({ kind: "keepInventory", on: true });
@@ -72,18 +72,18 @@ describe("on a production server", () => {
 
 describe("encounter", () => {
   test("starts a battle against the enemy asked for", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     session.cheat({ kind: "encounter", enemy: "kobold-swordsman" });
     assert.ok(session.battle);
     assert.equal(link.last("encounter").setup.enemies[0]?.def.id, "kobold-swordsman");
   });
 
   test("does nothing mid-battle, or before the player is in the world", () => {
-    const inFight = startSession({ dev: true });
+    const inFight = startSession({ cheats: true });
     fightBoar(inFight.session);
     fightBoar(inFight.session);
     assert.equal(inFight.link.all("encounter").length, 1);
-    const making = startSession({ dev: true, saved: { character: null } });
+    const making = startSession({ cheats: true, saved: { character: null } });
     fightBoar(making.session);
     assert.equal(making.link.all("encounter").length, 0);
   });
@@ -91,7 +91,7 @@ describe("encounter", () => {
 
 describe("invulnerable", () => {
   test("is said back, isn't saved, and goes into the next fight", () => {
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     session.cheat({ kind: "invulnerable", on: true });
     assert.equal(link.last("invulnerable").on, true);
     assert.equal(saves.length, 0);
@@ -100,12 +100,12 @@ describe("invulnerable", () => {
   });
 
   test("a fight with it on: the boar does no damage", () => {
-    const control = startSession({ dev: true });
+    const control = startSession({ cheats: true });
     fightBoar(control.session);
     standStill(control.session, IDLE_TIME);
     assert.ok(myHp(control.session) < FULL.hp, "the boar hurts a player without it");
 
-    const { session } = startSession({ dev: true });
+    const { session } = startSession({ cheats: true });
     session.cheat({ kind: "invulnerable", on: true });
     fightBoar(session);
     standStill(session, IDLE_TIME);
@@ -113,7 +113,7 @@ describe("invulnerable", () => {
   });
 
   test("turned on mid-fight: the fight's player has it at once, and the client gets the fight", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     fightBoar(session);
     standStill(session, 0.5);
     const syncs = link.all("battleSync").length;
@@ -130,7 +130,7 @@ describe("invulnerable", () => {
 
 describe("keepInventory", () => {
   test("is said back and isn't saved, in the overworld or a fight", () => {
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     session.cheat({ kind: "keepInventory", on: true });
     assert.equal(link.last("keepInventory").on, true);
     assert.equal(saves.length, 0);
@@ -142,7 +142,7 @@ describe("keepInventory", () => {
 
 describe("give", () => {
   test("packs the items into the bag, saves, and says what was given", () => {
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     session.cheat({ kind: "give", item: "boar-meat", count: 7 });
     assert.deepEqual(bagCounts(session.bag), { "boar-meat": 7 });
     assert.deepEqual(saves.at(-1)?.bag, session.bag);
@@ -152,7 +152,7 @@ describe("give", () => {
   });
 
   test("a full bag keeps what fits and says how many were left out", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     const fits = addItem(emptyBag(), "boar-hide", 1000).bag;
     const fitCount = (bagCounts(fits) as ItemCounts)["boar-hide"] ?? 0;
     session.cheat({ kind: "give", item: "boar-hide", count: fitCount + 3 });
@@ -163,7 +163,7 @@ describe("give", () => {
 
   test("what doesn't fit in the bag goes into the backpack", () => {
     const { session } = startSession({
-      dev: true, saved: { pack: packFor("canvas-backpack"), equipment: { ...armed(), back: "canvas-backpack" } },
+      cheats: true, saved: { pack: packFor("canvas-backpack"), equipment: { ...armed(), back: "canvas-backpack" } },
     });
     const inBag = bagCounts(addItem(emptyBag(), "boar-hide", 1000).bag)["boar-hide"] ?? 0;
     session.cheat({ kind: "give", item: "boar-hide", count: inBag + 1 });
@@ -172,7 +172,7 @@ describe("give", () => {
   });
 
   test("in a fight goes into the fight's bag, the client gets the fight, and a win keeps it", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     fightBoar(session);
     standStill(session, 0.2);
     session.cheat({ kind: "give", item: "boar-meat", count: 3 });
@@ -188,7 +188,7 @@ describe("give", () => {
   });
 
   test("in the arena after a win packs into the bag as on the overworld", () => {
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     fightBoar(session);
     winFight(session);
     session.cheat({ kind: "give", item: "boar-meat", count: 2 });
@@ -201,7 +201,7 @@ describe("give", () => {
 describe("kill", () => {
   test("in a fight the enemy goes down at once, and it's won as any win is: the result, the win, its drops", (t) => {
     t.mock.method(Math, "random", () => 0);
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     fightBoar(session);
     standStill(session, 0.2);
     const wins = session.wins;
@@ -217,7 +217,7 @@ describe("kill", () => {
   });
 
   test("does nothing outside a fight", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ cheats: true });
     const sent = link.sent.length;
     session.cheat({ kind: "kill" });
     assert.equal(link.sent.length, sent);
@@ -227,7 +227,7 @@ describe("kill", () => {
 
 describe("heal", () => {
   test("refills HP and stamina anywhere, saves, and says so", () => {
-    const { session, link, saves } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+    const { session, link, saves } = startSession({ cheats: true, saved: { vitals: { ...HURT } } });
     session.cheat({ kind: "heal" });
     assert.deepEqual(session.vitals, FULL);
     assert.deepEqual(saves.at(-1)?.vitals, FULL);
@@ -235,7 +235,7 @@ describe("heal", () => {
   });
 
   test("in a fight refills the fight's HP and stamina, and the client gets the fight", () => {
-    const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+    const { session, link } = startSession({ cheats: true, saved: { vitals: { ...HURT } } });
     fightBoar(session);
     standStill(session, 0.2);
     session.cheat({ kind: "heal" });
@@ -246,7 +246,7 @@ describe("heal", () => {
   });
 
   test("in the arena after a win refills as on the overworld, and the fight's HUD follows", () => {
-    const { session, link, saves } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+    const { session, link, saves } = startSession({ cheats: true, saved: { vitals: { ...HURT } } });
     fightBoar(session);
     winFight(session);
     session.cheat({ kind: "heal" });
@@ -273,7 +273,8 @@ describe("completeQuest", () => {
     const quest = QUESTS[DELIVERING]!;
     const deliver = quest.steps.find((s) => s.task.kind === "deliver")!.task as { item: ItemId; count: number };
     const { session, link, saves } = startSession({
-      dev: true, saved: { story: onFirstStep(IDLE_SIDE, DELIVERING), bag: bagWith({ [deliver.item]: deliver.count }) },
+      cheats: true,
+      saved: { story: onFirstStep(IDLE_SIDE, DELIVERING), bag: bagWith({ [deliver.item]: deliver.count }) },
     });
     const expected: ItemCounts = { ...bagCounts(session.bag) };
     expected[deliver.item] = (expected[deliver.item] ?? 0) - deliver.count;
@@ -296,7 +297,7 @@ describe("completeQuest", () => {
   });
 
   test("with none in progress, takes the first main quest that can start: clicks walk the main story", () => {
-    const { session, link } = startSession({ dev: true, saved: { story: newStory() } });
+    const { session, link } = startSession({ cheats: true, saved: { story: newStory() } });
     const first = MAIN.find((id) => holds({ canStart: id }, newStory()))!;
     complete(session);
     const taken = { kind: "taken", quest: QUESTS[first]!.title, step: firstStep(first).text };
@@ -308,7 +309,7 @@ describe("completeQuest", () => {
 
   test("with every quest done, says so and changes nothing", () => {
     const done = storyOf(Object.fromEntries(Object.keys(QUESTS).map((id) => [id, null])));
-    const { session, link, saves } = startSession({ dev: true, saved: { story: done } });
+    const { session, link, saves } = startSession({ cheats: true, saved: { story: done } });
     const questbooks = link.all("questbook").length;
     complete(session);
     assert.equal(link.all("noQuest").length, 1);
@@ -318,7 +319,7 @@ describe("completeQuest", () => {
 
   test("does nothing in a battle", () => {
     const story = onFirstStep(DELIVERING);
-    const { session } = startSession({ dev: true, saved: { story } });
+    const { session } = startSession({ cheats: true, saved: { story } });
     fightBoar(session);
     complete(session);
     assert.deepEqual(session.story, story);
@@ -336,7 +337,7 @@ describe("resetSave", () => {
   const fresh = (): PlayerSave => ({ ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS });
 
   test("saves a brand-new player keeping the character and settings, and sends the client back through login", () => {
-    const { session, link, saves } = startSession({ dev: true, saved: played() });
+    const { session, link, saves } = startSession({ cheats: true, saved: played() });
     session.cheat({ kind: "resetSave" });
     assert.deepEqual(saves.at(-1), fresh());
     assert.equal(link.closed?.code, CLOSE_CODES.saveReset);
@@ -362,7 +363,7 @@ describe("resetSave", () => {
   });
 
   test("does nothing in a battle", () => {
-    const { session, link, saves } = startSession({ dev: true, saved: played() });
+    const { session, link, saves } = startSession({ cheats: true, saved: played() });
     fightBoar(session);
     const count = saves.length;
     session.cheat({ kind: "resetSave" });

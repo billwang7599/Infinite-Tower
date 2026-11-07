@@ -30,7 +30,7 @@ describe("input", () => {
   });
 
   test("is ignored during a battle", () => {
-    const { session } = startSession({ dev: true });
+    const { session } = startSession({ cheats: true });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.input(1, 1, 0);
     assert.equal(session.overworld.playerData(session.me).queue.length, 0);
@@ -107,7 +107,7 @@ describe("rest", () => {
   });
 
   test("does nothing during a battle", () => {
-    const { session, link } = startSession({ dev: true, saved: { vitals: { hp: 10, stamina: 3 } } });
+    const { session, link } = startSession({ cheats: true, saved: { vitals: { hp: 10, stamina: 3 } } });
     session.overworld.place(session.me, campfire());
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.rest();
@@ -128,7 +128,7 @@ describe("eating (useItem)", () => {
   const MEAT_CELL = bagSpot(2, 1);
   const EAT_TICKS = useSteps("boar-meat");
   const hungry = (hp: number, count = 2, dev = false) =>
-    startSession({ dev, saved: { vitals: { hp, stamina: 20 }, bag: bagOf(["boar-meat", count, 2, 1]) } });
+    startSession({ cheats: dev, saved: { vitals: { hp, stamina: 20 }, bag: bagOf(["boar-meat", count, 2, 1]) } });
 
   test("takes its useTime: the meat is used up and heals at the end, then it's saved and itemUsed sent", () => {
     const hp = FULL.hp - MEAT_HEAL_HP - 5;
@@ -261,7 +261,7 @@ describe("moveItem", () => {
 
   test("does nothing during a battle", () => {
     const start = bagOf(["boar-hide", 1, 0, 0]);
-    const { session, link } = startSession({ dev: true, saved: { bag: start } });
+    const { session, link } = startSession({ cheats: true, saved: { bag: start } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.moveItem(bagSpot(0, 0), bagSpot(3, 2), false);
     session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(3, 2), false);
@@ -382,7 +382,7 @@ describe("the cloth", () => {
   });
 
   test("a fight starting leaves it behind", () => {
-    const started = startSession({ dev: true, saved: { bag: bagOf(["boar-tusk", 1, 0, 0]) } });
+    const started = startSession({ cheats: true, saved: { bag: bagOf(["boar-tusk", 1, 0, 0]) } });
     started.session.moveItem(bagSpot(0, 0), spot("cloth", 0, 0), false);
     started.session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(started.session.gear.cloth, emptyCloth());
@@ -437,7 +437,7 @@ describe("carry weight", () => {
 
 describe("the skillbook", () => {
   const FIREBOLT: Skill = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] };
-  const knowing = () => startSession({ dev: true, saved: { knownWords: [...WORDS] } });
+  const knowing = () => startSession({ cheats: true, saved: { knownWords: [...WORDS] } });
 
   test("the welcome has the words the player knows and the book's pages, blank for a new player", () => {
     const { link } = startSession({ saved: { knownWords: ["bolt", "fire"] } });

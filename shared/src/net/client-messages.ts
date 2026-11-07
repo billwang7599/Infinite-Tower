@@ -14,9 +14,17 @@ import { INSCRIPTION_IDS, type InscriptionId } from "../soul/inscriptions.js";
 import { GODS } from "../soul/blessings.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
-import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
+import { CAMERA_SENSITIVITY, FLICK_SENSITIVITY, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
 import { MAX_GIVE_COUNT } from "./server-messages.js";
 import { ruledText } from "./text-schema.js";
+
+/** Two walk keys at once make a move √2 long; a little over, for the wire's rounding. */
+export const MAX_MOVE_LENGTH = Math.SQRT2 + 0.01;
+const AIM_LENGTH_SLACK = 0.01;
+// Far past any arena: the fight pulls the spot inside its wall.
+export const MAX_AIM_AT_M = 1000;
+// Far past any grid or pile; a cell outside one is refused by the bag rules.
+export const MAX_CELL_INDEX = 255;
 
 const InputMsg = z.object({
   t: z.literal("input"),
@@ -25,11 +33,7 @@ const InputMsg = z.object({
   /** Clamped to [-1, 1] by the walking rules. */
   moveX: z.number(),
   moveZ: z.number(),
-});
-
-/** Two walk keys at once make a move √2 long; a little over, for the wire's rounding. */
-const MAX_MOVE_LENGTH = Math.SQRT2 + 0.01;
-const AIM_LENGTH_SLACK = 0.01;
+}).refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking");
 
 const FightStep = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
@@ -47,11 +51,14 @@ export const SkillSchema = z.object({
 
 const PageSchema = z.number().int().nonnegative().max(SKILLBOOK_PAGES - 1);
 
-const Cell = { x: z.number().int().nonnegative(), y: z.number().int().nonnegative() };
+const CellIndex = z.number().int().nonnegative().max(MAX_CELL_INDEX);
+const Cell = { x: CellIndex, y: CellIndex };
 const GridSpot = z.object({ in: z.enum(["bag", "pack", "quiver", "cloth", "pile"]), ...Cell });
 const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
   z.ZodType<Spot>;
 const UseSpotSchema = z.object({ in: z.enum(["bag", "pack", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>;
+
+const AimAtM = z.number().min(-MAX_AIM_AT_M).max(MAX_AIM_AT_M);
 
 const StepInputSchema = z.object({
   step: FightStep,
@@ -59,7 +66,7 @@ const StepInputSchema = z.object({
   moveZ: z.number(),
   aimX: z.number(),
   aimZ: z.number(),
-  aimAt: z.object({ x: z.number(), y: z.number(), z: z.number() }),
+  aimAt: z.object({ x: AimAtM, y: AimAtM, z: AimAtM }),
   jump: z.boolean(),
   attack: z.enum(STRIKES).nullable(),
   attackHeld: z.boolean(),
@@ -107,11 +114,14 @@ const SavedSettingsSchema = z.object({
   /** group -> action -> KeyboardEvent.code list */
   bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(MAX_KEYS_PER_ACTION))).optional(),
   camera: z.object({
-    sensitivity: z.number().optional(),
+    sensitivity: z.number().min(CAMERA_SENSITIVITY.min).max(CAMERA_SENSITIVITY.max).optional(),
     overworldTurns: z.number().min(0).lt(OVERWORLD_CAMERA_ANGLES).optional(),
   }).optional(),
   /** Left out means on: saves from before it existed have no such field. */
-  mouse: z.object({ autoLock: z.boolean().optional(), flickSensitivity: z.number().optional() }).optional(),
+  mouse: z.object({
+    autoLock: z.boolean().optional(),
+    flickSensitivity: z.number().min(FLICK_SENSITIVITY.min).max(FLICK_SENSITIVITY.max).optional(),
+  }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
   audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME, music: VOLUME }).optional(),

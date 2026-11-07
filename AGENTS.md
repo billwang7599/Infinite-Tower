@@ -157,7 +157,8 @@ Controls and presentation:
 - What the player is told is a small corner notice; no centre banners. Every screen sees at most 16:9.
 - The character panel has Stats (with Advanced numbers), Core and Relationships (faith per god) tabs.
 - Dev servers have an F1 admin panel and chat cheats, mid-fight too (keep inventory on by default, kill the enemy,
-  complete the current quest, reset the save), and a simulated ping.
+  complete the current quest, reset the save), and a simulated ping. Cheats need `CHEATS=1` in `.env`
+  (`.env.example` sets it; production never does).
 
 ## Commands and the database
 

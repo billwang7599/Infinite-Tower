@@ -21,7 +21,7 @@ describe("faith", () => {
   test("a quest's reward can give faith with a god, sent and saved", () => {
     const gained = faithFrom(YARD, "kaelith");
     assert.ok(gained > 0, "Bram's yard gives Kaelith faith");
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     session.cheat({ kind: "completeQuest" });
     assert.equal(session.story.quests[YARD]?.step, null);
     assert.deepEqual(session.faith, { kaelith: gained });
@@ -32,7 +32,7 @@ describe("faith", () => {
   });
 
   test("reaching the threshold blesses you, once", () => {
-    const { session, link } = startSession({ dev: true, saved: { faith: { kaelith: BLESSING_FAITH - 1 } } });
+    const { session, link } = startSession({ cheats: true, saved: { faith: { kaelith: BLESSING_FAITH - 1 } } });
     session.cheat({ kind: "completeQuest" });
     assert.deepEqual(link.last("faith").blessed, ["kaelith"]);
     session.cheat({ kind: "faith", god: "kaelith" });
@@ -40,7 +40,7 @@ describe("faith", () => {
   });
 
   test("the admin panel adds faith on dev servers only", () => {
-    const dev = startSession({ dev: true });
+    const dev = startSession({ cheats: true });
     dev.session.cheat({ kind: "faith", god: "haldis" });
     assert.deepEqual(dev.session.faith, { haldis: FAITH_CHEAT });
     const prod = startSession();
@@ -49,7 +49,7 @@ describe("faith", () => {
   });
 
   test("a blessed player fights with the blessing on", () => {
-    const { session } = startSession({ dev: true, saved: { faith: { brannoc: BLESSING_FAITH } } });
+    const { session } = startSession({ cheats: true, saved: { faith: { brannoc: BLESSING_FAITH } } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const fight = session.battle!.room.fight;
     const on = fight.world.require(fight.players[0]!, Statuses).on;

@@ -122,7 +122,7 @@ cookie's account; then `ws/` wraps the socket in a `Connection` (the `PlayerLink
 which closes the account's other tab, loads the save and makes a `GameSession`. Each message then flows:
 
 ```
-socket -> Connection (size cap, Zod check; repeated bad messages close it) -> ws/handlers.ts (one call per type)
+socket -> Connection (rate and size caps, Zod check; flooding or repeated bad messages close it) -> ws/handlers.ts
        -> GameSession -> link.send(...)
 ```
 

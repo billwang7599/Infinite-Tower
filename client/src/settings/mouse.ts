@@ -1,5 +1,5 @@
 /** Auto lock: the game captures the mouse as a fight starts or a screen over it closes, not waiting for a click. */
-import type { SavedSettings } from "@infinite-tower/shared";
+import { FLICK_SENSITIVITY, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 import { savedOnSlider, snapToSlider } from "./slider.js";
 
@@ -11,7 +11,6 @@ interface MousePrefs {
 }
 
 const AUTO_LOCK_DEFAULT = true;
-export const FLICK_SENSITIVITY = { min: 0.5, max: 2, step: 0.05, default: 1 } as const;
 
 export class MouseSettings extends Store<MousePrefs> {
   constructor() {

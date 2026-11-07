@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  DEFAULT_LOOK, HIDDEN_STATS, MAX_GIVE_COUNT, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
-  OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
+  CAMERA_SENSITIVITY, DEFAULT_LOOK, FLICK_SENSITIVITY, HIDDEN_STATS, MAX_GIVE_COUNT, MAX_INPUTS_PER_MESSAGE,
+  MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
 } from "@infinite-tower/shared";
-import { MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
+import {
+  MAX_AIM_AT_M, MAX_CELL_INDEX, MAX_MOVE_LENGTH, MAX_QUEST_ID_CHARS, parseClientMsg,
+} from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
 const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = "boy") =>
@@ -193,6 +195,22 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "input", seq: 1, moveX: "1", moveZ: 0 }), null);
   });
 
+  test("input: the move is no longer than the walk keys can make", () => {
+    const input = (moveX: number, moveZ: number) => parse({ t: "input", seq: 1, moveX, moveZ });
+    assert.deepEqual(input(1, -1), { t: "input", seq: 1, moveX: 1, moveZ: -1 });
+    assert.equal(input(MAX_MOVE_LENGTH + 0.001, 0), null);
+    assert.equal(input(1e300, 1e300), null);
+  });
+
+  test("battleInput: the aimed spot is within MAX_AIM_AT_M on each axis", () => {
+    for (const at of [{ x: MAX_AIM_AT_M, y: MAX_AIM_AT_M, z: -MAX_AIM_AT_M }, { x: 0, y: -1, z: 8 }]) {
+      assert.notEqual(battleInput({ ...STEP, aimAt: at }), null);
+    }
+    for (const at of [{ x: MAX_AIM_AT_M + 1, y: 0, z: 0 }, { x: 0, y: 1e300, z: 0 }, { x: 0, y: 0, z: -1e9 }]) {
+      assert.equal(battleInput({ ...STEP, aimAt: at }), null, JSON.stringify(at));
+    }
+  });
+
   test("character: the name follows the rules and is trimmed", () => {
     assert.deepEqual(
       character("  Asuna  ", DEFAULT_LOOK, "girl"),
@@ -307,6 +325,27 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: bag(1, 1) }), null);
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "stash", x: 1, y: 1 }, turned: false }), null);
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "slot", slot: "tail" }, turned: false }), null);
+  });
+
+  test("useItem and moveItem: a cell is at most MAX_CELL_INDEX", () => {
+    const pile = (x: number, y: number) => ({ in: "pile", x, y });
+    const move = (from: object) => parse({ t: "moveItem", from, to: pile(0, 0), turned: false });
+    assert.notEqual(move(pile(MAX_CELL_INDEX, MAX_CELL_INDEX)), null);
+    assert.equal(move(pile(MAX_CELL_INDEX + 1, 0)), null);
+    assert.equal(parse({ t: "useItem", at: { in: "bag", x: 0, y: MAX_CELL_INDEX + 1 } }), null);
+  });
+
+  test("settings: the camera and flick sensitivities are on their sliders' ranges", () => {
+    const settings = (saved: object) => parse({ t: "settings", settings: saved });
+    for (const sensitivity of [CAMERA_SENSITIVITY.min, CAMERA_SENSITIVITY.max]) {
+      assert.notEqual(settings({ camera: { sensitivity } }), null);
+    }
+    for (const sensitivity of [CAMERA_SENSITIVITY.min - 0.01, CAMERA_SENSITIVITY.max + 0.01, 1e300]) {
+      assert.equal(settings({ camera: { sensitivity } }), null, `camera ${sensitivity}`);
+    }
+    for (const flickSensitivity of [FLICK_SENSITIVITY.min - 0.01, FLICK_SENSITIVITY.max + 0.01]) {
+      assert.equal(settings({ mouse: { flickSensitivity } }), null, `flick ${flickSensitivity}`);
+    }
   });
 
   test("nothing is eaten straight from a pile: it's taken into the bag first", () => {

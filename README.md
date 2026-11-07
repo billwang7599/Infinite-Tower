@@ -53,7 +53,7 @@ npm run db:generate -- --name <what-changed>  # after editing server/src/db/sche
 ```
 
 Local settings live in `.env` (git-ignored), copied from `.env.example` the first time; changing its `POSTGRES_*`
-lines after the database exists needs `npm run db:reset`. On a dev server F1 opens the
+lines after the database exists needs `npm run db:reset`. With `CHEATS=1` (the dev default) F1 opens the
 admin panel, `/help` in the chat lists the cheats, and `?ping=N` on the page simulates a ping.
 
 **Troubleshooting.** `EADDRINUSE` on :8787: an older `npm run dev` is still running. "Can't reach Postgres": Docker

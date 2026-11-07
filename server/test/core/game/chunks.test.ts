@@ -52,7 +52,7 @@ describe("the world a chunk at a time", () => {
   });
 
   test("dying, your pad's chunks are sent at once, before you leave the arena", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: "kingdom" } });
+    const { session, link } = startSession({ cheats: true, saved: { pad: "kingdom" } });
     session.overworld.place(session.me, getRegion("mistwood").spawn);
     tick(session, STATE_TICKS);
     dieIn(session);

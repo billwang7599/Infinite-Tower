@@ -30,7 +30,7 @@ describe("the Waking Hollow's first quests", () => {
   });
 
   test("talk, a first boar fight, meat for the rack, then on to Hollis, who offers his own first quest", () => {
-    const { session, link, saves } = startSession({ dev: true });
+    const { session, link, saves } = startSession({ cheats: true });
     session.acceptQuest(offeredQuest(talkTo(session, link, "maren").offer)!);
     winFight(session, "wild-boar");
     talkTo(session, link, "maren");

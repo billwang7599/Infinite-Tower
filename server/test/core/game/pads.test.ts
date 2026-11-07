@@ -16,7 +16,7 @@ const padsOn = (overworld: Overworld) => [...overworld.world.query(SummoningPad,
   .map(([, pad, pos]) => ({ region: pad.region, x: pos.x, z: pos.z }));
 
 function onFieldPad(saved = {}) {
-  const started = startSession({ dev: true, saved: { pad: START_REGION, ...saved } });
+  const started = startSession({ cheats: true, saved: { pad: START_REGION, ...saved } });
   started.session.overworld.place(started.session.me, FIELD.spawn);
   return started;
 }

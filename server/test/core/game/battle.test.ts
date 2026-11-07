@@ -35,7 +35,7 @@ const MAX_TEST_STEPS = 60 * 60;
 
 /** A dev session already in a debug battle, hurt to HURT, carrying `bag`. */
 function inBattle(bag: Bag = emptyBag(), vitals = HURT) {
-  const started = startSession({ dev: true, saved: { vitals: { ...vitals }, bag } });
+  const started = startSession({ cheats: true, saved: { vitals: { ...vitals }, bag } });
   started.session.cheat({ kind: "encounter", enemy: "wild-boar" });
   return started;
 }
@@ -107,13 +107,13 @@ describe("starting a battle", () => {
   });
 
   test("a dev fight against an enemy is held in the arena of its spawn", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: FIELD.id } });
+    const { session, link } = startSession({ cheats: true, saved: { pad: FIELD.id } });
     session.cheat({ kind: "encounter", enemy: ARENA_SPAWN.enemy });
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
 
   test("sends encounter with the fight to build: the arena, the enemy, the player's vitals, stats and burden", () => {
-    const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+    const { session, link } = startSession({ cheats: true, saved: { vitals: { ...HURT } } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const msg = link.last("encounter");
     assert.equal(msg.source, null);
@@ -136,7 +136,9 @@ describe("starting a battle", () => {
     const bookOnly: Equipment = { ...armed(), rightHand: null, back: "canvas-backpack", hip: "training-quiver" };
     const pack = addItem(packFor("canvas-backpack"), "wolf-fang", 3).bag;
     const quiver = addItem(packFor("training-quiver"), "arrow", 7).bag;
-    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED, pack, quiver } });
+    const { session, link } = startSession({
+      cheats: true, saved: { equipment: bookOnly, bag: CARRIED, pack, quiver },
+    });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const gear = { bag: CARRIED, pack, quiver, equipment: bookOnly };
     assert.deepEqual(link.last("encounter").setup.players[0]!.gear, gear);
@@ -149,7 +151,7 @@ describe("starting a battle", () => {
       cols: count, rows: tusk.rows,
       items: Array.from({ length: count }, (_, x) => ({ item: "boar-tusk", count: 1, x, y: 0, turned: false })),
     };
-    const { session, link } = startSession({ dev: true, saved: { bag: heavy } });
+    const { session, link } = startSession({ cheats: true, saved: { bag: heavy } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.equal(link.last("encounter").setup.players[0]!.burden, "heavy");
   });
@@ -182,7 +184,7 @@ describe("the server runs the fight", () => {
   test("a win keeps the book as it was", () => {
     const written: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
     const book = [written, null, null, null];
-    const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
+    const { session, link } = startSession({ cheats: true, saved: { skillbook: book } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     win(session);
     assert.deepEqual(link.last("battleResult").skillbook, book);
@@ -237,7 +239,7 @@ describe("the server runs the fight", () => {
 
   test("after a death everything carried is lost, the hands and the bag alike", () => {
     const started = startSession({
-      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: armed(), bag: CARRIED },
+      cheats: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: armed(), bag: CARRIED },
     });
     const { session, link, saves } = started;
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
@@ -255,7 +257,7 @@ describe("the server runs the fight", () => {
     const written: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
     const book = [written, null, written, null];
     const started = startSession({
-      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, skillbook: book, knownWords: ["nova", "fire"] },
+      cheats: true, saved: { vitals: { hp: 1, stamina: 40 }, skillbook: book, knownWords: ["nova", "fire"] },
     });
     const { session, link, saves } = started;
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
@@ -303,7 +305,7 @@ describe("casting skills", () => {
   const CHANT = { ...IDLE_INPUT, chant: true };
 
   function casts(saved: Partial<PlayerSave>, chanted: boolean): boolean {
-    const { session } = startSession({ dev: true, saved });
+    const { session } = startSession({ cheats: true, saved });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     play(session, () => IDLE_INPUT, 2);
     if (chanted) play(session, () => CHANT, 1);
@@ -331,7 +333,7 @@ describe("casting skills", () => {
 
   test("a chant's words reach the fight only if the player knows every one", () => {
     const words = (knownWords: Word[]) => {
-      const { session } = startSession({ dev: true, saved: { knownWords } });
+      const { session } = startSession({ cheats: true, saved: { knownWords } });
       session.cheat({ kind: "encounter", enemy: "wild-boar" });
       play(session, () => IDLE_INPUT, 2);
       play(session, () => CHANT, 1);
@@ -349,13 +351,13 @@ describe("casting skills", () => {
 
   test("the encounter gives the fight the player's pages", () => {
     const book = [null, NOVA, null, null];
-    const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
+    const { session, link } = startSession({ cheats: true, saved: { skillbook: book } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(link.last("encounter").setup.players[0]!.book, book);
   });
 
   function writing(knownWords: Word[]): GameSession {
-    const { session } = startSession({ dev: true, saved: { knownWords } });
+    const { session } = startSession({ cheats: true, saved: { knownWords } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     play(session, () => IDLE_INPUT, 2);
     play(session, () => CHANT, 1);

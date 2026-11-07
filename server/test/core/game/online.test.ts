@@ -15,10 +15,10 @@ import { ACCOUNT, pileAt } from "./helpers.js";
 
 before(() => initPhysics());
 
-function setup(opts: { withCharacter?: boolean; dev?: boolean; maxPlayers?: number } = {}) {
+function setup(opts: { withCharacter?: boolean; cheats?: boolean; maxPlayers?: number } = {}) {
   const store = new MemoryPlayerStore();
   if (opts.withCharacter) store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER });
-  return { store, online: new OnlinePlayers(store, opts.dev ?? false, opts.maxPlayers ?? 50) };
+  return { store, online: new OnlinePlayers(store, opts.cheats ?? false, opts.maxPlayers ?? 50) };
 }
 
 async function joinNew(online: OnlinePlayers) {
@@ -43,7 +43,7 @@ describe("joining", () => {
       newPlayer(),
     );
     assert.deepEqual(welcome.questbook, []);
-    assert.equal(welcome.dev, false);
+    assert.equal(welcome.cheats, false);
   });
 
   test("making a character saves it, then sends character and then the world", async () => {
@@ -227,7 +227,7 @@ describe("leaving", () => {
   });
 
   test("mid-fight, it loses the fight: the bag and hands are emptied, and saved like that", async () => {
-    const { online, store } = setup({ withCharacter: true, dev: true });
+    const { online, store } = setup({ withCharacter: true, cheats: true });
     const meat = { item: "boar-meat", count: 3, x: 0, y: 0, turned: false } as const;
     const bag: PlayerSave["bag"] = { ...newPlayer().bag, items: [meat] };
     store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, bag });
@@ -240,7 +240,7 @@ describe("leaving", () => {
   });
 
   test("a second tab taking over mid-fight is leaving it: the fight is lost", async () => {
-    const { online, store } = setup({ withCharacter: true, dev: true });
+    const { online, store } = setup({ withCharacter: true, cheats: true });
     const first = await joinNew(online);
     first.session.cheat({ kind: "encounter", enemy: "wild-boar" });
     online.tick(FIXED_DT);
@@ -281,7 +281,7 @@ describe("ticking", () => {
   });
 
   test("sends no state during a battle", async () => {
-    const { online } = setup({ withCharacter: true, dev: true });
+    const { online } = setup({ withCharacter: true, cheats: true });
     const { link, session } = await joinNew(online);
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     for (let i = 0; i < 6; i++) online.tick(FIXED_DT);

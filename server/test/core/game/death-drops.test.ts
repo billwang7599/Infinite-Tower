@@ -42,7 +42,7 @@ const countsAt = (overworld: Overworld, at: Vec2): ItemCounts | null => {
 
 function fighting(saved: { bag?: Bag; pack?: Bag; quiver?: Bag; equipment?: Equipment } = {}) {
   const started = startSession({
-    dev: true,
+    cheats: true,
     saved: {
       bag: saved.bag ?? CARRIED, pack: saved.pack ?? packFor(null), quiver: saved.quiver ?? packFor(null),
       equipment: saved.equipment ?? BLADE_IN_HAND,
@@ -186,7 +186,7 @@ describe("with the keep inventory cheat on", () => {
   });
 
   test("refused on a production server: a death there drops it all", () => {
-    const { session, link } = startSession({ dev: false, saved: { bag: CARRIED, equipment: BLADE_IN_HAND } });
+    const { session, link } = startSession({ cheats: false, saved: { bag: CARRIED, equipment: BLADE_IN_HAND } });
     session.overworld.place(session.me, FIGHT_SPOT);
     session.cheat({ kind: "keepInventory", on: true });
     assert.equal(link.all("keepInventory").length, 0);
