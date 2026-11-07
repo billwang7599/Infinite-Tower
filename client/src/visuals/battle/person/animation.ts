@@ -59,8 +59,10 @@ export interface HeldArms { hand: Vector3; holding: Quaternion; offHand: Vector3
 export interface ShownArms extends HeldArms {
   key: string;
   side: 1 | -1;
-  from: (HeldArms & { swing: SwingData | null; sinceTime: number; time: number }) | null;
+  from: (HeldArms & { swing: SwingData | null; sinceTime: number; time: number; toward: Toward }) | null;
 }
+// Each turn's target as last turned toward, its sign the way round, so that way holds as the target moves.
+type Toward = Partial<Record<"holding" | "offHolding", Quaternion>>;
 
 export const GUARD_SHIFT = { time: 0.1, timePerHeft: 0.08 } as const;
 export const guardShiftTime = (heft: number): number =>
@@ -79,7 +81,7 @@ const copyArms = (a: HeldArms): HeldArms =>
 export function easeArms(
   shown: ShownArms | null, want: HeldArms,
   o: { key: string; side: 1 | -1; swung: { swing: SwingData; set: number } | null; shiftTime: number;
-    returnTime: number; dt: number },
+    returnTime: number; dt: number; ahead?: Vec3 },
 ): ShownArms {
   const now = shown ?? { ...copyArms(want), key: o.key, side: o.side, from: null };
   if (now.side !== o.side) {
@@ -87,7 +89,7 @@ export function easeArms(
     Object.assign(now, { side: o.side, key: "", from: null });
   }
   const begin = (swing: SwingData | null, time: number) => {
-    now.from = { ...copyArms(now), swing, sinceTime: 0, time };
+    now.from = { ...copyArms(now), swing, sinceTime: 0, time, toward: {} };
   };
   if (o.swung) {
     if (now.from?.swing !== o.swung.swing) begin(o.swung.swing, 0);
@@ -99,9 +101,13 @@ export function easeArms(
   const k = o.swung ? o.swung.set : now.from ? smoothstep(0, now.from.time, now.from.sinceTime)
     : dampFactor(JOINT_RATE, o.dt);
   Vector3.LerpToRef(from.hand, want.hand, k, now.hand);
-  turnToward(from.holding, want.holding, k, now.holding, !o.swung);
   Vector3.LerpToRef(from.offHand, want.offHand, k, now.offHand);
-  turnToward(from.offHolding, want.offHolding, k, now.offHolding, !o.swung);
+  for (const turn of ["holding", "offHolding"] as const) {
+    const last = now.from?.toward[turn], to = want[turn];
+    const sign = last ? Math.sign(Quaternion.Dot(last, to)) || 1 : wayRound(from[turn], to, !o.swung, o.ahead ?? null);
+    slerpRound(from[turn], to, sign, k, now[turn]);
+    if (now.from) now.from.toward[turn] = (last ?? new Quaternion()).copyFrom(to).scaleInPlace(sign);
+  }
   return now;
 }
 
@@ -115,15 +121,20 @@ function slerpRound(from: Quaternion, to: Quaternion, sign: number, k: number, o
   return out.copyFromFloats(from.x * a + to.x * b, from.y * a + to.y * b, from.z * a + to.z * b, from.w * a + to.w * b);
 }
 
-function turnToward(from: Quaternion, to: Quaternion, k: number, out: Quaternion, overTop: boolean): void {
+const BEHIND_SAMPLES = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875] as const;
+
+function wayRound(from: Quaternion, to: Quaternion, overTop: boolean, ahead: Vec3 | null): number {
   const d = Quaternion.Dot(from, to);
   let sign = d < 0 ? -1 : 1;
-  if (overTop && Math.abs(d) < HALF_TURN_DOT) {
-    const upAt = (s: number) => Vector3.UpReadOnly.applyRotationQuaternionToRef(
-      slerpRound(from, to, s, 0.5, halfway), halfUp).y;
-    if (upAt(-sign) > upAt(sign)) sign = -sign;
-  }
-  slerpRound(from, to, sign, k, out);
+  const bladeAt = (s: number, t: number) =>
+    Vector3.UpReadOnly.applyRotationQuaternionToRef(slerpRound(from, to, s, t, halfway), halfUp);
+  if (overTop && Math.abs(d) < HALF_TURN_DOT && bladeAt(-sign, 0.5).y > bladeAt(sign, 0.5).y) sign = -sign;
+  // Either way round turns the blade about one axis, so if one way passes behind, the other stays ahead.
+  const behind = (s: number) => !!ahead && BEHIND_SAMPLES.some((t) => {
+    const b = bladeAt(s, t);
+    return b.x * ahead.x + b.y * ahead.y + b.z * ahead.z < 0;
+  });
+  return behind(sign) && !behind(-sign) ? -sign : sign;
 }
 
 export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> & {

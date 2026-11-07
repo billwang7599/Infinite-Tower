@@ -371,12 +371,14 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     edge toward where you look; a block is the pose's own (it's built to read from the eye: the X crossed below the
     crosshair, the shield's rim just under it); with no way aimed, or reeling, the hand is pulled toward a spot low and
     right of the middle and the blade leaned ahead, its edge toward where you look. A sword swing is drawn
-    from the eye on the same arc's timing (`FP_SWING`): the blade turns from cocked back past where the cut starts,
-    through the middle of the screen on the step its hit lands, to past where it ends, the hand swinging round just
-    below the middle and reaching out on the hit; a sideways cut's ends are lifted and an upright one's leaned out to
-    the sword hand's side, so a slash crosses the whole view and the chop comes down through it from over that
-    shoulder; a stab is pulled back and driven at the middle. After a swing the arm is carried back to rest, eased
-    (`returnTime`). A bow is placed from the
+    from the eye on the same arc's timing (`FP_SWING`): the blade turns from out to the side where the cut starts,
+    through the middle of the screen on the step its hit lands, to out the other side and no further (past the side
+    it would go back through your head, so it eases in toward it, `sideRad`, the hand drawn back over the wind-up),
+    the hand swinging round just below the middle and reaching out on the hit; an upright cut leans out to the sword
+    hand's side, so a slash crosses the whole view and the chop comes down through it from over that shoulder; a stab
+    is pulled back and driven at the middle. After a swing the arm is carried back to rest, eased (`returnTime`).
+    Every turn between poses in first person (into a swing, from one into the next, back to the guard) goes the way
+    round that keeps the blade in front of you, and holds that way as its target moves. A bow is placed from the
     eye instead (`FP_BOW`): carried low across the bottom right, canted, pointing ahead and down; drawn, raised so the
     arrow lies along the view below and right of the crosshair, so it points at it, the stave canted with its top to
     the right, clear of the crosshair, and the string hand on the nock pulling it back toward you as the grip is
