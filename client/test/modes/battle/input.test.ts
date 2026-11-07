@@ -9,7 +9,7 @@ const polled = (over: Partial<Polled>): Polled =>
     held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragging: false, zoom: 0, ...over,
   });
 
-const AHEAD = { x: 0, z: 1, pitchRad: 0 };
+const AHEAD = { x: 0, z: 1, at: { x: 0, y: 1, z: 8 } };
 
 describe("the arena's keys into the fight's input", () => {
   test("the light attack is pressed on the step it goes down and held while it stays down", () => {
@@ -28,11 +28,11 @@ describe("the arena's keys into the fight's input", () => {
     assert.equal(input.attackHeld, false);
   });
 
-  test("walking goes by the camera's yaw, the aim by its own way and pitch", () => {
-    const input = copyInput(IDLE_INPUT), aim = { x: 0.6, z: 0.8, pitchRad: 0.25 };
+  test("walking goes by the camera's yaw, the aim by its own way and spot", () => {
+    const input = copyInput(IDLE_INPUT), aim = { x: 0.6, z: 0.8, at: { x: 3, y: 2, z: 4 } };
     readPlayerInput(polled({ move: { x: 0, z: 1 } }), Math.PI / 2, "tb", input, aim);
     assert.ok(near(input.moveX, 1) && near(input.moveZ, 0), `${input.moveX}, ${input.moveZ}`);
-    assert.deepEqual([input.aimX, input.aimZ, input.aimPitchRad], [0.6, 0.8, 0.25]);
+    assert.deepEqual([input.aimX, input.aimZ, input.aimAt], [0.6, 0.8, { x: 3, y: 2, z: 4 }]);
   });
 });
 

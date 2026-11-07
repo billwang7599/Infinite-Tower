@@ -169,10 +169,10 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
   `nock.bagTime` 0.8 s. A quiver's one cell holds 60 arrows (`holds.stackSize`; a bag cell 20); they're shot first.
 - **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
 - **Speed** = the bow's `powerMps` × (`minSpeedShare` 0.4 + 0.6 × the share drawn, at most 1).
-- **Flight:** gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle. Locked on,
-  it's aimed in the low arc at that speed that meets the target's middle (straight at it if it can't); with no lock-on,
-  along the aim's way tilted up by its `aimPitchRad`. Poise 10 on an enemy; blocked like a light (below). Stuck, it
-  lies `stuckTime` 2 s.
+- **Flight:** gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle. It's
+  aimed in the low arc at that speed that meets the aim's spot (straight at it if it can't): locked on, the target's
+  middle; with no lock-on, the spot under the crosshair (`aimAt`). Each step moves it along the exact arc, so it lands
+  there. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
 
 Example: the Training bow (12 damage, 40 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
 40 × (0.4 + 0.6 × 0.25) = 22 m/s; held 1 s or more, 12 at 40 m/s.

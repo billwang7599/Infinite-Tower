@@ -35,18 +35,14 @@ function play(fight: Fight, steps: number, inputs: (s: number) => PlayerInputDat
 }
 
 describe("an arrow in flight", () => {
-  test("moves by its velocity each step, falling by its gravity", () => {
+  test("stays on the arc its velocity and gravity make, step by step", () => {
     const fight = lone(), me = fight.players[0]!;
     const arrow = loose(fight, me, { x: 0, y: 2, z: 0 }, { x: 0, y: 3, z: 10 });
-    const expected = { x: 0, y: 2, z: 0 }, vel = { x: 0, y: 3, z: 10 };
-    for (let i = 0; i < 20; i++) {
-      vel.y += ARROW.gravityMps2 * FIXED_DT;
-      expected.y += vel.y * FIXED_DT;
-      expected.z += vel.z * FIXED_DT;
-    }
+    const t = 20 * FIXED_DT;
     play(fight, 20);
-    assert.ok(Math.abs(arrow.pos.y - expected.y) < 1e-9 && Math.abs(arrow.pos.z - expected.z) < 1e-9);
-    assert.ok(Math.abs(arrow.vel.y - vel.y) < 1e-9);
+    assert.ok(Math.abs(arrow.pos.y - (2 + 3 * t + (ARROW.gravityMps2 * t * t) / 2)) < 1e-9);
+    assert.ok(Math.abs(arrow.pos.z - 10 * t) < 1e-9);
+    assert.ok(Math.abs(arrow.vel.y - (3 + ARROW.gravityMps2 * t)) < 1e-9);
   });
 
   test("is gone once its lifetime runs out", () => {

@@ -104,7 +104,7 @@ describe("moving while locked", () => {
 
   test("forward goes at the target, right and left circle it", () => {
     const input = copyInput(IDLE_INPUT);
-    const aim = { x: 1, z: 0, pitchRad: 0 };
+    const aim = { x: 1, z: 0, at: { x: 5, y: 0.9, z: 0 } };
     readPlayerInput(polled([], { x: 0, z: 1 }), lockYaw(from, target)!, "tb", input, aim);
     assert.ok(Math.abs(input.moveX - 1) < 1e-9 && Math.abs(input.moveZ) < 1e-9);
     readPlayerInput(polled([], { x: 1, z: 0 }), lockYaw(from, target)!, "tb", input, aim);

@@ -96,7 +96,7 @@ export class Fight {
       outcome: this.outcome,
     };
     this.systems = [
-      playerControllerSystem(this.targets, this.events),
+      playerControllerSystem(this.targets, this.events, this.arena.radius),
       enemyBrainSystem(),
       ...Object.values(ATTACKS).map((attack) => attack.system(ctx)),
       weaponSystem(),

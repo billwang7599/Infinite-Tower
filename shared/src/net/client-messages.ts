@@ -58,7 +58,7 @@ const StepInputSchema = z.object({
   moveZ: z.number(),
   aimX: z.number(),
   aimZ: z.number(),
-  aimPitchRad: z.number().min(-Math.PI / 2).max(Math.PI / 2),
+  aimAt: z.object({ x: z.number(), y: z.number(), z: z.number() }),
   jump: z.boolean(),
   attack: z.enum(STRIKES).nullable(),
   attackHeld: z.boolean(),

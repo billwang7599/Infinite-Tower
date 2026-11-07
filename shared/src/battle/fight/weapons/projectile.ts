@@ -86,9 +86,9 @@ function strike(ctx: FightContext, o: ProjectileData, target: Entity, struck: Ve
 }
 
 function fly(ctx: FightContext, e: Entity, o: ProjectileData, dt: number): void {
-  const def = projectileOf(o);
-  o.vel.y += def.gravityMps2 * dt;
-  const a = o.pos, d = { x: o.vel.x * dt, y: o.vel.y * dt, z: o.vel.z * dt };
+  const def = projectileOf(o), fall = def.gravityMps2 * dt;
+  const a = o.pos, d = { x: o.vel.x * dt, y: (o.vel.y + fall / 2) * dt, z: o.vel.z * dt };
+  o.vel.y += fall;
   const stopsAt = landsAt(a, d, ctx.arena.radius);
   const met = meets(ctx.world, o, a, d, Math.min(1, stopsAt));
   if (met) {

@@ -12,9 +12,9 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
-  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, aimPitchRad: 0, jump: false, attack: null, attackHeld: false,
-  dodge: false, way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
-  bag: false, gear: null, use: null,
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, aimAt: { x: 0, y: 1, z: 8 }, jump: false, attack: null,
+  attackHeld: false, dodge: false, way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null,
+  write: null, locked: null, bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -172,14 +172,13 @@ describe("parseClientMsg", () => {
     assert.deepEqual(battleInput({ ...STEP, gear }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, gear }] });
   });
 
-  test("battleInput: the aim is a direction (length 1), the move no longer than the keys can make", () => {
+  test("battleInput: the aim is a direction (length 1) and a spot, the move no longer than the keys can make", () => {
     assert.equal(battleInput({ ...STEP, aimX: 0, aimZ: 0 }), null, "no direction");
     assert.equal(battleInput({ ...STEP, aimX: 1, aimZ: 1 }), null, "longer than 1: a wider slash");
     assert.equal(battleInput({ ...STEP, aimX: 0.5, aimZ: 0 }), null);
-    assert.equal(battleInput({ ...STEP, aimPitchRad: 2 }), null, "past straight up");
-    assert.equal(battleInput({ ...STEP, aimPitchRad: null }), null);
-    const up = { ...STEP, aimPitchRad: 0.5 };
-    assert.deepEqual(battleInput(up), { t: "battleInput", upTo: 1, inputs: [up] });
+    assert.equal(battleInput({ ...STEP, aimAt: null }), null);
+    assert.equal(battleInput({ ...STEP, aimAt: { x: 0, y: Infinity, z: 8 } }), null);
+    assert.equal(battleInput({ ...STEP, aimAt: { x: 0, z: 8 } }), null);
     assert.equal(battleInput({ ...STEP, moveX: 2, moveZ: 0 }), null, "faster than walking");
     assert.equal(battleInput({ ...STEP, moveX: 1.2, moveZ: 1.2 }), null);
     // Two walk keys at once, turned by the camera: up to √2, rounded to 3 decimals.

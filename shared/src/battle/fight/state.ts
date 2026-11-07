@@ -105,12 +105,14 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighters = fightersOf(fight);
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
-    const { words, aim, target, ...skilled } = world.require(e, Skilled);
+    const { words, aim, aimAt, target, ...skilled } = world.require(e, Skilled);
     return {
       pos: { ...pos }, vel: { ...vel }, health: { ...world.require(e, Health) },
       statuses: copyStatuses(world.require(e, Statuses)),
       wielder: saveWielder(world.get(e, Wielder)),
-      skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
+      skilled: {
+        ...skilled, words: [...words], aim: { ...aim }, aimAt: { ...aimAt }, target: indexIn(fighters, target),
+      },
     };
   };
   return {
@@ -161,8 +163,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
       const { swing, ...rest } = s.wielder;
       Object.assign(wielder, rest, { swing: copySwing(swing) });
     }
-    const { words, aim, target, ...skilled } = s.skilled;
-    const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };
+    const { words, aim, aimAt, target, ...skilled } = s.skilled;
+    const copied = { words: [...words], aim: { ...aim }, aimAt: { ...aimAt }, target: fighterAt(target) };
     Object.assign(world.require(e, Skilled), skilled, copied);
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.

@@ -6,8 +6,8 @@ import { Enemy, Health, Skilled, Stamina, type EnemyState, type SkilledData } fr
 const STUNNED: readonly EnemyState[] = ["stunned", "staggered", "dead"];
 
 export const newSkilled = (aim: Vec2, seed: number): SkilledData => ({
-  chanting: false, words: [], casting: null, castTime: 0, beaming: false, held: false, aim: { ...aim }, aimPitchRad: 0,
-  target: null, rng: seed >>> 0,
+  chanting: false, words: [], casting: null, castTime: 0, beaming: false, held: false, aim: { ...aim },
+  aimAt: { x: 0, y: 0, z: 0 }, target: null, rng: seed >>> 0,
 });
 
 /** False if it's busy or short of stamina (paid at release). */
