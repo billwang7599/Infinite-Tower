@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import {
-  HYBRID, itemDef, PLAYER, STRIKES, type Carried, type CoreState, type Faith, type GuardKind, type Hand, type Strike,
+  HYBRID, itemDef, PLAYER, STRIKES, type Carried, type CoreState, type Faith, type Grip, type Hand, type Strike,
 } from "@infinite-tower/shared";
 import { LABEL } from "../../components/styles.js";
 import { combatNumbers, type CombatNumbers, type GuardNumbers, type HeldNumbers } from "./combatNumbers.js";
@@ -14,20 +14,22 @@ const amount = (n: number) => String(Math.round(n * 10) / 10);
 
 const HAND_NAME: Record<Hand, string> = { rightHand: "Right hand", leftHand: "Left hand" };
 const STRIKE_NAME: Record<Strike, string> = { light: "Light", heavy: "Heavy", stab: "Stab" };
-const GUARD_NAME: Record<GuardKind, string> = { shield: "Shield", one: "One blade", dual: "Two blades" };
+const GUARD_NAME: Record<Grip, string> = {
+  shield: "Shield", one: "One blade", two: "One blade, both hands", dual: "Two blades",
+};
 const CELL = "py-px pl-3 text-right tabular-nums";
 
 function guardRows(guard: GuardNumbers | null): Row[] {
   if (!guard) return [["Guard", "None"]];
   const block = HYBRID.block;
   return [
-    ["Guard", GUARD_NAME[guard.kind]],
+    ["Guard", GUARD_NAME[guard.grip]],
     ["Covers", `${Math.round(guard.arcDeg)}°`],
     ["Raised in", seconds(guard.raiseTime)],
     ["Perfect block", seconds(guard.perfectTime)],
     ["Chip taken", percent(guard.chipFraction)],
     ["Chip at a wall", percent(guard.chipFraction * block.pinnedChipFactor)],
-    ["Block stamina", `damage ${times(guard.staminaFactor)}, heavy ×${block.heavyStaminaFactor}`],
+    ["Block stamina", `damage ${times(guard.blockStaminaShare)}, heavy ×${block.heavyStaminaFactor}`],
     ["Pushback", times(guard.pushFactor)],
     ["Holding", `${amount(block.holdStaminaPerSec)} stamina/s`],
     ["Guard broken", `${seconds(block.brokenTime)} stagger`],
@@ -76,9 +78,12 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
   const { strikes, draw } = held;
   return (
     <section data-hand={held.hand}>
-      <Heading>{HAND_NAME[held.hand]} · {itemDef(held.item).name}</Heading>
+      <Heading>
+        {HAND_NAME[held.hand]} · {itemDef(held.item).name}{held.grip === "two" && " · both hands"}
+      </Heading>
       <p className="text-bone/55">
-        Weight <span className="text-bone tabular-nums">{amount(held.weight)}</span>
+        Strength <span className="text-bone tabular-nums">{amount(held.appliedStrength)}</span>
+        {" · "}weight <span className="text-bone tabular-nums">{amount(held.weight)}</span>
         {" · "}heft <span className="text-bone tabular-nums">{held.heft.toFixed(2)}</span>
         , felt <span className="text-bone tabular-nums">{held.feltHeft.toFixed(2)}</span>
         {held.parryTime !== null && (
@@ -90,7 +95,7 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
           <thead className="text-bone/55">
             <tr>
               <th />
-              {["Wind-up", "Live", "Recovery", "Stamina"].map((name) => (
+              {["Wind-up", "Live", "Recovery", "Stamina", "Damage"].map((name) => (
                 <th key={name} className={`${CELL} font-normal`}>{name}</th>
               ))}
             </tr>
@@ -101,7 +106,8 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
               return (
                 <tr key={strike} data-strike={strike}>
                   <td className="py-px text-bone/55">{STRIKE_NAME[strike]}</td>
-                  {[seconds(s.windupTime), seconds(s.liveTime), seconds(s.recoverTime), amount(s.stamina)].map(
+                  {[seconds(s.windupTime), seconds(s.liveTime), seconds(s.recoverTime), amount(s.stamina),
+                    amount(s.damage)].map(
                     (value, i) => <td key={i} className={`${CELL} text-bone`}>{value}</td>,
                   )}
                 </tr>

@@ -163,3 +163,6 @@ export const GUARDS = {
   one: { minDot: HYBRID.block.minDot, chipFraction: HYBRID.block.chipFraction, staminaFactor: 1, pushFactor: 1 },
   dual: { minDot: HYBRID.block.minDot, chipFraction: 0.32, staminaFactor: 1.35, pushFactor: 1.2 },
 } as const satisfies Record<GuardKind, Record<"minDot" | "chipFraction" | "staminaFactor" | "pushFactor", number>>;
+
+export const blockStaminaShare = (guard: (typeof GUARDS)[GuardKind], strength: number): number =>
+  guard.staminaFactor * AVERAGE_STAT / strength;

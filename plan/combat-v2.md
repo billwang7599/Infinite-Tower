@@ -91,7 +91,7 @@ off-hand) stays put. Single vs twin weapon then falls out with no extra rules:
 - **Weapon + shield** (shield off-hand): the best guard (180°, 8% through, ×0.6 stamina), paid for by giving up the
   off-hand attack and the shield's swing-parry — it only blocks. Defensive.
 - **Two-hander:** one weapon, both hands, high weight and reach — the one-blade guard, but power and spacing. Slow and
-  dominant at range.
+  dominant at range. Built as decision 9 (below): any lone melee weapon is held in both hands, for 2× strength.
 
 ## Attacks
 
@@ -247,6 +247,15 @@ These override the spec above where they differ.
    feints or latency budgets (that's Phase 2). Q stays an instant tap.
 8. The sword is renamed the Basic Sword: the base, comparison weapon, weight 3.0 (felt 1.0 at base strength, 10),
    every other weapon measured against it. Its stored item id stays `sword`, so saves and inventories don't break.
+9. Two hands (after Phase 1): a melee weapon with the other hand empty is held in both, automatically ("the two handed
+   sword is just when only 1 sword is equipped, it auto sets that as two hands"), and the grip puts 2× the strength into
+   the weapon ("it increases strength applied to the weapon by 2x? that would mean 1 handed sword blocks is worse"),
+   through the same math as any strength, no table of its own: felt heft (so every time and cost), damage (√2), the
+   guard's raise and a parry's weight. A block's stamina goes × 10 / that strength for every guard, so a two-handed
+   block costs half and a stronger fighter blocks more cheaply; chip stays the guard's. Enemies alike, but the Kobolds
+   stay one-handed ("i want the kobalts to stay one handed"). With felt heft linear in 1 / strength, two hands halve
+   every weapon's, the Basic Sword's too (0.5 at strength 10, its lights at the 0.4 s floor); kept at 2× after that
+   rule, not retuned.
 
 ## Notes from building Phase 1
 

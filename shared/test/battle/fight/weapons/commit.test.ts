@@ -5,7 +5,7 @@ import {
   Wielder, windupTime, type EnemyDef, type PlayerInputData, type Vec2, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, STATS, STATUE, swings, SWORDSMAN } from "../fixtures.js";
+import { ARENA, enemy, input, player, STATS, STATUE, swings, SWORDSMAN, SWORDSMAN_STRENGTH } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -106,8 +106,9 @@ describe("a swing's hold on the body: a swordsman, by the same rules", () => {
       }
       assert.equal(swing.whiffed, true);
       const strike = strikeOf(swing.attack, swing.way);
-      const steps = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy", STATS.strength);
-      assert.equal(swing.endAt, steps.endAt + WHIFF_STEPS);
+      const steps = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy", SWORDSMAN_STRENGTH);
+      const whiff = toSteps(whiffRecoverTime * feltHeft(WEAPONS.sword, SWORDSMAN_STRENGTH));
+      assert.equal(swing.endAt, steps.endAt + whiff);
       for (let step = swing.liveUntil; step < swing.endAt; step++) {
         near(along(at(step).vel, swing.dir), whiffCarrySpeed, `overextended at ${step}`);
       }

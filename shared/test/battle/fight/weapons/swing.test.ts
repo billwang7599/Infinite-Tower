@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, ActiveHit, Health, physicalDamage, wayShape, WEAPONS, Wielder, type EnemyDef, type WeaponId,
+  FIXED_DT, ActiveHit, Health, physicalDamage, TWO_HAND_STRENGTH_FACTOR, wayShape, WEAPONS, Wielder, type EnemyDef,
+  type WeaponId,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, IDLE, player, SWORDSMAN } from "../fixtures.js";
+import { ARENA, enemy, IDLE, player, STATS, SWORDSMAN } from "../fixtures.js";
 
 const ARM = SWORDSMAN.wielder!.armReachM;
 
@@ -69,9 +70,32 @@ describe("an enemy wielding a weapon", () => {
 
   test("hits for its weapon's damage, at the wielder's strength", () => {
     for (const item of ["sword", "kobold-blade"] satisfies WeaponId[]) {
-      const { dealt } = firstHit(holding({ rightHand: item }));
+      const { dealt } = firstHit(holding({ rightHand: item, leftHand: "skillbook" }));
       assert.equal(dealt, physicalDamage(WEAPONS[item].damage, SWORDSMAN.stats), item);
     }
+  });
+
+  test("a lone blade in both hands hits √TWO_HAND_STRENGTH_FACTOR as hard", () => {
+    for (const item of ["sword", "kobold-blade"] satisfies WeaponId[]) {
+      const one = firstHit(holding({ rightHand: item, leftHand: "skillbook" })).dealt;
+      const two = firstHit(holding({ rightHand: item })).dealt;
+      assert.ok(Math.abs(two - one * Math.sqrt(TWO_HAND_STRENGTH_FACTOR)) < 1e-9, `${item}: ${one} then ${two}`);
+    }
+  });
+
+  test("a lone greatsword winds up sooner and recovers sooner held in both hands, as a player's does", () => {
+    const firstSwing = (leftHand?: "skillbook") => {
+      const def = { ...holding({ rightHand: "greatsword", ...(leftHand && { leftHand }) }), stats: STATS };
+      const fight = newFight(def), e = fight.enemies[0]!;
+      for (let i = 0; i < 3 / FIXED_DT; i++) {
+        fight.step([IDLE]);
+        const swing = fight.world.require(e, Wielder).swing;
+        if (swing) return swing;
+      }
+      return assert.fail("never swung");
+    };
+    const one = firstSwing("skillbook"), two = firstSwing();
+    assert.ok(two.liveAt < one.liveAt && two.endAt - two.liveUntil < one.endAt - one.liveUntil, `${two.liveAt}`);
   });
 
   test("reaches as far as its own arm plus the blade", () => {

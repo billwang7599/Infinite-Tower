@@ -249,7 +249,7 @@ describe("a kobold raises its guard while its block is up", () => {
       const { frames, upAt } = run(kobold, STUN_AT), unguarded = run(kobold, STUN_AT, false).frames;
       const shiftTime = guardShiftTime(WEAPONS[kobold.weapon], BASE_STATS.strength);
       const at = (time: number) => handAtTime(frames, time), share = shareFrom(handAtTime(unguarded, upAt));
-      assert.ok(upAt > BLOCK_REACT_TIME && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
+      assert.ok(upAt > BLOCK_REACT_TIME - FIXED_DT && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
       assert.ok(Vector3.Distance(at(upAt), handAtTime(unguarded, upAt)) < 0.01, "on guard until its block is up");
       assert.ok(share(at(upAt + shiftTime / 4)) < 0.4, `${share(at(upAt + shiftTime / 4))}: eased in, not snapped`);
       assert.ok(Vector3.Distance(at(upAt + shiftTime + 0.2), raised) < 0.01, "held where a block holds it");

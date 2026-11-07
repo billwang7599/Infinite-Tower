@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, feltHeft, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage,
-  physicalDamage, Player, Stamina, strikeCost, toSteps, wayStepsAfter, WEAPONS, Wielder, type ChainKind, type Hand,
-  type ItemId, type PlayerInputData, type Strike, type SwingDir, type Weapon,
+  physicalDamage, Player, Stamina, strikeCost, toSteps, TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, Wielder,
+  windupTime, type ChainKind, type Hand, type ItemId, type PlayerInputData, type Strike, type SwingDir, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -160,6 +160,55 @@ describe("the sword's attacks", () => {
       assert.ok(Math.abs(spent - strikeCost(WEAPONS.greatsword, "light", strength)) < 1e-9, `${strength}`);
     }
     assert.ok(strong.liveAt < average.liveAt);
+  });
+});
+
+describe("a lone blade is held in both hands, its strength counting TWO_HAND_STRENGTH_FACTOR times", () => {
+  function swingWith(rightHand: ItemId, leftHand: ItemId | null, strike: Strike = "light") {
+    const fight = new Fight({
+      arena: { ...ARENA, radius: 40 },
+      players: [player({ x: 0, y: 0.05, z: 0 }, {
+        vitals: { hp: 100, stamina: 1000 }, stats: { ...STATS, stamina: 1000 },
+        gear: {
+          bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand, leftHand },
+        },
+      })],
+      enemies: [enemy({ ...STATUE, maxHp: 100_000 }, { x: 0, y: 0.05, z: NEAR })],
+    });
+    const me = fight.players[0]!, stamina = fight.world.require(me, Stamina), before = stamina.value;
+    fight.step([input({ locked: 0, way: "tb", attack: strike })]);
+    const spent = before - stamina.value, swing = fight.world.require(me, Wielder).swing!;
+    return { spent, liveAt: swing.liveAt, endAt: swing.endAt, damage: swing.damage };
+  }
+
+  test("every melee blade, the Basic Sword and the Old Stick too, swings and costs as at twice the strength", () => {
+    const twice = STATS.strength * TWO_HAND_STRENGTH_FACTOR;
+    for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
+      for (const strike of ["light", "heavy", "stab"] as const) {
+        const weapon = WEAPONS[item], what = `${item} ${strike}`;
+        const one = swingWith(item, "skillbook", strike), two = swingWith(item, null, strike);
+        const steps = (strength: number) =>
+          wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy", strength);
+        assert.deepEqual([two.liveAt, two.endAt], [steps(twice).liveAt, steps(twice).endAt], what);
+        assert.deepEqual([one.liveAt, one.endAt], [steps(STATS.strength).liveAt, steps(STATS.strength).endAt], what);
+        assert.ok(two.liveAt <= one.liveAt && two.endAt < one.endAt && two.spent < one.spent, what);
+        assert.ok(Math.abs(two.spent - strikeCost(weapon, strike, twice)) < 1e-9, `${what}: ${two.spent}`);
+        assert.ok(Math.abs(one.spent - strikeCost(weapon, strike, STATS.strength)) < 1e-9, `${what}: ${one.spent}`);
+      }
+    }
+  });
+
+  test("the Basic Sword feels as at twice the strength, and hits √TWO_HAND_STRENGTH_FACTOR as hard", () => {
+    const one = swingWith("sword", "skillbook"), two = swingWith("sword", null);
+    assert.ok(feltHeft(SWORD, STATS.strength * TWO_HAND_STRENGTH_FACTOR) < feltHeft(SWORD, STATS.strength));
+    assert.ok(Math.abs(two.damage - one.damage * Math.sqrt(TWO_HAND_STRENGTH_FACTOR)) < 1e-9);
+    assert.ok(Math.abs(one.damage - physicalDamage(SWORD.damage, STATS)) < 1e-9);
+  });
+
+  test("anything in the other hand, a second blade too, keeps it one-handed", () => {
+    const book = swingWith("greatsword", "skillbook"), blade = swingWith("greatsword", "sword");
+    assert.equal(blade.liveAt, book.liveAt);
+    assert.equal(blade.damage, book.damage);
   });
 });
 

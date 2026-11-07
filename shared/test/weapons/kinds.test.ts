@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, gripOf, guardOf, ITEM_IDS, itemDef,
-  ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS,
-  WEAPONS, wayShape, wayStepsAfter, type ItemId, type Weapon,
+  addItem, appliedStrength, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, gripOf, guardOf,
+  ITEM_IDS, itemDef, ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage,
+  rangedOf, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, WEAPONS, wayShape, wayStepsAfter, type ItemId, type Weapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
@@ -50,6 +50,29 @@ describe("weapon kinds", () => {
       assert.equal(guardOf(hands)!.kind, "one", rightHand);
     }
     assert.equal(gripOf({ rightHand: "kobold-blade", leftHand: "wooden-shield", oneHanded: true }), "shield");
+  });
+
+  test("a two-handed grip puts TWO_HAND_STRENGTH_FACTOR times the wielder's strength into the weapon", () => {
+    const applied = (rightHand: ItemId | null, leftHand: ItemId | null) =>
+      appliedStrength({ rightHand, leftHand, active: "rightHand" }, BASE_STATS.strength);
+    assert.ok(TWO_HAND_STRENGTH_FACTOR > 1);
+    assert.equal(applied("greatsword", null), BASE_STATS.strength * TWO_HAND_STRENGTH_FACTOR);
+    for (const [right, left] of [["greatsword", "skillbook"], ["sword", "kobold-blade"], ["sword", "wooden-shield"],
+      ["training-bow", null], [null, null]] as const) {
+      assert.equal(applied(right, left), BASE_STATS.strength, `${right} and ${left}`);
+    }
+    const oneHanded = { rightHand: "kobold-blade", leftHand: null, oneHanded: true } as const;
+    assert.equal(appliedStrength(oneHanded, BASE_STATS.strength), BASE_STATS.strength, "a one-handed wielder's");
+  });
+
+  test("two-handed, a weapon feels as at TWO_HAND_STRENGTH_FACTOR times the strength: every blade lighter", () => {
+    const felt = (item: "old-stick" | "sword" | "longsword" | "greatsword", leftHand: ItemId | null) =>
+      feltHeft(WEAPONS[item], appliedStrength({ rightHand: item, leftHand }, BASE_STATS.strength));
+    for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
+      assert.equal(felt(item, null), feltHeft(WEAPONS[item], BASE_STATS.strength * TWO_HAND_STRENGTH_FACTOR), item);
+      assert.equal(felt(item, "skillbook"), feltHeft(WEAPONS[item], BASE_STATS.strength), item);
+      assert.ok(felt(item, null) < felt(item, "skillbook"), item);
+    }
   });
 
   test("the guard is the grip's: a blade in both hands guards as one blade", () => {

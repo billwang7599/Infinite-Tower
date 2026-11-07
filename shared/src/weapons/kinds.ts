@@ -52,6 +52,11 @@ export function gripOf(hands: Hands): Grip | null {
   return meleeIn(hands) && !hands.oneHanded && !hands[hand === "rightHand" ? "leftHand" : "rightHand"] ? "two" : "one";
 }
 
+export const TWO_HAND_STRENGTH_FACTOR = 2;
+
+export const appliedStrength = (hands: Hands, strength: number): number =>
+  gripOf(hands) === "two" ? strength * TWO_HAND_STRENGTH_FACTOR : strength;
+
 export function guardOf(hands: Hands): { kind: GuardKind; guard: Guard } | null {
   const grip = gripOf(hands), guard = shieldIn(hands) ?? weaponIn(hands);
   return grip && guard && { kind: grip === "two" ? "one" : grip, guard };

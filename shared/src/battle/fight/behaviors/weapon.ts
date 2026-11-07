@@ -11,7 +11,7 @@ import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type Weap
 import { FighterStats, type Stats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { canSwing, carrySpeed, committed, feint as feintSwing, steer } from "../weapons/commit.js";
-import { startWaySwing } from "../weapons/swing.js";
+import { startWaySwing, strengthIn } from "../weapons/swing.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
 
@@ -57,7 +57,7 @@ function parry(
   const liveIn = theirs.liveAt - PARRY_LEAD_STEPS;
   if (!isSwing(theirs.way) || liveIn < toSteps(CHAIN.minWindupTime)) return false;
   attack.swingsLeft = 0;
-  const heft = feltHeft(weapon, world.require(e, FighterStats).strength);
+  const heft = feltHeft(weapon, strengthIn(world, e));
   windUp(world, e, enemy, attack, weapon, false, { way: parryWay(theirs.way), windupTime: liveIn * FIXED_DT / heft });
   return true;
 }
