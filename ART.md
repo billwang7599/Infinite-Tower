@@ -245,7 +245,10 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 - **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld; in the arena, simple 3D models for
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
   pose to pose (`visuals/battle/person/`), no drawing needed. The arena is drawn small and blown up into outlined
-  pixel art. In dev, `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render).
+  pixel art, its edges anti-aliased at the small size (the user: "also enable anti aliasing"; 4x MSAA, so a
+  silhouette's steps get in-between pixels and textures keep theirs). What reads as HUD (your aim ring, the lock-on
+  diamond, other fighters' chant words) is drawn sharp over it. In dev, `?pixel=1&outline=0&player3d=0` brings back
+  the old look (sprite player, smooth render), and `&aa=0` turns the anti-aliasing off.
   The people are built like this:
   - **One rig for everyone**: `SKELETON` (`skeleton.ts`) is a plain table of joints with Blender's names (`hips`,
     `spine`, `chest`, `neck`, `head`, `upper_arm.L`, `forearm.R`, `hand.L`, `thigh.R`, `shin.L`, `foot.R`...), each

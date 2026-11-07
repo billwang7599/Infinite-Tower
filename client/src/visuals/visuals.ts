@@ -14,6 +14,7 @@ import {
 import { arenaStage } from "./battle/battle.js";
 import { clash, guardBroken, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
+import { arenaOverlay } from "./battle/overlay.js";
 import { pixelScale } from "./battle/pixel.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
@@ -127,12 +128,13 @@ export interface Drawing {
   setDayClock(change: DayChange): void;
 }
 
-export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Drawing {
+export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement, from: DrawnState): Drawing {
   const engine = new Engine(canvas, true);
   window.addEventListener("resize", () => engine.resize());
   const arena = createBattleScene(engine, from.battle);
   const overworld = createOverworldScene(engine, from.overworld);
   const stage = arenaStage(arena);
+  const overlay = arenaOverlay(arena, overlayCanvas);
   const land = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
@@ -216,7 +218,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
           ?.(arena, event, world);
       }
       drawEntities(VISUALS, arena, world, fighters, kinds, dt);
-      stage.frame(world, dt);
+      stage.frame(dt);
       arena.skills.tick(dt);
     }
     land.warm();
@@ -248,6 +250,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
       paintPlayer();
       if (shown === "battle") drawArena(dt);
       else if (shown === "overworld") drawOverworld(dt);
+      overlay.frame(shown === "battle" ? from.battle.fight?.world ?? null : null, dt);
       engine.endFrame();
     },
   };

@@ -10,6 +10,7 @@ export interface PixelFlags {
   player3d: boolean;
   /** The 3D player's pose changes only this many times a second, as a drawn animation's frames. */
   steps: number | null;
+  aa: boolean;
 }
 
 // 2 × 8 m (the camera to the player, measured) × tan(fov / 2) × 64 texels / 1.8 m: a sprite texel per low-res line.
@@ -26,6 +27,7 @@ export function pixelFlags(search: string): PixelFlags {
     palette: palette === null ? null : palette === "bands" ? "bands" : "ramps",
     player3d: params.get("player3d") !== "0",
     steps: steps >= 1 ? steps : null,
+    aa: params.get("aa") !== "0",
   };
 }
 

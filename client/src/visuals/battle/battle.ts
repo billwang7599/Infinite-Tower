@@ -1,16 +1,11 @@
-import {
-  Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3, type ParticleSystem,
-} from "@babylonjs/core";
+import { Mesh, MeshBuilder, TransformNode, Vector3, type ParticleSystem } from "@babylonjs/core";
 import {
   Body, clamp, dampFactor, Enemy, Health, Player, REACTIONS, Skilled, Statuses, type Entity,
   type Reaction, type Theme, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
-import { LocalPlayer } from "../../modes/components.js";
 import { showArena } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
-import { aimRing } from "./aimRing.js";
-import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
 import { impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
@@ -22,8 +17,6 @@ const CORRECTION_EASE_RATE = 15;
 /** Shake decays by e every 1/9 s; below the cutoff it stops. */
 const SHAKE_DECAY_PER_SEC = 9;
 const SHAKE_CUTOFF = 0.005;
-const MARKER_GAP_M = 0.5;
-const MARKER_SPIN_RAD_PER_SEC = 2.5;
 const PILE_SIZE_M = 1.3;
 /** A pile's floor is looked for from this high up. */
 const FLOOR_PROBE_M = 5;
@@ -43,8 +36,6 @@ interface Fighter<S> {
   /** The reaction cooldowns last frame: one jumping is a reaction going off. */
   cooldowns: Record<Reaction, number> | null;
   chant: ChantCircle | null;
-  /** Only over other chanters: your own chant is the big popup. */
-  words: ChantWords | null;
   /** Seconds since it died (an enemy) or left the arena (a player); 0 while it hasn't. */
   goneTime: number;
   faded: boolean;
@@ -64,8 +55,7 @@ export function fighter<S>(name: string, own: {
       node.position.set(at.x, at.y, at.z);
       ctx.nodes.set(e, node);
       return {
-        ctx, e, node, offset: { x: 0, y: 0, z: 0 }, cooldowns: null, chant: null, words: null, goneTime: 0, faded: false,
-        ash: null,
+        ctx, e, node, offset: { x: 0, y: 0, z: 0 }, cooldowns: null, chant: null, goneTime: 0, faded: false, ash: null,
         drawing: own.spawn(ctx, world, e, node),
       };
     },
@@ -96,7 +86,6 @@ export function fighter<S>(name: string, own: {
       vanish(f, gone, dissolving ? world.require(e, Enemy).def.radius : null);
       const skilled = world.require(e, Skilled);
       f.chant = drawChantCircle(f.ctx.skills, f.chant, skilled, body, f.node);
-      if (!world.has(e, LocalPlayer)) f.words = drawChantWords(f.ctx.scene, f.words, skilled, f.node);
       const statuses = world.get(e, Statuses);
       if (!statuses) return;
       if (f.cooldowns) {
@@ -110,7 +99,6 @@ export function fighter<S>(name: string, own: {
       if (f.ash) f.ctx.skills.particles.release(f.ash);
       own.dispose(f.drawing);
       dropChantCircle(f.ctx.skills, f.chant);
-      dropChantWords(f.words);
       f.node.dispose();
       f.ctx.nodes.delete(f.e);
       f.ctx.impacts.delete(f.e);
@@ -141,18 +129,10 @@ function easeCorrection(offset: Vec3, moved: Vec3): void {
 
 export function arenaStage(ctx: ArenaScene): {
   newFight(fight: Fight, theme: Theme): void;
-  frame(world: World, dt: number): void;
+  frame(dt: number): void;
 } {
   const lookAt = new Vector3();
   let arena: { id: string; theme: Theme; root: TransformNode } | null = null;
-  const marker = MeshBuilder.CreatePolyhedron("lock-marker", { type: 1, size: 0.12 }, ctx.scene);
-  marker.scaling.y = 1.8;
-  const material = new StandardMaterial("lock-marker", ctx.scene);
-  material.disableLighting = true;
-  material.emissiveColor = new Color3(1.3, 0.35, 0.25);
-  marker.material = material;
-  marker.isPickable = false;
-  const ring = aimRing(ctx);
   const piles = new Map<number, Mesh>();
 
   const drawPiles = () => {
@@ -185,7 +165,7 @@ export function arenaStage(ctx: ArenaScene): {
       ctx.shake = 0;
       ctx.impacts.clear();
     },
-    frame(world, dt) {
+    frame(dt) {
       ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
       const s = ctx.shake > SHAKE_CUTOFF ? ctx.shake : 0;
       const { eye, at } = ctx.battle.view;
@@ -196,14 +176,6 @@ export function arenaStage(ctx: ArenaScene): {
       ctx.camera.fov = ctx.battle.view.fovRad;
       ctx.sky.frame(Date.now(), ctx.camera.position);
       drawPiles();
-      ring.frame(world);
-
-      const lock = ctx.battle.lock;
-      const body = lock === null ? undefined : world.get(lock, Body);
-      marker.setEnabled(body !== undefined);
-      if (!body) return;
-      marker.position.set(body.pos.x, body.pos.y + 2 * body.centerHeight + MARKER_GAP_M, body.pos.z);
-      marker.rotation.y += MARKER_SPIN_RAD_PER_SEC * dt;
     },
   };
 }

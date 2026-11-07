@@ -23,7 +23,8 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
   const overworld = createOverworld({
     world: new World(), actions, hud: ui.overworld, you: ui.you, camera: settings.camera,
   });
-  const drawing = createDrawing(document.getElementById("game") as HTMLCanvasElement, {
+  const canvas = (id: string) => document.getElementById(id) as HTMLCanvasElement;
+  const drawing = createDrawing(canvas("game"), canvas("overlay"), {
     look: () => ui.you.get().character?.look ?? null,
     battle: battle.ctx,
     overworld: overworld.state,
