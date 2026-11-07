@@ -290,10 +290,12 @@ Decided by the user:
   has three views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"):
   over your left shoulder (5.5 m back), For Honor style, so the target's swings aren't hidden behind your own body,
   close (3 m) and first person (your head and body hidden, your arms, hands and what they hold shown with their
-  swings, block, bow draw and chant; the trail and aim ring too). Every fight starts in first person for now (the user: "for now make
-  first person the default view"). The scroll wheel zooms between them, locked or not (the user: "mouse
-  scroll should also be able to zoom in and out (capped at some point). main mode of playing now will be keyboard +
-  mouse"): a notch takes the camera 1.2 times as far out or in (`ZOOM_PER_NOTCH`), from close out to 8 m
+  swings, block, bow draw and chant; the trail and aim ring too). Every fight starts in first person for now (the
+  user: "for now make first person the default view"), and it's the main battle view (the user: "we should optimize
+  for first person view"): the wall pulls its eye in as far as your head, so it never leaves the arena and the
+  crosshair's spot holds with your back to the wall. The scroll wheel zooms between them, locked or not (the user:
+  "mouse scroll should also be able to zoom in and out (capped at some point). main mode of playing now will be
+  keyboard + mouse"): a notch takes the camera 1.2 times as far out or in (`ZOOM_PER_NOTCH`), from close out to 8 m
   (`ZOOM.maxM`), the shoulder view's framing at any distance; zooming in stops at close, and a notch more is first
   person (one out of it, close again). V (`cycleView`, rebindable) steps in to the next of shoulder, close and first
   person, then round to the shoulder, and the zoom with it. Panned, only its direction is free. A dodge sends it

@@ -1722,7 +1722,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          close it's the fp view, else the shoulder view at that
                          distance; freed (ctx.freeCamera) only its direction is free, turned by the held arrows, a
                          drag or the mouse while you aim, its tilt
-                         capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in;
+                         capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in
+                         (the wall no nearer than MIN_DISTANCE, but in first person right in, so its eye stays inside);
                          every change eases, the field of view and the tilt's caps too. insideSelf hides
                          your body but its arms in first person. Dev-only flags try others in place of the shoulder
                          view (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,

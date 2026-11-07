@@ -24,7 +24,7 @@ const INSIDE_SELF_M = 1.2;
 const EYE_HEIGHT_M = 0.5;
 
 export interface CameraTuning {
-  /** Behind the player, unless the arena's edge pulls it in (never closer than MIN_DISTANCE). */
+  /** Behind the player, unless the arena's edge pulls it in (never closer than MIN_DISTANCE but in first person). */
   distanceM: number;
   /** Above the player's center: where the camera orbits from, and where it looks. */
   orbitHeightM: number;
@@ -186,9 +186,8 @@ export function arenaCamera(
     const reach = fight.arena.radius - WALL_MARGIN, flat = Math.hypot(back.x, back.z);
     const b = flat > 0 ? -(ox * back.x + oz * back.z) / flat : 0;
     const maxFlat = b + Math.sqrt(Math.max(0, b * b - (ox * ox + oz * oz) + reach * reach));
-    const wallDist = clamp(
-      maxFlat / Math.max(0.05, flat), Math.min(MIN_DISTANCE, tuning.distanceM), tuning.distanceM,
-    );
+    const nearestM = Math.min(MIN_DISTANCE, tuning.distanceM - views.fp.distanceM);
+    const wallDist = clamp(maxFlat / Math.max(0.05, flat), nearestM, tuning.distanceM);
     const dist = floorReach(oy, back.y, focus.y - row[2].centerHeight, wallDist, FLOOR_MARGIN_M);
     Object.assign(view.eye, { x: ox + back.x * dist, y: oy + back.y * dist, z: oz + back.z * dist });
     const ahead = tuning.lookAheadM;
