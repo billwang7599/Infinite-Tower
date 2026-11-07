@@ -1,8 +1,9 @@
 import {
-  Color3, Matrix, Mesh, MeshBuilder, Quaternion, StandardMaterial, TransformNode, Vector3, type Material, type Scene,
+  Color3, Material, Matrix, Mesh, MeshBuilder, Quaternion, StandardMaterial, Texture, TransformNode, Vector3, type Scene,
 } from "@babylonjs/core";
 import type { ArenaScene } from "../battle/scene.js";
-import { colorMaterial } from "../materials.js";
+import type { Pen } from "../overworld/props.js";
+import { pixelCanvas } from "../sprites.js";
 import { blotTexture, speckleTexture, type SpeckleOptions } from "../textures.js";
 
 const GROUND_SIZE_M = 120;
@@ -95,22 +96,61 @@ export function hazed(color: Color3, sky: Color3, share: number): { diffuse: Col
   return { diffuse: c.scale(1 - share), emissive: c.scale(share) };
 }
 
+export interface FarSprite { widthPx: number; heightPx: number; heightM: number; draw(pen: Pen): void }
+
+export function litRound(pen: Pen, cx: number, y: number, half: number, rim = false): void {
+  const w = Math.max(1, Math.round(2 * half)), from = Math.round(cx - half);
+  if (rim) return pen.rect(from, y, w, 1, "#808080");
+  pen.rect(from, y, w, 1, "#ffffff");
+  pen.rect(from + Math.round(w / 3), y, w - Math.round(w / 3), 1, "#cccccc");
+  pen.rect(from + Math.round(2 * w / 3), y, w - Math.round(2 * w / 3), 1, "#999999");
+}
+
 export function hazedRings(
-  ctx: ArenaScene, root: TransformNode, own: <M extends Material>(m: M) => M, tpl: Mesh, y: number,
+  ctx: ArenaScene, root: TransformNode, own: <M extends Material>(m: M) => M, name: string, sprite: FarSprite,
   look: { color: Color3; sky: Color3 }, spots: { rand: () => number; count: number; near: number; far: number },
-): void {
-  const band = (spots.far - spots.near) / HAZE_SHARES.length;
-  HAZE_SHARES.forEach((share, i) => {
-    const layer = i === 0 ? tpl : tpl.clone(`${tpl.name}-${i}`);
+): Mesh[] {
+  const art = pixelCanvas(ctx.scene, name, sprite.widthPx, sprite.heightPx, (pen) => sprite.draw(pen));
+  // Smooth: the post's blocks make the pixels, and the sprite's own would step its edges twice.
+  art.updateSamplingMode(Texture.BILINEAR_SAMPLINGMODE);
+  const widthM = sprite.heightM * sprite.widthPx / sprite.heightPx, band = (spots.far - spots.near) / HAZE_SHARES.length;
+  return HAZE_SHARES.map((share, i) => {
+    const card = MeshBuilder.CreatePlane(`${name}-${i}`, { width: widthM, height: sprite.heightM }, ctx.scene);
+    card.bakeTransformIntoVertices(Matrix.Translation(0, sprite.heightM / 2, 0));
+    const m = own(new StandardMaterial(`${name}-${i}`, ctx.scene));
     const { diffuse, emissive } = hazed(look.color, look.sky, share);
-    const m = own(colorMaterial(ctx.scene, `${tpl.name}-${i}`, diffuse));
+    m.diffuseColor = diffuse;
     m.emissiveColor = emissive;
-    layer.material = m;
+    m.diffuseTexture = m.emissiveTexture = art;
+    m.specularColor = Color3.Black();
+    m.useAlphaFromDiffuseTexture = true;
+    m.transparencyMode = Material.MATERIAL_ALPHATEST;
+    card.material = m;
     const near = spots.near + band * i, grow = 1 + 0.25 * i;
-    scatter(ctx, root, [[layer, y]],
-      ringSpots(spots.rand, Math.round(spots.count / HAZE_SHARES.length), near, near + band, 0.8 * grow, 1.4 * grow),
-      false);
+    faceCamera(ctx, root, card,
+      ringSpots(spots.rand, Math.round(spots.count / HAZE_SHARES.length), near, near + band, 0.8 * grow, 1.4 * grow));
+    return card;
   });
+}
+
+function faceCamera(ctx: ArenaScene, root: TransformNode, card: Mesh, spots: Spot[]): void {
+  card.parent = root;
+  card.thinInstanceSetBuffer("matrix", new Float32Array(16 * spots.length), 16, false);
+  const placed = spots.map(() => new Matrix());
+  const face = (eye: Vector3) => {
+    spots.forEach(({ x, z, scale }, i) => {
+      // The card's front faces -z, so its +z points away from the eye.
+      Quaternion.RotationYawPitchRollToRef(Math.atan2(x - eye.x, z - eye.z), 0, 0, TURN);
+      card.thinInstanceSetMatrixAt(i, Matrix.ComposeToRef(SCALE.setAll(scale), TURN, AT.set(x, 0, z), placed[i]!), false);
+    });
+    card.thinInstanceBufferUpdated("matrix");
+  };
+  face(Vector3.Zero());
+  card.thinInstanceRefreshBoundingInfo();
+  const turning = ctx.scene.onBeforeRenderObservable.add(() => {
+    if (ctx.scene.activeCamera) face(ctx.scene.activeCamera.position);
+  });
+  root.onDisposeObservable.addOnce(() => ctx.scene.onBeforeRenderObservable.remove(turning));
 }
 
 export function tuft(scene: Scene, name: string, heightM: number, blades = 5): Mesh {

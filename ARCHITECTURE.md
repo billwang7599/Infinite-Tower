@@ -1786,12 +1786,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          &palette[=bands], &aa=0 for no anti-aliasing): pixelFlags, pixelScale (the nearest pixels'
                          size), renderScale (the engine's hardware scaling in a fight: full size, or that small with
                          fixed); pixelBands (the depths where the pixels shrink, so a model keeps about its pixel
-                         count; tested); the outline, drawn into the scene over the opaque meshes before particles and
-                         see-through ones (drawOverOpaque), keepSharp (the blade: drawn after it, in its depth) and
-                         drawOnTop (the trail and glint: after it, over everything, out of its depth); the pixelate
-                         pass (a block's size by the depth at its centre, its colour averaged), after the sun's rays,
-                         and the palette pass; also the 3D person's flags (&player3d=0 for the sprite,
-                         &steps=<fps>). scene.ts anti-aliases it with 4x MSAA (FXAA would smear the textures' pixels)
+                         count, down to their floor, PIXEL_DEPTH.minPx; tested); the outline, drawn into the scene
+                         over the opaque meshes before particles and see-through ones (drawOverOpaque), keepSharp
+                         (the blade: drawn after it, in its depth) and drawOnTop (the trail and glint: after it, over
+                         everything, out of its depth); the pixelate
+                         pass (a block's size by the depth at its centre, fading from one size to the next across a
+                         band's edge, its colour averaged), after the sun's rays, and the palette pass; also the 3D
+                         person's flags (&player3d=0 for the sprite, &steps=<fps>). scene.ts anti-aliases it with
+                         4x MSAA (FXAA would smear the textures' pixels)
         person/          The arena's people as 3D models (sprite only with &player3d=0), built in code from the look:
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
                          offsets in metres, shoulders and hips widened per body type; attach joints grip.R / grip.L,
@@ -2006,13 +2008,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          the looks share: lookRoot, speckled, floor, scatter (a template's copies as thin
                          instances, one mesh), ringSpots, settle; patches, flat
                          blotches varying the ground, soft-edged by textures.ts' blotTexture; hazedRings, far
-                         props in rings hazier with distance, HAZE_SHARES; tuft, a clump of blades; boulder; tested)
+                         silhouettes as sprite cards (FarSprite, drawn in litRound's tones) turned to the camera
+                         every frame, in rings hazier with distance, HAZE_SHARES; tuft, a clump of blades; boulder;
+                         tested)
         forest-clearing/ the boar's and tall grass's: moss, a dirt floor with leaf litter, standing stones, pines and
-                         oaks before a far treeline, ferns, logs, boulders, grass tufts, mushrooms
+                         oaks before a far treeline of pine sprites, ferns, logs, boulders, grass tufts, mushrooms
         stone-ruins/     the Kobolds': flagstones with moss, broken columns and walls, two arches, far ruins and
-                         broken towers, cypresses in two layers, rubble, grass tufts
+                         broken towers, cypresses before far cypress sprites, rubble, grass tufts
         mire/            the Goblin Warlock's: peat with moss, stumps, glowing mushrooms, pools with lily pads,
-                         reeds, cattails, logs, stones, dead trees before a far line of taller ones
+                         reeds, cattails, logs, stones, dead trees before a far line of taller snag sprites
         quarry/          the Old Quarry's: pale cut slabs with chips, stacked blocks, terraced faces, a crane, a cart
                          on rails, rubble, dry scrub, barrels, two lanterns, drifting dust
 
@@ -2264,14 +2268,14 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL`, `ENEMY_SHADE_TINT` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
 | The 3D person's stride (how far a foot lands ahead, time down, lift, bob; the run's strides a second) and its landing | `STRIDE` (`STRIDE.run`) in `client/src/visuals/battle/person/motion.ts`; `LANDING` in `person/pose.ts` |
-| How hazy each ring of an arena's far props is | `HAZE_SHARES` in `client/src/visuals/arenas/parts.ts` |
+| How hazy each ring of an arena's far props is; what each far sprite looks like | `HAZE_SHARES` in `client/src/visuals/arenas/parts.ts`; the `FarSprite` atop each look's file |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height (the sky overhead, the sun's glow, a low sun's brightness), fades | top of `client/src/visuals/sky/daylight.ts` |
 | Map-light shadows, sprite tint, sun and moon discs, the shadow side's fill light | top of `client/src/visuals/sky/sky.ts` (`FILL`) |
 | The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts` (the haze too), `RAYS` in `client/src/visuals/sky/rays.ts`; `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
-| The arena's pixels: their size, how far they stay full size, the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
+| The arena's pixels: their size, how far they stay full size, the smallest they get, how deep a size fades into the next; the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
 | Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |

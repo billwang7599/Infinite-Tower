@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Color3, InstancedMesh, MeshBuilder, NullEngine, Scene, TransformNode, type Mesh } from "@babylonjs/core";
-import { ARENA_LOOK_IDS } from "@infinite-tower/shared";
+import {
+  Color3, InstancedMesh, MeshBuilder, NullEngine, Scene, TransformNode, UniversalCamera, Vector3, VertexBuffer, type Mesh,
+} from "@babylonjs/core";
+import { ARENA_LOOK_IDS, seededRandom } from "@infinite-tower/shared";
 import { ARENA_LOOKS } from "../../../src/visuals/arenas/index.js";
-import { HAZE_SHARES, hazed, scatter } from "../../../src/visuals/arenas/parts.js";
+import { HAZE_SHARES, hazed, hazedRings, scatter } from "../../../src/visuals/arenas/parts.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 import { createSky } from "../../../src/visuals/sky/sky.js";
 import { stubCanvas } from "../../fixtures/canvas.js";
@@ -26,6 +28,54 @@ describe("far props in haze", () => {
     }
     const lit = rings[0]!.diffuse.add(rings[0]!.emissive);
     assert.ok(Math.abs(lit.g - (pine.g + (sky.g - pine.g) * HAZE_SHARES[0])) < 1e-6, "fully lit, its hazed colour");
+  });
+});
+
+describe("far silhouettes", () => {
+  const sprite = { widthPx: 10, heightPx: 40, heightM: 8, draw: () => {} };
+  const look = { color: new Color3(0.1, 0.19, 0.15), sky: new Color3(0.33, 0.29, 0.31) };
+  const build = () => {
+    const ctx = arenaScene(), root = new TransformNode("root", ctx.scene);
+    const camera = new UniversalCamera("camera", new Vector3(3, 2, -5), ctx.scene);
+    const spots = { rand: seededRandom(3), count: 30, near: 46, far: 66 };
+    return { ctx, camera, spots, rings: hazedRings(ctx, root, (m) => m, "far", sprite, look, spots) };
+  };
+
+  test("are flat cards as tall as their sprite says, standing on their bottom edge", () => {
+    const { ctx, rings } = build();
+    assert.equal(rings.length, HAZE_SHARES.length);
+    for (const ring of rings) {
+      const ys = ring.getVerticesData(VertexBuffer.PositionKind)!.filter((_, i) => i % 3 === 1);
+      const xs = ring.getVerticesData(VertexBuffer.PositionKind)!.filter((_, i) => i % 3 === 0);
+      assert.ok(Math.abs(Math.min(...ys)) < 1e-6 && Math.abs(Math.max(...ys) - sprite.heightM) < 1e-6, ring.name);
+      const widthM = sprite.heightM * sprite.widthPx / sprite.heightPx;
+      assert.ok(Math.abs(Math.max(...xs) - Math.min(...xs) - widthM) < 1e-6, ring.name);
+    }
+    ctx.scene.dispose();
+  });
+
+  test("stand on the ground in their rings and turn to face the camera every frame, upright", () => {
+    const { ctx, camera, spots, rings } = build();
+    const facing = () => {
+      for (const ring of rings) {
+        const normal = Vector3.FromArray(ring.getVerticesData(VertexBuffer.NormalKind)!);
+        const placed = ring.thinInstanceGetWorldMatrices();
+        assert.equal(new Set(placed.map((m) => `${m.getTranslation()}`)).size, placed.length, "each at its own spot");
+        for (const m of placed) {
+          const at = m.getTranslation(), r = Math.hypot(at.x, at.z);
+          assert.ok(Math.abs(at.y) < 1e-6 && r >= spots.near - 1e-6 && r <= spots.far + 1e-6, `${at}`);
+          const out = Vector3.TransformNormal(normal, m).normalize(), toEye = camera.position.subtract(at);
+          toEye.y = 0;
+          assert.ok(Math.abs(out.y) < 1e-6 && Vector3.Dot(out, toEye.normalize()) > 1 - 1e-6, `${out} ${toEye}`);
+        }
+      }
+    };
+    ctx.scene.render();
+    facing();
+    camera.position.set(-12, 3, 9);
+    ctx.scene.render();
+    facing();
+    ctx.scene.dispose();
   });
 });
 

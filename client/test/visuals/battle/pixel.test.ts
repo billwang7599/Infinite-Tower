@@ -70,25 +70,30 @@ describe("pixels sized by depth", () => {
   const sizeAt = (depthM: number, limits: number[]) => base - limits.filter((l) => depthM > l).length;
   const heightPx = (depthM: number, fov = fovRad) => 768 / (2 * depthM * Math.tan(fov / 2));
 
-  test("are the full size up close and shrink a pixel at a time with depth, down to one screen pixel", () => {
+  test("are the full size up close and shrink a pixel at a time with depth, never under their floor", () => {
     const limits = pixelBands(base, fovRad);
-    assert.equal(limits.length, base - 1);
+    assert.equal(limits.length, base - PIXEL_DEPTH.minPx);
     assert.equal(sizeAt(0.3, limits), base);
     assert.equal(sizeAt(PIXEL_DEPTH.fullSizeM, limits), base);
     assert.deepEqual(limits, [...limits].sort((a, b) => a - b));
-    assert.equal(sizeAt(limits.at(-1)! + 0.01, limits), 1);
+    assert.equal(sizeAt(limits.at(-1)! + 0.01, limits), PIXEL_DEPTH.minPx);
+    assert.equal(sizeAt(1000, limits), PIXEL_DEPTH.minPx, "far off, still pixel art");
+    assert.ok(PIXEL_DEPTH.minPx >= 2);
+    for (const big of [base + 1, base + 3]) {
+      assert.equal(big - pixelBands(big, fovRad).length, PIXEL_DEPTH.minPx, `a scale of ${big}`);
+    }
+    assert.deepEqual(pixelBands(PIXEL_DEPTH.minPx, fovRad), []);
     assert.deepEqual(pixelBands(1, fovRad), []);
   });
 
-  test("so a model walking away keeps about as many pixels, where fixed pixels would halve them", () => {
-    const limits = pixelBands(base, fovRad), far = limits.at(-1)!;
+  test("so a model walking away keeps about as many pixels until they're at their floor", () => {
+    const limits = pixelBands(base, fovRad), floorFrom = limits.at(-1)!;
     const pixels = (depthM: number) => heightPx(depthM) / sizeAt(depthM, limits);
     const atFullSize = pixels(PIXEL_DEPTH.fullSizeM);
-    for (let d = PIXEL_DEPTH.fullSizeM; d <= far; d += 0.25) {
+    for (let d = PIXEL_DEPTH.fullSizeM; d <= floorFrom; d += 0.25) {
       const share = pixels(d) / atFullSize;
       assert.ok(share > 2 / 3 && share < 3 / 2, `${d} m: ${share.toFixed(2)} of its pixels`);
     }
-    assert.ok(heightPx(far) / base / atFullSize <= 0.5 + 1e-9);
   });
 
   test("a wider view (first person) brings the bands nearer, as much as it shrinks what's seen", () => {

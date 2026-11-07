@@ -4,7 +4,7 @@ import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaLookDef } from "../index.js";
 import {
-  boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft,
+  boulder, floor, hazedRings, litRound, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft, type FarSprite,
 } from "../parts.js";
 
 const WALL_PIECES = 26;
@@ -12,6 +12,16 @@ const SKY = new Color3(0.32, 0.3, 0.36);
 /** Angles (radians) of the two arches standing in the wall. */
 const ARCHES_RAD = [0.9, 3.6];
 const FLAGSTONE_TILES = 8;
+
+const FAR_CYPRESS: FarSprite = {
+  widthPx: 16, heightPx: 72, heightM: 10,
+  draw(pen) {
+    for (let y = 0; y < 72; y++) {
+      const v = (y + 1) / 72, swell = v < 0.85 ? (v / 0.85) ** 0.7 : 1 - ((v - 0.85) / 0.15) ** 2 * 0.45;
+      litRound(pen, 8, y, Math.max(0.5, 8 * swell));
+    }
+  },
+};
 
 function flagstones(scene: Scene): StandardMaterial {
   const size = 256, rows = 4, rand = seededRandom(11);
@@ -97,9 +107,7 @@ function build(ctx: ArenaScene, radius: number) {
   cypress.material = own(colorMaterial(scene, "ruins-cypress", new Color3(0.1, 0.2, 0.15)));
   scatter(ctx, root, [[cypress, 3]], ringSpots(rand, 30, radius + 5, radius + 30, 0.8, 1.6));
 
-  const far = MeshBuilder.CreateCylinder("ruins-far-cypress", { height: 10, diameterTop: 0, diameterBottom: 2.2,
-    tessellation: 6 }, scene);
-  hazedRings(ctx, root, own, far, 5, { color: new Color3(0.09, 0.16, 0.13), sky: SKY },
+  hazedRings(ctx, root, own, "ruins-far-cypress", FAR_CYPRESS, { color: new Color3(0.09, 0.16, 0.13), sky: SKY },
     { rand, count: 51, near: radius + 30, far: radius + 48 });
   const tower = MeshBuilder.CreateBox("ruins-tower", { width: 3, height: 12, depth: 3 }, scene);
   tower.material = stone;

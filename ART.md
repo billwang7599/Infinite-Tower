@@ -271,10 +271,13 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
   pose to pose (`visuals/battle/person/`), no drawing needed. The arena is outlined pixel art whose pixels shrink
   with depth (the user: a model walking away should keep "the same # of pixels but just smaller", not shrink into a
-  few black ones): 3 screen pixels up to about 9.6 m away in the shoulder view, 2 to 16 m, 1 past that, nearer in
-  first person's wider view. A block's size goes by the depth at its centre and its colour is the average over it, so
-  a silhouette's steps get in-between colours (the user: "also enable anti aliasing"; 4x MSAA does the rest), and the
-  outline is a block wide at every depth, drawn over the opaque scene only: the blade, the swing's trail and glint,
+  few black ones), down to a floor (the user: "i just dont want the far pixels to be tiny. i still want to give the
+  appearnace of pixel art (just further away)"): 3 screen pixels up to about 9.6 m away in the shoulder view, nearer
+  in first person's wider view, then 2 however far, the sky too (`PIXEL_DEPTH.minPx`). A size fades into the next
+  over a fifth of the band edge's depth (`fadeShare`), so a model walking through it changes size smoothly instead of
+  popping. A block's size goes by the depth at its centre and its colour is the average over it, so a silhouette's
+  steps get in-between colours (the user: "also enable anti aliasing"; 4x MSAA does the rest), and the outline is a
+  block wide at every depth, drawn over the opaque scene only: the blade, the swing's trail and glint,
   skills, particles and see-through things go on after it, so nothing behind them outlines through them. What reads as
   HUD (your aim ring or draw meter at the bottom centre, the crosshair, the lock-on diamond, other fighters' chant
   words) is drawn sharp over it. In dev, `?pixel=fixed` draws every pixel the same size (the arena drawn small and
@@ -287,9 +290,12 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   shade without going orange or black, and breathes, flicks its ears and swings its tail standing, on top of its
   poses, which stay the telegraphs.
   Arenas keep the fight's ring clear and put their depth outside it: low props near the wall (tufts, stones, caps),
-  taller trees from 4 m out, and far silhouettes in three rings (`hazedRings`), each further one taller, lit less
-  and glowing nearer the sky's colour (`HAZE_SHARES`), before the fog greys them. Ground patches fade out at
-  uneven, soft edges (`blotTexture`, their alpha).
+  taller 3D trees from 4 m out, and far silhouettes in three rings (`hazedRings`), each further one taller, lit less
+  and glowing nearer the sky's colour (`HAZE_SHARES`), before the fog greys them. The far silhouettes are flat
+  sprites (the user: "the background though doesnt have to be 3d objects. it can be 2d sprites that always faces
+  the player"), drawn in code as a `FarSprite` per look (the forest's two-tier pine, the ruins' cypress, the mire's
+  dead snag) in three tones lit from the left (`litRound`), tinted by their ring's haze and turned to the camera
+  every frame. Ground patches fade out at uneven, soft edges (`blotTexture`, their alpha).
   The people are built like this:
   - **One rig for everyone**: `SKELETON` (`skeleton.ts`) is a plain table of joints with Blender's names (`hips`,
     `spine`, `chest`, `neck`, `head`, `upper_arm.L`, `forearm.R`, `hand.L`, `thigh.R`, `shin.L`, `foot.R`...), each
