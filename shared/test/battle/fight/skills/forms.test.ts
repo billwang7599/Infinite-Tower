@@ -70,6 +70,13 @@ describe("a Beam", () => {
     assert.equal(lostHp(fight, 1), 0);
   });
 
+  test("locked on, it streams at the target whichever way the input aims", () => {
+    const fight = fightWith([at(4, 0)]);
+    castNow(fight, BEAM_WATER, { locked: 0 });
+    run(fight, SKILL_EFFECTS.beam.time + 0.5, () => input({ locked: 0 }));
+    close(lostHp(fight, 0), beamTicks * SKILL_EFFECTS.beam.tickShare * W * D);
+  });
+
   test("doesn't reach past its range", () => {
     const B = SKILL_EFFECTS.beam;
     const fight = new Fight({

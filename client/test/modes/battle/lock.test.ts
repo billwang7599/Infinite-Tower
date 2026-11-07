@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, type Vec3 } from "@infinite-tower/shared";
 import type { Polled } from "../../../src/core/actions.js";
 import {
-  closestFoe, freeCamera, inViewFoe, lockYaw, pointedFoe, steerLock, type Foe,
+  closestFoe, inViewFoe, lockYaw, pointedFoe, steerLock, type Foe,
 } from "../../../src/modes/battle/lock.js";
 import { readPlayerInput } from "../../../src/modes/battle/input.js";
 
@@ -61,24 +61,6 @@ describe("inViewFoe", () => {
   });
 });
 
-describe("freeCamera", () => {
-  const free = (over: Partial<Polled>, action: Parameters<typeof freeCamera>[1] = "none") =>
-    freeCamera({ ...polled([]), ...over }, action);
-
-  test("a drawn bow, and the loose after it, aim with the camera", () => {
-    assert.equal(free({}, "draw"), "aim");
-    assert.equal(free({ dragging: true }, "loose"), "aim");
-  });
-
-  test("a right drag or a held arrow pans it; otherwise it's the lock's", () => {
-    assert.equal(free({ dragging: true }), "pan");
-    assert.equal(free({ turn: -1 }), "pan");
-    assert.equal(free({ look: 1 }), "pan");
-    assert.equal(free({}), null);
-    assert.equal(free({}, "attack"), null);
-  });
-});
-
 describe("steerLock: always locked on", () => {
   test("the lock key switches to the enemy nearest the screen's middle other than the target; alone, it stays", () => {
     assert.equal(steerLock(current.e, steer(["lockOn"]), [current, left, far], aim, player), far.e);
@@ -120,17 +102,12 @@ describe("moving while locked", () => {
   const target = at(5, 0);
   const from = at(0, 0);
 
-  test("the player faces the target", () => {
-    const input = copyInput(IDLE_INPUT);
-    readPlayerInput(polled([]), lockYaw(from, target)!, "tb", input);
-    assert.ok(Math.abs(input.aimX - 1) < 1e-9 && Math.abs(input.aimZ) < 1e-9);
-  });
-
   test("forward goes at the target, right and left circle it", () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(polled([], { x: 0, z: 1 }), lockYaw(from, target)!, "tb", input);
+    const aim = { x: 1, z: 0, pitchRad: 0 };
+    readPlayerInput(polled([], { x: 0, z: 1 }), lockYaw(from, target)!, "tb", input, aim);
     assert.ok(Math.abs(input.moveX - 1) < 1e-9 && Math.abs(input.moveZ) < 1e-9);
-    readPlayerInput(polled([], { x: 1, z: 0 }), lockYaw(from, target)!, "tb", input);
+    readPlayerInput(polled([], { x: 1, z: 0 }), lockYaw(from, target)!, "tb", input, aim);
     assert.ok(Math.abs(input.moveX) < 1e-9 && Math.abs(input.moveZ + 1) < 1e-9);
   });
 

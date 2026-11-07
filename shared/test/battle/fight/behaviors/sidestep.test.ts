@@ -77,6 +77,14 @@ describe("stepping aside from a Bolt", () => {
     assert.ok(Math.abs(fight.world.require(them(fight), Body).pos.z - THEM.z) < 0.01);
   });
 
+  test("locked on it, a Bolt the input aims elsewhere still goes at it: it steps aside", () => {
+    const fight = fightWith(STEPPER);
+    castAt(fight, { aimX: 1, aimZ: 0, locked: 0 });
+    assert.equal(lostHp(fight), 0);
+    const moved = Math.abs(fight.world.require(them(fight), Body).pos.x - THEM.x);
+    assert.ok(moved > STEPPER.radius + SKILL_EFFECTS.bolt.radiusM, `moved ${moved}`);
+  });
+
   test("it steps away from the wall, never into it", () => {
     const radius = 12, wallSide = at(0, 10);
     for (let seed = 1; seed <= 8; seed++) {

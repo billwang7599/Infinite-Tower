@@ -1,9 +1,9 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
   AVERAGE_STAT, Body, clamp, drawnShare, drawTime, FighterStats, Health, Player, rangedOf, SCREEN_DIR, Skilled,
-  weaponIn, Wielder, type PlayerAction, type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon,
-  type World,
+  weaponIn, Wielder, type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type World,
 } from "@infinite-tower/shared";
+import { AIMING } from "../../modes/battle/aim.js";
 import { LocalPlayer } from "../../modes/components.js";
 import { drawChantWords } from "./chantWords.js";
 import type { ArenaScene } from "./scene.js";
@@ -17,7 +17,6 @@ export const AIM_HUD = {
   crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1, meterLengthPx: 120, meterThickPx: 7,
   markLengthPx: 15, markThickPx: 2,
 };
-const AIMING: readonly PlayerAction[] = ["draw", "loose", "chant", "cast", "beam"];
 const DIM = "rgba(232, 223, 200, 0.3)";
 const LIT = "rgba(217, 88, 60, 0.95)";
 const CROSS = "rgba(232, 223, 200, 0.9)";

@@ -13,8 +13,9 @@ import type { Store } from "../../ui/store.js";
 import { arenaCamera, cameraTuning, steerZoom } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
-import { crosshairAim, pickedWay, readPlayerInput } from "./input.js";
-import { closestFoe, freeCamera, livingFoes, lockYaw, steerLock } from "./lock.js";
+import { freeCamera, playerAim } from "./aim.js";
+import { pickedWay, readPlayerInput } from "./input.js";
+import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
 const HOTBAR = ["skill1", "skill2", "skill3", "skill4"] as const;
@@ -88,19 +89,17 @@ export function createBattle(opts: BattleOptions): Battle {
       const written = book[HOTBAR.indexOf(action as (typeof HOTBAR)[number])];
       if (written) ctx.casts.push(written);
     }
-    const foes = livingFoes(fight), free = freeCamera(ctx.polled, action), aiming = free === "aim";
-    actions.setFreeLook(aiming);
+    const foes = livingFoes(fight), free = freeCamera(ctx.polled, action);
+    actions.setFreeLook(free === "aim");
     const steer = { pressed: ctx.polled.pressed, free: free !== null, wasFree: ctx.freeCamera !== null };
     ctx.lock = steerLock(ctx.lock, steer, foes, ctx.view, me);
     ctx.freeCamera = free;
     ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, action === "dodge", views);
-    const target = aiming ? undefined : foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
-    const yaw = (target && lockYaw(me, target)) ?? ctx.view.yaw;
     const { world } = fight;
-    const aimed = foes.map(({ e }) => ({ body: world.require(e, Body), fighter: world.require(e, Fighter) }));
-    const aim = target ? null : crosshairAim(ctx.view.eye, ctx.view.at, me, aimed, fight.arena.radius);
-    readPlayerInput(ctx.polled, yaw, ctx.way, input, aim);
+    const aimed = foes.map(({ e }) => ({ e, body: world.require(e, Body), fighter: world.require(e, Fighter) }));
+    const { walkYaw, aim, locked } = playerAim(ctx, aimed, me, fight.arena.radius);
+    readPlayerInput(ctx.polled, walkYaw, ctx.way, input, aim);
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {
       const page = book[i];
@@ -108,7 +107,7 @@ export function createBattle(opts: BattleOptions): Battle {
     });
     input.cast = last ? null : ctx.casts.shift() ?? null;
     casting = input.castHeld ? last : input.cast;
-    input.locked = ctx.lock === null || aiming ? null : fight.targets.indexOf(ctx.lock);
+    input.locked = locked === null ? null : fight.targets.indexOf(locked);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     const { open, words } = opts.chant.get();
     input.chant = open;

@@ -106,9 +106,9 @@ What's built so far:
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight (always locked on, starting in
   first person): WASD move, Q switches to the enemy nearest the screen's middle, Right Shift to the closest, the
   arrows or a middle- or right-button drag pan the camera (let go, it snaps to the enemy in view nearest the middle),
-  a drawn bow aims with the mouse, the wheel zooms it into first person and out, V steps through the shoulder, close
-  and first-person views, Space jumps, F dodges; a quick flick of the mouse aims, a left click is a light attack and
-  a right click (not a drag) a heavy one, the back side button or K stabs, and Left Shift blocks.
+  a drawn bow or a skill cast aims with the mouse, the wheel zooms it into first person and out, V steps through the
+  shoulder, close and first-person views, Space jumps, F dodges; a quick flick of the mouse aims, a left click is a
+  light attack and a right click (not a drag) a heavy one, the back side button or K stabs, and Left Shift blocks.
   R opens the chant, and 1-4 quick-cast the skillbook's pages. H opens the questbook.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes
