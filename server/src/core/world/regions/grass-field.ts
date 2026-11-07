@@ -62,6 +62,7 @@ export const GRASS_FIELD: RegionDef = {
     // The Kobold Swordsman's own corner, away from the boar and the start.
     { enemy: "kobold-swordsman", at: { x: 16, z: -9 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
     { enemy: "kobold-greatsword", at: { x: 16, z: 0 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
+    { enemy: "kobold-shieldbearer", at: { x: 20, z: -4.5 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
     { enemy: "goblin-warlock", at: { x: -16, z: 9 }, respawnTime: 12, arenaId: WARLOCK_MIRE_ARENA.id },
     { enemy: "grey-wolf", at: { x: 25, z: 18 }, respawnTime: 10 },
   ],

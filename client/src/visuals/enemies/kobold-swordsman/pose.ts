@@ -1,5 +1,5 @@
 import type { EnemyState, GuardKind, Vec3 } from "@infinite-tower/shared";
-import { guardPose, type GuardFit } from "../../battle/guard.js";
+import { carryPose, guardPose, type GuardFit, type Held } from "../../battle/guard.js";
 import {
   cutStart, DRAWBACK, drawnBack, edgeLeading, edgeToward, lerpBlade, pullOf, REELING_BLADE, type BladePose, type Cut,
   type WeaponMotion,
@@ -15,7 +15,7 @@ const HAND_PIVOT: Vec3 = { x: 0.2, y: 0.92, z: 0 };
 const HAND_ARC_M = 0.28;
 const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
 // Lower and further out than shoulders: under its snout, before its leaning chest.
-export const KOBOLD_GUARD_FIT: GuardFit = { y: 0.94, z: 0.22 };
+export const KOBOLD_GUARD_FIT: GuardFit = { y: 0.88, z: 0.22 };
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;
@@ -42,6 +42,7 @@ export interface KoboldPose {
   bladeExact: boolean;
   hand: Vec3;
   offHand: Vec3;
+  off: Held | null;
   twist: number;
   hipTwist: number;
   /** The chest's lean forward (rad), on top of the whole body's. */
@@ -94,6 +95,7 @@ export function koboldPose(
       break;
   }
   const raised = guard?.raised ?? 0, block = guard && raised > 0 ? guardPose(guard.kind, 1, KOBOLD_GUARD_FIT) : null;
+  const carried = guard?.kind === "shield" ? carryPose("shield", 1, KOBOLD_GUARD_FIT) : null;
   if (block?.blade) p.blade = lerpBlade(p.blade, block.blade, raised);
   const handBlade = p.blade, pull = swinging ? pullOf(stroke, heavy) : 0;
   p.blade = drawnBack(p.blade, pull);
@@ -111,7 +113,11 @@ export function koboldPose(
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     }, block?.hand, raised),
-    offHand: mix(OFF_HAND, block?.offHand, raised),
+    offHand: mix(carried?.offHand ?? OFF_HAND, block?.offHand, raised),
+    off: carried && (block?.off ? {
+      blade: lerpBlade(carried.off.blade, block.off.blade, raised),
+      edge: lerpBlade(carried.off.edge, block.off.edge, raised),
+    } : carried.off),
     twist: turned * (TWIST_RAD * chestAt.x + coilTwist),
     hipTwist: turned * HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,

@@ -8,7 +8,7 @@ import {
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { Blend } from "../../../../src/modes/battle/context.js";
-import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js";
+import { BLADE_FROM_M, holdingOf, holdShield, SHIELD } from "../../../../src/visuals/battle/blade.js";
 import { guardPose } from "../../../../src/visuals/battle/guard.js";
 import { HIT_STOP_MS, type HitStop } from "../../../../src/visuals/battle/impact.js";
 import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
@@ -18,6 +18,9 @@ import { MOTIONS, strokeOf, wayCut, WEAPON_LOOKS } from "../../../../src/visuals
 import {
   GREATSWORD_BUILD, koboldGreatswordVisual,
 } from "../../../../src/visuals/enemies/kobold-greatsword/animation.js";
+import {
+  koboldShieldbearerVisual, SHIELDBEARER_BUILD,
+} from "../../../../src/visuals/enemies/kobold-shieldbearer/animation.js";
 import { koboldSwordsmanVisual, reachKobold } from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
 import {
   bellySections, buildKobold, SWORDSMAN_BUILD, torsoSections, type KoboldBuild,
@@ -252,5 +255,81 @@ describe("a kobold raises its guard while its block is up", () => {
       return frames.find((f) => f.time > upAt && share(f.hand) >= 0.5)!.time - upAt;
     };
     assert.ok(halfway(kobolds[1]) > halfway(kobolds[0]) + 0.01);
+  });
+});
+
+describe("the Kobold Shieldbearer's shield", () => {
+  const scene = () => new Scene(new NullEngine());
+
+  test("is the 3D shield in its other hand, clear of its snout and chest, carried or raised", () => {
+    const s = scene(), ctx = { scene: s, sky: { castShadows: () => {} } } as never, look = WEAPON_LOOKS["kobold-blade"];
+    const m = buildKobold(ctx, 1, new TransformNode("kobold", s), { radius: 0.5 } as never, 0, look, ARM_REACH_M,
+      SHIELDBEARER_BUILD);
+    const shield = holdShield(ctx, m.offArm.hand, "wooden-shield");
+    const lofts: Loft[] = [torsoSections(SHIELDBEARER_BUILD.bulk), bellySections(SHIELDBEARER_BUILD.bulk)].map(
+      (sections) => ({ node: m.chest, sections, roundness: ROUNDNESS }));
+    const cut = wayCut("tb", true);
+    for (const raised of [0, 0.5, 1]) {
+      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.sword, null, MOTIONS.sword.held(cut), false,
+        { kind: "shield", raised });
+      m.chest.rotation.set(p.bend, p.twist, 0);
+      m.swordArm.hand.rotationQuaternion = holdingOf(p.blade, p.edge, new Quaternion());
+      m.offArm.hand.rotationQuaternion = holdingOf(p.off!.blade, p.off!.edge, new Quaternion());
+      reachKobold(m, p.hand, p.offHand, look);
+      const head = m.head.getChildMeshes().map((h) => {
+        h.computeWorldMatrix(true);
+        return h.getBoundingInfo().boundingBox;
+      });
+      const at = shield.root.computeWorldMatrix(true);
+      for (let i = 0; i < 24; i++) {
+        for (const r of [SHIELD.radiusM, SHIELD.radiusM / 2]) {
+          const a = (i / 24) * 2 * Math.PI, rim = Vector3.TransformCoordinates(
+            new Vector3(r * Math.cos(a), 0, r * Math.sin(a)), at);
+          const what = `${raised} raised, ${(a * 180 / Math.PI).toFixed(0)} degrees round`;
+          assert.ok(depthIn(lofts, rim, SHIELD.thickM / 2) <= TOLERANCE_M, `${what}: in its chest`);
+          for (const b of head) {
+            const under = rim.x > b.minimumWorld.x && rim.x < b.maximumWorld.x && rim.z > b.minimumWorld.z
+              && rim.z < b.maximumWorld.z;
+            assert.ok(!under || rim.y < b.minimumWorld.y, `${what}: ${rim.y.toFixed(2)} m, into its head`);
+          }
+        }
+      }
+    }
+    s.dispose();
+  });
+
+  test("its fight visual holds it, turned out at its side, and raises it to face its foe while its block is up", () => {
+    const world = new World(), e = world.spawn(), s = scene();
+    world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
+    world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
+    world.add(e, FighterStats, BASE_STATS);
+    world.add(e, Enemy, { def: { radius: 0.5 }, state: "approach", stateTime: 0, duration: 0, yaw: 0 } as
+      unknown as EnemyData);
+    world.add(e, Wielder, newWielder({ rightHand: "kobold-blade", leftHand: "wooden-shield", active: "rightHand" },
+      ARM_REACH_M));
+    world.add(e, WeaponAttack, { def: { blockReactTime: 0.3 } } as unknown as WeaponAttackData);
+    const ctx = {
+      scene: s, sky: { castShadows: () => {} }, nodes: new Map(), impacts: new Map(), hitStops: new Map(), skills: {},
+      materials: { slashFx: new StandardMaterial("slash", s) }, battle: { blend: new Blend(), corrections: [] },
+    } as unknown as ArenaScene;
+    const drawn = koboldShieldbearerVisual.spawn(ctx, world, e), hand = drawn.drawing.offArm.hand;
+    const board = hand.getChildMeshes().find((m) => m.name === "shield-board");
+    assert.ok(board, "a shield in its other hand");
+    const facing = () => Vector3.TransformNormal(Vector3.Forward(), hand.computeWorldMatrix(true)).normalize();
+    const step = (time: number) => {
+      for (let t = 0; t < time; t += 1 / 60) {
+        koboldShieldbearerVisual.frame(drawn, world, e, 1 / 60);
+        world.require(e, Enemy).stateTime += 1 / 60;
+      }
+    };
+    step(0.2);
+    assert.ok(!blocking(world, e));
+    const carried = facing();
+    assert.ok(carried.z > 0.5 && carried.z < 0.95 && carried.x < -0.2, `carried facing ${carried}`);
+    step(1);
+    assert.ok(blocking(world, e));
+    assert.ok(facing().z > 0.99, `raised facing ${facing()}`);
+    s.dispose();
   });
 });

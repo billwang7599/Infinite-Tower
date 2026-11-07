@@ -1,11 +1,14 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, dampFactor, Enemy, guardOf, Health, smoothstep, weaponItemIn, WEAPONS, Wielder, wrapAngle,
-  type Vec3,
+  Body, clamp, damp, dampFactor, Enemy, guardOf, Health, itemDef, smoothstep, weaponItemIn, WEAPONS, Wielder,
+  wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { poseArm } from "../../battle/arm.js";
-import { BLADE_FROM_M, bladeEdge, cueBlade, dropCue, holdingOf, showCue, type BladeCue } from "../../battle/blade.js";
+import {
+  BLADE_FROM_M, bladeEdge, cueBlade, dropCue, dropShield, holdingOf, holdShield, showCue, type BladeCue,
+  type HeldShield,
+} from "../../battle/blade.js";
 import { fighter } from "../../battle/battle.js";
 import { heldSwing, swingHeld, type Swung } from "../../battle/impact.js";
 import { guardShiftTime } from "../../battle/person/animation.js";
@@ -33,6 +36,7 @@ type KoboldNodes = KoboldModel & {
   slash: Slash;
   drawnSwing: Swung | null;
   guardRaised: number;
+  shield: HeldShield | null;
 };
 
 export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy", {
@@ -40,16 +44,19 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const enemy = world.require(e, Enemy), wielder = world.require(e, Wielder), held = weaponItemIn(wielder.hands);
     const look = held && WEAPON_LOOKS[held];
     const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, look, wielder.armReachM, build);
+    const shield = [wielder.hands.rightHand, wielder.hands.leftHand].find((item) => item && itemDef(item).shield);
     // Empty-handed, its hand still moves like a sword's.
     return {
       ...model, ctx, clock: 0, blade: new Quaternion(), handAt: null,
       motion: MOTIONS[held ? WEAPONS[held].kind : "sword"], look,
       cue: look ? cueBlade(ctx.scene, model.swordArm.hand, look) : null,
       slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx), drawnSwing: null, guardRaised: 0,
+      shield: shield ? holdShield(ctx, model.offArm.hand, shield) : null,
     };
   },
   dispose(nodes) {
     dropCue(nodes.cue);
+    dropShield(nodes.shield);
     nodes.slash.mesh.dispose();
     disposeKobold(nodes);
   },
@@ -95,6 +102,10 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.handAt ??= handTarget.clone();
     Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, poseDt), nodes.handAt);
     offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.25);
+    if (pose.off) {
+      nodes.offArm.hand.rotationQuaternion ??= new Quaternion();
+      holdingOf(pose.off.blade, pose.off.edge, nodes.offArm.hand.rotationQuaternion);
+    }
     reachKobold(nodes, nodes.handAt, offTarget, nodes.look, 1 - guardShare);
     const live = health.hp > 0 ? swing : null;
     if (nodes.cue) showCue(nodes.cue, live);

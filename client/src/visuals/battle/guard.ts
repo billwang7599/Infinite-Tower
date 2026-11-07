@@ -1,7 +1,7 @@
 import type { GuardKind, Vec3 } from "@infinite-tower/shared";
 import { edgeToward } from "./weapons.js";
 
-interface Held { blade: Vec3; edge: Vec3 }
+export interface Held { blade: Vec3; edge: Vec3 }
 export interface GuardPose { offHand: Vec3; off?: Held; hand?: Vec3; blade?: Vec3; edge?: Vec3 }
 export interface GuardFit { y: number; z: number }
 
@@ -13,7 +13,7 @@ const unit = ({ x, y, z }: Vec3): Vec3 => {
 const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
 const cross = (a: Vec3, b: Vec3): Vec3 =>
   ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
-export const shieldFacing = (face: Vec3): Held => ({ blade: UP, edge: unit(cross(UP, face)) });
+const shieldFacing = (face: Vec3): Held => ({ blade: UP, edge: unit(cross(UP, face)) });
 
 // m for the right hand from the fit; edges out, crossed blades are a width apart.
 export const BLOCK = {
@@ -22,9 +22,23 @@ export const BLOCK = {
   shield: { hand: { x: -0.08, y: 0.04, z: 0.3 } },
 } as const;
 
+const OFF_CARRY = {
+  hand: { x: -0.2, y: -0.18, z: 0.15 }, blade: { x: -0.3, y: 0.5, z: 0.81 }, shieldFace: { x: -0.5, y: 0, z: 0.87 },
+} as const;
+
+const placer = (side: 1 | -1, fit: GuardFit) => ({
+  at: ({ x, y, z }: Vec3): Vec3 => ({ x: side * x, y: fit.y + y, z: fit.z + z }),
+  turned: ({ x, y, z }: Vec3): Vec3 => unit({ x: side * x, y, z }),
+});
+
+export function carryPose(kind: "dual" | "shield", side: 1 | -1, fit: GuardFit): { offHand: Vec3; off: Held } {
+  const { at, turned } = placer(side, fit), blade = turned(OFF_CARRY.blade);
+  const off = kind === "dual" ? { blade, edge: edgeToward(blade) } : shieldFacing(turned(OFF_CARRY.shieldFace));
+  return { offHand: at(OFF_CARRY.hand), off };
+}
+
 export function guardPose(kind: GuardKind, side: 1 | -1, fit: GuardFit): GuardPose {
-  const at = ({ x, y, z }: Vec3): Vec3 => ({ x: side * x, y: fit.y + y, z: fit.z + z });
-  const turned = ({ x, y, z }: Vec3): Vec3 => unit({ x: side * x, y, z });
+  const { at, turned } = placer(side, fit);
   if (kind === "shield") return { offHand: at(BLOCK.shield.hand), off: shieldFacing(AHEAD) };
   if (kind === "one") {
     const { hand, blade, supportM, underM } = BLOCK.one, way = turned(blade);

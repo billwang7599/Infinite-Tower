@@ -11,6 +11,8 @@ import { wolfVisual } from "./grey-wolf/animation.js";
 import { wolfSprite } from "./grey-wolf/sprite.js";
 import { koboldGreatswordVisual } from "./kobold-greatsword/animation.js";
 import { koboldGreatswordSprite } from "./kobold-greatsword/sprite.js";
+import { koboldShieldbearerVisual } from "./kobold-shieldbearer/animation.js";
+import { koboldShieldbearerSprite } from "./kobold-shieldbearer/sprite.js";
 import { koboldSwordsmanVisual } from "./kobold-swordsman/animation.js";
 import { koboldSprite } from "./kobold-swordsman/sprite.js";
 import { trainingDummyVisual } from "./training-dummy/animation.js";
@@ -34,6 +36,7 @@ export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
   "wild-boar": { battle: boarVisual, sprite: boarSprite },
   "kobold-swordsman": { battle: koboldSwordsmanVisual, sprite: koboldSprite },
   "kobold-greatsword": { battle: koboldGreatswordVisual, sprite: koboldGreatswordSprite },
+  "kobold-shieldbearer": { battle: koboldShieldbearerVisual, sprite: koboldShieldbearerSprite },
   "goblin-warlock": { battle: goblinVisual, sprite: goblinSprite },
   "grey-wolf": { battle: wolfVisual, sprite: wolfSprite },
   "bog-lurker": { battle: lurkerVisual, sprite: lurkerSprite },

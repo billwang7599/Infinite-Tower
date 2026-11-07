@@ -96,6 +96,7 @@ export const ENEMY_SOUNDS: Record<EnemyId, EnemySounds> = {
   "wild-boar": { hurt: "boar-hurt", death: "boar-death", windup: "boar-windup" },
   "kobold-swordsman": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "kobold-greatsword": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
+  "kobold-shieldbearer": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "goblin-warlock": { hurt: "goblin-hurt", death: "goblin-death", windup: null },
   "grey-wolf": { hurt: "wolf-hurt", death: "wolf-death", windup: "wolf-growl" },
   "bog-lurker": { hurt: "lurker-hurt", death: "lurker-death", windup: "lurker-rise" },

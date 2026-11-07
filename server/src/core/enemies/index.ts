@@ -5,6 +5,7 @@ import { BRAM } from "./bram.js";
 import { GOBLIN_WARLOCK } from "./goblin-warlock.js";
 import { GREY_WOLF } from "./grey-wolf.js";
 import { KOBOLD_GREATSWORD } from "./kobold-greatsword.js";
+import { KOBOLD_SHIELDBEARER } from "./kobold-shieldbearer.js";
 import { KOBOLD_SWORDSMAN } from "./kobold-swordsman.js";
 import { TRAINING_DUMMY } from "./training-dummy.js";
 import { WILD_BOAR } from "./wild-boar.js";
@@ -34,6 +35,7 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   "wild-boar": WILD_BOAR,
   "kobold-swordsman": KOBOLD_SWORDSMAN,
   "kobold-greatsword": KOBOLD_GREATSWORD,
+  "kobold-shieldbearer": KOBOLD_SHIELDBEARER,
   "goblin-warlock": GOBLIN_WARLOCK,
   "grey-wolf": GREY_WOLF,
   "bog-lurker": BOG_LURKER,

@@ -85,6 +85,9 @@ export const ITEMS = {
   "kobold-greatsword-essence": essence(
     "Kobold greatsword essence", "uncommon", "A heavy, smouldering spark of a kobold's soul.", 50,
   ),
+  "kobold-shieldbearer-essence": essence(
+    "Kobold shieldbearer essence", "uncommon", "A steady, brassy spark of a kobold's soul.", 45,
+  ),
   "goblin-warlock-essence": essence("Goblin warlock essence", "uncommon", "A flickering wisp of a goblin's soul.", 30),
   "grey-wolf-essence": essence("Grey wolf essence", "uncommon", "A cold, restless flicker of a wolf's soul.", 25),
   "bog-lurker-essence": essence("Bog lurker essence", "uncommon", "A slow, heavy murk of a lurker's soul.", 45),
