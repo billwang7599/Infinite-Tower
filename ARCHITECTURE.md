@@ -1866,8 +1866,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          state); unless &player3d=0, every one of them (you, a duel's rival, Bram) a 3D person (person/)
         firstPerson.ts   Your arms in first person: firstPersonArms pulls the hands toward spots low on the screen and
                          leans the blade ahead (FP_ARMS; the pose's own, the model's frame), posed for a fixed
-                         first-person view (POSED_FOR); holdInView reaches them there and carries both arms with the
-                         real camera, so they're in view wherever it looks; restShoulders puts them back (tested)
+                         first-person view (POSED_FOR); a bow is placed from the eye instead (bowInView, FP_BOW:
+                         carried low, or raised with the drawn arrow along the view, the string hand on the nock);
+                         holdInView reaches them there and carries both arms with the real camera, so they're in
+                         view wherever it looks; restShoulders puts them back (tested)
+        bowMotion.ts     A bow's draw as shown: bowDrawOf (the fighter's draw, from the shared drawnShare, or its
+                         loose), moveBow easing a person's BowMotion each frame (raised or carried, the string
+                         hand's pull, its flick off the string, the string ringing past the brace once loosed;
+                         BOW_MOTION; tested)
         slash.ts         A swing's trail: a ribbon between where its blade's guard and tip were over the last
                          TRAIL_TIME, fading (buildSlash, placeSlash while the motion's trail shows; sampleTrail,
                          trailAlpha tested): every player's and the Kobolds'; buildRibbon / updateRibbon, the strip
@@ -1880,8 +1886,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing); a
                          weapon with a `bow` look gets bow.ts's bow instead
         bow.ts           The 3D bow and arrow, built in code: buildBow (a curved tube of a stave along the hand's +y,
-                         a grip wrap, a string of two segments and an arrow nocked on it), pullString (the string's
-                         middle drawn back by bowDrawOf: the shared drawnShare), arrowVisual (an arrow in flight,
+                         a grip wrap, a string of two segments and an arrow nocked on it over the bow hand,
+                         ARROW_REST), pullString (the string's middle drawn back as bowMotion.ts shows it, the
+                         limbs bending further back with it), arrowVisual (an arrow in flight,
                          along its velocity, leaving from its shooter's bow (the scene's `bows`, set by holdBlade) and
                          eased onto the fight's path over LEAVE_BOW_TIME; stuck, its head sunk in; flying, a trail
                          behind its nock over the last TRAIL.lengthS of its path, worked back along it by
@@ -2273,7 +2280,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The aim ring and crosshair (sizes and the ring's height in the HUD's pixels, `AIM_HUD`; colours; the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | Which actions aim (free the camera, show the crosshair, keep the lock from the fight), `AIMING`; how near the crosshair's spot may be (`CROSSHAIR_MIN_M`) | top of `client/src/modes/battle/aim.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
-| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours, how deep it sinks stuck and how long it takes to ease from the bow onto its path (`LEAVE_BOW_TIME`); its trail's length, width and fade (`TRAIL`; its colour `arrowTrail` in `materials.ts`); a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, how far out and how leant it's carried and drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
+| The 3D bow and arrow: the stave's and string's thickness, how much further its limbs bend fully drawn (`FLEX_M`), where the nocked arrow rests (`ARROW_REST`), the arrow's size, colours, how deep it sinks stuck and how long it takes to ease from the bow onto its path (`LEAVE_BOW_TIME`); its trail's length, width and fade (`TRAIL`; its colour `arrowTrail` in `materials.ts`); a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, how far out and how leant it's carried and drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
@@ -2301,6 +2308,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |
+| Where the bow, the drawn arrow and both hands sit in first person, carried and drawn, and the loose's flick and kick | `FP_BOW` in `client/src/visuals/battle/firstPerson.ts` |
+| How quickly a bow is raised, the string hand follows the draw and flicks off, and how the loosed string rings | `BOW_MOTION` in `client/src/visuals/battle/bowMotion.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |
 | Where a fight starts (and a duel) | `shared/src/battle/fight/setup.ts` |
 | A duel challenge's reach and how long it stays open | `server/src/core/game/duels.ts` |

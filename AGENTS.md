@@ -319,10 +319,13 @@ Decided by the user:
   for 0.35 s or less, full from 1 s), comes in over 0.06 s and fades over the stun's last 0.25 s (half a short one),
   so it's gone, the camera level, the moment you can move. Numbers: `STUN_CUE` in
   `client/src/modes/battle/stun.ts`, `STUN_HUD` in `client/src/visuals/battle/stunned.ts`.
-- First person is the main battle view (the user: "we should optimize for first person view"): tune the camera, arms,
-  weapons and animation for it first; third person only must not look broken. Combat's smoothness and feel come
-  before how models look (the user: "whats more important is smooth and fun combat, and smooth and good animation and
-  physics").
+- First person first (the user: "we should optimize for first person view"): it's the main view, so a fight's looks
+  (the bow's draw and loose above all) are tuned for it first, scale, placement, framing and reading at the
+  crosshair; third person need only not look broken.
+- Feel over model looks (the user: "we dont need to worry about user 3d battle model looks. just optimize the
+  skeleton and animation... whats more important is smooth and fun combat, and smooth and good animation and
+  physics."): work on the 3D people goes into the skeleton, the motion (smooth easing, no pops between poses, the
+  right timing) and the physics, not into sculpting or restyling the body or its gear.
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
@@ -988,8 +991,10 @@ them; treat them as changeable, and still ask before deciding new ones):
     `client/src/visuals/battle/overlay.ts`).
   - The 3D person holds a bow in the left hand whichever hand's slot it's in, and carries and draws it held out to the
     side, near upright, so the locked camera over the left shoulder sees all of it past the body and head; the arrow
-    is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only). The quiver isn't
-    drawn on the 3D people yet.
+    is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only). In first person
+    (the agent's picks, tried by tests and a headless browser, not hand-played) it's raised with the drawn arrow along
+    the view, so it points at the crosshair, the string hand on the nock, and every move eased so nothing jumps (ART.md,
+    "first person"). The quiver isn't drawn on the 3D people yet.
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight

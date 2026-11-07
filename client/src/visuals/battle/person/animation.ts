@@ -6,7 +6,8 @@ import {
 import { BATTLE_BUILDS } from "../../../gfx/look/body.js";
 import { reachRound, type BladeReach, type Clearance } from "../arm.js";
 import { BLADE_FROM_M, dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
-import { bowDrawOf, pullString } from "../bow.js";
+import { pullString } from "../bow.js";
+import { bowDrawOf, moveBow, restingBow, type BowMotion } from "../bowMotion.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS, type WeaponLook } from "../weapons.js";
 import { SHAPES, shownGear, wearOf, type ShownGear } from "./body.js";
@@ -45,6 +46,7 @@ export interface PersonDrawing {
   /** Seconds since it last touched down; null in the air. */
   sinceLanding: number | null;
   hair: { sway: Sway; at: Vector3 | null; vel: Vector3 };
+  bow: BowMotion;
 }
 
 export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> & {
@@ -54,7 +56,7 @@ export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir
 export const newPerson = (): PersonDrawing => ({
   look: null, equipment: null, shown: {}, build: null, model: null, blade: null, bladeSide: 1, handAt: null,
   bladeTurn: null, yaw: 0, gait: 0, time: 0, deadTime: 0, sinceStep: 0, sinceLanding: LANDING.durationTime,
-  hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() },
+  hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() }, bow: restingBow(),
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -184,13 +186,14 @@ export function framePerson(
   const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw), d = stance.actionDir, v = body.vel;
   const way = speed > 0 ? { x: (v.x * cos - v.z * sin) / speed, z: (v.x * sin + v.z * cos) / speed } : { x: 0, z: 1 };
   p.gait += shownDt * 2 * Math.PI * strideOf(speed, Math.abs(way.x)).cyclesPerSec;
-  const held = weapon && WEAPON_LOOKS[weapon], drawing = bowDrawOf(world, e);
+  const held = weapon && WEAPON_LOOKS[weapon], drawing = alive ? bowDrawOf(world, e) : null;
+  moveBow(p.bow, drawing, shownDt);
   const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
     stagger, deadTime: p.deadTime, time: p.time,
     walk: { phase: p.gait, speed, way },
     landing: p.sinceLanding === null ? 0 : Math.max(0, 1 - p.sinceLanding / LANDING.durationTime),
-    ...(held?.bow && drawing && { bow: { ...held.bow, drawn: drawing.drawn } }),
+    ...(held?.bow && drawing && { bow: { ...held.bow, drawn: p.bow.hand, flick: p.bow.flick } }),
   });
 
   const { joints } = model;
@@ -210,7 +213,7 @@ export function framePerson(
   p.handAt ??= target.clone();
   Vector3.LerpToRef(p.handAt, target, snap, p.handAt);
   reachArms(joints, build.look.body, side, p.handAt, p.bladeTurn, pose.offHand, alive ? held : null);
-  if (p.blade?.bow) pullString(p.blade.bow, drawing?.drawn ?? 0, alive && (drawing?.nocked ?? false));
+  if (p.blade?.bow) pullString(p.blade.bow, p.bow.string, drawing?.nocked ?? false);
   swing(p, joints, shownDt);
 }
 
