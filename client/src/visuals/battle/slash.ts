@@ -23,16 +23,16 @@ export function sampleTrail(trail: Trail, time: number, edge: { base: Vec3; tip:
 export const trailAlpha = (sample: TrailSample, time: number): number =>
   sample.alpha * Math.max(0, 1 - (time - sample.time) / TRAIL_TIME);
 
-export interface Slash { mesh: Mesh; trail: Trail; time: number; positions: Float32Array; colors: Float32Array }
+export interface Ribbon { mesh: Mesh; positions: Float32Array; colors: Float32Array }
 
-export function buildSlash(scene: Scene, name: string, material: Material): Slash {
-  const positions = new Float32Array(MAX_SAMPLES * 2 * 3), colors = new Float32Array(MAX_SAMPLES * 2 * 4).fill(1);
+export function buildRibbon(scene: Scene, name: string, pairs: number, material: Material): Ribbon {
+  const positions = new Float32Array(pairs * 2 * 3), colors = new Float32Array(pairs * 2 * 4).fill(1);
   const indices: number[] = [];
-  for (let i = 0; i < MAX_SAMPLES - 1; i++) {
+  for (let i = 0; i < pairs - 1; i++) {
     const a = i * 2;
     indices.push(a, a + 1, a + 3, a, a + 3, a + 2);
   }
-  const mesh = new Mesh(`slash-${name}`, scene), data = new VertexData();
+  const mesh = new Mesh(name, scene), data = new VertexData();
   Object.assign(data, { positions, colors, indices });
   data.applyToMesh(mesh, true);
   mesh.material = material;
@@ -40,8 +40,20 @@ export function buildSlash(scene: Scene, name: string, material: Material): Slas
   mesh.isPickable = false;
   mesh.alwaysSelectAsActiveMesh = true;
   mesh.setEnabled(false);
-  drawOnTop(mesh);
-  return { mesh, trail: newTrail(), time: 0, positions, colors };
+  return { mesh, positions, colors };
+}
+
+export function updateRibbon({ mesh, positions, colors }: Ribbon): void {
+  mesh.updateVerticesData(VertexBuffer.PositionKind, positions);
+  mesh.updateVerticesData(VertexBuffer.ColorKind, colors);
+}
+
+export interface Slash extends Ribbon { trail: Trail; time: number }
+
+export function buildSlash(scene: Scene, name: string, material: Material): Slash {
+  const ribbon = buildRibbon(scene, `slash-${name}`, MAX_SAMPLES, material);
+  drawOnTop(ribbon.mesh);
+  return { ...ribbon, trail: newTrail(), time: 0 };
 }
 
 export function placeSlash(
@@ -58,6 +70,5 @@ export function placeSlash(
     colors[i * 8 + 3] = alpha * HILT_ALPHA;
     colors[i * 8 + 7] = alpha;
   }
-  slash.mesh.updateVerticesData(VertexBuffer.PositionKind, positions);
-  slash.mesh.updateVerticesData(VertexBuffer.ColorKind, colors);
+  updateRibbon(slash);
 }
