@@ -1,18 +1,25 @@
 import {
-  inRect, regionAt, seededRandom, tileAt, type Rect, type TileKind, type Vec2, type Vec3, type WorldMap,
+  inRect, isSolid, regionAt, seededRandom, tileAt, type Rect, type TileKind, type Vec2, type Vec3, type WorldMap,
 } from "@infinite-tower/shared";
+import { houseLedges, tileBlocks, wholeRuns, type House } from "./town.js";
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
   | "produce" | "potions" | "scales" | "embers" | "dummy" | "rubble" | "crane" | "cart" | "scrub" | "chips"
-  | "shack";
+  | "shack" | "statue" | "lamp";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
 export interface Awning { colors: readonly [string, string]; topY: number }
 
 export interface Ledge {
-  rect: Rect; topY: number; look?: "castle" | "house" | "counter" | "hearth" | "quarry"; awning?: Awning;
+  rect: Rect;
+  topY: number;
+  look?: "castle" | "column" | "house" | "counter" | "hearth" | "quarry" | "fountain" | "plinth";
+  awning?: Awning;
+  house?: House;
+  /** Crenellated all round, not only toward the open air (the keep, standing in the castle's bulk). */
+  crowned?: boolean;
 }
 
 export interface Scenery {
@@ -21,7 +28,7 @@ export interface Scenery {
 }
 
 const TALL = new Set<PropKind>([
-  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack",
+  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack", "statue", "lamp",
 ]);
 
 export function isTall(kind: PropKind): boolean {
@@ -72,12 +79,11 @@ const WALL_Y = 3;
 /** Wall filling a square this many tiles a side is the castle's bulk, and stands taller. */
 const BULK_TILES = 3;
 const BULK_Y = 6;
-const HOUSE_Y = { low: 2, high: 3 };
-/** A house block's height goes by its corner, looked for this far: wider blocks vary. */
-const HOUSE_REACH_TILES = 16;
 const COUNTER_Y = 0.55;
 const AWNING_Y = 1.95;
 const HEARTH_Y = 0.8;
+const FOUNTAIN_RIM_Y = 0.6;
+const PLINTH_Y = 1.3;
 const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, string] }[] = [
   { kind: "foodStall", goods: "produce", awning: ["#e8dcc0", "#4f7a3a"] },
   { kind: "potionStall", goods: "potions", awning: ["#e8dcc0", "#5b3f8a"] },
@@ -86,10 +92,10 @@ const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, stri
 ];
 const TERRACE = { stepY: 1.2, tiles: 2, inQuarry: 4, ringTiles: 4, propChance: 0.18 };
 const KEEP: readonly [number, number, number, number, number][] = [
-  [-13, 1, 26, 11, 12], [-17, 0, 5, 5, 17], [12, 0, 5, 5, 17], [-15, 8, 5, 5, 19], [10, 8, 5, 5, 19],
-  [-5, 3, 10, 7, 18], [-2, 5, 4, 4, 26],
+  [-22, 1, 44, 12, 12], [-27, 0, 6, 6, 18], [21, 0, 6, 6, 18], [-25, 9, 6, 6, 21], [19, 9, 6, 6, 21],
+  [-8, 3, 16, 8, 19], [-3, 5, 6, 5, 28], [-15, 4, 4, 4, 16], [11, 4, 4, 4, 16],
 ];
-const DUMMIES: readonly Vec2[] = [{ x: -17.5, z: 10.5 }, { x: -16.5, z: 11.5 }];
+const DUMMIES: readonly Vec2[] = [{ x: -31.5, z: 13.5 }, { x: -30.5, z: 14.5 }];
 
 const kindAt = (map: WorldMap, x: number, z: number) => tileAt(map, x + 0.5, z + 0.5);
 const tileRandom = (x: number, z: number, salt: number) => seededRandom(salt + x * 7919 + z * 104729);
@@ -107,13 +113,6 @@ function inBulk(map: WorldMap, x: number, z: number): boolean {
   return false;
 }
 
-function houseY(map: WorldMap, x: number, z: number): number {
-  let west = x, north = z;
-  while (x - west < HOUSE_REACH_TILES && kindAt(map, west - 1, z) === "house") west--;
-  while (north - z < HOUSE_REACH_TILES && kindAt(map, west, north + 1) === "house") north++;
-  return tileRandom(west, north, 5)() < 0.5 ? HOUSE_Y.low : HOUSE_Y.high;
-}
-
 function terraceY(map: WorldMap, x: number, z: number): number {
   const { area } = regionAt(map, x + 0.5, z + 0.5), cx = x + 0.5, cz = z + 0.5;
   const out = Math.max(area.x - cx, cx - area.x - area.w, area.z - cz, cz - area.z - area.h);
@@ -124,10 +123,15 @@ function terraceY(map: WorldMap, x: number, z: number): number {
 
 type Block = Omit<Ledge, "rect">;
 
+const alone = (map: WorldMap, x: number, z: number) =>
+  [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => !isSolid(map, x + dx! + 0.5, z + dz! + 0.5));
+
 function blockAt(map: WorldMap, x: number, z: number): Block | null {
   const kind = kindAt(map, x, z);
-  if (kind === "castleWall") return { topY: inBulk(map, x, z) ? BULK_Y : WALL_Y, look: "castle" };
-  if (kind === "house") return { topY: houseY(map, x, z), look: "house" };
+  if (kind === "castleWall") {
+    if (alone(map, x, z)) return { topY: WALL_Y, look: "column" };
+    return { topY: inBulk(map, x, z) ? BULK_Y : WALL_Y, look: "castle" };
+  }
   if (kind === "cutStone") return { topY: terraceY(map, x, z), look: "quarry" };
   const stall = STALLS.find((s) => s.kind === kind);
   if (!stall) return null;
@@ -159,12 +163,15 @@ export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
       ledges.push({ rect, ...block });
     }
   }
+  ledges.push(...houseLedges(map, chunk));
+  for (const rect of wholeRuns(map, chunk, "fountain")) ledges.push({ rect, topY: FOUNTAIN_RIM_Y, look: "fountain" });
+  for (const rect of wholeRuns(map, chunk, "statue")) ledges.push({ rect, topY: PLINTH_Y, look: "plinth" });
   const castle = map.regions.find((r) => r.id === "kingdom");
   if (castle) {
     const midX = castle.area.x + castle.area.w / 2, northZ = castle.area.z + castle.area.h;
     for (const [x, z, w, h, topY] of KEEP) {
       const rect = clip({ x: midX + x, z: northZ + z, w, h }, chunk);
-      if (rect) ledges.push({ rect, topY, look: "castle" });
+      if (rect) ledges.push({ rect, topY, look: "castle", crowned: true });
     }
   }
 
@@ -185,27 +192,14 @@ export function chunkScenery(map: WorldMap, chunk: Rect): Scenery {
       const kind = kindAt(map, x, z), rand = tileRandom(x, z, 3);
       const stall = STALLS.find((s) => s.kind === kind);
       if (stall) add(stall.goods, x + 0.5, z + 0.5, rand);
+      if (kind === "lamp") add("lamp", x + 0.5, z + 0.5, rand);
       if (kind === "cutStone" && rand() < TERRACE.propChance) add(rand() < 0.6 ? "chips" : "scrub", x + 0.5, z + 0.5, rand);
     }
   }
-  return { ledges, props };
-}
-
-export function tileBlocks(area: Rect, is: (x: number, z: number) => boolean): Rect[] {
-  const cols = area.w, rows = area.h, north = area.z + area.h;
-  const at = (c: number, r: number) => is(area.x + c + 0.5, north - r - 0.5);
-  const taken = new Set<string>(), rects: Rect[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (!at(c, r) || taken.has(`${c},${r}`)) continue;
-      let w = 1, h = 1;
-      while (c + w < cols && at(c + w, r) && !taken.has(`${c + w},${r}`)) w++;
-      const rowMatches = (rr: number) => Array.from({ length: w }, (_, i) => c + i)
-        .every((cc) => at(cc, rr) && !taken.has(`${cc},${rr}`));
-      while (r + h < rows && rowMatches(r + h)) h++;
-      for (let rr = r; rr < r + h; rr++) for (let cc = c; cc < c + w; cc++) taken.add(`${cc},${rr}`);
-      rects.push({ x: area.x + c, z: north - r - h, w, h });
-    }
+  for (const l of ledges) {
+    if (l.look !== "plinth") continue;
+    const x = l.rect.x + l.rect.w / 2, z = l.rect.z + l.rect.h / 2;
+    props.push({ kind: "statue", x, z, y: l.topY, scale: Math.min(l.rect.w, l.rect.h) / 2 });
   }
-  return rects;
+  return { ledges, props };
 }

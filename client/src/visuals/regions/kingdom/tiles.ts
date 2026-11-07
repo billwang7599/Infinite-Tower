@@ -47,6 +47,17 @@ const cobbles: GroundPaint = (pen, x, y, rand) => {
   }
 };
 
+const paving: GroundPaint = (pen, x, y, rand) => {
+  pen.rect(x, y, T, T, "#7d7568");
+  for (const [sx, sy, w, h] of [[0, 0, 9, 7], [9, 0, 7, 7], [0, 7, 6, 9], [6, 7, 10, 9]] as const) {
+    const tone = ["#a59c8b", "#9b9282", "#ada492", "#968d7d"][Math.floor(rand() * 4)]!;
+    pen.rect(x + sx + 1, y + sy + 1, w - 1, h - 1, tone);
+    pen.rect(x + sx + 1, y + sy + 1, w - 1, 1, "#bab19e");
+    pen.rect(x + sx + 1, y + sy + h - 1, w - 1, 1, "#857c6d");
+  }
+  if (rand() < 0.3) pen.rect(x + 2 + Math.floor(rand() * 10), y + 3 + Math.floor(rand() * 10), 2, 1, "#6f7a52");
+};
+
 export const KINGDOM_TILES: TileLooks = {
   grass: { ground: PAINT.grass, props: { kinds: ["tuft"], count: 0.2, scale: 0.6 } },
   flowers: { ground: PAINT.flowers, props: { kinds: ["flowers"], count: 2, scale: 0.7 } },
@@ -62,6 +73,10 @@ export const KINGDOM_TILES: TileLooks = {
   marble: { ground: marble },
   carpet: { ground: carpet },
   cobbles: { ground: cobbles },
+  paving: { ground: paving },
+  fountain: { ground: paving },
+  statue: { ground: paving },
+  lamp: { ground: cobbles },
   castleWall: { ground: PAINT.flagstones },
   house: { ground: cobbles },
   foodStall: { ground: cobbles },
@@ -75,6 +90,7 @@ export const KINGDOM_TILES: TileLooks = {
 
 export const TOWN_TILES = {
   marble: KINGDOM_TILES.marble, carpet: KINGDOM_TILES.carpet, cobbles: KINGDOM_TILES.cobbles,
+  paving: KINGDOM_TILES.paving, fountain: KINGDOM_TILES.fountain, statue: KINGDOM_TILES.statue, lamp: KINGDOM_TILES.lamp,
   castleWall: KINGDOM_TILES.castleWall, house: KINGDOM_TILES.house, foodStall: KINGDOM_TILES.foodStall,
   potionStall: KINGDOM_TILES.potionStall, forge: KINGDOM_TILES.forge, changerStall: KINGDOM_TILES.changerStall,
 } satisfies Partial<TileLooks>;

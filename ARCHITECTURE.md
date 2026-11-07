@@ -944,7 +944,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   moving the quest only when won. Highmere (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King
   Osric (naming the Empire, offering nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with
   no pad, at Highmere's prices, with the keepers and the Gilded Door's keeper (who only talks), between the castle and
-  the road down to the Waking Hollow. Summoning pads (`pads.test.ts`): one on each region whose spawn is a pad, bound to
+  the road down to the Waking Hollow; a broad way straight from the castle gate past the fountain to the South Gate,
+  the keepers' stalls round the fountain, statues and lamps in both wards, and castle wall all round them.
+  Summoning pads (`pads.test.ts`): one on each region whose spawn is a pad, bound to
   by Interact in reach and facing it (said once, then "already"), not in a fight; logging in and dying both wake you on
   yours, and a pad that's gone on Highmere's.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
@@ -1288,10 +1290,11 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        the pad new characters are bound to), wakeRegion, getRegion, inRegion (a region's own
                        tiles to the world's), getArena)
         regions/         A file each: castle-ward.ts (id `kingdom`: the Hall of Arrival and its platform, the throne
-                         room, the barracks and training yard, the courtyard, the kitchen, the garden and the castle
-                         gate), market-ward.ts (the market square and its stalls, the Gilded Door, the houses, the
-                         South Gate, and the walled-up gaps where Temple Hill's and the Lower Town's gates will
-                         open), waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
+                         room, the barracks and training yard, the courtyard, the kitchen, the garden and the
+                         gatehouse), market-ward.ts (the Processional Way, the great square with its fountain,
+                         statues and stalls, the Gilded Door, the streets of houses and the west square, the South
+                         Gate, and the walled-up gaps where Temple Hill's and the Lower Town's gates will open),
+                         waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, grey-wolf.ts, bog-lurker.ts,
                        kobold-swordsman.ts, kobold-greatsword.ts (the swordsman with a greatsword), goblin-warlock.ts,
                        training-dummy.ts
@@ -1736,13 +1739,26 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          on. The sky's colours and fog blend between two regions near where one gives way to the next
                          (skyBlendAt, SKY_BLEND_TILES) and ease there (SKY_BLEND_RATE)
         scenery.ts       Scenery's shapes (ledges, props) and chunkScenery, what stands in a chunk from the tiles round
-                         it so neighbours agree: castle walls (taller where thick: the bulk), house blocks (each
-                         block's height by its corner), the stalls (a counter ledge with an awning, the forge a hearth
-                         ledge) with their goods on top, the cut stone as terraces stepping up toward the quarry's
-                         edge and on past it (TERRACE), the Castle Ward's keep (KEEP) and the training yard's dummies;
-                         groundY, isTall, hidesWalker, tileBlocks (runs of tiles merged into rectangles); no Babylon:
-                         tested
-        terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the water's by region
+                         it so neighbours agree: castle walls (taller where thick: the bulk; a lone one a column),
+                         the houses, fountains and statues' plinths (town.ts), the stalls (a counter ledge with an
+                         awning, the forge a hearth ledge) with their goods on top, lamps and statues as props, the
+                         cut stone as terraces stepping up toward the quarry's edge and on past it (TERRACE), the
+                         Castle Ward's keep (KEEP) and the training yard's dummies; groundY, isTall, hidesWalker; no
+                         Babylon: tested
+        town.ts          The town's layout rules, no Babylon: houseLedges (a block of house tiles cut into houses,
+                         LOT_TILES, each a House picked by its corner: walls, roof, ridge, height, the door on the
+                         side facing the street, chimney, sign, flowers, lantern; one tile thick, a roofless wall),
+                         wholeRuns (a fountain or plinth whole), each built by the chunk holding its middle so
+                         one cut by a chunk's edge isn't built twice; crenelsOf (a castle wall's edge tiles facing
+                         the open air, not a hall); tileBlocks (runs of tiles merged into rectangles); tested
+        buildings.ts     townArt: Highmere's buildings as 3D volumes, one mesh each (so each turns see-through on its
+                         own) and one material, a code-drawn atlas (CELL) with a glow map for windows and lanterns:
+                         houses (plinth, walls, gables, a roof slab with eaves, fascia and ridge, chimney, door
+                         with frame, step and hood, windows with lintel, sill, shutters and flower boxes, sign,
+                         lantern), castle walls (plinth, string course, crenellated parapet, banners, arrow
+                         slits), hall columns, statue plinths and the tiered fountain (its water a mesh of its own)
+        terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the town's buildings
+                         (buildings.ts), the water's by region
                          theme, the campfire's frames, and each prop's mesh that a chunk's thin instances copy
         terrain.ts       buildChunk: one chunk, as a generator a piece at a time, its meshes kept out of the scene
                          until it's shown: its ground (paintGround) with the water carved out, blocks (shadow
@@ -1756,7 +1772,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          coals, built in 3D over each run of stall tiles so they look whole from every side
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the stalls' goods
                          and the forge's flames, the yard's dummies, the quarry's rubble, chips, scrub, carts, cranes
-                         and plank hut walls), drawn standing up;
+                         and plank hut walls, Highmere's bronze statue and lamp posts), drawn standing up;
                          Pen (a 2D canvas pen). No Babylon, so the art lab draws them too
       regions/         Each region theme's look, a folder per Theme. index.ts (REGION_LOOKS: its env (daylight
                        colours and fog, and its moon, which lights its fights too), tile looks and WaterLook; lookAt
@@ -1767,8 +1783,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          summoning pad's carved rim and ring among them)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours)
         mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds)
-        kingdom/         Highmere's wards. tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES,
-                         the town's tiles for the other looks to borrow)
+        kingdom/         Highmere's wards. tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the square's paving, the
+                         stalls, fountain, statue and lamp tiles; TOWN_TILES, the town's tiles for the other looks to
+                         borrow)
         quarry/          tiles.ts (QUARRY_TILES: pale dust with bedrock slabs, rails, dry scrub, rubble, a plank hut;
                          QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a

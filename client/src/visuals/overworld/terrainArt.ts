@@ -9,7 +9,8 @@ import { PX_PER_TILE } from "../../gfx/grid.js";
 import { pixelCanvas } from "../sprites.js";
 import { PROP_ART, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad } from "./scene.js";
-import { isTall, type Ledge, type PropKind } from "./scenery.js";
+import { townArt, type TownArt } from "./buildings.js";
+import { isTall, type PropKind } from "./scenery.js";
 import { stallLooks, type StallLooks } from "./stalls.js";
 
 /** Seen only by shadow maps: the camera's layer mask leaves this bit out. */
@@ -18,7 +19,8 @@ export const SHADOW_ONLY_LAYER = 0x10000000;
 export interface PropTemplate { quad: Mesh; card: Mesh | null; height: number }
 
 export interface TerrainArt {
-  looks: Record<NonNullable<Ledge["look"]>, readonly [StandardMaterial, StandardMaterial]>;
+  looks: Record<"counter" | "hearth" | "quarry", readonly [StandardMaterial, StandardMaterial]>;
+  town: TownArt;
   stalls: StallLooks;
   fire: StandardMaterial[];
   water(theme: Theme): StandardMaterial;
@@ -40,14 +42,12 @@ function tiled(tex: DynamicTexture): DynamicTexture {
 export function terrainArt(scene: Scene): TerrainArt {
   const tile = (name: string, draw: (pen: Pen) => void) =>
     lit(scene, `overworld-${name}`, tiled(pixelCanvas(scene, name, 32, 32, draw, false)));
-  const brick = tile("brick", drawBricks);
-  const stalls = stallLooks(scene, (name, tex) => lit(scene, name, tex), brick);
+  const stalls = stallLooks(scene, (name, tex) => lit(scene, name, tex), tile("brick", drawBricks));
   const waters = new Map<Theme, StandardMaterial>(), materials = new Map<PropKind, StandardMaterial>();
   const templates = new Map<string, PropTemplate>();
   return {
+    town: townArt(scene),
     looks: {
-      castle: [brick, brick],
-      house: [tile("roof", drawRoof), tile("plaster", drawPlaster)],
       counter: stalls.counter, hearth: stalls.hearth,
       quarry: [tile("cut-top", drawCutTop), tile("cut-face", drawCutFace)],
     },
@@ -107,35 +107,6 @@ function drawBricks(pen: Pen): void {
       pen.rect(x + 1, y + 1, 11, 1, "#9a92a0");
       pen.rect(x + 1, y + 6, 11, 1, "#55505c");
       if (rand() < 0.35) pen.rect(x + 2 + rand() * 7, y + 5, 3, 2, "#4f7a3a");
-    }
-  }
-}
-
-function drawPlaster(pen: Pen): void {
-  const rand = seededRandom(7);
-  pen.rect(0, 0, 32, 32, "#b9ad94");
-  for (let i = 0; i < 40; i++) pen.rect(rand() * 32, rand() * 32, 2, 1, rand() < 0.5 ? "#a99d84" : "#c6bba3");
-  for (const x of [0, 15]) {
-    pen.rect(x, 0, 2, 32, "#4a3324");
-    pen.rect(x, 0, 1, 32, "#5e4330");
-  }
-  pen.rect(0, 0, 32, 2, "#4a3324");
-  pen.rect(0, 16, 32, 2, "#4a3324");
-  pen.rect(5, 6, 6, 6, "#2c2a33");
-  pen.rect(5, 6, 6, 1, "#4a3324");
-  pen.rect(7, 7, 1, 5, "#6b5a3e");
-  pen.rect(20, 22, 6, 6, "#2c2a33");
-  pen.rect(20, 22, 6, 1, "#4a3324");
-}
-
-function drawRoof(pen: Pen): void {
-  const rand = seededRandom(9);
-  pen.rect(0, 0, 32, 32, "#6e3328");
-  for (let row = 0; row < 8; row++) {
-    const y = row * 4, shift = row % 2 ? 2 : 0;
-    for (let x = -shift; x < 32; x += 4) {
-      pen.rect(x, y, 3, 3, ["#8a4433", "#7d3c2e", "#94503b"][Math.floor(rand() * 3)]!);
-      pen.rect(x, y + 3, 4, 1, "#4f241c");
     }
   }
 }

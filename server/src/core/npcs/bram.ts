@@ -34,7 +34,7 @@ export const BRAM: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: -21.5, z: 10.5 },
+      at: { x: -35.5, z: 13.5 },
       heading: "east",
       talk: [
         {

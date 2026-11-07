@@ -4,7 +4,7 @@ export const KING: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: 17.5, z: 16.5 },
+      at: { x: 18.5, z: 22.5 },
       heading: "south",
       talk: [
         {

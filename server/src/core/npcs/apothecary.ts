@@ -4,7 +4,7 @@ export const APOTHECARY: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: 10.5, z: 9.5 },
+      at: { x: 28.5, z: 4.5 },
       heading: "south",
       talk: [
         {

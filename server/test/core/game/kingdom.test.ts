@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { distXZ, tileAt, type NpcId } from "@infinite-tower/shared";
+import { distXZ, isSolid, tileAt, type NpcId, type Rect, type TileKind, type Vec2 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
@@ -14,6 +14,7 @@ const KINGDOM = getRegion("kingdom");
 const MARKET = getRegion("market-ward");
 const SHOPKEEPERS: NpcId[] = ["grocer", "apothecary", "smith", "changer"];
 const HERALD_REACH_TILES = 5;
+const SQUARE_REACH_TILES = 22;
 
 
 describe("Highmere's Castle Ward", () => {
@@ -102,6 +103,52 @@ describe("Highmere's Market Ward", () => {
     const said = talkTo(session, link, "innkeeper");
     assert.ok(said.lines.length > 0);
     assert.equal(said.offer, null);
+  });
+});
+
+describe("Highmere, the old capital", () => {
+  const { layout } = WORLD;
+  const tilesIn = (area: Rect, kind: TileKind) => {
+    const at: Vec2[] = [];
+    for (let x = area.x + 0.5; x < area.x + area.w; x++) {
+      for (let z = area.z + 0.5; z < area.z + area.h; z++) if (tileAt(layout, x, z) === kind) at.push({ x, z });
+    }
+    return at;
+  };
+  const fountain = tilesIn(MARKET.area, "fountain");
+  const middle = (at: Vec2[]) => ({
+    x: at.reduce((s, p) => s + p.x, 0) / at.length, z: at.reduce((s, p) => s + p.z, 0) / at.length,
+  });
+
+  test("a broad way runs straight from the castle's gate past the market's fountain to the South Gate", () => {
+    const { x } = middle(fountain), clear = (z: number) => [-2, -1, 0, 1].every((dx) => !isSolid(layout, x + dx + 0.5, z));
+    const gate = KINGDOM.area.z + 0.5, south = MARKET.area.z + 0.5;
+    const fountainZ = fountain.map((p) => p.z);
+    for (let z = south; z <= gate; z++) {
+      if (z < Math.min(...fountainZ) - 1 || z > Math.max(...fountainZ) + 1) assert.ok(clear(z), `blocked at z ${z}`);
+    }
+    assert.ok(walkable({ x, z: south }, KINGDOM.spawn));
+  });
+
+  test("its market square has a fountain, statues and lamps, with every keeper's stall round the fountain", () => {
+    assert.ok(fountain.length >= 9);
+    assert.ok(tilesIn(MARKET.area, "statue").length > 0);
+    assert.ok(tilesIn(MARKET.area, "lamp").length > 0);
+    for (const npc of SHOPKEEPERS) {
+      assert.ok(distXZ(stopFor(newStory(), NPCS[npc])!.at, middle(fountain)) < SQUARE_REACH_TILES, npc);
+    }
+  });
+
+  test("the castle's courtyard and garden have statues and lamps of their own", () => {
+    assert.ok(tilesIn(KINGDOM.area, "statue").length > 0);
+    assert.ok(tilesIn(KINGDOM.area, "lamp").length > 0);
+  });
+
+  test("is walled in: the land round both wards is masonry", () => {
+    for (const id of ["kingdom", "market-ward"]) {
+      const { area } = getRegion(id);
+      assert.equal(tileAt(layout, area.x - 1.5, area.z + area.h / 2), "castleWall", id);
+    }
   });
 });
 

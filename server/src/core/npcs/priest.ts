@@ -4,7 +4,7 @@ export const PRIEST: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: -9.5, z: -6.5 },
+      at: { x: -13.5, z: -12.5 },
       heading: "south",
       talk: [
         {

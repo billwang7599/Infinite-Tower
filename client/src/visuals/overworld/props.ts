@@ -317,7 +317,52 @@ const shack: Draw = (pen, rand) => {
   pen.outline(OUTLINE);
 };
 
+const BRONZE = { deep: "#24302c", dark: "#35493f", mid: "#4d6a58", light: "#6f9078", shine: "#a9c4a0" };
+
+const statue: Draw = (pen) => {
+  pen.rect(22, 2, 2, 20, BRONZE.light);
+  pen.rect(23, 2, 1, 20, BRONZE.mid);
+  pen.rect(19, 21, 8, 2, BRONZE.mid);
+  pen.rect(21, 23, 4, 4, BRONZE.dark);
+  pen.disc(15.5, 18, 4, BRONZE.mid);
+  pen.rect(12, 15, 8, 2, BRONZE.light);
+  pen.rect(13, 13, 6, 2, BRONZE.mid);
+  pen.rect(13, 13, 1, 1, BRONZE.shine);
+  pen.rect(17, 13, 1, 1, BRONZE.shine);
+  pen.rect(16, 18, 2, 2, BRONZE.dark);
+  for (let y = 23; y < 60; y++) {
+    const half = 5 + Math.floor((y - 23) * 0.24);
+    pen.rect(16 - half, y, half * 2, 1, BRONZE.mid);
+    pen.rect(16 - half, y, Math.max(1, Math.floor(half * 0.6)), 1, BRONZE.light);
+    pen.rect(16 + half - 3, y, 3, 1, BRONZE.dark);
+  }
+  pen.rect(19, 23, 4, 4, BRONZE.mid);
+  pen.rect(20, 25, 3, 8, BRONZE.mid);
+  pen.rect(13, 30, 6, 2, BRONZE.dark);
+  pen.rect(12, 34, 8, 1, BRONZE.light);
+  for (let y = 40; y < 60; y += 5) pen.rect(9 + (y % 3), y, 1, 4, BRONZE.deep);
+  pen.rect(6, 59, 20, 2, BRONZE.dark);
+  for (const [x, y] of [[10, 44], [21, 50], [14, 38]] as const) pen.rect(x, y, 2, 1, "#7fa89a");
+  pen.outline("#151c19");
+};
+
+const lamp: Draw = (pen) => {
+  pen.rect(7, 12, 2, 34, IRON.dark);
+  pen.rect(7, 12, 1, 34, IRON.mid);
+  pen.rect(5, 44, 6, 4, IRON.dark);
+  pen.rect(4, 2, 8, 2, IRON.dark);
+  pen.rect(5, 4, 6, 7, "#f3c76a");
+  pen.rect(6, 5, 2, 5, "#fff0b8");
+  pen.rect(5, 4, 1, 7, IRON.dark);
+  pen.rect(10, 4, 1, 7, IRON.dark);
+  pen.rect(4, 11, 8, 1, IRON.dark);
+  pen.rect(7, 0, 2, 2, IRON.mid);
+  pen.outline(OUTLINE);
+};
+
 export const PROP_ART: Record<PropKind, PropArt> = {
+  statue: { widthPx: 32, heightPx: 62, draw: statue },
+  lamp: { widthPx: 16, heightPx: 48, draw: lamp },
   tree: { widthPx: 48, heightPx: 64, draw: tree },
   pine: { widthPx: 32, heightPx: 64, draw: pine },
   deadTree: { widthPx: 32, heightPx: 56, draw: deadTree },
