@@ -65,7 +65,7 @@ export function skillAttackSystem(): System {
       if (enemy.state === "skillCast") stamina.regenDelay = PLAYER.staminaRegenDelay;
       else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
       else {
-        const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * modsOf(world, e).staminaRegenFactor;
+        const regenPerSec = staminaRegenPerSec(stats, modsOf(world, e).staminaRegenFactor);
         stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
       }
     }

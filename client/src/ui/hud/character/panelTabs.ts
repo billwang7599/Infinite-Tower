@@ -10,6 +10,12 @@ export const CHARACTER_TABS = [
 ] as const satisfies readonly Tab<string>[];
 export type CharacterTab = (typeof CHARACTER_TABS)[number]["id"];
 
+export const STAT_TABS = [
+  { id: "basic", name: "Basic" },
+  { id: "advanced", name: "Advanced" },
+] as const satisfies readonly Tab<string>[];
+export type StatTab = (typeof STAT_TABS)[number]["id"];
+
 export const RELATIONSHIP_TABS = [
   { id: "gods", name: "Gods" },
 ] as const satisfies readonly Tab<string>[];

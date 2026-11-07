@@ -1190,7 +1190,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), statuses.ts (STATUS_DEFS: every status, harmful or
                    not, its stat mods, stack cap and amount; StatMods, NO_MODS; applyStatus, endStatus, cleanse,
-                   timeLeft, stacksOf, modsFrom, modsOf: a fighter's), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
+                   timeLeft, stacksOf, modsFrom, modsOf: a fighter's; passivesOf: a character's inscriptions' and
+                   blessings' statuses, on for good in a fight), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats: the shown
@@ -1306,8 +1307,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    on or back, by its drag and gravity), nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
-                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime, parryWindowTime;
-                   GUARDS: the held block by guard, shield, one blade, two blades)
+                   windupTime (a strike's by its chain and momentum), wayStepsAfter, strikeCost, strikeDamage,
+                   guardRaiseTime, perfectBlockTime, parryWindowTime; GUARDS: the held block by guard, shield, one
+                   blade, two blades)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1601,9 +1603,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the realm and step), RealmSeal.tsx (the realm's glyph as a cinnabar seal before your name,
                        the step's and the result banner; none for a realm without a glyph), character/
                        (CharacterPanel.tsx: the panel and its tabs, from panelTabs.ts's tables, drawn by Tabs.tsx;
-                       StatsTab.tsx: the portrait, the core's realm and step, the shown stats as a polygon chart, each
-                       one's number between − (only by a campfire) and + for free points, hovering them previewing the
-                       change and what the stat does; CoreTab.tsx: the sphere big, with its rings, and the rings listed;
+                       StatsTab.tsx: sub-tabs; Basic, the portrait, the core's realm and step, the shown stats as a
+                       polygon chart, each one's number between − (only by a campfire) and + for free points, hovering
+                       them previewing the change and what the stat does; Advanced, AdvancedStats.tsx, the fight's
+                       numbers for your gear, stats and passives, from combatNumbers.ts: per hand holding a weapon its
+                       weight, heft and strikes' times, then the guard, the dodge and the body; CoreTab.tsx: the
+                       sphere big, with its rings, and the rings listed;
                        RelationshipsTab.tsx: its sub-tabs, so far only Gods, your faith with each; chart.ts:
                        chartPoints, the polygon's corners for any number of stats, and chartMax, its rim: the most a
                        stat could be at the step), paintSphere.ts (usePaintedSphere: a sphere painted onto a canvas

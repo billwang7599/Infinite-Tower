@@ -3,7 +3,7 @@
  * the server. At the average, 10, every formula gives the base number (×1).
  */
 import { defineComponent } from "../core/ecs.js";
-import type { Vitals } from "./player.js";
+import { PLAYER, type Vitals } from "./player.js";
 
 export const SHOWN_STATS = [
   "strength", "agility", "stamina", "skillpower", "vitality", "defense", "specialDefense",
@@ -39,7 +39,8 @@ export const staminaMaxOf = (stats: Stats): number => STAMINA_PER_POINT * stats.
 export const physicalTakenFactor = (stats: Stats): number => takenFactor(stats.defense);
 export const skillTakenFactor = (stats: Stats): number => takenFactor(stats.specialDefense);
 export const stunTime = (time: number, stats: Stats): number => time / ratio(stats.toughness);
-export const staminaRegenPerSec = (base: number, stats: Stats): number => base * ratio(stats.staminaRecovery);
+export const staminaRegenPerSec = (stats: Stats, regenFactor: number): number =>
+  PLAYER.staminaRegenPerSec * ratio(stats.staminaRecovery) * regenFactor;
 export const hpRegenPerSec = (stats: Stats): number => (stats.vitality * stats.healthRegen) / HP_REGEN_DIVISOR;
 export const carryLimit = (stats: Stats): number => CARRY_LIMIT_AT_AVERAGE * ratio(stats.strength) ** 0.25;
 

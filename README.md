@@ -126,8 +126,9 @@ What's built so far:
   the step's essence, or with none, a whole step. Click your portrait (bottom left) to turn it over to your core: a
   glass sphere whose light grows brighter every step and changes colour every realm, fiery Yan to ethereal Tian, with
   no bar or number; sparks show as a breakthrough nears, and a breakthrough flashes. The character panel's tabs show
-  your stats as a polygon chart, where free points are placed (hovering + or − previews the change), your core big
-  with its rings, and your faith with each god.
+  your stats as a polygon chart, where free points are placed (hovering + or − previews the change), and under
+  Advanced the fight's numbers for your gear (each held weapon's swing times, the guard, the dodge); your core big
+  with its rings; and your faith with each god.
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a small 3 x 2 bag that items fit into by size, and a backpack worn on your back with a grid of its

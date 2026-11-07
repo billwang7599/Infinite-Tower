@@ -1,9 +1,9 @@
 import {
-  AVERAGE_STAT, CHAIN, HYBRID, wayStepsAfter, WEAPONS, type AttackKind, type SwingData, type Way,
+  AVERAGE_STAT, wayStepsAfter, WEAPONS, windupTime, type AttackKind, type SwingData, type Way,
 } from "@infinite-tower/shared";
 
 export function swingAt(attack: AttackKind, way: Way, step: number, aimYaw = 0): SwingData {
-  const heavy = attack === "heavy", windup = CHAIN.startupTime.opening + (heavy ? HYBRID.heavy.extraTime : 0);
+  const heavy = attack === "heavy", windup = windupTime(attack, "opening", 0);
   return {
     attack, way, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
     ...wayStepsAfter(WEAPONS.sword, windup, heavy, AVERAGE_STAT), damage: 9, poiseDamage: 12,

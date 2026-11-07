@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   AVERAGE_STAT, BASE_STATS, CARRY_LIMIT_AT_AVERAGE, carryLimit, DEFENSE_OFFSET, grownVitals, HIDDEN_STATS,
-  HP_PER_VITALITY, HP_REGEN_DIVISOR, hpRegenPerSec, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor,
+  HP_PER_VITALITY, HP_REGEN_DIVISOR, hpRegenPerSec, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, PLAYER,
   SHOWN_STATS, skillDamage, skillTakenFactor, STAMINA_PER_POINT, staminaMaxOf, staminaRegenPerSec, STAT_KEYS, stunTime,
 } from "@infinite-tower/shared";
 
@@ -22,7 +22,7 @@ test("at the base stats every formula gives the base numbers", () => {
   assert.equal(physicalTakenFactor(BASE_STATS), 1);
   assert.equal(skillTakenFactor(BASE_STATS), 1);
   assert.equal(stunTime(0.5, BASE_STATS), 0.5);
-  assert.equal(staminaRegenPerSec(45, BASE_STATS), 45);
+  assert.equal(staminaRegenPerSec(BASE_STATS, 1), PLAYER.staminaRegenPerSec);
 });
 
 test("HP comes from vitality, and the stamina bar from stamina", () => {
@@ -46,7 +46,11 @@ test("defense cuts physical damage taken, special defense skill damage, never to
 
 test("toughness shortens stuns, stamina recovery speeds stamina's refill", () => {
   close(stunTime(1, { ...BASE_STATS, toughness: times(2) }), 0.5);
-  close(staminaRegenPerSec(45, { ...BASE_STATS, staminaRecovery: times(2) }), 90);
+  close(staminaRegenPerSec({ ...BASE_STATS, staminaRecovery: times(2) }, 1), 2 * PLAYER.staminaRegenPerSec);
+});
+
+test("a status's regen factor scales stamina's refill", () => {
+  close(staminaRegenPerSec(BASE_STATS, 1.5), 1.5 * PLAYER.staminaRegenPerSec);
 });
 
 test("HP regen grows with vitality and health regen alike", () => {

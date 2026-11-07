@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   AVERAGE_STAT, CHAIN, chainKind, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay, startupTime, strikeCost,
-  SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS,
+  SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS, windupTime,
 } from "@infinite-tower/shared";
 
 describe("the sword's ways", () => {
@@ -37,6 +37,16 @@ describe("the sword's ways", () => {
     assert.equal(startupTime("other", MOMENTUM.max + 5), startupTime("other", MOMENTUM.max));
     assert.equal(momentumDamage(0), 1);
     assert.equal(momentumDamage(99), MOMENTUM.maxDamage);
+  });
+
+  test("a light winds up as its chain's startup, a heavy that plus its extra, a stab its own in any chain", () => {
+    for (const kind of ["opening", "reverse", "perpendicular", "other"] as const) {
+      for (const momentum of [0, MOMENTUM.max]) {
+        assert.equal(windupTime("light", kind, momentum), startupTime(kind, momentum));
+        assert.equal(windupTime("heavy", kind, momentum), startupTime(kind, momentum) + HYBRID.heavy.extraTime);
+        assert.equal(windupTime("stab", kind, momentum), CHAIN.stabStartupTime);
+      }
+    }
   });
 
   test("no wind-up is ever quicker than the floor, however much momentum", () => {
