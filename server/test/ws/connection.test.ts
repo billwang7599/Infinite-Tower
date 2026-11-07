@@ -137,7 +137,9 @@ describe("Connection with a simulated ping (dev)", () => {
   test("what the game sends leaves half the ping later, in order", (t) => {
     const { socket, conn } = slow(t, 37);
     conn.send(RESTED);
-    const gear = { bag: emptyBag(), pack: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: armed() };
+    const gear = {
+      bag: emptyBag(), pack: packFor(null), quiver: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: armed(),
+    };
     conn.send({ t: "gear", gear });
     t.mock.timers.tick(18);
     assert.deepEqual(socket.sent, []);

@@ -18,7 +18,7 @@ const NPC = stopFor(newStory(), NPCS.hollis)!;
 const start = (opts: Parameters<typeof startSession>[0] = {}) =>
   startSession({ ...opts, saved: { pad: NPC.region, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
-const carrying = (bag: Bag) => ({ bag, pack: packFor(null) });
+const carrying = (bag: Bag) => ({ bag, pack: packFor(null), quiver: packFor(null) });
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 
 function standBy(session: GameSession, awayTiles: number, heading: Heading = "west", offRad = 0): void {

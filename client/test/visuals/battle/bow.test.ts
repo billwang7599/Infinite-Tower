@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, TransformNode, Vector3 } from "@babylonjs/core";
-import { BOW, Projectile, World, type Entity, type ProjectileData } from "@infinite-tower/shared";
+import { BOW, Projectile, WEAPONS, World, type Entity, type ProjectileData } from "@infinite-tower/shared";
 import { ARROW_M, arrowVisual, LEAVE_BOW_TIME, type HeldBow } from "../../../src/visuals/battle/bow.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 
 const SHOOTER = 1 as Entity;
-const { speedMps, lifeTime } = BOW.projectile;
+const { lifeTime } = BOW.projectile, speedMps = WEAPONS["training-bow"].powerMps ?? 0;
 const near = (a: Vector3, b: Vector3, what: string) =>
   assert.ok(Vector3.Distance(a, b) < 1e-6, `${what}: ${a.toString()} vs ${b.toString()}`);
 
@@ -21,7 +21,7 @@ describe("an arrow in flight", () => {
 
   const loosed = (t: number, shooter = SHOOTER): { e: Entity; o: ProjectileData } => {
     const e = world.spawn();
-    const o = world.add(e, Projectile, {
+    const o = world.add<ProjectileData>(e, Projectile, {
       shooter, weapon: "training-bow", pos: { x: 0, y: 0.85, z: 0.6 + speedMps * t },
       vel: { x: 0, y: 0, z: speedMps }, damage: 1, left: lifeTime - t, stuck: false,
     });

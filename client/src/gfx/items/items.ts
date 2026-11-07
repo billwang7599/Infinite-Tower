@@ -257,6 +257,27 @@ function arrow(px: Pixels): void {
   head.fill(both(shafts, rect(0, 8, 15, 9)), ink("leather", BASE));
 }
 
+function quiver(px: Pixels): void {
+  const tubeY = 9, tube = union(rect(4, tubeY + 1, 11, 29), ellipse(7.5, 29.5, 3.5, 1.5));
+  const arrows = [5, 8, 10].map((x, i) => ({ x, top: 2 + (i % 2) }));
+  const shafts = union(...arrows.map(({ x, top }) => rect(x, top + 2, x, tubeY)));
+  const wood = new Pen(px, 0);
+  wood.fill(shafts, ink("root", LIGHT));
+  const fletch = union(...arrows.map(({ x, top }) => polygon([[x - 1, top], [x + 2, top], [x + 1.5, 7], [x - 0.5, 7]])));
+  wood.fill(fletch, ink("fat", BASE));
+  wood.shade(darkEdge(fletch, 1), SHADOW);
+  const leather = new Pen(px, 1);
+  leather.fill(tube, ink("leather", BASE));
+  leather.shade(litEdge(tube, 2), LIGHT);
+  leather.shade(darkEdge(tube, 2), SHADOW);
+  leather.fill(rect(3, tubeY, 12, tubeY + 1), ink("leather", LIGHT));
+  leather.shade(rect(3, tubeY + 1, 12, tubeY + 1), SHADOW);
+  const band = rect(4, 20, 11, 21);
+  leather.fill(band, ink("brass", BASE));
+  leather.shade(rect(4, 20, 11, 20), LIGHT, "brass");
+  leather.fill(bar([12.5, 12], [14, 27], 0.7), ink("leather", DEEP));
+}
+
 function skillbook(px: Pixels): void {
   const pages = new Pen(px, 0);
   const block = rect(6, 5, 28, 28);
@@ -454,7 +475,7 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "sigil-of-the-last-breath": sigil("wisp"), "sigil-of-the-red-blade": sigil("gold"),
   "sigil-of-the-first-door": sigil("blood"), "canvas-backpack": backpack, "wool-cap": cap, "leather-belt": belt,
   "copper-ring": ring, "braided-bracelet": bracelet, "feathered-hat": featheredHat, "training-bow": trainingBow,
-  arrow,
+  arrow, "training-quiver": quiver,
 };
 
 const drawn = new Map<ItemId, Picture>();

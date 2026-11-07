@@ -169,6 +169,13 @@
       "when": 1793783896316,
       "tag": "0023_backpack",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793830019756,
+      "tag": "0024_quiver",
+      "breakpoints": true
     }
   ]
 }

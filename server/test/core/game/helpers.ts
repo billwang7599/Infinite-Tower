@@ -34,7 +34,7 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const saves: PlayerSave[] = [];
   const saved: PlayerSave = {
     ...newPlayer(), character: TEST_CHARACTER, pad: HOLLOW, equipment: armed(), pack: packFor(null),
-    knownWords: [...WORDS], ...opts.saved,
+    quiver: packFor(null), knownWords: [...WORDS], ...opts.saved,
   };
   let overworld: Overworld | null = null;
   const overworldOf = () => overworld ??= new Overworld(WORLD);

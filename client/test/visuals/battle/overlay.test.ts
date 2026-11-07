@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
-import type { PlayerAction } from "@infinite-tower/shared";
-import { AIM_HUD, aimHud, aimLayout, onScreen, ringLights, wedgeOf } from "../../../src/visuals/battle/overlay.js";
+import { AVERAGE_STAT, BOW, drawTime, WEAPONS, type PlayerAction } from "@infinite-tower/shared";
+import {
+  AIM_HUD, aimHud, aimLayout, meterSpan, onScreen, ringLights, wedgeOf,
+} from "../../../src/visuals/battle/overlay.js";
 import { playerDoing } from "../../fixtures/players.js";
 import { swingAt, waySwingAt } from "../../fixtures/swings.js";
 
@@ -78,6 +80,47 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
   test("neighbouring wedges keep a gap between them", () => {
     const spacingPx = 2 * AIM_HUD.ringRadiusPx * Math.sin(Math.PI / 8);
     assert.ok(spacingPx > AIM_HUD.wedgeLengthPx + AIM_HUD.ringEdgePx);
+  });
+});
+
+describe("the draw meter, in the ring's place while a bow is in hand", () => {
+  const BOW_ITEM = WEAPONS["training-bow"], STRENGTH = AVERAGE_STAT;
+  const FULL = drawTime(BOW, BOW_ITEM, STRENGTH, "fullTime"), MIN = drawTime(BOW, BOW_ITEM, STRENGTH, "minTime");
+  const hud = (action: PlayerAction, t: number, hp = 10, fighting = true) =>
+    aimHud(playerDoing(action, t), hp, null, "tb", fighting, BOW_ITEM, STRENGTH);
+
+  test("with a bow in hand it shows, and the ring doesn't", () => {
+    assert.deepEqual(hud("none", 0), { ring: null, crosshair: false, meter: { share: 0, minShare: MIN / FULL } });
+  });
+
+  test("it fills with the draw, and stays full past the full draw", () => {
+    assert.equal(hud("draw", FULL / 2).meter?.share, 0.5);
+    assert.equal(hud("draw", FULL).meter?.share, 1);
+    assert.equal(hud("draw", 3 * FULL).meter?.share, 1);
+  });
+
+  test("it marks the least draw, where a release looses at once", () => {
+    assert.equal(hud("draw", 0).meter?.minShare, MIN / FULL);
+    assert.ok(MIN / FULL > 0 && MIN / FULL < 1);
+  });
+
+  test("it's empty while the next arrow is nocked", () => {
+    assert.equal(hud("loose", 0.1).meter?.share, 0);
+  });
+
+  test("none with a sword in hand, once down, or once the fight is decided", () => {
+    assert.equal(aimHud(playerDoing("none", 0, "tb"), 10, null, "tb", true, WEAPONS.sword, STRENGTH).meter, null);
+    assert.equal(hud("draw", 0.5, 0).meter, null);
+    assert.equal(hud("draw", 0.5, 10, false).meter, null);
+  });
+
+  test("it lies level across the ring's place, centred, its marks inside it", () => {
+    const layout = aimLayout(1920, 1080, 1), span = meterSpan(layout);
+    assert.equal((span.left + span.right) / 2, layout.ring.x);
+    assert.equal(span.y, layout.ring.y);
+    assert.equal(span.right - span.left, AIM_HUD.meterLengthPx);
+    const doubled = meterSpan(aimLayout(2732, 1536, 2));
+    assert.equal(doubled.right - doubled.left, 2 * AIM_HUD.meterLengthPx);
   });
 });
 

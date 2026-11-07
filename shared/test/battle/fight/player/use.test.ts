@@ -19,6 +19,7 @@ const EAT = input({ bag: true, use: MEAT_AT });
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const withMeat = (count = 2): Carried => ({
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count, x: 0, y: 0, turned: false }] }, pack: packFor(null),
+  quiver: packFor(null),
   equipment: armed(),
 });
 
@@ -45,7 +46,7 @@ describe("eating in a fight", () => {
     const fight = new Fight({
       arena: ARENA, enemies: [enemy(STATUE, at(0, 6))],
       players: [player(at(0, 0), {
-        gear: { bag: emptyBag(), pack, equipment: { ...armed(), back: "canvas-backpack" } },
+        gear: { bag: emptyBag(), pack, quiver: packFor(null), equipment: { ...armed(), back: "canvas-backpack" } },
         vitals: { hp: HURT_HP, stamina: FULL_STAMINA },
       })],
     });

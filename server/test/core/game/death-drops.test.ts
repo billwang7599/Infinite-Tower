@@ -40,11 +40,12 @@ const countsAt = (overworld: Overworld, at: Vec2): ItemCounts | null => {
   return pile === null ? null : bagCounts(overworld.pileItems(pile)!);
 };
 
-function fighting(saved: { bag?: Bag; pack?: Bag; equipment?: Equipment } = {}) {
+function fighting(saved: { bag?: Bag; pack?: Bag; quiver?: Bag; equipment?: Equipment } = {}) {
   const started = startSession({
     dev: true,
     saved: {
-      bag: saved.bag ?? CARRIED, pack: saved.pack ?? packFor(null), equipment: saved.equipment ?? BLADE_IN_HAND,
+      bag: saved.bag ?? CARRIED, pack: saved.pack ?? packFor(null), quiver: saved.quiver ?? packFor(null),
+      equipment: saved.equipment ?? BLADE_IN_HAND,
     },
   });
   const { session } = started;
@@ -88,6 +89,18 @@ describe("dying alone", () => {
     assert.deepEqual(link.last("battleResult").lost, dropped);
     assert.equal(session.gear.equipment.back, null);
     assert.deepEqual(session.gear.pack, packFor(null));
+  });
+
+  test("the quiver drops with its arrows, and they wake with neither", () => {
+    const quiver = addItem(packFor("training-quiver"), "arrow", 30).bag;
+    const equipment = { ...BLADE_IN_HAND, hip: "training-quiver" } as const;
+    const { session, link } = fighting({ bag: emptyBag(), quiver, equipment });
+    die(session);
+    const dropped = { arrow: 30, "training-quiver": 1, "kobold-blade": 1 };
+    assert.deepEqual(countsAt(session.overworld, FIGHT_SPOT), dropped);
+    assert.deepEqual(link.last("battleResult").lost, dropped);
+    assert.equal(session.gear.equipment.hip, null);
+    assert.deepEqual(session.gear.quiver, packFor(null));
   });
 
   test("the pile vanishes PILE_LIFETIME_MS after it lands", (t) => {

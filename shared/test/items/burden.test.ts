@@ -33,7 +33,9 @@ describe("burdenOf", () => {
 });
 
 const only = (bag: Bag): Gear =>
-  ({ bag, pack: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: emptyEquipment() });
+  ({
+    bag, pack: packFor(null), quiver: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: emptyEquipment(),
+  });
 
 describe("gearBurden", () => {
   test("weighs the bag against the carry limit from strength", () => {

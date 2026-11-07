@@ -1,6 +1,6 @@
 import {
-  BASE_BAG, blankSkillbook, coreStats, emptyBag, emptyEquipment, fitsSlot, ITEMS, keptCore, keptFaith, maxHpOf,
-  newCore, packFor, SLOTS, staminaMaxOf, stow, validateSkill, WORDS, type Bag, type BagItem, type Equipment,
+  BASE_BAG, blankSkillbook, coreStats, displacedBy, emptyBag, emptyEquipment, fitsSlot, ITEMS, keptCore, keptFaith,
+  maxHpOf, newCore, packFor, SLOTS, staminaMaxOf, stow, validateSkill, WORDS, type Bag, type BagItem, type Equipment,
   type ItemCounts, type ItemId, type Skill, type Skillbook, type Slot, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
@@ -18,8 +18,9 @@ export const STARTER_BACKPACK = "canvas-backpack" satisfies ItemId;
 /** A player the store has never saved. */
 export const newPlayer = (): PlayerSave => ({
   vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
-  pack: packFor(STARTER_BACKPACK), knownWords: [], equipment: { ...emptyEquipment(), back: STARTER_BACKPACK },
-  skillbook: blankSkillbook(), story: newStory(), pad: START_REGION, core: newCore(), shopsBought: [], faith: {},
+  pack: packFor(STARTER_BACKPACK), quiver: packFor(null), knownWords: [],
+  equipment: { ...emptyEquipment(), back: STARTER_BACKPACK }, skillbook: blankSkillbook(), story: newStory(),
+  pad: START_REGION, core: newCore(), shopsBought: [], faith: {},
 });
 
 const isItem = (item: string): item is ItemId => Object.hasOwn(ITEMS, item);
@@ -30,9 +31,9 @@ const isItem = (item: string): item is ItemId => Object.hasOwn(ITEMS, item);
  */
 export function keptSave(stored: StoredSave): { save: PlayerSave; spilled: ItemCounts } {
   const knownWords = stored.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word));
-  const { bag, pack, equipment, spilled } = refitted(stored.bag, stored.pack, wearable(stored.equipment));
+  const { bag, pack, quiver, equipment, spilled } = refitted(stored, wearable(stored.equipment));
   const save = {
-    ...stored, knownWords, bag, pack, equipment,
+    ...stored, knownWords, bag, pack, quiver, equipment,
     skillbook: readable(stored.skillbook, new Set(knownWords)),
     story: keptStory(stored.story),
     core: keptCore(stored.core),
@@ -42,20 +43,24 @@ export function keptSave(stored: StoredSave): { save: PlayerSave; spilled: ItemC
   return { save, spilled };
 }
 
-const sameSize = (a: Bag, b: { cols: number; rows: number }) => a.cols === b.cols && a.rows === b.rows;
+const sameSize = (a: Bag, b: Omit<Bag, "items">) => a.cols === b.cols && a.rows === b.rows
+  && a.holds?.item === b.holds?.item && a.holds?.stackSize === b.holds?.stackSize;
 const area = (s: BagItem) => ITEMS[s.item].cols * ITEMS[s.item].rows;
 
 // A bag of another size is from before the backpack, so it gets the starter one. Biggest first packs tightest.
-function refitted(savedBag: Bag, savedPack: Bag, saved: Equipment) {
+function refitted(saved: Pick<StoredSave, "bag" | "pack" | "quiver">, worn: Equipment) {
   const known = (grid: Bag) => grid.items.filter((s) => isItem(s.item));
-  const oldBag = !sameSize(savedBag, BASE_BAG);
-  const equipment = { ...saved, back: saved.back ?? (oldBag ? STARTER_BACKPACK : null) };
-  const oldPack = !sameSize(savedPack, packFor(equipment.back));
-  let stowed = {
-    bag: { ...emptyBag(), items: oldBag ? [] : known(savedBag) },
-    pack: { ...packFor(equipment.back), items: oldPack ? [] : known(savedPack) },
-  };
-  const moved = [...(oldBag ? known(savedBag) : []), ...(oldPack ? known(savedPack) : [])];
+  const oldBag = !sameSize(saved.bag, BASE_BAG);
+  const equipment = { ...worn, back: worn.back ?? (oldBag ? STARTER_BACKPACK : null) };
+  // A save from before bows took both hands: the left hand's goes into the bag.
+  const loose = equipment.rightHand && displacedBy(equipment, equipment.rightHand, "rightHand");
+  if (loose) equipment.leftHand = null;
+  const grids = { bag: emptyBag(), pack: packFor(equipment.back), quiver: packFor(equipment.hip) };
+  const old = { bag: oldBag, pack: !sameSize(saved.pack, grids.pack), quiver: !sameSize(saved.quiver, grids.quiver) };
+  const kept = (grid: keyof typeof grids) => ({ ...grids[grid], items: old[grid] ? [] : known(saved[grid]) });
+  let stowed = { bag: kept("bag"), pack: kept("pack"), quiver: kept("quiver") };
+  const moved = (["bag", "pack", "quiver"] as const).flatMap((grid) => (old[grid] ? known(saved[grid]) : []));
+  if (loose) moved.push({ item: loose, count: 1, x: 0, y: 0, turned: false });
   const spilled: ItemCounts = {};
   for (const s of moved.sort((a, b) => area(b) - area(a))) {
     const put = stow(stowed, s.item, s.count);

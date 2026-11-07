@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ITEMS, WEAPONS, type BagItem, type ItemId } from "@infinite-tower/shared";
+import { BOW, ITEMS, WEAPONS, type BagItem, type ItemId } from "@infinite-tower/shared";
 import { formatWeight, itemInfo } from "../../../../src/ui/hud/inventory/itemInfo.js";
 
 const stack = (item: ItemId, count = 1, turned = false): BagItem => ({ item, count, x: 0, y: 0, turned });
@@ -44,9 +44,22 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
   });
 
-  test("a bow says it's drawn and shoots arrows from the bag; an arrow says it's shot from a bow", () => {
-    assert.match(itemInfo(stack("training-bow")).effect ?? "", /drawn and loosed.*arrows from your bag/);
-    assert.match(itemInfo(stack("arrow")).effect ?? "", /from a bow/);
+  test("a bow says it's drawn, takes both hands, how fast it shoots and where its arrows come from", () => {
+    const bow = itemInfo(stack("training-bow")).effect ?? "";
+    assert.match(bow, /drawn and loosed/);
+    assert.match(bow, /both hands/);
+    assert.match(bow, new RegExp(`${WEAPONS["training-bow"].powerMps} m/s`));
+    assert.match(bow, /arrows from your quiver, else your bag/);
+    assert.match(itemInfo(stack("arrow")).effect ?? "", /from a bow.*quiver first/);
+  });
+
+  test("a quiver says where it's worn, how many arrows its cell holds, and that they're nocked quicker", () => {
+    const { holds } = ITEMS["training-quiver"].pack;
+    const quiver = itemInfo(stack("training-quiver")).effect ?? "";
+    assert.match(quiver, /^Worn at your hip/);
+    assert.match(quiver, new RegExp(`${holds.stackSize} arrows`));
+    assert.match(quiver, new RegExp(`${BOW.nock.quiverTime} s`));
+    assert.match(quiver, new RegExp(`${BOW.nock.bagTime} s`));
   });
 
   test("a weapon that needs strength says how much", () => {

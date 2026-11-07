@@ -138,8 +138,9 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, a wolf pelt and fang, a lurker scale, the
 old stick, the swords, the skillbook, each monster's essence (one bead, in six colours), a bog pearl, the sigils
 (one stone disc with a rune ring, glowing in its tier's colour), a canvas backpack, a wool cap, a leather belt, a
-copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left) and a
-sheaf of three arrows (a placeholder pair, admin give only). The sprites draw nothing worn (the arena's 3D people wear
+copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left), a
+sheaf of three arrows and a training quiver (a leather tube on end with a brass band and a strap, three fletchings over
+its mouth; the three are placeholders, admin give only). The sprites draw nothing worn (the arena's 3D people wear
 it, below); the sword shows in the arena as a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the
 arena's frames are painted without it.
 The blade's faces are `SWORD`'s blade drawn to the blade's length with square pixels, its dark outline shaded instead
@@ -254,7 +255,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   tooltips, buttons, status tiles and slots have cut corners; panels a double engraved line inside their edge.
   Letterpress Gill Sans capitals, widely spaced, for titles, names and labels; bone text (`bone`), cinnabar
   (`cinnabar`) for the one accent and the seal (the realm's glyph) before names, verdigris for labels and keys, on
-  dark stone (`stone`, `pit`). The aim ring and crosshair take the same bone and cinnabar. Tokens and utilities:
+  dark stone (`stone`, `pit`). The aim ring, a bow's draw meter (a carved bar with pointed ends, its marks bone at the
+  least draw and cinnabar at full) and the crosshair take the same bone and cinnabar. Tokens and utilities:
   `client/src/ui/styles.css`.
 - **Buildings**: Highmere's walls and houses are 3D volumes (`visuals/overworld/buildings.ts`), textured from one
   code-drawn atlas at the ground's 16 pixels a tile, each picture covering 2 x 2 tiles and repeated by cutting faces
@@ -270,11 +272,11 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   first person's wider view. A block's size goes by the depth at its centre and its colour is the average over it, so
   a silhouette's steps get in-between colours (the user: "also enable anti aliasing"; 4x MSAA does the rest), and the
   outline is a block wide at every depth, drawn over the opaque scene only: the blade, the swing's trail and glint,
-  skills, particles and see-through things go on after it, so nothing behind them outlines through them. What reads
-  as HUD (your aim ring at the bottom centre, the crosshair, the lock-on diamond, other fighters' chant words) is
-  drawn sharp over it. In dev, `?pixel=fixed` draws every pixel the same size (the arena drawn small and blown up,
-  as before), `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render), and `&aa=0`
-  turns the anti-aliasing off.
+  skills, particles and see-through things go on after it, so nothing behind them outlines through them. What reads as
+  HUD (your aim ring or draw meter at the bottom centre, the crosshair, the lock-on diamond, other fighters' chant
+  words) is drawn sharp over it. In dev, `?pixel=fixed` draws every pixel the same size (the arena drawn small and
+  blown up, as before), `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render), and
+  `&aa=0` turns the anti-aliasing off.
   The enemies are lofted like the people below (`visuals/enemies/shape.ts`): a trunk, head or tail is a loft laid
   along the body through cross-sections, so the boar is a wedge with a bristled shoulder, the wolf deep-chested with
   a tucked waist, the lurker a squat toad-croc; limbs taper. Each keeps a fill of its own colour in shade
@@ -329,7 +331,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     upright as it's drawn so the body, backpack and big head don't hide any of it from behind (`BOW_DRAWN`). It's
     carried low at the side, a little out, its top limb leaning out and forward (`BOW_CARRY`), and drawn side-on (the
     body turned, the head looking down the arrow), feet planted apart, the bow hand ahead at the shoulders and the
-    string hand pulled back with the draw (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These are placeholders, like the bow (AGENTS.md's "Bows, a prep").
+    string hand pulled back with the draw (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These
+    are placeholders, like the bow (AGENTS.md's "Bows").
     In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
     in view: posed for a fixed first-person view, the hands pulled most of the way toward spots low on the screen
     (the sword hand right of the middle, the other left) and the blade leaned ahead and a little in, so the sword sits

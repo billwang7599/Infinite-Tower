@@ -25,7 +25,7 @@ const SETUP: FightSetup = {
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: FULL_HP, stamina: staminaMaxOf(STATS) }, stats: STATS,
     core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: [],
+    gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: armed() }, book: [],
   }],
   enemies: [{ def: WALKER, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
 };
@@ -281,7 +281,7 @@ describe("arrows on both sides", () => {
     players: [{
       ...SETUP.players[0]!,
       gear: {
-        bag: addItem(emptyBag(), BOW.ammo, 10).bag, pack: packFor(null),
+        bag: addItem(emptyBag(), BOW.ammo, 10).bag, pack: packFor(null), quiver: packFor(null),
         equipment: { ...emptyEquipment(), rightHand: "training-bow" },
       },
     }],

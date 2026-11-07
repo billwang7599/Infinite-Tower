@@ -35,7 +35,8 @@ export class Uniques {
     }
     const inscriptions = save.core.inscriptions.filter((id) => !lost.some((item) => itemDef(item).inscription === id));
     const kept = (grid: Bag) => ({ ...grid, items: grid.items.filter((s) => !lost.includes(s.item)) });
-    return { ...save, bag: kept(save.bag), pack: kept(save.pack), equipment, core: { ...save.core, inscriptions } };
+    const grids = { bag: kept(save.bag), pack: kept(save.pack), quiver: kept(save.quiver) };
+    return { ...save, ...grids, equipment, core: { ...save.core, inscriptions } };
   }
 
   saved(player: PlayerId, save: PlayerSave): void {

@@ -21,11 +21,16 @@ export interface Bag {
   cols: number;
   rows: number;
   items: BagItem[];
+  /** A quiver's grid: only this goes in it, stacked this high. */
+  holds?: { item: ItemId; stackSize: number };
 }
 
 export const BASE_BAG = { cols: 3, rows: 2 } as const;
 
 export const emptyBag = (): Bag => ({ cols: BASE_BAG.cols, rows: BASE_BAG.rows, items: [] });
+
+export const stackSizeIn = ({ holds }: Bag, item: ItemId): number =>
+  holds && holds.item === item ? holds.stackSize : ITEMS[item].stackSize;
 
 export function footprint(item: ItemId, turned: boolean): { cols: number; rows: number } {
   const { cols, rows } = ITEMS[item];
@@ -48,6 +53,7 @@ export const itemAt = (bag: Bag, cell: Cell): number =>
 /** Whether `item` fits with its top-left at `at`. `ignore`: the index of a stack that doesn't count (the one moved). */
 export function fits(bag: Bag, item: ItemId, at: Cell, turned: boolean, ignore = -1): boolean {
   const area = { x: at.x, y: at.y, ...footprint(item, turned) };
+  if (bag.holds && bag.holds.item !== item) return false;
   if (!Number.isInteger(area.x) || !Number.isInteger(area.y) || area.x < 0 || area.y < 0) return false;
   if (area.x + area.cols > bag.cols || area.y + area.rows > bag.rows) return false;
   return bag.items.every((s, i) => i === ignore || !overlap(areaOf(s), area));
@@ -65,7 +71,7 @@ function findRoom(bag: Bag, item: ItemId): { at: Cell; turned: boolean } | null 
 
 /** Tops up stacks of `item` first, then makes new ones where they fit. `left`: how many there wasn't room for. */
 export function addItem(bag: Bag, item: ItemId, count: number): { bag: Bag; left: number } {
-  const { stackSize } = ITEMS[item];
+  const stackSize = stackSizeIn(bag, item);
   let left = count;
   const items = bag.items.map((s) => {
     if (s.item !== item || s.count >= stackSize || left <= 0) return s;
@@ -95,7 +101,7 @@ export function moveItem(bag: Bag, from: Cell, to: Cell, turned: boolean): Bag |
   const j = itemAt(bag, to);
   const target = bag.items[j];
   if (target && j !== i) {
-    const moved = Math.min(ITEMS[target.item].stackSize - target.count, moving.count);
+    const moved = Math.min(stackSizeIn(bag, target.item) - target.count, moving.count);
     if (target.item !== moving.item || moved <= 0) return null;
     const items = bag.items
       .map((s, k) => k === j ? { ...s, count: s.count + moved } : k === i ? { ...s, count: s.count - moved } : s)
@@ -146,7 +152,7 @@ export function bagProblems(bag: Bag): string[] {
       problems.push(`${name}: no such item`);
       continue;
     }
-    if (!Number.isInteger(s.count) || s.count < 1 || s.count > ITEMS[s.item].stackSize) {
+    if (!Number.isInteger(s.count) || s.count < 1 || s.count > stackSizeIn(bag, s.item)) {
       problems.push(`${name}: a stack of ${s.count}`);
     } else if (!fits({ ...bag, items: placed }, s.item, s, s.turned)) {
       problems.push(`${name}: outside the bag or over another item`);

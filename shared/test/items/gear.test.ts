@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, BASE_BAG, bagWeight, BASE_STATS, carriedCounts, carryLimit, CLOTH, emptyBag, emptyCloth, emptyEquipment,
-  fitsSlot, gearBurden, gearWeight, heldIn, ITEM_IDS, itemDef, ITEMS, moveGear as moveGearWith, NO_PILE, packFor, SLOTS,
-  stow, unstow, WEAPONS, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Slot, type Spot,
+  AVERAGE_STAT, BASE_BAG, bagWeight, BASE_STATS, carriedCounts, carryLimit, CLOTH, displacedBy, emptyBag, emptyCloth,
+  emptyEquipment, fitsSlot, gearBurden, gearWeight, heldIn, ITEM_IDS, itemDef, ITEMS, moveGear as moveGearWith, NO_PILE,
+  packFor, SLOTS, stow, stowedCounts, twoHanded, unstow, WEAPONS, type Bag, type BagItem, type Equipment, type Gear,
+  type ItemId, type Slot, type Spot,
 } from "@infinite-tower/shared";
 import { armed } from "../battle/fight/fixtures.js";
 
@@ -15,7 +16,7 @@ const NOTHING: Equipment = emptyEquipment();
 
 /** Deep-frozen, so a function that changes its input throws. */
 function frozen(g: Gear): Gear {
-  for (const b of [g.bag, g.pack, g.cloth, g.pile]) {
+  for (const b of [g.bag, g.pack, g.quiver, g.cloth, g.pile]) {
     b.items.forEach((s) => Object.freeze(s));
     Object.freeze(b.items);
     Object.freeze(b);
@@ -25,7 +26,8 @@ function frozen(g: Gear): Gear {
 }
 
 const gear = (over: Partial<Gear> = {}): Gear => frozen({
-  bag: emptyBag(), pack: packFor(null), cloth: grid(CLOTH.cols, CLOTH.rows), pile: NO_PILE, equipment: armed(),
+  bag: emptyBag(), pack: packFor(null), quiver: packFor(null), cloth: grid(CLOTH.cols, CLOTH.rows), pile: NO_PILE,
+  equipment: armed(),
   ...over,
 });
 
@@ -304,6 +306,123 @@ describe("the bag and the backpack", () => {
     assert.deepEqual(taken.bag.items, []);
     assert.deepEqual(taken.pack.items, [stack("boar-meat", 1, 1, max - 1)]);
     assert.equal(unstow(g, "boar-meat", max + 3), null);
+  });
+});
+
+const QUIVER = "training-quiver" satisfies ItemId;
+const QUIVER_SLOT = { in: "slot", slot: "hip" } as const;
+const IN_QUIVER = { in: "quiver", x: 0, y: 0 } as const;
+
+describe("the quiver", () => {
+  const { holds } = ITEMS[QUIVER].pack;
+  const quivered = (arrows = 0): Bag => ({ ...packFor(QUIVER), items: arrows ? [stack("arrow", 0, 0, arrows)] : [] });
+  const wearing = (over: Partial<Gear> = {}) =>
+    gear({ equipment: { ...NOTHING, hip: QUIVER }, quiver: quivered(), ...over });
+
+  test("it brings one cell that holds only arrows, many more than a bag's cell", () => {
+    assert.deepEqual(packFor(QUIVER), { ...ITEMS[QUIVER].pack, items: [] });
+    assert.equal(ITEMS[QUIVER].pack.cols * ITEMS[QUIVER].pack.rows, 1);
+    assert.equal(holds.item, "arrow");
+    assert.ok(holds.stackSize > ITEMS.arrow.stackSize);
+  });
+
+  test("it's worn at the hip, with its grid; it comes off only empty, never into its own grid", () => {
+    assert.deepEqual(SLOTS.filter((slot) => fitsSlot(QUIVER, slot)), ["hip"]);
+    const on = moveGear(gear({ bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack(QUIVER, 0, 0)) }),
+      { in: "bag", x: 0, y: 1 }, QUIVER_SLOT, false)!;
+    assert.equal(on.equipment.hip, QUIVER);
+    assert.deepEqual(on.quiver, packFor(QUIVER));
+    assert.equal(moveGear(wearing({ quiver: quivered(1) }), QUIVER_SLOT, { in: "bag", x: 0, y: 0 }, false), null);
+    assert.equal(moveGear(wearing(), QUIVER_SLOT, IN_QUIVER, false), null);
+    const off = moveGear(wearing(), QUIVER_SLOT, { in: "bag", x: 0, y: 0 }, false)!;
+    assert.equal(off.equipment.hip, null);
+    assert.deepEqual(off.quiver, packFor(null));
+  });
+
+  test("arrows go in from the bag, topping it up to its own size; nothing else goes in", () => {
+    const g = wearing({
+      bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack("arrow", 0, 0, ITEMS.arrow.stackSize), stack("boar-meat", 1, 0)),
+      quiver: quivered(holds.stackSize - 5),
+    });
+    const topped = moveGear(g, { in: "bag", x: 0, y: 0 }, IN_QUIVER, false)!;
+    assert.deepEqual(topped.quiver.items, [stack("arrow", 0, 0, holds.stackSize)]);
+    assert.deepEqual(topped.bag.items[0], stack("arrow", 0, 0, ITEMS.arrow.stackSize - 5));
+    const into = moveGear(wearing({ bag: g.bag }), { in: "bag", x: 0, y: 0 }, IN_QUIVER, false)!;
+    assert.deepEqual(into.quiver.items, [stack("arrow", 0, 0, ITEMS.arrow.stackSize)]);
+    assert.equal(moveGear(wearing({ bag: g.bag }), { in: "bag", x: 1, y: 0 }, IN_QUIVER, false), null);
+  });
+
+  test("arrows stowed go into the quiver first, the rest into the bag; other things never into the quiver", () => {
+    const { gear: stowed, left } = stow(wearing(), "arrow", holds.stackSize + 3);
+    assert.equal(left, 0);
+    assert.deepEqual(stowed.quiver.items, [stack("arrow", 0, 0, holds.stackSize)]);
+    assert.deepEqual(stowed.bag.items, [stack("arrow", 0, 0, 3)]);
+    assert.deepEqual(stow(wearing(), "boar-meat", 1).gear.quiver.items, []);
+  });
+
+  test("arrows are taken from the quiver first, then the bag", () => {
+    const g = wearing({ bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack("arrow", 0, 0, 10)), quiver: quivered(2) });
+    const taken = unstow(g, "arrow", 3)!;
+    assert.deepEqual(taken.quiver.items, []);
+    assert.deepEqual(taken.bag.items, [stack("arrow", 0, 0, 9)]);
+    assert.equal(unstow(g, "arrow", 13), null);
+  });
+
+  test("what's in it counts toward what's carried and weighs", () => {
+    const g = wearing({ quiver: quivered(30) });
+    assert.equal(stowedCounts(g).arrow, 30);
+    assert.deepEqual(carriedCounts(g), { arrow: 30, [QUIVER]: 1 });
+    assert.equal(gearWeight(g), 30 * ITEMS.arrow.weight + ITEMS[QUIVER].weight);
+  });
+});
+
+describe("a bow takes both hands", () => {
+  const BOW_ITEM = "training-bow" satisfies ItemId;
+  const RIGHT = { in: "slot", slot: "rightHand" } as const, LEFT = { in: "slot", slot: "leftHand" } as const;
+
+  test("a bow is two-handed, a sword or the skillbook isn't; either way, the other hand has to let go", () => {
+    assert.equal(twoHanded(BOW_ITEM), true);
+    assert.equal(twoHanded("sword"), false);
+    assert.equal(twoHanded("skillbook"), false);
+    assert.equal(twoHanded(null), false);
+    assert.equal(displacedBy(armed(), "sword", "rightHand"), null);
+    assert.equal(displacedBy(armed(), BOW_ITEM, "rightHand"), "skillbook");
+    assert.equal(displacedBy({ ...NOTHING, rightHand: BOW_ITEM }, "sword", "leftHand"), BOW_ITEM);
+    assert.equal(displacedBy({ ...NOTHING, leftHand: BOW_ITEM }, BOW_ITEM, "leftHand"), null);
+  });
+
+  test("put in a hand, it sends what the other hand holds into the bag", () => {
+    const g = gear({
+      bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack(BOW_ITEM, 0, 0, 1, true)),
+      equipment: { ...NOTHING, leftHand: "skillbook" },
+    });
+    const on = moveGear(g, { in: "bag", x: 0, y: 0 }, RIGHT, false)!;
+    assert.deepEqual(on.equipment, { ...NOTHING, rightHand: BOW_ITEM });
+    assert.deepEqual(on.bag.items, [stack("skillbook", 0, 0)]);
+  });
+
+  test("with no room in the bag or the backpack for the other hand's, it doesn't go on", () => {
+    const meat = [0, 1, 2].map((x) => stack("boar-meat", x, 1));
+    const g = gear({
+      bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack(BOW_ITEM, 0, 0, 1, true), ...meat),
+      equipment: { ...NOTHING, leftHand: "skillbook" },
+    });
+    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, RIGHT, false), null);
+  });
+
+  test("anything put in the other hand while it's held sends the bow into the bag", () => {
+    const g = gear({
+      bag: grid(BASE_BAG.cols, BASE_BAG.rows, stack("sword", 0, 0, 1, true)),
+      equipment: { ...NOTHING, rightHand: BOW_ITEM },
+    });
+    const swapped = moveGear(g, { in: "bag", x: 0, y: 0 }, LEFT, false)!;
+    assert.deepEqual(swapped.equipment, { ...NOTHING, leftHand: "sword" });
+    assert.deepEqual(swapped.bag.items, [stack(BOW_ITEM, 0, 0, 1, true)]);
+  });
+
+  test("moved from one hand to the other, it goes alone", () => {
+    const g = gear({ equipment: { ...NOTHING, rightHand: BOW_ITEM } });
+    assert.deepEqual(moveGear(g, RIGHT, LEFT, false)!.equipment, { ...NOTHING, leftHand: BOW_ITEM });
   });
 });
 

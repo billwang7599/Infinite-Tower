@@ -167,6 +167,11 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput({ ...STEP, locked: 0.5 }), null);
   });
 
+  test("battleInput: things move to and from the quiver as from the other grids", () => {
+    const gear = { from: { in: "quiver", x: 0, y: 0 }, to: { in: "bag", x: 1, y: 0 }, turned: false };
+    assert.deepEqual(battleInput({ ...STEP, gear }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, gear }] });
+  });
+
   test("battleInput: the aim is a direction (length 1), the move no longer than the keys can make", () => {
     assert.equal(battleInput({ ...STEP, aimX: 0, aimZ: 0 }), null, "no direction");
     assert.equal(battleInput({ ...STEP, aimX: 1, aimZ: 1 }), null, "longer than 1: a wider slash");

@@ -14,6 +14,8 @@ export interface Weapon {
   damage: number;
   heft: number;
   minStrength: number;
+  /** A bow's: the arrow's speed fully drawn. */
+  powerMps?: number;
 }
 
 type WeaponItems = { [K in ItemId as (typeof ITEMS)[K] extends { weapon: Weapon } ? K : never]: Weapon };
@@ -25,6 +27,8 @@ export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
 
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
 export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
+const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
+export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
 export const feltHeft = (weapon: Weapon, strength: number): number =>
   1 + (weapon.heft - 1) * (AVERAGE_STAT / strength);
 

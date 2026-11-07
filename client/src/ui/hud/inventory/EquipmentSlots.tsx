@@ -2,7 +2,7 @@ import { itemDef, type Gear, type Slot } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
 import { landing, same, type BagMouse } from "./bagMouse.js";
 import { ItemPicture } from "./BagGrid.js";
-import { SLOT_COLUMNS, SLOT_GAP_PX, SLOT_PX, SMALL_SLOT_GAP_PX, SMALL_SLOT_PX } from "./grid.js";
+import { CELL, SLOT_COLUMNS, SLOT_GAP_PX, SLOT_PX, SMALL_SLOT_GAP_PX, SMALL_SLOT_PX } from "./grid.js";
 
 const HAND = (
   <>
@@ -56,6 +56,10 @@ const COSMETICS: Shown[] = [
   { slot: "bootsCosmetic", label: "Boots", outline: BOOTS },
 ];
 
+const QUIVER: Shown = {
+  slot: "hip", label: "Hip", outline: <><path d="M9 9h6v12H9z" /><path d="M10 9V4M12 9V3M14 9V4" /></>,
+};
+
 interface SlotsProps {
   gear: Gear;
   mouse: BagMouse;
@@ -80,6 +84,8 @@ export function EquipmentSlots(props: SlotsProps) {
     </div>
   );
 }
+
+export const QuiverSlot = (props: SlotsProps) => <SlotBox {...props} shown={QUIVER} px={CELL} />;
 
 function SlotBox({ gear, mouse, fits, area, shown: { slot, label, outline, mirrored }, px }: SlotsProps & {
   shown: Shown;

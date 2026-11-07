@@ -16,7 +16,7 @@ const BOLT_FIRE = skill(segment("bolt", ["fire"]));
 const NOVA_WATER = skill(segment("nova", ["water"]));
 const CHANT = input({ chant: true });
 const NO_BOOK = { ...armed(), leftHand: null };
-const BOOKLESS = { bag: emptyBag(), pack: packFor(null), equipment: NO_BOOK };
+const BOOKLESS = { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: NO_BOOK };
 
 function alone(book = blankSkillbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });

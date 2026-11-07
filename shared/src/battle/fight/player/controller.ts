@@ -13,6 +13,7 @@ import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skill
 import { copyInput, PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec, type Stats } from "../../stats.js";
+import { nockTime } from "../../../weapons/bow.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
 import { rangedOf } from "../../../weapons/kinds.js";
 import { weaponIn } from "../../../weapons/weapons.js";
@@ -23,7 +24,7 @@ import { modsOf, type StatMods } from "../../statuses.js";
 import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
 import { attackOrBlock, readSword, type SwordTurn } from "./sword.js";
 
-const carried = (spot: Spot) => spot.in === "bag" || spot.in === "pack" || spot.in === "slot";
+const carried = (spot: Spot) => spot.in !== "cloth" && spot.in !== "pile";
 const STUNNED: readonly PlayerAction[] = ["stagger"];
 const STILL: readonly PlayerAction[] = ["none", "chant", "write", "bag", "use"];
 
@@ -237,7 +238,8 @@ function moveByAction({ world, e, dt, player, input, wielder, stamina, stats, mo
       const bow = rangedOf(weaponIn(wielder.hands));
       if (player.action === "draw") player.actionDir = { x: input.aimX, z: input.aimZ };
       shuffle(input, v, dt, walkSpeed * (bow?.draw.moveFactor ?? 1));
-      if (!bow || (player.action === "loose" && toSteps(t) >= toSteps(bow.looseRecoverTime))) player.action = "none";
+      const nocked = bow && toSteps(t) >= toSteps(nockTime(bow, player.gear.quiver));
+      if (!bow || (player.action === "loose" && nocked)) player.action = "none";
       break;
     }
     case "chant":
@@ -261,7 +263,7 @@ function moveGearInBag({ player, input, wielder, stats }: Turn): void {
   const gear = { ...player.gear, cloth: emptyCloth(), pile: NO_PILE };
   const moved = moveGear(gear, move.from, move.to, move.turned, stats.strength);
   if (moved) {
-    player.gear = { bag: moved.bag, pack: moved.pack, equipment: moved.equipment };
+    player.gear = { bag: moved.bag, pack: moved.pack, quiver: moved.quiver, equipment: moved.equipment };
     wielder.hands = handsOf(moved.equipment);
   }
 }

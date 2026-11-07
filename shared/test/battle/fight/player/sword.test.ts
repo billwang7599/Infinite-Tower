@@ -113,7 +113,10 @@ describe("the sword's attacks", () => {
         arena: { ...ARENA, radius: 40 },
         players: [player({ x: 0, y: 0.05, z: 0 }, {
           vitals: { hp: 100, stamina: 1000 }, stats: { ...STATS, stamina: 1000, strength },
-          gear: { bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), rightHand: "greatsword" } },
+          gear: {
+            bag: emptyBag(), pack: packFor(null), quiver: packFor(null),
+            equipment: { ...armed(), rightHand: "greatsword" },
+          },
         })],
         enemies: [enemy({ ...STATUE, maxHp: 100_000 }, { x: 0, y: 0.05, z: 30 })],
       });

@@ -1,6 +1,6 @@
 import { toSteps } from "../../../core/time.js";
 import { stowedCounts, unstow } from "../../../items/gear.js";
-import { drawCost, drawTime, loosedDamage, type RangedMoves } from "../../../weapons/bow.js";
+import { drawCost, drawTime, loosedDamage, loosedSpeed, type RangedMoves } from "../../../weapons/bow.js";
 import { weaponItemIn } from "../../../weapons/weapons.js";
 import { Body, Fighter, Health, Projectile, Skilled } from "../../components.js";
 import { FighterStats } from "../../stats.js";
@@ -28,12 +28,14 @@ function loose(t: SwordTurn, bow: RangedMoves): void {
   const gear = unstow(player.gear, bow.ammo, 1), weapon = weaponItemIn(t.wielder.hands);
   if (!gear || !weapon) return;
   player.gear = gear;
+  const stats = world.require(e, FighterStats), speed = loosedSpeed(bow, t.weapon!, stats.strength, drawnTime);
   const from = { x: pos.x + dir.x * def.releaseOutM, y: pos.y + def.releaseUpM, z: pos.z + dir.z * def.releaseOutM };
-  const level = { x: dir.x * def.speedMps, y: 0, z: dir.z * def.speedMps };
-  const vel = (toward && launchAt(from, toward, def.speedMps, def.gravityMps2)) ?? level;
+  const level = speed * Math.cos(input.aimPitchRad);
+  const along = { x: dir.x * level, y: speed * Math.sin(input.aimPitchRad), z: dir.z * level };
+  const vel = (toward && launchAt(from, toward, speed, def.gravityMps2)) ?? along;
   world.add(world.spawn(), Projectile, {
     shooter: e, weapon, pos: from, vel, left: def.lifeTime, stuck: false,
-    damage: loosedDamage(bow, t.weapon!, drawnTime, world.require(e, FighterStats)),
+    damage: loosedDamage(bow, t.weapon!, drawnTime, stats),
   });
 }
 
