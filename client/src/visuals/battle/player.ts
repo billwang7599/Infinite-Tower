@@ -11,6 +11,7 @@ import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
 import { bowDrawOf, pullString } from "./bow.js";
+import { holdInView, restShoulders } from "./firstPerson.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
@@ -45,6 +46,7 @@ interface PlayerSprite {
   sword: StandardMaterial;
   blade: HeldBlade | null;
   person: PersonDrawing | null;
+  armsInView: boolean;
 }
 
 interface Stance extends Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> {
@@ -89,7 +91,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   return {
     ctx, node, plane, shadows, slash: buildSlash(scene, `${e}`, materials.slashFx), walkPhase: 0, stretch: 1,
     staggerTime: 0, fading: null, facing: "back",
-    sword: materials.slashFx, blade: null, person: ctx.pixel.player3d ? newPerson() : null,
+    sword: materials.slashFx, blade: null, person: ctx.pixel.player3d ? newPerson() : null, armsInView: false,
   };
 }
 
@@ -121,11 +123,17 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   const weapon = weaponItemIn(hands), motion = weapon && MOTIONS[WEAPONS[weapon].kind];
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const stagger = { left: health.hitstun, of: sprite.staggerTime };
-  if (sprite.person) framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
-  else drawSprite(sprite, world, e, dt, player, stagger);
+  const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
+  if (sprite.person) {
+    if (sprite.armsInView) restShoulders(sprite.person);
+    framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
+    sprite.armsInView = hidden && ctx.pixel.steps === null;
+    const held = weapon && WEAPON_LOOKS[weapon], alive = health.hp > health.floor;
+    const gripped = alive && !!held?.twoHanded && (!held.bow || player.action === "draw" || player.action === "loose");
+    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, gripped);
+  } else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {
     const { holder, joints } = sprite.person.model, arms = [joints["upper_arm.R"], joints["upper_arm.L"]];
-    const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
     for (const m of holder.getChildMeshes()) m.isVisible = !hidden || arms.some((arm) => m.isDescendantOf(arm));
   }
 

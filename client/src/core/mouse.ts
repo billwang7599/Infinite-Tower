@@ -1,7 +1,9 @@
 /**
- * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left): captured (pointer lock) by a click on
- * the canvas, or by Auto mouse lock, and let go with Esc. Movement and buttons only count while captured.
+ * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). In the arena it's captured (pointer
+ * lock) by a click on the canvas, or by Auto mouse lock, and let go with Esc, and counts only while captured; where it
+ * isn't wanted captured (the overworld), it counts on the canvas as it is.
  */
+import { clamp } from "@infinite-tower/shared";
 import { Buttons } from "./buttons.js";
 
 interface LockChange {
@@ -21,14 +23,17 @@ export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: Lock
 }
 
 type MoveListener = (dx: number, dy: number, atMs: number) => void;
+/** Notches of a mouse wheel: + toward you. */
+type WheelListener = (notches: number) => void;
 
 const BUTTON_BITS = [1, 4, 2, 8, 16];
-export const WHEEL = "MouseWheel";
-/** A trackpad's scroll sends a stream of wheel events: one press until it rests this long. */
-const WHEEL_REST_MS = 150;
+// A trackpad's scroll is a stream of small events, each its pixels' share of a notch (one event a notch at most); the
+// first after a rest is a whole notch, as macOS sends a slow wheel's notch as a few pixels.
+export const WHEEL = { notchPx: 100, linesPerNotch: 3, restMs: 150 } as const;
 
 export class Mouse extends Buttons {
   private moved: MoveListener = () => {};
+  private wheeled: WheelListener = () => {};
   private lastWheelMs = -Infinity;
   locked = false;
   /** Only capture the mouse when the current mode wants it (the arena). */
@@ -53,28 +58,37 @@ export class Mouse extends Buttons {
     doc.addEventListener("pointermove", (e) => {
       // A button pressed or let go while another is down.
       if (e.button >= 0) this.button(e);
-      if (!this.locked) return;
-      this.moved(e.movementX, e.movementY, e.timeStamp);
+      if (this.counts) this.moved(e.movementX, e.movementY, e.timeStamp);
     });
     canvas.addEventListener("wheel", (e) => {
-      if (!this.locked || e.deltaY === 0) return;
+      if (!this.counts || e.deltaY === 0) return;
       e.preventDefault();
-      if (e.timeStamp - this.lastWheelMs > WHEEL_REST_MS) this.press(WHEEL);
+      const notches = e.deltaMode === 0 ? e.deltaY / WHEEL.notchPx
+        : e.deltaMode === 1 ? e.deltaY / WHEEL.linesPerNotch : Math.sign(e.deltaY);
+      const rested = e.timeStamp - this.lastWheelMs >= WHEEL.restMs;
       this.lastWheelMs = e.timeStamp;
-      this.release(WHEEL);
+      this.wheeled(rested ? Math.sign(notches) : clamp(notches, -1, 1));
     }, { passive: false });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
   }
 
+  private get counts(): boolean {
+    return this.locked || !this.lockable;
+  }
+
   private button(e: MouseEvent): void {
     const name = `Mouse${e.button}`;
     if ((e.buttons & (BUTTON_BITS[e.button] ?? 0)) === 0) this.release(name);
-    else if (this.locked) this.press(name);
+    else if (this.counts) this.press(name);
   }
 
   onMove(listener: MoveListener): void {
     this.moved = listener;
+  }
+
+  onWheel(listener: WheelListener): void {
+    this.wheeled = listener;
   }
 
   /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured at once if `autoLock`. */

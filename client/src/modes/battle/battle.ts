@@ -10,7 +10,7 @@ import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { arenaCamera, CAMERA_VIEWS, cameraTuning, nextView } from "./camera.js";
+import { arenaCamera, cameraTuning, steerZoom } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { crosshairAim, pickedWay, readPlayerInput } from "./input.js";
@@ -45,14 +45,12 @@ interface BattleOptions {
 
 export function createBattle(opts: BattleOptions): Battle {
   const { actions, settings } = opts;
+  const views = cameraTuning(import.meta.env.DEV ? location.search : "");
   const ctx: BattleContext = {
     polled: actions.poll(), actions, settings,
-    view: {
-      ...START_VIEW, fovRad: CAMERA_VIEWS.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 },
-      up: { x: 0, y: 1, z: 0 },
-    },
+    view: { ...START_VIEW, fovRad: views.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
-    cameraView: "shoulder",
+    zoomM: views.shoulder.distanceM,
     way: START_WAY,
     who: [],
     fight: null,
@@ -67,7 +65,7 @@ export function createBattle(opts: BattleOptions): Battle {
     gearMoves: [],
     uses: [],
   };
-  const camera = arenaCamera(ctx, cameraTuning(import.meta.env.DEV ? location.search : ""));
+  const camera = arenaCamera(ctx, views);
   const hud = hudSystem(ctx, opts.hud);
   /** Syncs land between frames; the next frame's `corrections` are theirs. */
   let corrected: Correction[] = [];
@@ -91,7 +89,7 @@ export function createBattle(opts: BattleOptions): Battle {
     }
     const foes = livingFoes(fight);
     ctx.lock = steerLock(ctx.lock, ctx.polled, foes, ctx.view, me);
-    ctx.cameraView = nextView(ctx.cameraView, ctx.polled.pressed, action === "dodge");
+    ctx.zoomM = steerZoom(ctx.zoomM, ctx.polled, action === "dodge", views);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const yaw = (target && lockYaw(me, target)) ?? ctx.view.yaw;

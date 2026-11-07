@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { floorReach, orbitBack, orbitUp, TURN, turnBy } from "../../src/modes/orbit.js";
+import { floorReach, orbitBack, TURN, turnBy, ZOOM_PER_NOTCH, zoomBy } from "../../src/modes/orbit.js";
 
-const dot = (a: { x: number; y: number; z: number }, b: typeof a) => a.x * b.x + a.y * b.y + a.z * b.z;
 const near = (actual: number, expected: number, what: string) =>
   assert.ok(Math.abs(actual - expected) < 1e-9, `${what}: ${actual} isn't ${expected}`);
 
@@ -18,26 +17,28 @@ describe("turnBy: how far held keys and a drag turn the camera", () => {
 });
 
 describe("the orbit's frame", () => {
-  test("level, the eye is behind the pivot and the view upright; straight down it's above, up the way it faces", () => {
-    const back = orbitBack(0, 0), up = orbitUp(0, 0);
-    near(back.z, -1, "behind");
-    near(up.y, 1, "upright");
-    const top = orbitBack(0, Math.PI / 2), topUp = orbitUp(0, Math.PI / 2);
-    near(top.y, 1, "above");
-    near(topUp.z, 1, "screen top ahead");
+  test("level, the eye is behind the pivot; tilted up, it's above", () => {
+    near(orbitBack(0, 0).z, -1, "behind");
+    near(orbitBack(0, Math.PI / 2).y, 1, "above");
+  });
+});
+
+describe("zoomBy: the scroll wheel's zoom", () => {
+  test("a notch out moves the camera ZOOM_PER_NOTCH times as far, a notch in as much nearer", () => {
+    near(zoomBy(5, 1, 2, 10), 5 * ZOOM_PER_NOTCH, "out");
+    near(zoomBy(5, -1, 2, 10), 5 / ZOOM_PER_NOTCH, "in");
+    near(zoomBy(5, 2, 2, 10), 5 * ZOOM_PER_NOTCH ** 2, "two notches");
   });
 
-  test("all the way round, the up stays square to the look and never jumps (no flip over the poles)", () => {
-    for (const yaw of [0, 1, -2.5]) {
-      let last = orbitUp(yaw, 0);
-      for (let i = 1; i <= 720; i++) {
-        const pitch = (i / 720) * 2 * Math.PI, up = orbitUp(yaw, pitch);
-        near(dot(up, orbitBack(yaw, pitch)), 0, "square");
-        near(Math.hypot(up.x, up.y, up.z), 1, "unit");
-        assert.ok(dot(up, last) > 0.999, `up jumped at ${pitch}`);
-        last = up;
-      }
-    }
+  test("a trackpad's share of a notch zooms its share, so a scroll split into small ones adds up the same", () => {
+    let distanceM = 5;
+    for (let i = 0; i < 10; i++) distanceM = zoomBy(distanceM, 0.1, 2, 10);
+    near(distanceM, zoomBy(5, 1, 2, 10), "ten tenths");
+  });
+
+  test("capped at both ends", () => {
+    assert.equal(zoomBy(9.5, 3, 2, 10), 10);
+    assert.equal(zoomBy(2.1, -3, 2, 10), 2);
   });
 });
 

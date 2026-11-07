@@ -11,7 +11,7 @@ import {
   type ActionRef, type BindResult, type Group, type KeyBindings, type KeyMap,
 } from "../../../settings/bindings.js";
 import { BUTTON } from "../../components/styles.js";
-import { keyName, mouseName, WHEEL_NAME } from "../../keyNames.js";
+import { keyName, mouseName } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
@@ -80,7 +80,7 @@ interface GroupProps {
 
 function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps) {
   const actions = actionsOf(group).filter((a) => import.meta.env.DEV || !DEV_ONLY.includes(a.action));
-  const hasMouse = actions.some((a) => actionDef(a).mouse || actionDef(a).wheel);
+  const hasMouse = actions.some((a) => actionDef(a).mouse);
   return (
     <section className="mt-4">
       <h4 className="mb-1 text-xs tracking-[0.3em] text-bone/45 uppercase">{GROUP_TITLES[group]}</h4>
@@ -147,7 +147,7 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
         )}
         {mouseColumn && (
           <span className="ml-1 w-22 text-right text-xs text-bone/45">
-            {[...def.mouse?.map(mouseName) ?? [], ...def.wheel ? [WHEEL_NAME] : []].join(" / ")}
+            {def.mouse?.map(mouseName).join(" / ")}
           </span>
         )}
       </span>

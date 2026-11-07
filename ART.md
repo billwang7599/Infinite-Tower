@@ -324,6 +324,12 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     carried low at the side, a little out, its top limb leaning out and forward (`BOW_CARRY`), and drawn side-on (the
     body turned, the head looking down the arrow), feet planted apart, the bow hand ahead at the shoulders and the
     string hand pulled back with the draw (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These are placeholders, like the bow (AGENTS.md's "Bows, a prep").
+    In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
+    in view: posed for a fixed first-person view, the hands pulled most of the way toward spots low on the screen
+    (the sword hand right of the middle, the other left) and the blade leaned ahead and a little in, so the sword sits
+    lower and nearer the middle than the pose's own; a two-handed grip or a hand on the bowstring stays on the weapon.
+    Then both arms go with the camera, so they're in the same place on screen wherever it looks (`FP_ARMS` in
+    `client/src/visuals/battle/firstPerson.ts`). Others, and you in third person, see the pose as it is.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

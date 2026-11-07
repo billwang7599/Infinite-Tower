@@ -43,7 +43,7 @@ function arena(look?: FightSetup["arena"]["look"], def?: EnemyDef) {
     fight, events: [], outcome: { state: "fighting", stateTime: 0 },
     sync: { stats: { checks: 0, mismatches: 0, restores: 0, corrections: 0, hiddenHits: 0, hiddenDodgeHits: 0 } },
     view: {
-      yaw: 0, pitch: 0, fovRad: 0.9, eye: { x: 0, y: 3, z: -12 }, at: { x: 0, y: 1, z: -4 }, up: { x: 0, y: 1, z: 0 },
+      yaw: 0, pitch: 0, fovRad: 0.9, eye: { x: 0, y: 3, z: -12 }, at: { x: 0, y: 1, z: -4 },
     },
   };
   const hear = fightEars();

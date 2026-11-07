@@ -1,7 +1,7 @@
 import {
   coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, inView, INTERACT_RANGE_M,
   maxHpOf, nearCampfire, OVERWORLD_CAMERA_ANGLES, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf,
-  START_HEADING, wrapAngle, type CoreState,
+  START_HEADING, type CoreState,
   type Gear, type Heading, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
 import { LocalPlayer } from "../components.js";
@@ -11,8 +11,8 @@ import type { CameraSettings } from "../../settings/camera.js";
 import type { Interaction, OverworldHudState, YouState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
-import { turnBy } from "../orbit.js";
-import { CAMERA_PITCH, mapMove, unwrapTurns } from "./facing.js";
+import { turnBy, zoomBy } from "../orbit.js";
+import { CAMERA_DISTANCE, CAMERA_PITCH, mapMove, tiltOverworld, unwrapTurns } from "./facing.js";
 import { dropFar, hold, nothingHeld } from "./held.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
@@ -71,7 +71,7 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
     world, player, map: null, held: nothingHeld(), cameraTurns: camera.get().overworldTurns,
-    cameraPitchRad: CAMERA_PITCH.startRad,
+    cameraPitchRad: CAMERA_PITCH.startRad, cameraDistanceTiles: CAMERA_DISTANCE.maxTiles,
   };
   const actors = new ActorMirror(world);
 
@@ -112,6 +112,12 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
     you.set({ core });
     if (gear) setGear(gear);
     setVitals(vitals);
+  };
+
+  const turnCamera = (keys: { turn: number; look: number }, drag: { dx: number; dy: number }, dt: number) => {
+    const turned = turnBy(keys, drag, dt, camera.get().sensitivity);
+    if (turned.yaw !== 0) camera.turnOverworld((turned.yaw / (2 * Math.PI)) * OVERWORLD_CAMERA_ANGLES);
+    state.cameraPitchRad = tiltOverworld(state.cameraPitchRad, turned.pitch);
   };
 
   let accumulator = 0;
@@ -193,11 +199,13 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
     update(dt, frozen) {
       if (frozen || inBattle || !state.map || !prediction) accumulator = 0;
       else accumulator += dt;
+      const drag = actions.lookDelta();
+      if (prediction && !frozen && !inBattle) turnCamera({ turn: 0, look: 0 }, drag, 0);
       while (prediction && accumulator >= FIXED_DT) {
         const polled = actions.poll();
-        const turned = turnBy(polled, { dx: 0, dy: 0 }, FIXED_DT, camera.get().sensitivity);
-        if (turned.yaw !== 0) camera.turnOverworld((turned.yaw / (2 * Math.PI)) * OVERWORLD_CAMERA_ANGLES);
-        state.cameraPitchRad = wrapAngle(state.cameraPitchRad + turned.pitch);
+        turnCamera(polled, { dx: 0, dy: 0 }, FIXED_DT);
+        const { minTiles, maxTiles } = CAMERA_DISTANCE;
+        state.cameraDistanceTiles = zoomBy(state.cameraDistanceTiles, polled.zoom, minTiles, maxTiles);
         const move = mapMove(polled.move, camera.get().overworldTurns);
         prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;

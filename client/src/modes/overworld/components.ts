@@ -37,4 +37,5 @@ export interface OverworldState {
   /** Quarter turns right from north. */
   cameraTurns: number;
   cameraPitchRad: number;
+  cameraDistanceTiles: number;
 }

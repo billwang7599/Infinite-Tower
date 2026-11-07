@@ -31,9 +31,11 @@ describe("keyName", () => {
 });
 
 describe("mouseName", () => {
-  test("names the three usual buttons and numbers the rest", () => {
+  test("names the three usual buttons and the side ones, and numbers the rest", () => {
     assert.equal(mouseName(0), "Left click");
     assert.equal(mouseName(2), "Right click");
-    assert.equal(mouseName(3), "Mouse 4");
+    assert.equal(mouseName(3), "Back side button");
+    assert.equal(mouseName(4), "Forward side button");
+    assert.equal(mouseName(5), "Mouse 6");
   });
 });

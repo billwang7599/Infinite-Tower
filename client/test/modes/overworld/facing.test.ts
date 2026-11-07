@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { faceToward, type Heading } from "@infinite-tower/shared";
 import {
-  facingOnScreen, headingFromSide, mapMove, mirrorFor, unwrapTurns,
+  CAMERA_DISTANCE, CAMERA_PITCH, facingOnScreen, headingFromSide, mapMove, mirrorFor, tiltOverworld, unwrapTurns,
 } from "../../../src/modes/overworld/facing.js";
+import { PITCH } from "../../../src/modes/orbit.js";
 
 describe("headingFromSide: the server's side (1 east, -1 west) for actors seen only from the side", () => {
   test("maps both ways", () => {
@@ -87,5 +88,18 @@ describe("unwrapTurns: the camera's turns for the compass", () => {
     assert.equal(unwrapTurns(5, 1), 5);
     assert.equal(unwrapTurns(5, 2), 6);
     assert.equal(unwrapTurns(3.9, 0.1), 4.1);
+  });
+});
+
+describe("the overworld camera's tilt and zoom", () => {
+  test("a tilt adds up, and stops PITCH.aboveRad over you and PITCH.belowRad under, as in the arena", () => {
+    assert.equal(tiltOverworld(CAMERA_PITCH.startRad, 0.1), CAMERA_PITCH.startRad + 0.1);
+    assert.equal(tiltOverworld(CAMERA_PITCH.startRad, 10), PITCH.aboveRad);
+    assert.equal(tiltOverworld(CAMERA_PITCH.startRad, -10), -PITCH.belowRad);
+  });
+
+  test("it starts inside the caps, as far out as it zooms", () => {
+    assert.ok(CAMERA_PITCH.startRad < PITCH.aboveRad && CAMERA_PITCH.startRad > -PITCH.belowRad);
+    assert.ok(CAMERA_DISTANCE.minTiles < CAMERA_DISTANCE.maxTiles);
   });
 });

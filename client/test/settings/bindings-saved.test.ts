@@ -311,6 +311,18 @@ describe("KeyBindings saved before one key per swing", () => {
   });
 });
 
+describe("KeyBindings saved while the scroll wheel stabbed", () => {
+  test("a stab saved on its own keys keeps them, and the default K comes back to a save without one", () => {
+    const moved = new KeyBindings();
+    moved.restore({ battle: { stab: ["KeyJ", "KeyL"] } });
+    assert.deepEqual(keysOf(moved.get(), stab), ["KeyJ", "KeyL"]);
+    assert.deepEqual(moved.toSaved(), { battle: { stab: ["KeyJ", "KeyL"] } });
+    const plain = new KeyBindings();
+    plain.restore({ battle: { jump: ["KeyX"] } });
+    assert.deepEqual(keysOf(plain.get(), stab), ["KeyK"]);
+  });
+});
+
 describe("KeyBindings saved before the mouse swung the sword", () => {
   test("saved swing and stab keys are dropped, under old names too; the rest is kept", () => {
     const b = new KeyBindings();

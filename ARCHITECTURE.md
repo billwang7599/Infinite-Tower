@@ -137,15 +137,18 @@ main.ts
   only while their layer is on top (the chant's, and the arena's bag's, let through only the dodge and the walk keys,
   for the dodge's way; the arena's bag takes its R and Enter from the overworld's keys, first, then the arena's);
   the arena camera reads the fight's last poll. Actions also owns the mouse: the
-  pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
-  movement each frame with `actions.lookDelta()`: only a drag, past `DRAG.startPx` with `dragCamera`'s middle or
-  right button held (the right one still a heavy attack on its press), counts, and the poll's `dragged` says one
-  turned it (which unlocks); no mode sees `Mouse`. Mouse movement in the arena is also read as flicks there: a
+  pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock); in the overworld it isn't
+  captured and counts on the canvas as it is. Both cameras read its movement each frame with `actions.lookDelta()`:
+  only a drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held, counts, and the poll's
+  `dragged` says one turned it (which unlocks). A drag button that's another action's too (the right one: the
+  arena's heavy attack, the overworld's item turn) does that action as it's let go, and only if it never dragged that
+  far; no mode sees `Mouse`. Mouse movement in the arena is also read as flicks there: a
   quick move one of 8 ways (`FLICK`, scaled by the flick sensitivity) comes in the poll's `flicks` (`right`,
   `upLeft`, ...), which the arena's input turns into the swing's way (straight down into none); not while a drag
   button is held.
-  A turn of the scroll wheel is a press of `MouseWheel` (one per scroll: it has to rest 150 ms), bound like a
-  mouse button (the stab). In a text field only the
+  The scroll wheel is no action: the poll's `zoom` is the notches turned since the last poll (+ out), each event
+  its pixels' share of one (`WHEEL`, a notch at most; the first after a rest is a whole one), for both cameras'
+  zoom. In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
   stays the field's), and Enter in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw keys
   with `captureKey`. The chat is a layer of its own, `chat`, over the overworld or the arena, while its field has
@@ -990,7 +993,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; the flicks' 7 ways, none down, no
-  aim keys; the stab on K or the wheel, the block), the player's pose and blade (ways, aim, block), sword trail and
+  aim keys; the stab on K or the back side button, the block; a right click on release, a drag no attack; the wheel's
+  notches), the player's pose and blade (ways, aim, block), sword trail and
   cut, the
   boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
@@ -1410,16 +1414,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      it sends; captureKey for rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…, read from pointer events
-                     since Babylon's scene cancels pointerdown, which stops mousedown), buttons.ts (held +
+                     since Babylon's scene cancels pointerdown, which stops mousedown; the wheel's notches,
+                     `WHEEL`), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
                      layer's held and pressed actions and its axes, the flicks read from the mouse's movement
-                     (`FLICK`; `FLICKS`, the 8-way aim), `lookDelta` for the arena's camera drag (`DRAG`),
-                     and when the mouse may lock)
+                     (`FLICK`; `FLICKS`, the 8-way aim), `lookDelta` for both cameras' drag (`DRAG`), a shared
+                     drag button's action on release, the wheel's `zoom`, and when the mouse may lock)
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default keys,
-                     fixed mouse buttons and the wheel; MENUS:
+                     fixed mouse buttons; MENUS:
                      the title's, creation's, the bag's, the chant's, the
                      skillbook's, the chat's, the dialogue's and the questbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
@@ -1590,10 +1595,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          useTyped.ts (text typed out), styles.ts (dark on white)
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them). components.ts (LocalPlayer:
                      the player controlled on this machine, in both modes), orbit.ts (both cameras' turning: TURN
-                     rates, turnBy, orbitBack and orbitUp with no pitch limit, floorReach; tested)
+                     rates, turnBy, the tilt's caps PITCH, the wheel's zoomBy (ZOOM_PER_NOTCH), orbitBack,
+                     floorReach; tested)
       overworld/       The overworld mode: mirrors the server
-        overworld.ts     The mode: its state (the world's map, the actors, the camera's turns and tilt), the walk
-                         keys (turned to the camera) and the held arrows turning the camera, server state, the HUD, the
+        overworld.ts     The mode: its state (the world's map, the actors, the camera's turns, tilt and distance), the
+                         walk keys (turned to the camera), the held arrows and a drag turning the camera and the wheel
+                         zooming it, server state, the HUD, the
                          only writer of your save (`ui.you`, from `welcome` and every message that changes it);
                          interactionAt: the Interact key rests, joins a fight, or opens the pile, talks to the NPC,
                          looks at the trace or binds to the pad you face (inView along your heading), the nearest
@@ -1610,7 +1617,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
                          left, on screen): mapMove (walk keys to a move on the map), facingOnScreen (by the
                          nearest quarter turn), mirrorFor; the camera's turns unwrapped for the compass
-                         (unwrapTurns); its starting tilt and the tilt the world is drawn for (CAMERA_PITCH)
+                         (unwrapTurns); its starting tilt and the tilt the world is drawn for (CAMERA_PITCH), the tilt
+                         capped (tiltOverworld) and how near and far it zooms (CAMERA_DISTANCE)
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles, and the
                          world's NPCs and traces (enter, place); entityOf
         components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin, a
@@ -1632,13 +1640,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
-                         time and drops, the lock and the camera's view (V), its orbit, this frame's events and
+                         time and drops, the lock and the camera's distance (zoomM), its orbit, this frame's events and
                          corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
-        camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at, up): its
-                         yaw is the aim. One of CAMERA_VIEWS (shoulder, close, fp) locked or not, stepped by V and
-                         reset to shoulder by a dodge (nextView); unlocked only its direction is free, turned by the
-                         held arrows or a drag with no pitch limit (orbit.ts), the wall and the floor
-                         (FLOOR_MARGIN_M) pulling it in; every change eases, the field of view too. insideSelf hides
+        camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
+                         yaw is the aim. Its distance (steerZoom): the wheel from close out to ZOOM.maxM, a notch in
+                         from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in; a dodge back to
+                         the shoulder's from nearer. Nearer than close it's the fp view, else the shoulder view at that
+                         distance; unlocked only its direction is free, turned by the held arrows or a drag, its tilt
+                         capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in;
+                         every change eases, the field of view and the tilt's caps too. insideSelf hides
                          your body but its arms in first person. Dev-only flags try others in place of the shoulder
                          view (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,
                          .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and blocksView says when your
@@ -1671,8 +1681,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        overlay; `show(mode)`, `frame(dt)`, `setDayClock`; each player's look painted); NPC_LOOKS
                        re-exported; Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
-      aim.ts           aimCamera: a camera put at an eye, looking at a point, rolled to an up (both cameras, so
-                       neither flips going over straight up or down)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
                        after, or the rest when a fight starts, again when the hand the fight's weapon is in changes
                        (its `Wielder`), the sword left out; a frame from the front only the first time it's shown
@@ -1740,8 +1748,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a dead enemy
                          crumbling to ash and a player who left the arena fading; DISSOLVE_TIME, LEAVE_FADE_TIME),
-                         arenaStage (the scenery per arena, the camera on the mode's view plus shake, aimed by
-                         visuals/aim.ts's aimCamera so it rolls over the poles, the drops' sacks after a win)
+                         arenaStage (the scenery per arena, the camera on the mode's view plus shake, the drops'
+                         sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
                          centre while you fight with a sword and a crosshair at the centre while you aim (aimHud,
@@ -1755,6 +1763,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to
                          fade; personEnemyVisual, the same drawing for an NPC fought as an enemy (its stance from its
                          state); unless &player3d=0, every one of them (you, a duel's rival, Bram) a 3D person (person/)
+        firstPerson.ts   Your arms in first person: firstPersonArms pulls the hands toward spots low on the screen and
+                         leans the blade ahead (FP_ARMS; the pose's own, the model's frame), posed for a fixed
+                         first-person view (POSED_FOR); holdInView reaches them there and carries both arms with the
+                         real camera, so they're in view wherever it looks; restShoulders puts them back (tested)
         slash.ts         A swing's trail: a ribbon between where its blade's guard and tip were over the last
                          TRAIL_TIME, fading (buildSlash, placeSlash while the motion's trail shows; sampleTrail,
                          trailAlpha tested): every player's and the Kobolds'
@@ -1798,7 +1810,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
-        scene.ts         OverworldScene: perspective camera (CAMERA: its field of view, distance and pivot), its sky,
+        scene.ts         OverworldScene: perspective camera (CAMERA: its field of view and pivot), its sky,
                          bloom, colour grade, vignette and the tilt-shift blur (the sun's haze is the dome's,
                          sky/dome.ts, so it never tints near walls); the sprite materials (a pile's
                          sack among them, drawPile, a trace's bedroll, the arena's too); standingQuad
@@ -1808,7 +1820,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          name's are kept by the scene for the next walker that has them
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the world's drawing, the camera following the player, turning and tilting
-                         all the way round its pivot, kept above the ground, the sky's frame)
+                         round its pivot, its distance eased to the zoom, kept above the ground, the sky's frame)
         chunks.ts        worldDrawing: the world a chunk (CHUNK_TILES square) at a time, each built once it and its
                          neighbours are held, and shown only once built. seenGround is how far the camera sees the
                          ground at its tilt; chunks that near the camera's target and not behind the camera are in
@@ -2158,7 +2170,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | each giver's `quests` in `server/src/core/npcs/<id>.ts`, `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
+| How each tile looks; the overworld's colour grade and camera (its field of view; its zoom's range; its starting tilt), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_PITCH` and `CAMERA_DISTANCE` in `client/src/modes/overworld/facing.ts` |
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL`, `ENEMY_SHADE_TINT` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
 | The 3D person's stride (how far a foot lands ahead, time down, lift, bob; the run's strides a second) and its landing | `STRIDE` (`STRIDE.run`) in `client/src/visuals/battle/person/motion.ts`; `LANDING` in `person/pose.ts` |
@@ -2169,8 +2181,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Map-light shadows, sprite tint, sun and moon discs, the shadow side's fill light | top of `client/src/visuals/sky/sky.ts` (`FILL`) |
 | The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts` (the haze too), `RAYS` in `client/src/visuals/sky/rays.ts`; `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
-| Arena camera feel, locked and not | `CAMERA_VIEWS` (shoulder, close, first person) at the top of `client/src/modes/battle/camera.ts` |
-| Camera turn rates (keys and drag, arena and overworld); how far a drag goes before it turns | `TURN` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts` |
+| Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
+| Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
+| Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |
 | Where a fight starts (and a duel) | `shared/src/battle/fight/setup.ts` |
 | A duel challenge's reach and how long it stays open | `server/src/core/game/duels.ts` |

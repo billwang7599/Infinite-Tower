@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Matrix, NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
 import { CHUNK_SEND_TILES, CHUNK_DROP_TILES, CHUNK_TILES, VIEW } from "@infinite-tower/shared";
-import { CAMERA_PITCH } from "../../../src/modes/overworld/facing.js";
+import { CAMERA_DISTANCE, CAMERA_PITCH } from "../../../src/modes/overworld/facing.js";
 import {
   AHEAD_TILES, buildRank, FOG, HIDE_MARGIN_TILES, levelAt, NEAR_TILES, seenGround, SHOWN_TILES, SKY_BLEND_TILES,
   skyBlendAt,
@@ -18,8 +18,8 @@ function screenEdgeOnGround(pitchRad: number): { fromFocus: number; fromCamera: 
   const engine = new NullEngine({
     renderWidth: WIDTH_PX, renderHeight: HEIGHT_PX, textureSize: 512, deterministicLockstep: false, lockstepMaxSteps: 1,
   });
-  const scene = new Scene(engine), back = Math.cos(pitchRad) * CAMERA.distanceTiles;
-  const up = CAMERA.pivotTiles + Math.sin(pitchRad) * CAMERA.distanceTiles;
+  const scene = new Scene(engine), back = Math.cos(pitchRad) * CAMERA_DISTANCE.maxTiles;
+  const up = CAMERA.pivotTiles + Math.sin(pitchRad) * CAMERA_DISTANCE.maxTiles;
   const camera = new UniversalCamera("camera", new Vector3(0, up, -back), scene);
   camera.fov = CAMERA.fovRad;
   camera.setTarget(new Vector3(0, CAMERA.pivotTiles, 0));
@@ -55,7 +55,7 @@ describe("how far the world is drawn", () => {
   test("the farthest ground seen is lost in the fog, and you stand clear of it", () => {
     const farthest = Math.max(...screenEdgeOnGround(CAMERA_PITCH.drawnForRad).map((h) => h.fromCamera));
     assert.ok(farthest >= FOG.endM - 0.01, `${farthest} m against ${FOG.endM}`);
-    assert.ok(FOG.startM > CAMERA.distanceTiles);
+    assert.ok(FOG.startM > CAMERA_DISTANCE.maxTiles);
   });
 
   test("the server sends every chunk a chunk built ahead looks at, with room to walk before it's needed", () => {
