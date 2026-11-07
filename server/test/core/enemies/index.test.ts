@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 import {
   ENEMY_IDS, gripOf, itemDef, ITEMS, UNIQUE_ITEMS, type EnemyId, type ItemEffect, type ItemId,
 } from "@infinite-tower/shared";
+import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES, rollDrops, TREASURE, TREASURE_TIERS } from "../../../src/core/enemies/index.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
@@ -25,6 +26,14 @@ const essenceOf = (item: string): number => {
 };
 
 describe("enemies' weapons", () => {
+  test("every Kobold shares the Swordsman's strength, weaker than a new player's", () => {
+    const strength = ENEMIES["kobold-swordsman"].def.stats.strength;
+    for (const id of ["kobold-greatsword", "kobold-shieldbearer"] as const) {
+      assert.equal(ENEMIES[id].def.stats.strength, strength, id);
+    }
+    assert.ok(strength < PLAYER_STATS.strength, `${strength}`);
+  });
+
   test("every Kobold holds its weapon in one hand, its off hand emptied too; Bram holds his stick in both", () => {
     const grip = (id: EnemyId) => gripOf({ rightHand: null, ...ENEMIES[id].def.wielder!.hands, leftHand: null });
     for (const id of ["kobold-swordsman", "kobold-greatsword", "kobold-shieldbearer"] as const) {

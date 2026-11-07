@@ -238,6 +238,12 @@ Decided by the user:
   hit's stamina is its damage, so blocking costs more too. The Kobolds keep strength 10. In the bot fights (20
   seeds) a reader still beats every Kobold at full HP in about 3 / 5 the time; one who only swings loses to the
   Swordsman and the Shieldbearer every time and to the Greatsword 18 of 20.
+- Kobolds at strength 8 (the user: "make kobolt strength an 8"; tests and bot fights only, not hand-played): the
+  Swordsman's `stats.strength`, which the Shieldbearer and the Greatsword copy, so all three swing heavier and hit
+  softer by a player's math: the Swordsman's opening light winds up 0.63 s (was 0.57) and recovers 0.12 s (0.1), a light
+  deals 12.52 + 1.79 (14 + 2). In the bot fights (20 seeds) a reader still beats all three at full HP; one who only
+  swings now wins 4 of 20 against the Shieldbearer and 7 of 20 against the Greatsword (0 and 2 at strength 10), and
+  still none against the Swordsman.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
