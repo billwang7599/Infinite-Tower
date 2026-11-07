@@ -2,9 +2,11 @@ import {
   clamp, FIXED_DT, PLAYER, smoothstep, type GuardKind, type PlayerData, type SwingData, type SwingDir, type Vec2,
   type Vec3, type WielderData,
 } from "@infinite-tower/shared";
-import { carryPose, guardPose } from "../guard.js";
+import { along, carryPose, guardPose, unit } from "../guard.js";
 import { playerBlade, STAGGERED } from "../pose.js";
-import { DRAWBACK, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
+import {
+  DRAWBACK, edgeToward, REST_BLADE, wayCut, type BladePose, type BowLook, type WeaponMotion,
+} from "../weapons.js";
 import type { PersonBuild } from "./model.js";
 import { BREATH, breathOf, plantLegs, strideOf, WALK, walkKey } from "./motion.js";
 import { restAt, type JointName } from "./skeleton.js";
@@ -166,6 +168,7 @@ export interface PersonPose {
   off: { blade: Vec3; edge: Vec3 } | null;
   held: { way: SwingDir | null; block: GuardKind | null } | null;
   gripped: boolean;
+  grip: number;
   joints: Record<PosedJoint, Vec3>;
   /** The root's height (m), down as the knees bend so the feet stay on the ground. */
   rootY: number;
@@ -193,9 +196,11 @@ export interface PersonMoment {
   alpha?: number;
   guard?: GuardKind | null;
   twoHanded?: boolean;
+  grip?: number;
 }
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
+const OFF_HAND_ACTIONS: readonly PlayerData["action"][] = ["chant", "cast", "beam", "write", "use", "bag"];
 
 const MIRRORED = Object.fromEntries(POSED_JOINTS.map((j) => [j, j.replace(/\.R$/, ".X").replace(/\.L$/, ".R")
   .replace(/\.X$/, ".L")])) as Record<PosedJoint, PosedJoint>;
@@ -228,6 +233,7 @@ export function personPose(
   const arc = reach * HAND_ARC;
   const joints = Object.fromEntries(POSED_JOINTS.map((j) => [j, { x: 0, y: 0, z: 0 }])) as PersonPose["joints"];
   const twist = alive && (!blocking || blocking === "shield") ? TWIST_RAD * blade.x : 0;
+  const gripped = alive && !!o.twoHanded && !o.bow && !OFF_HAND_ACTIONS.includes(player.action);
   const offHeld = alive && !o.bow && (kind === "dual" || kind === "shield") ? kind : null;
   if (alive) {
     for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
@@ -247,7 +253,7 @@ export function personPose(
     offHand: restOff,
     off: carry ? carry.off : null,
     held: alive && !o.bow && !STAGGERED.includes(player.action) ? { way: player.way, block: blocking } : null,
-    gripped: alive && !!o.twoHanded && !o.bow && !offHeld && !blocking,
+    gripped, grip: o.bow ? 0 : smoothstep(0, 1, o.grip ?? +gripped),
     joints, rootY: 0, legsExact: false, swing: swing && swung && { at: swing, alpha, set: swung.set },
   };
   const towardOff = (to: Vec3) => {
@@ -319,6 +325,7 @@ export function personPose(
         break;
     }
   }
+  if (p.grip > 0) gripBoth(p, b, side, twist, (handZ - REST_BLADE.handZ) * scale);
   if (alive && !player.grounded) play(joints, CLIPS.airborne, 0);
   const landing = alive && player.grounded ? LANDING.crouchRad * Math.sin(Math.PI * (o.landing ?? 0)) : 0;
   if (landing && !walking) play(joints, { at: [], joints: crouch([landing]) }, 0);
@@ -336,6 +343,26 @@ export function personPose(
     : -Math.min(legDrop(joints["thigh.R"], joints["shin.R"]), legDrop(joints["thigh.L"], joints["shin.L"]))
       + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
   return p;
+}
+
+export const OFF_GRIP_M = 0.1;
+// The arms can't follow a swing round together, so the hilt's middle (shares of reach) stays before the chest.
+export const TWO_HANDED = { mid: { x: 0.05, y: 0.15, z: 0.55 }, pullShare: 0.05, liftFromZ: 0.2, lift: 1.5 } as const;
+
+export const easeGrip = (grip: number, gripped: boolean, dt: number, shiftTime: number): number =>
+  clamp(grip + (gripped ? dt : -dt) / shiftTime, 0, 1);
+
+function gripBoth(p: PersonPose, b: PersonBuild, side: 1 | -1, twist: number, pullM: number): void {
+  const { mid, pullShare, liftFromZ, lift } = TWO_HANDED, reach = b.reachM, k = p.grip;
+  if (p.blade.z < liftFromZ) {
+    p.blade = unit({ ...p.blade, y: p.blade.y + (liftFromZ - p.blade.z) * lift * k });
+    p.edge &&= edgeToward(p.blade, p.edge);
+  }
+  const x = side * mid.x * reach, z = mid.z * reach + pullM * pullShare, c = Math.cos(twist), s = Math.sin(twist);
+  const y = p.held?.block ? p.hand.y : b.shoulderY - mid.y * reach;
+  const two = along({ x: x * c + z * s, y, z: z * c - x * s }, p.blade, OFF_GRIP_M / 2);
+  p.hand = { x: p.hand.x + (two.x - p.hand.x) * k, y: p.hand.y + (two.y - p.hand.y) * k,
+    z: p.hand.z + (two.z - p.hand.z) * k };
 }
 
 function walk(

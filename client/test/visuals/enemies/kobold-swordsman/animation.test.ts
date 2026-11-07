@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
   BASE_STATS, Body, Enemy, FighterStats, FIXED_DT, Health, newWielder, Skilled, WAYS, WeaponAttack, WEAPONS, Wielder,
-  World, type EnemyData, type EnemyState, type Entity, type SkilledData, type SwingData, type Vec3,
+  World, type EnemyData, type EnemyState, type Entity, type ItemId, type SkilledData, type SwingData, type Vec3,
   type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
@@ -21,9 +21,11 @@ import {
 import {
   koboldShieldbearerVisual, SHIELDBEARER_BUILD,
 } from "../../../../src/visuals/enemies/kobold-shieldbearer/animation.js";
-import { koboldSwordsmanVisual, reachKobold } from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
 import {
-  bellySections, buildKobold, SWORDSMAN_BUILD, torsoSections, type KoboldBuild,
+  koboldSwordsmanVisual, koboldVisual, reachKobold,
+} from "../../../../src/visuals/enemies/kobold-swordsman/animation.js";
+import {
+  bellySections, buildKobold, OFF_GRIP_M, SWORDSMAN_BUILD, torsoSections, type KoboldBuild,
 } from "../../../../src/visuals/enemies/kobold-swordsman/model.js";
 import { KOBOLD_GUARD_FIT, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { alongSegment, armDepth, depthIn, type Loft } from "../../../fixtures/clearance.js";
@@ -32,7 +34,9 @@ import { swingAt, swingSteps } from "../../../fixtures/swings.js";
 const TOLERANCE_M = 0.003;
 const ARM_REACH_M = 0.8;
 
-function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword"): { depthM: number; where: string } {
+function deepest(
+  build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword", onGrip: number,
+): { depthM: number; where: string } {
   const scene = new Scene(new NullEngine()), ctx = { scene, sky: { castShadows: () => {} } } as never;
   const look = WEAPON_LOOKS[weapon];
   const def = { radius: 0.5 } as never;
@@ -55,7 +59,7 @@ function deepest(build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword
     hand.rotationQuaternion = new Quaternion();
     const blade = new Vector3(p.blade.x, p.blade.y, p.blade.z);
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), blade, hand.rotationQuaternion);
-    reachKobold(m, p.hand, { ...p.offHand, z: p.offHand.z - gaitM }, look, 1 - guarded);
+    reachKobold(m, p.hand, { ...p.offHand, z: p.offHand.z - gaitM }, look, onGrip * (1 - guarded));
     for (const [which, arm] of [["sword", m.swordArm], ["off", m.offArm]] as const) {
       const c = arm.clearance!, { depthM, part } = armDepth(lofts, arm, c, c.upperFrom);
       if (depthM > worst.depthM) worst = { depthM, where: `${which} ${part}, ${what}` };
@@ -95,8 +99,10 @@ describe("the kobolds' arms go round their bodies", () => {
 
   test("on guard, blocking, swinging either way, reeling and down, no arm, fist or blade passes into the torso", () => {
     for (const [build, weapon] of kobolds) {
-      const { depthM, where } = deepest(build, weapon);
-      assert.ok(depthM <= TOLERANCE_M, `${weapon}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
+      for (const onGrip of [0, 1]) {
+        const { depthM, where } = deepest(build, weapon, onGrip);
+        assert.ok(depthM <= TOLERANCE_M, `${weapon}, grip ${onGrip}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
+      }
     }
   });
 
@@ -227,11 +233,12 @@ describe("a kobold raises its guard while its block is up", () => {
     return { frames, upAt };
   }
 
-  const handAt = (pose: { hand: Vec3 }) => new Vector3(pose.hand.x, pose.hand.y, pose.hand.z);
-  const held = MOTIONS.sword.held(wayCut("tb", true));
-  const plain = handAt(koboldPose("approach", 0, 1, wayCut("tb", true), MOTIONS.sword, null, held));
-  const raised = handAt(guardPose("one", 1, KOBOLD_GUARD_FIT) as { hand: Vec3 });
-  const share = (at: Vector3) => 1 - Vector3.Distance(at, raised) / Vector3.Distance(plain, raised);
+  const { hand: guarded } = guardPose("one", 1, KOBOLD_GUARD_FIT) as { hand: Vec3 };
+  const raised = new Vector3(guarded.x, guarded.y, guarded.z);
+  const shareFrom = (plain: Vector3) => (at: Vector3) =>
+    1 - Vector3.Distance(at, raised) / Vector3.Distance(plain, raised);
+  const handAtTime = (frames: { time: number; hand: Vector3 }[], time: number) =>
+    frames.find((f) => f.time >= time - 1e-9)!.hand;
 
   const STUN_AT = 1.5;
   const fastest = (frames: { time: number; hand: Vector3 }[], from: number, to: number) => Math.max(...frames
@@ -239,22 +246,23 @@ describe("a kobold raises its guard while its block is up", () => {
 
   for (const kobold of kobolds) {
     test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by heft, never jumping`, () => {
-      const { frames, upAt } = run(kobold, STUN_AT);
+      const { frames, upAt } = run(kobold, STUN_AT), unguarded = run(kobold, STUN_AT, false).frames;
       const shiftTime = guardShiftTime(WEAPONS[kobold.weapon], BASE_STATS.strength);
-      const at = (time: number) => frames.find((f) => f.time >= time - 1e-9)!.hand;
+      const at = (time: number) => handAtTime(frames, time), share = shareFrom(handAtTime(unguarded, upAt));
       assert.ok(upAt > BLOCK_REACT_TIME && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
-      assert.ok(Vector3.Distance(at(upAt), plain) < 0.01, "on guard until its block is up");
+      assert.ok(Vector3.Distance(at(upAt), handAtTime(unguarded, upAt)) < 0.01, "on guard until its block is up");
       assert.ok(share(at(upAt + shiftTime / 4)) < 0.4, `${share(at(upAt + shiftTime / 4))}: eased in, not snapped`);
       assert.ok(Vector3.Distance(at(upAt + shiftTime + 0.2), raised) < 0.01, "held where a block holds it");
       assert.ok(fastest(frames, 0, STUN_AT) < 0.012, `${fastest(frames, 0, STUN_AT).toFixed(3)} m in a frame`);
       assert.ok(share(at(STUN_AT + shiftTime / 4)) > 0.6, "eased out as it drops");
-      const reeled = fastest(frames, STUN_AT, 2), unguarded = fastest(run(kobold, STUN_AT, false).frames, STUN_AT, 2);
-      assert.ok(reeled <= unguarded + 1e-3, `reeling from its block ${reeled} m a frame, from its guard ${unguarded}`);
+      const reeled = fastest(frames, STUN_AT, 2), fromGuard = fastest(unguarded, STUN_AT, 2);
+      assert.ok(reeled <= fromGuard + 1e-3, `reeling from its block ${reeled} m a frame, from its guard ${fromGuard}`);
     });
   }
 
   const halfway = (kobold: (typeof kobolds)[number], strength = BASE_STATS.strength) => {
     const { frames, upAt } = run(kobold, STUN_AT, true, strength);
+    const share = shareFrom(handAtTime(run(kobold, STUN_AT, false, strength).frames, upAt));
     return frames.find((f) => f.time > upAt && share(f.hand) >= 0.5)!.time - upAt;
   };
 
@@ -340,5 +348,72 @@ describe("the Kobold Shieldbearer's shield", () => {
     assert.ok(blocking(world, e));
     assert.ok(facing().z > 0.99, `raised facing ${facing()}`);
     s.dispose();
+  });
+});
+
+describe("the kobold rig grips as gripOf says: both hands on a lone blade unless its hands are one-handed", () => {
+  const PER_SEC = 120;
+
+  function run(
+    build: KoboldBuild, weapon: "kobold-blade" | "kobold-greatsword", leftHand: ItemId | null, oneHanded?: true,
+  ) {
+    const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
+    world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
+    world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
+    world.add(e, FighterStats, BASE_STATS);
+    const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "approach", stateTime: 0, duration: 0, yaw: 0 } as
+      unknown as EnemyData);
+    const wielder = world.add(e, Wielder,
+      newWielder({ rightHand: weapon, leftHand, active: "rightHand", ...(oneHanded && { oneHanded }) }, ARM_REACH_M));
+    const ctx = {
+      scene, sky: { castShadows: () => {} }, nodes: new Map(), impacts: new Map(), hitStops: new Map(), skills: {},
+      materials: { slashFx: new StandardMaterial("slash", scene) }, battle: { blend: new Blend(), corrections: [] },
+    } as unknown as ArenaScene;
+    const visual = koboldVisual(build), drawn = visual.spawn(ctx, world, e), m = drawn.drawing;
+    let worst = { m: 0, at: "" }, least = Infinity;
+    const frame = (what: string) => {
+      visual.frame(drawn, world, e, 1 / PER_SEC);
+      const held = m.swordArm.hand.computeWorldMatrix(true), off = m.offArm.hand.computeWorldMatrix(true).getTranslation();
+      const way = Vector3.TransformNormal(Vector3.Up(), held).normalize(), at = held.getTranslation();
+      const underM = Vector3.Distance(off, at.subtract(way.scale(OFF_GRIP_M)));
+      if (underM > worst.m) worst = { m: underM, at: what };
+      least = Math.min(least, underM);
+    };
+    for (let i = 0; i < 0.3 * PER_SEC; i++) frame("on guard");
+    for (const attack of ["light", "heavy"] as const) {
+      for (const way of WAYS) {
+        const swing = swingAt(attack, way, 0);
+        for (let i = 0; i <= swing.endAt * FIXED_DT * PER_SEC; i++) {
+          swing.step = Math.floor(i / PER_SEC / FIXED_DT);
+          wielder.swing = swing.step < swing.endAt ? swing : null;
+          Object.assign(enemy, { state: wielder.swing ? "weapon" : "weaponRecover", stateTime: i / PER_SEC });
+          frame(`${attack} ${way} step ${swing.step}`);
+        }
+      }
+    }
+    scene.dispose();
+    return { worst, least };
+  }
+
+  const oneBlade = [[SWORDSMAN_BUILD, "kobold-blade"], [GREATSWORD_BUILD, "kobold-greatsword"]] as const;
+
+  test("the off hand stays on the hilt a hand-width under the sword hand, on guard and through every swing", () => {
+    for (const [build, weapon] of oneBlade) {
+      const { worst } = run(build, weapon, null);
+      assert.ok(worst.m < 0.02, `${weapon}: ${worst.m.toFixed(3)} m off the grip at ${worst.at}`);
+    }
+  });
+
+  test("with anything in the other hand it's free", () => {
+    const { least } = run(SWORDSMAN_BUILD, "kobold-blade", "skillbook");
+    assert.ok(least > OFF_GRIP_M, `${least} m from the grip`);
+  });
+
+  test("a one-handed wielder's off hand stays free, its other hand empty", () => {
+    for (const [build, weapon] of oneBlade) {
+      const { least } = run(build, weapon, null, true);
+      assert.ok(least > OFF_GRIP_M, `${weapon}: ${least} m from the grip`);
+    }
   });
 });

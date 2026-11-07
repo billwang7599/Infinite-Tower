@@ -9,7 +9,7 @@ export const KOBOLD_GREATSWORD: Enemy = {
     ...KOBOLD_SWORDSMAN.def,
     id: "kobold-greatsword",
     name: "Kobold Greatsword",
-    wielder: { hands: { rightHand: "kobold-greatsword" }, armReachM: 0.8 },
+    wielder: { hands: { rightHand: "kobold-greatsword", oneHanded: true }, armReachM: 0.8 },
   },
   drops: [{ item: "kobold-greatsword-essence", chance: 1, count: 1 }],
   treasure: { uncommon: 0.06, rare: 0.02, epic: 0.005, legendary: 0.0015, unique: 0.0003 },

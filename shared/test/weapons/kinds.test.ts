@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, ITEM_IDS, itemDef, ITEMS,
-  loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS,
-  WEAPONS, wayShape, wayStepsAfter, type Weapon,
+  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, gripOf, guardOf, ITEM_IDS, itemDef,
+  ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS,
+  WEAPONS, wayShape, wayStepsAfter, type ItemId, type Weapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
@@ -25,6 +25,36 @@ describe("weapon kinds", () => {
     assert.equal(rangedOf(null), null);
     assert.equal(meleeIn({ rightHand: "training-bow", leftHand: null }), null);
     assert.equal(meleeIn({ rightHand: "skillbook", leftHand: "sword" }), WEAPONS.sword);
+  });
+
+  test("a melee weapon is held in both hands when the other hand is empty; anything in it makes it one hand", () => {
+    const grip = (rightHand: ItemId | null, leftHand: ItemId | null) =>
+      gripOf({ rightHand, leftHand, active: "rightHand" });
+    assert.equal(grip("sword", null), "two");
+    assert.equal(grip(null, "greatsword"), "two");
+    assert.equal(grip("kobold-blade", null), "two");
+    assert.equal(grip("sword", "skillbook"), "one");
+    assert.equal(grip("skillbook", "longsword"), "one");
+    assert.equal(grip("sword", "kobold-blade"), "dual");
+    assert.equal(grip("sword", "wooden-shield"), "shield");
+    assert.equal(grip(null, "wooden-shield"), "shield");
+    assert.equal(grip("training-bow", null), "one", "a bow keeps its own grip");
+    assert.equal(grip("skillbook", null), null);
+    assert.equal(grip(null, null), null);
+  });
+
+  test("a one-handed wielder holds a lone blade in one hand, its other hand empty", () => {
+    for (const rightHand of ["kobold-blade", "kobold-greatsword"] as const) {
+      const hands = { rightHand, leftHand: null, active: "rightHand", oneHanded: true } as const;
+      assert.equal(gripOf(hands), "one", rightHand);
+      assert.equal(guardOf(hands)!.kind, "one", rightHand);
+    }
+    assert.equal(gripOf({ rightHand: "kobold-blade", leftHand: "wooden-shield", oneHanded: true }), "shield");
+  });
+
+  test("the guard is the grip's: a blade in both hands guards as one blade", () => {
+    assert.deepEqual(guardOf({ rightHand: "sword", leftHand: null }), { kind: "one", guard: WEAPONS.sword });
+    assert.deepEqual(guardOf({ rightHand: "sword", leftHand: "skillbook" }), { kind: "one", guard: WEAPONS.sword });
   });
 
   test("the training bow is a bow; its ammo is an item that stacks in the bag and is worn nowhere", () => {

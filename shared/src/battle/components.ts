@@ -101,7 +101,7 @@ export interface HandChain {
 }
 
 export interface WielderData {
-  hands: Required<Hands>;
+  hands: Hands & { active: Hand };
   armReachM: number;
   swing: SwingData | null;
   /** Either hand's next swing chains on while it's above 0. */

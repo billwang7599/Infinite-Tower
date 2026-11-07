@@ -6,11 +6,11 @@ export interface GuardPose { offHand: Vec3; off?: Held; hand?: Vec3; blade?: Vec
 export interface GuardFit { y: number; z: number }
 
 const UP: Vec3 = { x: 0, y: 1, z: 0 }, AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
-const unit = ({ x, y, z }: Vec3): Vec3 => {
+export const unit = ({ x, y, z }: Vec3): Vec3 => {
   const l = Math.hypot(x, y, z);
   return { x: x / l, y: y / l, z: z / l };
 };
-const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
+export const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
 const cross = (a: Vec3, b: Vec3): Vec3 =>
   ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
 const shieldFacing = (face: Vec3): Held => ({ blade: UP, edge: unit(cross(UP, face)) });

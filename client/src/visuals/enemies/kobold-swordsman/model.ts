@@ -27,7 +27,6 @@ export interface KoboldModel {
   /** The sword is in swordArm's hand, along its +y. */
   swordArm: Arm;
   offArm: Arm;
-  twoHanded: boolean;
   /** Hip pivots: left, right. */
   legs: [TransformNode, TransformNode];
   stars: TransformNode;
@@ -39,7 +38,7 @@ export interface KoboldModel {
 }
 
 /** A two-handed grip's off hand, this far (m) down the grip from the sword hand. */
-export const OFF_GRIP_M = 0.2;
+export const OFF_GRIP_M = 0.12;
 
 export function disposeKobold(v: KoboldModel): void {
   v.root.dispose();
@@ -192,7 +191,6 @@ export function buildKobold(
     upper: scales, fore: scales, fist: ridge, body: { parts: body, jointShare: SHOULDER_JOINT_SHARE },
   });
   const swordArm = arm(1), offArm = arm(-1);
-  const twoHanded = weapon?.twoHanded ?? false;
   if (weapon) {
     const steel = mat("kobold-steel", weapon.blade.color);
     parts.push(...buildBlade(scene, swordArm.hand, weapon, { grip: leather, guard: brass, steel }));
@@ -215,7 +213,7 @@ export function buildKobold(
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
-    root, model, hips, chest, torso, head, tail, swordArm, offArm, twoHanded, legs, stars, materials, baseEmissive,
+    root, model, hips, chest, torso, head, tail, swordArm, offArm, legs, stars, materials, baseEmissive,
     gait: 0, visualYaw: yaw,
   };
 }

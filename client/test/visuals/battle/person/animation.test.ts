@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  BASE_STATS, Body, DEFAULT_LOOK, FighterStats, FIXED_DT, Health, LOOK_OPTIONS, newWielder, Player, PLAYER, WAYS,
-  Wielder, World, type Entity, type Look, type PlayerData, type SwingData, type WeaponId,
+  BASE_STATS, Body, DEFAULT_LOOK, FighterStats, FIXED_DT, Health, LOOK_OPTIONS, newWielder, Player, PLAYER, STRIKES,
+  SWING_DIRS, WAYS, Wielder, World, type Entity, type Look, type PlayerData, type SwingData,
+  type SwingDir, type WeaponId, type WielderData,
 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
 import { orbitBack } from "../../../../src/modes/orbit.js";
@@ -12,14 +13,14 @@ import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js
 import { holdInView, restShoulders } from "../../../../src/visuals/battle/firstPerson.js";
 import { HIT_STOP_EASE_MS, HIT_STOP_MS, type HitStop } from "../../../../src/visuals/battle/impact.js";
 import {
-  dropPerson, framePerson, handSide, newPerson, reachArms, reachWith,
+  dropPerson, framePerson, handSide, newPerson, reachArms, reachWith, type PersonDrawing,
 } from "../../../../src/visuals/battle/person/animation.js";
 import { SHAPES } from "../../../../src/visuals/battle/person/body.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
 import {
   buildPerson, personBuild, toMetres, type PersonBuild,
 } from "../../../../src/visuals/battle/person/model.js";
-import { personPose, POSED_JOINTS } from "../../../../src/visuals/battle/person/pose.js";
+import { OFF_GRIP_M, personPose, POSED_JOINTS } from "../../../../src/visuals/battle/person/pose.js";
 import type { ArenaScene } from "../../../../src/visuals/battle/scene.js";
 import { M_PER_PX, type Joints } from "../../../../src/visuals/battle/person/skeleton.js";
 import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
@@ -96,12 +97,18 @@ function cases(swingEvery: number): Case[] {
       }
     }
   }
+  for (const way of [null, ...WAYS.filter((w) => w !== "stab")]) {
+    all.push({ what: `two-handed guard ${way}`, player: playerDoing("none", 1, way), extra: { twoHanded: true },
+      weapon: "sword" });
+  }
   for (const [weapon, attacks] of [["sword", ["light", "heavy"]], ["greatsword", ["heavy"]]] as const) {
     for (const attack of attacks) {
       for (const way of WAYS) {
         for (const swing of swingSteps(attack, way).filter((s) => s.step % swingEvery === 0)) {
-          all.push({ what: `${weapon} ${attack} ${way} step ${swing.step}`, player: playerDoing("attack", 0), swing,
-            weapon });
+          for (const twoHanded of [false, true]) {
+            all.push({ what: `${weapon} ${attack} ${way} step ${swing.step}${twoHanded ? " two-handed" : ""}`,
+              player: playerDoing("attack", 0), swing, weapon, extra: { twoHanded } });
+          }
         }
       }
     }
@@ -125,8 +132,10 @@ function cases(swingEvery: number): Case[] {
       }
     }
   }
-  all.push({ what: "greatsword block", player: playerDoing("block", 1, "rl"), extra: { guard: "one", twoHanded: true },
-    weapon: "greatsword" });
+  for (const twoHanded of [false, true]) {
+    all.push({ what: `greatsword block${twoHanded ? " two-handed" : ""}`, player: playerDoing("block", 1, "rl"),
+      extra: { guard: "one", twoHanded }, weapon: "greatsword" });
+  }
   for (const left of [0.8, 0.4, 0.1]) {
     add(`staggered, ${left} s left`, playerDoing("stagger", 0.1), { stagger: { left, of: 0.8 } });
   }
@@ -155,12 +164,12 @@ function place(joints: Joints, build: PersonBuild, side: 1 | -1, c: Case): void 
   const turn = holdingOf(p.blade, p.edge, new Quaternion());
   const offTurn = p.off ? holdingOf(p.off.blade, p.off.edge, new Quaternion()) : Quaternion.Identity();
   const hand = new Vector3(p.hand.x, p.hand.y, p.hand.z), offHeld = c.offWeapon ? WEAPON_LOOKS[c.offWeapon] : null;
-  reachArms(joints, build.look.body, side, hand, turn,
-    p.gripped ? null : { hand: p.offHand, holding: offTurn, held: offHeld }, alive ? held : null);
+  reachArms(joints, build.look.body, side, hand, turn, { hand: p.offHand, holding: offTurn, held: offHeld },
+    alive ? held : null, p.gripped ? 1 : 0);
   for (const j of Object.values(joints)) j.computeWorldMatrix(true);
 }
 
-function deepestIn(body: Look["body"], swingEvery: number): { depthM: number; where: string } {
+function deepestIn(body: Look["body"], swingEvery: number, twoHanded: boolean): { depthM: number; where: string } {
   const scene = new Scene(new NullEngine()), b = BATTLE_BUILDS[body];
   const build = personBuild({ ...DEFAULT_LOOK, body });
   const { joints } = buildPerson({ scene, sky }, 1, new TransformNode("player", scene), build);
@@ -172,7 +181,7 @@ function deepestIn(body: Look["body"], swingEvery: number): { depthM: number; wh
   const jointEndM = SHAPES.shoulder.sections(b)[0]!.y * M_PER_PX;
   let worst = { depthM: 0, where: "" };
   for (const side of [1, -1] as const) {
-    for (const c of cases(swingEvery)) {
+    for (const c of cases(swingEvery).filter((c) => !!c.extra?.twoHanded === twoHanded)) {
       place(joints, build, side, c);
       const held = c.weapon && c.extra?.alive !== false ? WEAPON_LOOKS[c.weapon] : null;
       for (const s of ["R", "L"] as const) {
@@ -201,11 +210,20 @@ function deepestIn(body: Look["body"], swingEvery: number): { depthM: number; wh
   return worst;
 }
 
+const TWO_HANDED_TOLERANCE_M = 0.075;
+
 describe("the 3D person's arms go round its body", () => {
   test("in every pose no upper arm, forearm, hand or held blade passes into the torso, left- or right-handed", () => {
     for (const body of LOOK_OPTIONS.body) {
-      const { depthM, where } = deepestIn(body, body === "medium" ? 1 : 3);
+      const { depthM, where } = deepestIn(body, body === "medium" ? 1 : 3, false);
       assert.ok(depthM <= TOLERANCE_M, `${body}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
+    }
+  });
+
+  test("a blade in both hands: the arms and blade sink no deeper than a little into the chest", () => {
+    for (const body of LOOK_OPTIONS.body) {
+      const { depthM, where } = deepestIn(body, body === "medium" ? 1 : 3, true);
+      assert.ok(depthM <= TWO_HANDED_TOLERANCE_M, `${body}: ${(depthM * 100).toFixed(1)} cm in, ${where}`);
     }
   });
 });
@@ -337,4 +355,138 @@ describe("a hit-stop on a 3D person: its arms and blade hold, then go on with no
       });
     }
   }
+});
+
+describe("a lone blade is held in both hands", () => {
+  const scene = new Scene(new NullEngine()), node = new TransformNode("player", scene), feet = { x: 2, y: 0.7, z: -1 };
+  node.position.set(feet.x, feet.y, feet.z);
+  const fp = CAMERA_VIEWS.fp, back = orbitBack(0, fp.lockPitchRad), o = { ...feet, y: feet.y + fp.orbitHeightM };
+  const view = { yaw: 0, pitch: fp.lockPitchRad, fovRad: fp.fovRad,
+    eye: { x: o.x + back.x * fp.distanceM, y: o.y + back.y * fp.distanceM, z: o.z + back.z * fp.distanceM },
+    at: { x: o.x - back.x, y: o.y - back.y, z: o.z - back.z } };
+  const SETTLED_TIME = 0.3, ON_GRIP_M = 0.02;
+
+  function fighter(hands: WielderData["hands"], firstPerson: boolean) {
+    const world = new World(), e = world.spawn();
+    const blend = { alpha: 1 }, ctx = { scene, sky, bows: new Map(), looks: new Map([[e, { current: DEFAULT_LOOK }]]),
+      battle: { blend }, pixel: { steps: null }, hitStops: new Map() } as unknown as ArenaScene;
+    world.add(e, Player, playerDoing("none", 0));
+    world.add(e, Body, { pos: { ...feet }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.8, collider: 0 });
+    world.add(e, Health, { hp: 100, max: 100, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
+    world.add(e, FighterStats, BASE_STATS);
+    const wielder = world.add(e, Wielder, newWielder(hands, PLAYER.armReachM)), p = newPerson();
+    const frame = (dt: number, action: PlayerData["action"], way: SwingDir | null, swing: SwingData | null = null,
+      alpha = 1) => {
+      wielder.swing = swing;
+      blend.alpha = alpha;
+      if (firstPerson) restShoulders(p);
+      framePerson(p, ctx, node, world, e, dt, { action, actionTime: 1, actionDir: { x: 0, z: 1 }, way, grounded: true,
+        aim: { x: 0, z: 1 } }, { left: 0, of: 0 });
+      if (firstPerson) holdInView(p, view, 1, dt);
+    };
+    return { p, wielder, frame };
+  }
+
+  function grips(p: PersonDrawing) {
+    const [main, off] = (p.bladeSide === 1 ? ["grip.R", "grip.L"] as const : ["grip.L", "grip.R"] as const)
+      .map((g) => p.model!.joints[g].computeWorldMatrix(true));
+    const at = main!.getTranslation(), way = Vector3.TransformNormal(Vector3.Up(), main!).normalize();
+    return { main: at, off: off!.getTranslation(), underM: Vector3.Distance(off!.getTranslation(),
+      at.subtract(way.scale(OFF_GRIP_M))) };
+  }
+
+  function script(frame: ReturnType<typeof fighter>["frame"], perSec: number, each: (what: string) => void) {
+    const dt = 1 / perSec, hold = (time: number, action: PlayerData["action"], way: SwingDir | null) => {
+      for (let i = 0; i < time * perSec; i++) {
+        frame(dt, action, way);
+        each(`${action} ${way}`);
+      }
+    };
+    hold(SETTLED_TIME, "none", null);
+    for (const way of SWING_DIRS) hold(0.15, "none", way);
+    for (const strike of STRIKES) {
+      for (const way of strike === "stab" ? ["stab" as const] : SWING_DIRS) {
+        const s = swingAt(strike === "heavy" ? "heavy" : "light", way, 0), stance = way === "stab" ? null : way;
+        for (let clock = 0; clock < s.endAt; clock += 1 / perSec / FIXED_DT) {
+          s.step = Math.floor(clock) + 1;
+          frame(dt, "attack", stance, s, clock % 1);
+          each(`${strike} ${way} step ${s.step}`);
+        }
+        hold(0.15, "none", stance);
+      }
+    }
+    hold(0.3, "block", "rl");
+  }
+
+  test("the off hand is on the hilt a hand-width under the sword hand: guards, swings, stabs, blocks, either hand", () => {
+    for (const firstPerson of [false, true]) {
+      for (const hand of ["rightHand", "leftHand"] as const) {
+        const f = fighter({ rightHand: hand === "rightHand" ? "sword" : null,
+          leftHand: hand === "leftHand" ? "sword" : null, active: hand }, firstPerson);
+        let worst = { m: 0, at: "" }, t = 0;
+        script(f.frame, 120, (what) => {
+          const { underM } = grips(f.p);
+          if ((t += 1 / 120) > SETTLED_TIME && underM > worst.m) worst = { m: underM, at: what };
+        });
+        assert.ok(worst.m < ON_GRIP_M,
+          `${firstPerson ? "first" : "third"} person, ${hand}: ${worst.m.toFixed(3)} m off the grip at ${worst.at}`);
+        dropPerson(f.p);
+      }
+    }
+  });
+
+  test("with anything in the other hand it's free, as one-handed", () => {
+    for (const firstPerson of [false, true]) {
+      const f = fighter({ rightHand: "sword", leftHand: "skillbook", active: "rightHand" }, firstPerson);
+      let nearest = Infinity, t = 0;
+      script(f.frame, 60, () => {
+        const { main, off } = grips(f.p);
+        if ((t += 1 / 60) > SETTLED_TIME) nearest = Math.min(nearest, Vector3.Distance(main, off));
+      });
+      assert.ok(nearest > 2 * OFF_GRIP_M, `${firstPerson ? "first" : "third"} person: ${nearest} m from the sword hand`);
+      dropPerson(f.p);
+    }
+  });
+
+  test("taking up or putting down the other hand's thing eases the hand onto or off the grip, at rest or mid-swing", () => {
+    const CHANGE_TIME = 0.4, END_TIME = 0.9;
+    type Hold = "taking up" | "putting down" | "one" | "two";
+    const run = (firstPerson: boolean, midSwing: boolean, perSec: number, hold: Hold) => {
+      const f = fighter({ rightHand: "sword", leftHand: null, active: "rightHand" }, firstPerson);
+      const swing = swingAt("light", "lr", 0), oneAt = (t: number) =>
+        hold === "one" || (hold === "taking up" && t >= CHANGE_TIME) || (hold === "putting down" && t < CHANGE_TIME);
+      let most = 0, last: Vector3[] | null = null;
+      const underM = { before: 0, after: 0 };
+      for (let i = 0; i <= END_TIME * perSec; i++) {
+        const t = i / perSec, clock = (t - CHANGE_TIME) / FIXED_DT + swing.liveAt / 2;
+        f.wielder.hands = { ...f.wielder.hands, leftHand: oneAt(t) ? "skillbook" : null };
+        swing.step = Math.floor(clock) + 1;
+        const swinging = midSwing && clock >= 0 && swing.step <= swing.endAt;
+        f.frame(1 / perSec, swinging ? "attack" : "none", "lr", swinging ? swing : null, clock % 1);
+        const now = [grips(f.p).main, grips(f.p).off,
+          ...(["forearm.R", "forearm.L"] as const).map((j) => f.p.model!.joints[j].getAbsolutePosition().clone())];
+        if (last && t > SETTLED_TIME) most = Math.max(most, ...now.map((v, k) => Vector3.Distance(v, last![k]!)));
+        last = now;
+        if (t < CHANGE_TIME) underM.before = grips(f.p).underM;
+        underM.after = grips(f.p).underM;
+      }
+      dropPerson(f.p);
+      return { most, underM };
+    };
+    for (const firstPerson of [false, true]) {
+      for (const midSwing of [false, true]) {
+        // Mid-swing the arms move fast anyway: no faster than the same swing held either way.
+        const swingM = midSwing
+          ? Math.max(run(firstPerson, true, 240, "one").most, run(firstPerson, true, 240, "two").most) : 0;
+        for (const hold of ["taking up", "putting down"] as const) {
+          const what = `${firstPerson ? "first" : "third"} person${midSwing ? ", mid-swing" : ""}, ${hold}`;
+          const at60 = run(firstPerson, midSwing, 60, hold), at240 = run(firstPerson, midSwing, 240, hold);
+          assert.ok(midSwing ? at240.most <= swingM : at240.most < at60.most / 2.5,
+            `${what}: ${at60.most} m a frame at 60 fps, ${at240.most} at 240${midSwing ? ` (the swing: ${swingM})` : ""}`);
+          const { before, after } = at240.underM, [gripped, free] = hold === "taking up" ? [before, after] : [after, before];
+          assert.ok(gripped < ON_GRIP_M && free > 2 * OFF_GRIP_M, `${what}: ${gripped} m off the grip, then ${free}`);
+        }
+      }
+    }
+  });
 });

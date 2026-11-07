@@ -157,14 +157,13 @@ export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
 };
 
 /**
- * `blade`: from the guard up, or a bow's stave, tip to tip; `art`: painted on its faces, else plain `color`;
- * `twoHanded`: a 3D model holds it with its off hand too (a bow's on the string). `bow`: its string `braceM` behind the
- * grip, pulled `drawM` further fully drawn.
+ * `blade`: from the guard up, or a bow's stave, tip to tip; `art`: painted on its faces, else plain `color`; `gripM`:
+ * a hilt's grip longer than `GRIP_M`. `bow`: its string `braceM` behind the grip, pulled `drawM` further fully drawn.
  */
 export interface WeaponLook {
   blade: { lengthM: number; widthM: number; color: string };
   art: Art | null;
-  twoHanded: boolean;
+  gripM?: number;
   bow?: BowLook;
 }
 export interface BowLook { braceM: number; drawM: number; string: string }
@@ -173,24 +172,16 @@ export interface BowLook { braceM: number; drawM: number; string: string }
 const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
-  "old-stick": {
-    blade: { lengthM: lengthOf("old-stick"), widthM: 0.07, color: "#7a5a3a" }, art: null, twoHanded: false,
-  },
-  sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false },
-  "kobold-blade": {
-    blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false,
-  },
-  longsword: {
-    blade: { lengthM: lengthOf("longsword"), widthM: 0.105, color: "#c9d1d8" }, art: SWORD, twoHanded: false,
-  },
-  greatsword: {
-    blade: { lengthM: lengthOf("greatsword"), widthM: 0.15, color: "#b4bcc4" }, art: SWORD, twoHanded: true,
-  },
+  "old-stick": { blade: { lengthM: lengthOf("old-stick"), widthM: 0.07, color: "#7a5a3a" }, art: null },
+  sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD },
+  "kobold-blade": { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD },
+  longsword: { blade: { lengthM: lengthOf("longsword"), widthM: 0.105, color: "#c9d1d8" }, art: SWORD },
+  greatsword: { blade: { lengthM: lengthOf("greatsword"), widthM: 0.15, color: "#b4bcc4" }, art: SWORD, gripM: 0.42 },
   "kobold-greatsword": {
-    blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.16, color: "#8f9196" }, art: SWORD, twoHanded: true,
+    blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.16, color: "#8f9196" }, art: SWORD, gripM: 0.42,
   },
   "training-bow": {
-    blade: { lengthM: lengthOf("training-bow"), widthM: 0.04, color: "#9a7448" }, art: null, twoHanded: true,
+    blade: { lengthM: lengthOf("training-bow"), widthM: 0.04, color: "#9a7448" }, art: null,
     bow: { braceM: 0.14, drawM: 0.3, string: "#e6dcc0" },
   },
 };

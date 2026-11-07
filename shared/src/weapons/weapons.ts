@@ -34,7 +34,7 @@ export const feltHeft = (weapon: Guard, strength: number): number =>
 
 export type Guard = Pick<Weapon, "length" | "heft">;
 
-export type Hands = Record<Hand, ItemId | null> & { active?: Hand };
+export type Hands = Record<Hand, ItemId | null> & { active?: Hand; oneHanded?: true };
 
 export function weaponHandIn(hands: Hands): Hand | null {
   const first = hands.active ?? "rightHand", other = first === "rightHand" ? "leftHand" : "rightHand";
