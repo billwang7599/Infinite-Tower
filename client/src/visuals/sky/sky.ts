@@ -47,6 +47,14 @@ export function nearestLights(spots: Vec3[], camera: Vec3, count: number, curren
 
 interface Lamp { light: PointLight; shadows: ShadowGenerator }
 
+// A point light's shadow map renders every caster in it six times, so one that can't move into its reach is left out.
+function lightReaches(def: MapLight, mesh: AbstractMesh): boolean {
+  if (!mesh.isWorldMatrixFrozen) return true;
+  const { minimumWorld: lo, maximumWorld: hi } = mesh.getBoundingInfo().boundingBox, { x, y, z } = def.at;
+  const off = (v: number, a: number, b: number) => Math.max(a - v, 0, v - b);
+  return Math.hypot(off(x, lo.x, hi.x), off(y, lo.y, hi.y), off(z, lo.z, hi.z)) <= def.rangeM;
+}
+
 export interface Sky {
   look(look: SkyLook, lights: MapLight[]): void;
   tint(look: SkyLook): void;
@@ -136,7 +144,7 @@ export function createSky(scene: Scene): Sky {
         light.shadowEnabled = false;
         light.setEnabled(true);
         shadows.getShadowMap()!.renderList!.length = 0;
-        for (const mesh of casters) shadows.addShadowCaster(mesh);
+        for (const mesh of casters) if (lightReaches(def, mesh)) shadows.addShadowCaster(mesh);
         return { def, ...lamp };
       });
       for (const { light } of pool.slice(lamps.length)) light.setEnabled(false);
@@ -156,7 +164,7 @@ export function createSky(scene: Scene): Sky {
           mesh.onDisposeObservable.addOnce(() => casters.delete(mesh));
         }
         bodyShadows.addShadowCaster(mesh);
-        for (const lamp of lamps) lamp.shadows.addShadowCaster(mesh);
+        for (const lamp of lamps) if (lightReaches(lamp.def, mesh)) lamp.shadows.addShadowCaster(mesh);
       }
     },
 

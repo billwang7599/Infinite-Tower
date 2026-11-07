@@ -24,30 +24,38 @@ export function walkKey(share: number, keys: readonly number[]): number {
   return from + (to - from) * smoothstep(0, WALK.easeShare * quarter, s - WALK.at[i]!);
 }
 
-/** `halfM`: a foot lands this far (m) ahead of the hip at a full stride; `duty`: the share of a stride it's down. */
+// halfM: how far (m) a foot lands ahead of the hip; duty: share of a stride it's down; past walkSpeed (m/s) it
+// eases into `run` by full speed.
 export const STRIDE = {
-  halfM: 0.16, fullAtSpeed: 2, dutyStill: 0.62, dutyRun: 0.22, sideShare: 0.55, liftShare: 0.45, bobShare: 0.08,
+  halfM: 0.16, walkSpeed: 2, dutyStill: 0.62, dutyWalk: 0.487, sideShare: 0.55, liftShare: 0.45, bobShare: 0.08,
   reachShare: 0.97, toeRad: 0.35,
+  run: { cyclesPerSec: 2.8, halfM: 0.11, swingShare: 0.7, liftShare: 0.5, liftPower: 0.65, reachShare: 0.99 },
 } as const;
 
-export interface Stride { halfM: number; duty: number; cyclesPerSec: number }
+/** `run`: 0 walking, 1 a full run. */
+export interface Stride { halfM: number; duty: number; cyclesPerSec: number; run: number }
+
+const byRun = (run: number, walk: number, full: number) => walk + (full - walk) * run;
 
 /** `side`: 0 going ahead or back, 1 straight sideways. */
 export function strideOf(speed: number, side: number): Stride {
-  const k = clamp(speed / PLAYER.moveSpeed, 0, 1);
-  const duty = STRIDE.dutyStill + (STRIDE.dutyRun - STRIDE.dutyStill) * k;
-  const halfM = STRIDE.halfM * Math.sqrt(clamp(speed / STRIDE.fullAtSpeed, 0, 1))
-    * (1 - (1 - STRIDE.sideShare) * clamp(side, 0, 1));
-  return { halfM, duty, cyclesPerSec: halfM > 0 ? (duty * speed) / (2 * halfM) : 0 };
+  const walk = clamp(speed / STRIDE.walkSpeed, 0, 1), short = 1 - (1 - STRIDE.sideShare) * clamp(side, 0, 1);
+  const run = clamp((speed - STRIDE.walkSpeed) / (PLAYER.moveSpeed - STRIDE.walkSpeed), 0, 1);
+  const walkHalfM = STRIDE.halfM * Math.sqrt(walk), aheadM = byRun(run, walkHalfM, STRIDE.run.halfM);
+  const walkDuty = STRIDE.dutyStill + (STRIDE.dutyWalk - STRIDE.dutyStill) * walk;
+  if (aheadM <= 0) return { halfM: 0, duty: walkDuty, cyclesPerSec: 0, run };
+  const pace = byRun(run, (walkDuty * Math.min(speed, STRIDE.walkSpeed)) / (2 * walkHalfM), STRIDE.run.cyclesPerSec);
+  return { halfM: aheadM * short, duty: (2 * aheadM * pace) / speed, cyclesPerSec: pace / short, run };
 }
 
 /** `along` the way it goes (m, from under the hip), `lift` off the ground, `swing` 0..1 of the way forward. */
 export function footOnStride(share: number, s: Stride): { along: number; lift: number; swing: number } {
   const t = share - Math.floor(share);
   if (t < s.duty) return { along: s.halfM * (1 - (2 * t) / s.duty), lift: 0, swing: 0 };
-  const u = (t - s.duty) / (1 - s.duty);
+  const u = (t - s.duty) / (1 - s.duty), { run } = STRIDE, rise = u ** byRun(s.run, 1, run.liftPower);
   return {
-    along: s.halfM * (2 * smoothstep(0, 1, u) - 1), lift: STRIDE.liftShare * s.halfM * Math.sin(Math.PI * u), swing: u,
+    along: s.halfM * (2 * smoothstep(0, 1, u) - 1 - byRun(s.run, 0, run.swingShare) * Math.sin(2 * Math.PI * u)),
+    lift: byRun(s.run, STRIDE.liftShare, run.liftShare) * s.halfM * Math.sin(Math.PI * rise), swing: u,
   };
 }
 
@@ -71,7 +79,8 @@ export function plantLegs(
   joints: LegJoints, share: number, s: Stride, way: Vec2, body: Look["body"], dipM = 0,
 ): number {
   const lean = joints.root.x, twist = joints.hips.y, cl = Math.cos(lean), sl = Math.sin(lean);
-  const contactM = Math.sqrt((STRIDE.reachShare * (THIGH_M + SHIN_M)) ** 2 - s.halfM ** 2);
+  const reachM = byRun(s.run, STRIDE.reachShare, STRIDE.run.reachShare) * (THIGH_M + SHIN_M);
+  const contactM = Math.sqrt(reachM ** 2 - s.halfM ** 2);
   const bobM = STRIDE.bobShare * s.halfM * (1 + Math.cos(4 * Math.PI * (share - s.duty / 2))) / 2;
   const rootY = contactM - bobM - dipM + ANKLE_Y - HIP_Y * cl;
   for (const [side, half] of [["L", 0], ["R", 0.5]] as const) {

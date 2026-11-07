@@ -1,5 +1,5 @@
 import {
-  Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Material, type Scene,
+  Color3, Matrix, Mesh, MeshBuilder, Quaternion, StandardMaterial, TransformNode, Vector3, type Material, type Scene,
 } from "@babylonjs/core";
 import type { ArenaScene } from "../battle/scene.js";
 import { colorMaterial } from "../materials.js";
@@ -40,25 +40,27 @@ export function floor(ctx: ArenaScene, root: TransformNode, ground: Material, di
   }
 }
 
+const SCALE = new Vector3(), AT = new Vector3(), TURN = new Quaternion(), PLACED = new Matrix();
+
 /** `y`: each template's height at scale 1. */
 export function scatter(
   ctx: ArenaScene, root: TransformNode, parts: [Mesh, number][],
   spots: Spot[], castShadows = true,
 ): void {
-  for (const [tpl] of parts) {
-    tpl.isVisible = false;
+  for (const [tpl, y] of parts) {
     tpl.parent = root;
+    // Thin instances' buffers live on the geometry, which a clone shares.
+    tpl.makeGeometryUnique();
+    const matrices = new Float32Array(16 * spots.length);
+    spots.forEach(({ x, z, scale, yaw }, i) => {
+      Quaternion.RotationYawPitchRollToRef(yaw, 0, 0, TURN);
+      Matrix.ComposeToRef(SCALE.setAll(scale), TURN, AT.set(x, y * scale, z), PLACED).copyToArray(matrices, 16 * i);
+    });
+    tpl.thinInstanceSetBuffer("matrix", matrices, 16, true);
+    tpl.thinInstanceRefreshBoundingInfo();
+    tpl.isVisible = spots.length > 0;
     if (castShadows) ctx.sky.castShadows(tpl);
   }
-  spots.forEach(({ x, z, scale, yaw }, i) => {
-    for (const [tpl, y] of parts) {
-      const inst = tpl.createInstance(`${tpl.name}-${i}`);
-      inst.parent = root;
-      inst.position.set(x, y * scale, z);
-      inst.scaling.setAll(scale);
-      inst.rotation.y = yaw;
-    }
-  });
 }
 
 export function ringSpots(

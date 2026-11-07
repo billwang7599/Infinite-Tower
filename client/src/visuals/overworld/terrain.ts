@@ -50,7 +50,14 @@ export function* buildChunk(
   const carved = yield* chunkWater(scene, map, water, chunk, art.water(mainTheme(map, chunk)), root);
 
   const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
+  const settle = (m: Mesh) => {
+    m.parent = root;
+    m.receiveShadows = true;
+    m.freezeWorldMatrix();
+    receivers.push(m);
+  };
   for (const [i, ledge] of scenery.ledges.entries()) {
+    if (ledge.look === "lamp") continue;
     const ground = i === 0 ? carved.ground : null;
     const built = ground ? null : art.town.build(map, ledge, `${name}-${i}`);
     const [top, side] = art.looks[ledge.look as keyof TerrainArt["looks"]] ?? art.looks.quarry;
@@ -58,16 +65,16 @@ export function* buildChunk(
     const awning = ledge.awning ? art.stalls.awning({ ...ledge, awning: ledge.awning }, i) : [];
     parts.push(...awning);
     for (const m of awning) casters.push([m]);
-    for (const m of [...parts, ...ground && carved.surface ? [carved.surface] : []]) {
-      m.parent = root;
-      m.receiveShadows = true;
-      m.freezeWorldMatrix();
-      receivers.push(m);
-    }
+    for (const m of [...parts, ...ground && carved.surface ? [carved.surface] : []]) settle(m);
     casters.push([parts[0]!]);
     if (ground) casters.push([ground]);
     if (ledge.topY > 0) standing.push({ ledge, parts });
     yield;
+  }
+  const lamps = art.town.lamps(scenery.ledges.filter((l) => l.look === "lamp"), name);
+  if (lamps) {
+    settle(lamps);
+    casters.push([lamps]);
   }
   const props = yield* placeProps(art, [...scenery.props, ...tileProps(map, chunk, looksAt)], lights, root, casters);
   const campfires = buildCampfires(scene, art.fire, map, chunk, root);

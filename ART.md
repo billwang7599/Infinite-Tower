@@ -252,7 +252,7 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   at its edges (so a gable roof rises at most 2 tiles). Depth comes from geometry, never painted shading: a plinth
   and a string course stand proud of a wall, a roof overhangs its walls, windows and doors sit in frames standing
   off the wall, merlons rise off the parapet. Windows and lanterns glow faintly (the atlas's glow map). Lamp posts
-  and gate arches are 3D too; statues are standing sprites like trees.
+  (one mesh for a chunk's) and gate arches are 3D too; statues are standing sprites like trees.
 - **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld; in the arena, simple 3D models for
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
   pose to pose (`visuals/battle/person/`), no drawing needed. The arena is drawn small and blown up into outlined
@@ -295,8 +295,10 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
     as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); walking, the feet are placed,
     not keyed (`STRIDE`, `plantLegs` in `motion.ts`): a foot down sweeps back under the hip at the ground's speed the
-    way it goes (ahead, back or aside), so it stays put, then lifts and swings forward; faster is longer, quicker
-    strides with less time down (a run has both feet off between steps), sideways steps shorter. The legs reach
+    way it goes (ahead, back or aside), so it stays put, then lifts and swings forward; a walk's strides grow longer
+    and quicker up to `STRIDE.walkSpeed`, then ease into a run by full speed: 2.8 strides a second (`STRIDE.run`), long
+    flights with both feet off between short steps landing nearer under the hip, the swinging foot trailing further
+    behind, lifted sooner and reaching further ahead, the legs straighter. Sideways steps are shorter. The legs reach
     there by `legAngles` and aren't eased. The upper body keeps its four keys (`WALK`: the hips and shoulders turning
     against each other, the arms swinging), the body bobs and leans into a run (back, backing off). Elsewhere the
     hips drop so the lower foot stays on the ground. Touching down the knees give a moment (`LANDING`).
