@@ -8,10 +8,10 @@ import { colorMaterial } from "../materials.js";
 import type { Visual } from "../visuals.js";
 import type { BowLook, WeaponLook } from "./weapons.js";
 
-const STAVE_RADIUS_M = 0.018;
+const STAVE_RADIUS_M = 0.024;
 const STAVE_SEGMENTS = 10;
 const GRIP_M = 0.12;
-const STRING_M = 0.008;
+const STRING_M = 0.012;
 // Thicker than a real one, so it still shows a pixel wide on the arena's low-res render.
 const SHAFT_M = 0.03;
 export const ARROW_M = 0.7;

@@ -2,6 +2,7 @@ import {
   Color3, Constants, RawTexture, Texture, TransformNode, type Mesh, type Scene, type StandardMaterial,
 } from "@babylonjs/core";
 import { PLAYER, type Entity, type Look } from "@infinite-tower/shared";
+import { ITEM_RAMPS } from "../../../gfx/items/items.js";
 import type { Picture } from "../../../gfx/look/art.js";
 import { BATTLE_BUILDS } from "../../../gfx/look/body.js";
 import { colorsOf } from "../../../gfx/look/look.js";
@@ -89,7 +90,8 @@ export function buildPerson(
   { scene, sky }: Pick<ArenaScene, "scene" | "sky">, e: Entity, parent: TransformNode, b: PersonBuild,
   wear: Readonly<Record<string, PersonWear>> = STARTER_WEAR,
 ): PersonModel {
-  const { look } = b, ramps = colorsOf(look), build = BATTLE_BUILDS[look.body];
+  const { look } = b, build = BATTLE_BUILDS[look.body];
+  const ramps: Readonly<Record<string, Ramp>> = { ...ITEM_RAMPS, ...colorsOf(look) };
   const materials = new Map<MaterialKey, StandardMaterial>(), meshes: Mesh[] = [];
   const mat = (key: MaterialKey): StandardMaterial => {
     let m = materials.get(key);
@@ -129,13 +131,15 @@ export function buildPerson(
     }
   }
   for (const extra of Object.values(wear).flatMap((w) => w.extras ?? [])) {
-    const shape = SHAPES[extra.on], { band } = extra;
+    const shape = extra.on in SHAPES ? SHAPES[extra.on as BodyPart] : null, { band } = extra;
     const sections = extra.sections ? extra.sections(build) : [band!.from, band!.to].map((y) => {
-      const s = sectionAt(shape.sections(build), y);
+      const s = sectionAt(shape!.sections(build), y);
       return { ...s, x: s.x + band!.grow, z: s.z + band!.grow };
     });
-    for (const j of shape.joints) {
-      part(loft(scene, `person-${extra.on}-trim`, sections.map(toMetres), shape.roundness), joints[j], mat(extra.ramp));
+    const on = (shape?.joints ?? [extra.on as JointName]).filter((j) => !extra.side || j.endsWith(`.${extra.side}`));
+    for (const j of on) {
+      const mesh = loft(scene, `person-${extra.on}-trim`, sections.map(toMetres), extra.roundness ?? shape?.roundness);
+      part(mesh, joints[j], mat(extra.ramp));
     }
   }
   buildHead({ scene, part, mat }, joints.head, joints.hair, look);

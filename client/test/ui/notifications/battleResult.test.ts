@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { coreName, newCore } from "@infinite-tower/shared";
-import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
+import { battleResultLines, describeItems, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 
 const WIN: BattleOutcome = { won: true, lost: {}, core: newCore(), coreLost: null };
 const LOSS: BattleOutcome = { won: false, lost: {}, core: newCore(), coreLost: null };
@@ -39,5 +39,16 @@ describe("battleResultLines", () => {
   test("a spar's win says nothing (the questbook does), and its loss only that you yielded", () => {
     assert.deepEqual(battleResultLines({ ...WIN, spar: "Bram" }), []);
     assert.deepEqual(battleResultLines({ ...LOSS, spar: "Bram" }), ["You yield to Bram."]);
+  });
+});
+
+describe("describeItems", () => {
+  test("more than one is plural, an 'of' name by its first word; meat, bread and essence don't take one", () => {
+    assert.equal(describeItems({ arrow: 20 }), "20 arrows");
+    assert.equal(describeItems({ arrow: 1 }), "arrow");
+    assert.equal(describeItems({ "copper-coin": 35, "wolf-fang": 2 }), "35 copper coins, 2 wolf fangs");
+    assert.equal(describeItems({ "sigil-of-grit": 2 }), "2 sigils of grit");
+    const uncounted = { "boar-meat": 3, bread: 2, "boar-essence": 4 } as const;
+    assert.equal(describeItems(uncounted), "3 boar meat, 2 bread, 4 boar essence");
   });
 });

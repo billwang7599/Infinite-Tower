@@ -14,11 +14,19 @@ export function battleResultLines(outcome: BattleOutcome): string[] {
   return [died];
 }
 
-/** "boar meat" / "2 boar meat", or "" for nothing. */
 export function describeItems(items: ItemCounts): string {
-  return countEntries(items)
-    .map(([id, count]) => `${count > 1 ? `${count} ` : ""}${itemDef(id).name.toLowerCase()}`)
-    .join(", ");
+  return countEntries(items).map(([id, count]) => {
+    const name = itemDef(id).name.toLowerCase();
+    return count > 1 ? `${count} ${plural(name)}` : name;
+  }).join(", ");
+}
+
+const UNCOUNTED = /(meat|bread|essence)$/;
+
+function plural(name: string): string {
+  const [head = name, ...of] = name.split(" of ");
+  if (UNCOUNTED.test(head)) return name;
+  return [`${head}${/(s|x|ch|sh)$/.test(head) ? "es" : "s"}`, ...of].join(" of ");
 }
 
 const countEntries = (items: ItemCounts) => Object.entries(items) as [ItemId, number][];

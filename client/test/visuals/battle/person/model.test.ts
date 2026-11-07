@@ -3,11 +3,15 @@ import { describe, test } from "node:test";
 import {
   NullEngine, Scene, TransformNode, type AbstractMesh, type Mesh, type StandardMaterial,
 } from "@babylonjs/core";
-import { DEFAULT_LOOK, LOOK_OPTIONS, type Look } from "@infinite-tower/shared";
+import {
+  DEFAULT_LOOK, emptyEquipment, itemDef, LOOK_OPTIONS, type Equipment, type ItemId, type Look,
+} from "@infinite-tower/shared";
 import { ACCENTS, DYES, EYES, HAIR, SKIN } from "../../../../src/gfx/look/palette.js";
 import { BASE } from "../../../../src/gfx/look/pixels.js";
 import { SPRITE_SIZE } from "../../../../src/visuals/battle/pose.js";
-import { STARTER_WEAR, type PersonWear } from "../../../../src/visuals/battle/person/body.js";
+import {
+  shownGear, STARTER_WEAR, wearOf, WORN, type PersonWear,
+} from "../../../../src/visuals/battle/person/body.js";
 import {
   buildPerson, disposePerson, FILL_EMISSIVE, FILL_LIGHT, personBuild,
 } from "../../../../src/visuals/battle/person/model.js";
@@ -89,6 +93,37 @@ describe("the 3D person's model", () => {
     assert.equal(bare.meshes.filter((m) => m.name.endsWith("-trim")).length, 2, "the boots' cuffs only");
     dressed.scene.dispose();
     bare.scene.dispose();
+  });
+
+  test("what's worn is drawn: a cap on the crown, a backpack on the back, a belt, a bracelet on its own wrist", () => {
+    const worn = { ...emptyEquipment(), cap: "wool-cap", back: "canvas-backpack", belt: "leather-belt",
+      leftWrist: "braided-bracelet", ring1: "copper-ring", rightHand: "training-bow" } satisfies Equipment;
+    const plain = built(DEFAULT_LOOK), dressed = built(DEFAULT_LOOK, wearOf(shownGear(worn)));
+    const on = (b: typeof plain, joint: string) => b.meshes.filter((m) => m.parent?.name === `person-${joint}`);
+    for (const joint of ["crown", "back", "forearm.L"]) {
+      assert.ok(on(dressed, joint).length > on(plain, joint).length, joint);
+    }
+    assert.equal(on(dressed, "forearm.R").length, on(plain, "forearm.R").length, "the other wrist is bare");
+    assert.ok(on(dressed, "spine").length > on(plain, "spine").length, "the belt");
+    const capColor = colorOf(on(dressed, "crown")[0]!);
+    assert.notEqual(capColor, colorOf(on(dressed, "head")[0]!));
+    assert.deepEqual(Object.keys(shownGear(worn)).sort(), ["back", "belt", "cap", "leftWrist"], "no ring, no weapon");
+    for (const item of Object.keys(WORN) as ItemId[]) {
+      assert.ok(![undefined, "hand", "finger"].includes(itemDef(item).wearable?.on), `${item} is worn, and shows`);
+    }
+    plain.scene.dispose();
+    dressed.scene.dispose();
+  });
+
+  test("a cosmetic shows instead of the real thing under it", () => {
+    const both = { ...emptyEquipment(), cap: "wool-cap", capCosmetic: "feathered-hat" } satisfies Equipment;
+    assert.deepEqual(shownGear(both), { cap: "feathered-hat" });
+    assert.deepEqual(shownGear({ ...both, capCosmetic: null }), { cap: "wool-cap" });
+    const hat = built(DEFAULT_LOOK, wearOf(shownGear(both))), cap = built(DEFAULT_LOOK, wearOf({ cap: "wool-cap" }));
+    const crown = (b: typeof hat) => b.meshes.filter((m) => m.parent?.name === "person-crown").map(colorOf);
+    assert.notDeepEqual(crown(hat), crown(cap));
+    hat.scene.dispose();
+    cap.scene.dispose();
   });
 
   test("each hair style is its own shape: long hair hangs lowest, then the ponytail, a bob, short", () => {

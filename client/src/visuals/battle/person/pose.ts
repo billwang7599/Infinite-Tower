@@ -94,7 +94,8 @@ const BEND_RAD = 0.15;
 const PULL_LEAN_RAD = 0.2;
 /** The sword hand's share of the walk's arm swing. */
 const SWORD_ARM_SWING = 0.35;
-const BOW_UPRIGHT = { x: 0.12, y: 0.99, z: 0 };
+/** Drawn, the bow hand is this far (m) out to its side, the top limb leaning out: clear of the big head from behind. */
+const BOW_DRAWN = { outM: 0.2, cantRad: 0.6 } as const;
 /** How far the body turns side-on drawing, hips to chest; the neck turns back to look down the arrow. */
 const DRAW_TWIST = { hips: -0.25, spine: -0.25, chest: -0.3, neck: 0.7 } as const;
 const LOOSED_FLICK_M = 0.06;
@@ -283,9 +284,9 @@ function walk(
 
 function drawPose(p: PersonPose, bow: BowLook & { drawn: number }, b: PersonBuild, side: 1 | -1, loosed: boolean): void {
   const y = b.shoulderY + 0.04, z = b.reachM + 0.05;
-  p.blade = { ...BOW_UPRIGHT, x: side * BOW_UPRIGHT.x };
+  p.blade = { x: side * Math.sin(BOW_DRAWN.cantRad), y: Math.cos(BOW_DRAWN.cantRad), z: 0 };
   p.bladeExact = false;
-  p.hand = { x: side * 0.02, y, z };
+  p.hand = { x: side * BOW_DRAWN.outM, y, z };
   const back = bow.braceM + bow.drawM * (loosed ? 1 : bow.drawn);
   p.offHand = { x: p.hand.x - (loosed ? side * LOOSED_FLICK_M : 0), y, z: z - back };
   for (const [j, turn] of Object.entries(DRAW_TWIST)) p.joints[j as PosedJoint].y = side * turn;
