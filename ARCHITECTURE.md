@@ -673,7 +673,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `statPoint {stat, add}` | the character panel's + / −: place a free point in a shown stat (outside fights), or take one back (by a campfire too); answered with `core` either way |
-| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only), `completeQuest`, `faith` with a god (overworld only), `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (these three in a fight too), `kill` every enemy in the fight (fight only; F2 too), `completeQuest` (overworld only), `faith` with a god (overworld only), `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
 
 | Server -> client | When |
 |---|---|
@@ -883,13 +883,16 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   page written in the fight saved with its result, kept through a death); and the input timeline (changes held, late
   presses and casts kept, a late change and an on-time one in one message, too far ahead dropped, a silent player
   stopping, lateness, the latest of late chant words kept). The dev cheats: each ignored in production, and
-  invulnerability and a heal mid-fight reaching the fight and the client; completing the current quest (main first, its
+  invulnerability, a heal and a give mid-fight reaching the fight and the client (a give kept by the win); a heal and a
+  give in the arena after a win; kill winning the fight as any win (the result, the win, the drops); completing the
+  current quest (main first, its
   rewards, clicks walking the main story); resetting the save (a new player's with the character and settings, nothing
   saved over it, joining again at the start). The core (`soul.test.ts`): in `welcome` and a fight's setup, saved;
   essence absorbed on the overworld (told, saved, a breakthrough growing the vitals, not into a whole core), in a fight
   and kept after a win, and in the arena after a win with the fight following; free points (placed while any are left,
   taken back only by a campfire, not in a battle); HP regen on the overworld and in `state`; a death losing the fill or
-  a step (leaving mid-fight too); the admin's step up and down. Every enemy dropping its own essence, treasure by its
+  a step (leaving mid-fight too); the admin's step up and down (mid-fight the fight's core, kept by a win; after a win
+  the fight following). Every enemy dropping its own essence, treasure by its
   tier's band and a unique only while free (`enemies/index.test.ts`); a unique thing's holder, letting go, changing
   hands, the 7 days, and taking it out of a save that doesn't hold it (`game/uniques.test.ts`); and a spar costing the
   core nothing (`duels.test.ts`). Duels: a challenge's reach, one per player, declining, expiring and being called off;
@@ -1265,7 +1268,8 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        the rest; the pile they have open, followed every tick; their `story`; the NPCs and traces
                        `placed` as they entered their region; `talk`, `acceptQuest`, `deliver` (talk.ts); in the arena
                        after a win (`afterFight`): the drops sent as they change, and sent out when it closes),
-                       cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
+                       cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight, after a win in
+                       the arena the session, which `showInArena` copies into the fight for its HUD),
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
                        CHAT_WINDOW_MS), duels.ts (Duels: challenges, their reach, expiry and news; starting a duel;
@@ -1568,7 +1572,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          by side, each quest's step, hint and tally, or done, and the lore it revealed; J, Esc or ×
                          close it), tally.ts (tallyText: a step's "1 / 3", items counted in the bag)
         admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats, a core step up or down among
-                         them; the time of day and its speed set through `setDayClock`), admin.ts (its times, speeds and
+                         them, those that can't work mid-fight greyed out; F2 kills the enemy; the time of day and its
+                         speed set through `setDayClock`), admin.ts (its times, speeds and
                          counts)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
                          (camera and flick sensitivity, Auto mouse lock), AudioSection.tsx (the four volume

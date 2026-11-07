@@ -16,6 +16,7 @@ import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
 const GROUP_TITLES: Record<Group, string> = { general: "General", overworld: "Overworld", battle: "Battle" };
+const DEV_ONLY: readonly string[] = ["adminPanel", "killEnemy"];
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {
@@ -78,7 +79,7 @@ interface GroupProps {
 }
 
 function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps) {
-  const actions = actionsOf(group).filter((a) => import.meta.env.DEV || a.action !== "adminPanel");
+  const actions = actionsOf(group).filter((a) => import.meta.env.DEV || !DEV_ONLY.includes(a.action));
   const hasMouse = actions.some((a) => actionDef(a).mouse || actionDef(a).wheel);
   return (
     <section className="mt-4">

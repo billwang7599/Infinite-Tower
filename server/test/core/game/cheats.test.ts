@@ -43,6 +43,13 @@ function standStill(session: GameSession, seconds: number): void {
 
 const fightBoar = (session: GameSession) => session.cheat({ kind: "encounter", enemy: "wild-boar" });
 
+function winFight(session: GameSession): void {
+  const fight = fightOf(session);
+  fight.world.require(fight.enemies[0]!, Health).hp = 0;
+  standStill(session, FIXED_DT);
+  assert.ok(session.afterFight, "won, and still in the arena");
+}
+
 describe("on a production server", () => {
   test("every cheat is ignored", () => {
     const { session, link, saves } = startSession({ dev: false, saved: { vitals: { ...HURT } } });
@@ -52,6 +59,7 @@ describe("on a production server", () => {
     session.cheat({ kind: "heal" });
     session.cheat({ kind: "completeQuest" });
     session.cheat({ kind: "resetSave" });
+    session.cheat({ kind: "kill" });
     assert.equal(link.open, true);
     assert.equal(session.battle, null);
     assert.deepEqual(session.vitals, HURT);
@@ -150,12 +158,57 @@ describe("give", () => {
     assert.deepEqual(bagCounts(session.gear.pack), { "boar-hide": 1 });
   });
 
-  test("does nothing in a battle: the fight has the bag", () => {
+  test("in a fight goes into the fight's bag, the client gets the fight, and a win keeps it", () => {
     const { session, link } = startSession({ dev: true });
     fightBoar(session);
-    session.cheat({ kind: "give", item: "boar-meat", count: 1 });
-    assert.equal(link.all("given").length, 0);
-    assert.deepEqual(session.bag, emptyBag());
+    standStill(session, 0.2);
+    session.cheat({ kind: "give", item: "boar-meat", count: 3 });
+    const fight = fightOf(session);
+    assert.deepEqual(bagCounts(fight.world.require(fight.players[0]!, Player).gear.bag), { "boar-meat": 3 });
+    assert.deepEqual(bagCounts(link.last("battleSync").fight.players[0]!.player.gear.bag), { "boar-meat": 3 });
+    const given = link.last("given");
+    assert.deepEqual([given.item, given.count, given.left], ["boar-meat", 3, 0]);
+    assert.deepEqual(session.bag, emptyBag(), "the fight has the bag until it ends");
+    winFight(session);
+    assert.deepEqual(bagCounts(session.bag), { "boar-meat": 3 });
+    assert.deepEqual(bagCounts(link.last("battleResult").gear.bag), { "boar-meat": 3 });
+  });
+
+  test("in the arena after a win packs into the bag as on the overworld", () => {
+    const { session, link, saves } = startSession({ dev: true });
+    fightBoar(session);
+    winFight(session);
+    session.cheat({ kind: "give", item: "boar-meat", count: 2 });
+    assert.deepEqual(bagCounts(session.bag), { "boar-meat": 2 });
+    assert.deepEqual(saves.at(-1)?.bag, session.bag);
+    assert.deepEqual(link.last("given").gear, session.gear);
+  });
+});
+
+describe("kill", () => {
+  test("in a fight the enemy goes down at once, and it's won as any win is: the result, the win, its drops", (t) => {
+    t.mock.method(Math, "random", () => 0);
+    const { session, link } = startSession({ dev: true });
+    fightBoar(session);
+    standStill(session, 0.2);
+    const wins = session.wins;
+    session.cheat({ kind: "kill" });
+    const fight = fightOf(session);
+    assert.equal(fight.world.require(fight.enemies[0]!, Health).hp, 0);
+    assert.equal(link.last("battleSync").fight.enemies[0]!.health.hp, 0, "the client gets the fight");
+    standStill(session, FIXED_DT);
+    assert.equal(link.last("battleResult").won, true);
+    assert.equal(session.wins, wins + 1);
+    assert.ok(session.afterFight, "still in the arena");
+    assert.equal(link.last("arenaDrops").piles.length, 1);
+  });
+
+  test("does nothing outside a fight", () => {
+    const { session, link } = startSession({ dev: true });
+    const sent = link.sent.length;
+    session.cheat({ kind: "kill" });
+    assert.equal(link.sent.length, sent);
+    assert.equal(session.battle, null);
   });
 });
 
@@ -177,6 +230,17 @@ describe("heal", () => {
     assert.equal(fight.world.require(me, Health).hp, FULL.hp);
     assert.equal(fight.world.require(me, Stamina).value, fight.world.require(me, Stamina).max);
     assert.equal(link.last("battleSync").fight.players[0]?.health.hp, FULL.hp);
+  });
+
+  test("in the arena after a win refills as on the overworld, and the fight's HUD follows", () => {
+    const { session, link, saves } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+    fightBoar(session);
+    winFight(session);
+    session.cheat({ kind: "heal" });
+    assert.deepEqual(session.vitals, FULL);
+    assert.deepEqual(saves.at(-1)?.vitals, FULL);
+    assert.deepEqual(link.last("healed").vitals, FULL);
+    assert.equal(myHp(session), FULL.hp);
   });
 });
 

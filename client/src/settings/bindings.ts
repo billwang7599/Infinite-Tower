@@ -67,6 +67,7 @@ export const ACTIONS = {
     skill4: { label: "Quick-cast the skillbook's page 4", keys: ["Digit4"] },
     interact: { label: "Interact (open the drops after a fight)", keys: ["KeyE"] },
     leave: { label: "Leave the arena after a fight", keys: ["Enter"] },
+    killEnemy: { label: "Kill the enemy (dev servers only)", keys: ["F2"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
 

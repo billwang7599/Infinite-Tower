@@ -459,9 +459,15 @@ Decided by the user:
   touch more bloom. No moon halo or moon rays. By day the sun and sky light are warm (never bluer than white).
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
   ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
-  opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the
-  game's tick. Invulnerability lasts the connection (not saved) and is part of the fight's state; give packs into
-  the bag by its rules (overworld only); heal refills HP and stamina, in a fight too.
+  opens it, in the overworld and in a fight, and the server ignores cheats in production. Time controls move only the
+  day clock (drawing), not the game's tick. Invulnerability lasts the connection (not saved) and is part of the
+  fight's state. Give packs into the bag by its rules, heal refills HP and stamina, and the core's step buttons add or
+  take a step. In a fight (the user: "allow me to cheat in items and stuff mid combat") those three change the
+  fight's copy (its bag, HP and core, kept by a win as anything the fight changes is), and after a win in the arena
+  the session's, as in the overworld. Kill enemy (the user: "an insta kill the enemy button"; also F2, dev only, in
+  the arena's keys) drops every enemy in the fight to its least HP at once (0, or a spar's yield), so it's won the
+  usual way: the result, the win counted, the drops, the quests' kills. It does nothing in a duel. The fights, faith,
+  completing a quest and resetting the save are overworld only (the panel greys them out in a fight).
 - Dev servers simulate a network ping on the game socket, half each way and in order, so the netcode can be felt
   locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
   Production never delays.
@@ -579,8 +585,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     after any damage (a burn's tick too). The server sends HP in `state` while it comes back.
   - Agility speeds overworld walking too (one rule set).
   - The character panel shows the realm and step, the free points and the seven shown stats with + and − (− only by
-    a fire). The admin panel's step up / down is overworld only and
-    empties the fill.
+    a fire). The admin panel's step up / down empties the fill; in a fight it changes the fight's core.
   - Saved in three columns (`core_steps`, `core_fill`, `stat_points`); players from before start at Early Yan, empty.
 - The stats chart (core PR 3; the user: "just make it. assume whatever you want"; tried headless, not hand-played):
   - Its rim is the most any shown stat could be at your step (its value with no points placed, plus every free point
@@ -1237,8 +1242,9 @@ docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postg
 ```
 
 In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a core
-step up or down, completing the current quest, resetting your save, a fight with any enemy, items into the bag, faith
-with a god.
+step up or down, completing the current quest, resetting your save, a fight with any enemy, killing the enemy you're
+fighting (F2 too), items into the bag, faith with a god. Mid-fight all but the fights, the quest, the reset and faith
+work.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
@@ -1294,9 +1300,9 @@ tests say what was agreed. Where tests go and how they're written:
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
   (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`,
-  `#admin-complete-quest`, `#admin-reset-save`). The HUD's card is `#core-card` (a click turns it; `data-face` is
-  `portrait` or `core`), its sphere the canvas `#core-sphere`. A new account has no character: make one first. Skip
-  this when the user says it isn't needed.
+  `#admin-complete-quest`, `#admin-reset-save`, `#admin-kill`). The HUD's card is `#core-card` (a click turns it;
+  `data-face` is `portrait` or `core`), its sphere the canvas `#core-sphere`. A new account has no character: make one
+  first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.
