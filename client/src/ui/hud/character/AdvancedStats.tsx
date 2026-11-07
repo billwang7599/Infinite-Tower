@@ -26,6 +26,7 @@ function guardRows(guard: GuardNumbers | null): Row[] {
     ["Raised in", seconds(guard.raiseTime)],
     ["Perfect block", seconds(guard.perfectTime)],
     ["Chip taken", percent(guard.chipFraction)],
+    ["Chip at a wall", percent(guard.chipFraction * block.pinnedChipFactor)],
     ["Block stamina", `damage ${times(guard.staminaFactor)}, heavy ×${block.heavyStaminaFactor}`],
     ["Pushback", times(guard.pushFactor)],
     ["Holding", `${amount(block.holdStaminaPerSec)} stamina/s`],

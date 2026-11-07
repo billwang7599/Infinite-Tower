@@ -1,12 +1,16 @@
 import type { Entity, World } from "../../../core/ecs.js";
-import type { Vec2, Vec3 } from "../../../core/math.js";
+import { clamp, type Vec2, type Vec3 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { guardRaiseTime, GUARDS, HYBRID, type GuardKind } from "../../../weapons/hybrid.js";
 import { guardOf } from "../../../weapons/kinds.js";
-import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
+import {
+  Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData, type BodyData,
+} from "../../components.js";
+import { PLAYER } from "../../player.js";
 import { FighterStats } from "../../stats.js";
 import { faces, knock, knockbackOf, spend, stagger } from "../combat.js";
-import type { FightEvent } from "../context.js";
+import type { FightContext, FightEvent } from "../context.js";
+import type { ArenaPhysics } from "../physics/arena-physics.js";
 import { modsOf } from "../../statuses.js";
 import { hurt } from "../health.js";
 import { endChain, endSwing } from "./swing.js";
@@ -46,8 +50,9 @@ function blocksPerfectly(world: World, target: Entity): boolean {
 export interface Shot { from: Vec3; at: Vec3 }
 
 export function defend(
-  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null = null,
+  ctx: FightContext, attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null = null,
 ): boolean {
+  const { world, events } = ctx;
   const from = shot?.from ?? world.require(attacker, Body).pos, at = world.require(target, Body).pos;
   const kind = guardOf(world.get(target, Wielder)?.hands ?? { rightHand: null, leftHand: null })?.kind;
   if (!kind || !faces(at, facingOf(world, target), from, GUARDS[kind].minDot)) return false;
@@ -56,7 +61,7 @@ export function defend(
     return true;
   }
   if (!blocking(world, target)) return false;
-  blocked(world, events, attacker, hit, target, shot, GUARDS[kind]);
+  blocked(ctx, attacker, hit, target, shot, GUARDS[kind]);
   return true;
 }
 
@@ -76,8 +81,20 @@ function blockedPerfectly(
   events.push({ type: "block", by: attacker, target, perfect: true, ...(shot && { at: shot.at }) });
 }
 
+// Rapier sweeps in f32, so on open ground it comes up a hair short.
+const REACH_SLACK_M = 1e-4;
+
+function pinnedShare(world: World, physics: ArenaPhysics, e: Entity, body: BodyData): number {
+  const speed = Math.hypot(body.vel.x, body.vel.z);
+  if (speed <= 0) return 0;
+  const slideM = (speed * speed) / (2 * (world.get(e, Enemy)?.move.accel ?? PLAYER.accel)), k = slideM / speed;
+  const got = physics.reach(body.collider, { x: body.vel.x * k, y: 0, z: body.vel.z * k });
+  const lostM = slideM - (got.x * body.vel.x + got.z * body.vel.z) / speed;
+  return lostM < REACH_SLACK_M ? 0 : clamp(lostM / slideM, 0, 1);
+}
+
 function blocked(
-  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
+  { world, physics, events }: FightContext, attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
   guard: (typeof GUARDS)[GuardKind],
 ): void {
   const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
@@ -94,14 +111,15 @@ function blocked(
     // The brain staggers it on its next step, as for a hit.
     broken = enemy.poise <= 0;
   }
-  // A weapon only hurts a player, so it pushes back only an enemy's guard.
-  const speed = hit.attack === null ? hit.knockback : player ? 0 : knockbackOf(world, target, hit.knockback);
+  const speed = knockbackOf(world, target, hit.knockback) * block.pushbackFactor * guard.pushFactor;
+  let pinned = 0;
   if (speed > 0) {
     const body = world.require(target, Body), from = world.require(attacker, Body).pos;
-    knock(body.pos, from, body.vel, speed * block.pushbackFactor * guard.pushFactor, 0, { x: hit.dirX, z: hit.dirZ });
+    knock(body.pos, from, body.vel, speed, 0, { x: hit.dirX, z: hit.dirZ });
+    pinned = pinnedShare(world, physics, target, body);
   }
   if (hit.attack !== null) {
-    hurt(world, target, damage * guard.chipFraction, "physical");
+    hurt(world, target, damage * guard.chipFraction * (1 + (block.pinnedChipFactor - 1) * pinned), "physical");
     if (!shot) endSwing(world, attacker);
   }
   if (broken && player) stagger(world, target, block.brokenTime);

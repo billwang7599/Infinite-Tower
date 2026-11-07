@@ -136,18 +136,23 @@ function swungAt(hands: Partial<Equipment>, angleDeg: number, guarding: boolean)
   return { hpLost: hpBefore - health.hp, blockCost };
 }
 
-function pushedGuarding(hands: Partial<Equipment>): number {
+function bitten(gear: Carried, core: CoreState, guarding: boolean): number {
   const fight = new Fight({
-    arena: ARENA, players: [setupOf(holding(hands), newCore())],
+    arena: ARENA, players: [setupOf(gear, core)],
     enemies: [{ def: BITER, at: { x: 0, y: 0.05, z: 1.6 }, yaw: Math.PI }],
   });
-  const body = fight.world.require(fight.players[0]!, Body);
+  const me = fight.players[0]!, body = fight.world.require(me, Body);
   for (let s = 0; s < 120; s++) {
-    fight.step([idle({ block: true })]);
-    if (block(fight, 0)) return Math.hypot(body.vel.x, body.vel.z);
+    fight.step([idle({ block: guarding })]);
+    const struck = fight.events.some((e) => (e.type === "hit" || e.type === "block") && e.target === me);
+    if (struck) {
+      assert.equal(block(fight, 0) !== undefined, guarding);
+      return Math.hypot(body.vel.x, body.vel.z);
+    }
   }
-  return assert.fail("never blocked");
+  return assert.fail("never bitten");
 }
+const pushedGuarding = (hands: Partial<Equipment>) => bitten(holding(hands), newCore(), true);
 
 describe("the advanced stats' guard, as the fight blocks", () => {
   test("a shield over a blade, else the blade in play: its kind, raise time and perfect window", () => {
@@ -223,5 +228,15 @@ describe("the advanced stats' body numbers", () => {
       combatNumbers(gear, core, { brannoc: BLESSING_FAITH }).knockbackTakenFactor,
       STATUS_DEFS.brannocsAnvil.mods.knockbackFactor,
     );
+  });
+
+  test("strength and the core's steps (steadiness) shrink the knockback you take, as a bite knocks you", () => {
+    const gear = holding({});
+    for (const core of [newCore(), strong(30), { ...newCore(), steps: 9 }]) {
+      const shown = combatNumbers(gear, core, {}).knockbackTakenFactor;
+      close(bitten(gear, core, false), BITE.knockback * shown, `${core.steps} steps`);
+    }
+    assert.ok(combatNumbers(gear, strong(30), {}).knockbackTakenFactor < 1);
+    assert.ok(combatNumbers(gear, { ...newCore(), steps: 9 }, {}).knockbackTakenFactor < 1);
   });
 });

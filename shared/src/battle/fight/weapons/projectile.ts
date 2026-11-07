@@ -99,7 +99,7 @@ function strike(ctx: FightContext, o: ProjectileData, target: Entity, struck: Ve
     alreadyHit: new Set(),
   };
   const from = { x: struck.x - dirX, y: struck.y, z: struck.z - dirZ };
-  if (!defend(world, events, o.shooter, hit, target, { from, at: struck })) {
+  if (!defend(ctx, o.shooter, hit, target, { from, at: struck })) {
     land(world, events, o.shooter, hit, target, struck);
   }
 }

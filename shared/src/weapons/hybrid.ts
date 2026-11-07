@@ -79,7 +79,7 @@ export const HYBRID = {
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
-    perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17,
+    perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17, pinnedChipFactor: 2,
   },
   feint: { cutoffTime: 0.15, cost: 10 },
   parry: {

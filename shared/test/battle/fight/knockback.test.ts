@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, BOW, CHAIN, emptyBag, emptyEquipment, Enemy, FIXED_DT, HYBRID, packFor, toSteps,
+  addItem, BOW, CHAIN, emptyBag, emptyEquipment, Enemy, FIXED_DT, Health, HYBRID, packFor, toSteps,
   type EnemyDef, type ItemId, type Strike, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -139,6 +139,20 @@ describe("a player's hit knocks an enemy back (the user: \"balance it\")", () =>
     // Slid from rest, the distance goes as the speed squared.
     const expected = pushed("heavy") * HYBRID.block.pushbackFactor ** 2;
     assert.ok(Math.abs(moved - expected) < 0.05, `${moved} m blocked, ${expected} m expected`);
+  });
+
+  test("an enemy blocking backed against the wall lets twice the chip through", () => {
+    const chipped = (roomM: number) => {
+      const z = ARENA.radius - GUARDIAN.radius - roomM;
+      const fight = fightAt(heavier(GUARDIAN, 1), at(0, z), "sword", at(0, z - IN_REACH_M));
+      run(fight, 0.5);
+      const events = strikeOnce(fight, "heavy");
+      assert.ok(events.some((e) => e.type === "block" && e.target === fight.enemies[0]), `blocked, ${roomM} m behind`);
+      return GUARDIAN.maxHp - fight.world.require(fight.enemies[0]!, Health).hp;
+    };
+    const open = chipped(3);
+    assert.ok(open > 0);
+    assert.ok(Math.abs(chipped(0) - open * HYBRID.block.pinnedChipFactor) < 1e-6, `${chipped(0)} vs ${open}`);
   });
 
   test("an arrow pushes by how hard it flies: a full draw further than a quick loose", () => {

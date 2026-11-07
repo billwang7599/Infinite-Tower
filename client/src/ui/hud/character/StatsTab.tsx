@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
-  carryLimit, coreName, coreStats, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, placePoint, pointsLeft,
+  carryLimit, coreName, coreStats, knockbackTakenFactor, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor,
+  placePoint, pointsLeft,
   SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type Carried, type Character,
   type CoreState, type Faith, type ShownStat, type Stats,
 } from "@infinite-tower/shared";
@@ -18,7 +19,8 @@ const times = (factor: number) => `×${factor.toFixed(2)}`;
 const STAT_TEXT: Record<ShownStat, { name: string; short?: string; effect: (stats: Stats) => string }> = {
   strength: {
     name: "Strength",
-    effect: (s) => `Physical damage ${times(physicalDamage(1, s))}, carry limit ${Math.round(carryLimit(s))}`,
+    effect: (s) => `Physical damage ${times(physicalDamage(1, s))}, carry limit ${Math.round(carryLimit(s))}, `
+      + `knockback taken ${times(knockbackTakenFactor(s))}`,
   },
   agility: { name: "Agility", effect: (s) => `Walking and dodging ${times(moveSpeed(1, s))}` },
   stamina: { name: "Stamina", effect: (s) => `Stamina bar: ${staminaMaxOf(s)}` },

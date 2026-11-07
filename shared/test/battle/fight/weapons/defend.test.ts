@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage,
-  Player, Stamina,
-  toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Weapon,
+  Body, emptyBag, packFor, FIXED_DT, GUARDS, guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor,
+  perfectBlockTime, physicalDamage, Player, PLAYER, Stamina,
+  toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS, armed } from "../fixtures.js";
@@ -207,11 +207,12 @@ describe("blocking by the blade", () => {
 });
 
 describe("the guard: a shield, one blade, two blades", () => {
-  const withHands = (rightHand: ItemId | null, leftHand: ItemId | null) => new Fight({
+  const withHands = (rightHand: ItemId | null, leftHand: ItemId | null, stats: Partial<Stats> = {}) => new Fight({
     arena: ARENA, duel: true, enemies: [],
     players: [
       player({ x: 0, y: 0.05, z: 0 }),
       player({ x: 0, y: 0.05, z: 1.6 }, {
+        stats: { ...STATS, ...stats },
         gear: {
           bag: emptyBag(), pack: packFor(null), quiver: packFor(null),
           equipment: { ...armed(), rightHand, leftHand },
@@ -224,6 +225,18 @@ describe("the guard: a shield, one blade, two blades", () => {
     const events = play(fight, hitAt + 2, (s) => ({ way: "lr", attack: s === PRESS ? "light" : null }), b);
     return events.find((e) => e.type === "block" && !e.perfect);
   };
+  const pushedMps = (fight: Fight) => {
+    for (let i = 0; i < hitAt + 2; i++) {
+      const events = play(fight, 1, (s) => ({ way: "lr", attack: s === PRESS ? "light" : null }),
+        holdFrom(hitAt - HOLD_STEPS));
+      if (events.some((e) => e.type === "block" && !e.perfect)) {
+        const { vel } = fight.world.require(fight.players[1]!, Body);
+        return Math.hypot(vel.x, vel.z);
+      }
+    }
+    return assert.fail("never blocked");
+  };
+  const LIGHT_PUSH = HYBRID.light.knockbackSpeed * HYBRID.block.pushbackFactor;
 
   test("a shield blocks best and two blades worst; one blade's numbers are the held block's own", () => {
     assert.ok(GUARDS.shield.chipFraction < GUARDS.one.chipFraction);
@@ -262,7 +275,19 @@ describe("the guard: a shield, one blade, two blades", () => {
       const spent = FULL_STAMINA - stamina(fight, 1) - held;
       assert.ok(Math.abs(spent - SWORD * guard.staminaFactor) < 0.5, `${kind}: ${spent}`);
     });
+
+    test(`${kind}: the blocked blade pushes the blocker back by its guard`, () => {
+      close(pushedMps(withHands(right, left)), LIGHT_PUSH * GUARDS[kind].pushFactor, kind);
+    });
   }
+
+  test("a stronger or steadier blocker is pushed less", () => {
+    for (const stats of [{ strength: 4 * STATS.strength }, { steadiness: 4 * STATS.steadiness }]) {
+      const factor = knockbackTakenFactor({ ...STATS, ...stats });
+      assert.ok(factor < 1);
+      close(pushedMps(withHands("sword", null, stats)), LIGHT_PUSH * factor, JSON.stringify(stats));
+    }
+  });
 
   test("a shield alone still blocks, though nothing in hand swings", () => {
     const fight = withHands(null, "wooden-shield");
@@ -276,5 +301,34 @@ describe("the guard: a shield, one blade, two blades", () => {
     const guarding: Script = (s) => ({ ...side, block: s >= hitAt - HOLD_STEPS });
     assert.ok(blockedHit(withHands("sword", "wooden-shield"), guarding), "the shield");
     assert.equal(blockedHit(withHands("sword", null), guarding), undefined, "the blade");
+  });
+});
+
+describe("blocking backed against the wall (the user: \"we take double the pass through damage\")", () => {
+  const wallZ = ARENA.radius - PLAYER.radius;
+  const roomBehind = (roomM: number) => new Fight({
+    arena: ARENA, duel: true, enemies: [],
+    players: [player({ x: 0, y: 0.05, z: wallZ - roomM - 1.6 }), player({ x: 0, y: 0.05, z: wallZ - roomM })],
+  });
+  const chipped = (roomM: number, strike: "light" | "heavy") => {
+    const hitAt = landsAt(PRESS, strike), fight = roomBehind(roomM);
+    const events = play(fight, hitAt + 2, (s) => ({ way: "lr", attack: s === PRESS ? strike : null }),
+      holdFrom(hitAt - HOLD_STEPS));
+    assert.ok(events.some((e) => e.type === "block" && !e.perfect && !e.broken), `blocked with ${roomM} m behind`);
+    return FULL_HP - hp(fight, 1);
+  };
+
+  test("with no room to be pushed back, the chip goes × pinnedChipFactor", () => {
+    close(chipped(0, "light"), SWORD * HYBRID.block.chipFraction * HYBRID.block.pinnedChipFactor, "pinned");
+  });
+
+  test("on open ground the chip is the guard's own", () => {
+    close(chipped(3, "light"), SWORD * HYBRID.block.chipFraction, "open");
+  });
+
+  test("with room for part of the push, part of the extra chip", () => {
+    const open = chipped(3, "heavy"), pinned = chipped(0, "heavy"), partly = chipped(0.1, "heavy");
+    close(pinned, open * HYBRID.block.pinnedChipFactor, "pinned heavy");
+    assert.ok(open < partly && partly < pinned, `open ${open}, partly ${partly}, pinned ${pinned}`);
   });
 });

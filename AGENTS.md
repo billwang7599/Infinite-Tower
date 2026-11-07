@@ -463,8 +463,19 @@ Decided by the user:
   hand-played): a light a little (4 m/s, about 0.3 m on a Kobold, about what the swing's own step closes), a stab
   more (6), a heavy most (8, about 1.2 m), whatever the blade; an arrow by its speed; Air as before. A heavier enemy
   takes less (the boar 0.7 of it, the bog lurker 0.3, a training dummy none), and none mid-blow (armored). It never
-  lifts or stuns, so the enemy fights on and no chain of hits locks it, and the wall stops it. A weapon still only
-  hurts a player. Numbers: FORMULAS.md, "Knockback".
+  lifts or stuns, so the enemy fights on and no chain of hits locks it, and the wall stops it. A weapon landing on a
+  player still only hurts; one into a held block pushes (below). Numbers: FORMULAS.md, "Knockback".
+- Blocks push you back, and the wall makes them cost (the user: "we should get knocked back on blocks? and once we
+  cant get knocked back anymore ie we're backed against a wall, we take double the pass through damage or some scale.
+  and knockback resistance is scaled by strength and some hidden knockback resistance stat"): any hit into a held
+  block pushes the blocker back, players too now, at the hit's knockback × the block's 0.6 × the guard's push
+  (shield 0.6, one blade 1, two blades 1.2). Backed against the wall with no room to slide, the chip that gets through
+  goes × 2; with room for part of the slide, by the share the wall stops (1 to 2), for enemies blocking too. A player's
+  knockback, from anything, goes × (10 / strength)^¼ × (10 / steadiness)^½ (0.25 to 2), steadiness a new hidden
+  stat, 10 at the start and +1 a step like the others; enemies keep their own `knockbackFactor`. The curve, the
+  clamp and the slide's estimate are the agent's picks (tests only, not hand-played): `KNOCKBACK_TAKEN` in
+  `shared/src/battle/stats.ts`, `pinnedChipFactor` in `HYBRID.block`. The Advanced stats show knockback taken (with
+  strength and steadiness) and the chip at a wall; strength's line on the chart says it too.
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
   fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, with no
   stun or knockback (the boar's still stun). It drops only its essence. It holds its own Kobold blade (the sword's
@@ -652,8 +663,8 @@ Decided by the user:
   own worth (a Kobold's more than a boar's), and it's absorbed from the bag anywhere, mid-fight too, as a 2 s use, the
   same on the overworld and in a fight. No mana: one stamina pool for physical and magical, growing with the core.
   Stats: strength, agility, stamina, skillpower, vitality (HP), defense (cuts physical damage) and special defense
-  (cuts skill damage), and three hidden ones, toughness (stun recovery), stamina recovery and health regen (HP coming
-  back on its own), +1 every step in every realm, no free points into them. A step raises every stat by a flat amount
+  (cuts skill damage), and hidden ones, toughness (stun recovery), stamina recovery, health regen (HP coming
+  back on its own) and steadiness (knockback taken, below), +1 every step in every realm, no free points into them. A step raises every stat by a flat amount
   that doubles each realm (1 in the first) and gives free points (2 in the first, doubling), placed in any stat and
   never locked in (taking them back costs some effort). HP comes only from vitality. On death the step's fill is lost,
   or with none, a whole step. Floors don't need a realm. Enemies' realms aren't shown (and come later, with floors).
@@ -720,9 +731,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   for your gear, stats, inscriptions and blessings, worked out by the functions the fight uses, never a copy. For
   each hand holding a weapon: its weight, heft and felt heft, a chain's first light, heavy and stab (wind-up, live,
   recovery, stamina) and its parry window, or a bow's draw. The guard, as the fight picks it (`guardOf`): its kind
-  (Shield, One blade, Two blades), the arc it covers, raise time, perfect block, chip, block stamina, pushback,
-  holding and a broken guard's stagger. The dodge: stamina by burden, i-frames, length, cooldown. The body: stamina
-  regen, its pause, knockback taken. Seconds to 2 decimals. No two-handed grip yet. Temporary statuses (Haste, Frenzy)
+  (Shield, One blade, Two blades), the arc it covers, raise time, perfect block, chip, chip at a wall, block stamina,
+  pushback, holding and a broken guard's stagger. The dodge: stamina by burden, i-frames, length, cooldown. The body:
+  stamina regen, its pause, knockback taken (strength, steadiness and passives). Seconds to 2 decimals. No two-handed grip yet. Temporary statuses (Haste, Frenzy)
   aren't counted.
 - The sphere HUD (the user: "just make it. assume whatever you want"; only checked in a headless browser):
   - It follows the mockups the user saw: a smoky pixel-art glass sphere, 64 pixels shown at 2x, dithered to 8 shades,
@@ -770,7 +781,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     block, a cast, the chant, the bag, a hit taken or a perfect block against it breaks it.
   - The held block covers 140° in front and walks at 40%; held, it drains 5 stamina a second. A blocked hit costs a
     player its damage in stamina (a heavy twice), chips 20% (a stab too), and stops the blade with no recoil: the
-    attacker may chain on. A body blow (the boar's) chips nothing but pushes back 60%. A blocked hit that takes the
+    attacker may chain on. A body blow (the boar's) chips nothing. Either pushes back 60% of its knockback (blocks
+    push you back, above). A blocked hit that takes the
     last of the stamina (or more) breaks the guard: staggered 0.8 s. The drain alone never breaks it; it leaves
     nothing for the next hit. An enemy's held block costs it the hit's poise instead, and out of poise it staggers as
     when hit.

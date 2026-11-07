@@ -457,9 +457,10 @@ main.ts
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
   back), and dodging, knocked back or dead, a player passes through; anyone passes through a dead enemy. Knockback
-  is a velocity too (`knock` in `fight/combat.ts`): an enemy's body blows on a player, and a player's hits on an
-  enemy, scaled by `knockbackOf` (the enemy's `knockbackFactor`, none while it's armored, statuses); the wall stops
-  it like any move, and a knocked enemy is never stunned by it. Rapier simulates nothing itself
+  is a velocity too (`knock` in `fight/combat.ts`): an enemy's body blows on a player, a player's hits on an enemy,
+  and any hit into a held block, scaled by `knockbackOf` (an enemy's `knockbackFactor`, none while it's armored; a
+  player's `knockbackTakenFactor`, by strength and steadiness; statuses); the wall stops it like any move, and a
+  knocked enemy is never stunned by it. Rapier simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
@@ -479,7 +480,8 @@ main.ts
   perfect block's window costs the attacker stamina and staggers it (`stagger`: a player's "stagger" action in
   hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
   enemy's poise), by the hands' guard (`guardOf`: a shield, one blade or two; `GUARDS`), the guard breaking when it
-  runs out; a body blow is only blocked, pushing the defender back.
+  runs out; a body blow is only blocked. Either pushes the blocker back, and the share of that slide the wall would
+  stop (`ArenaPhysics.reach`, a sweep that moves nothing) raises the chip up to × `pinnedChipFactor`.
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is each weapon item's `weapon` component in `ITEMS`,
   gathered by `shared/src/weapons/weapons.ts` into `WEAPONS` (each weapon by item id: its `kind`, the moveset it swings
@@ -858,12 +860,14 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   each way's reach and
   shape by line and no hit-stop in the fight (`combat.test.ts`), a player's hits knocking enemies back
   (`knockback.test.ts`: by strike, an arrow by its speed, Air, less for a heavier enemy, never mid-blow, through the
-  wall, into the air or into a stun-lock; a blocked hit's pushback; none on a player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
+  wall, into the air or into a stun-lock; a blocked hit's pushback, and its chip doubled against the wall; none on a
+  player in a duel), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
   quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina),
   the defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double
   cost, running out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost
   stamina and recoil, getting in first, too early, mashing; no parry by a swing; the guard rising by heft and the
-  window by blade length), the swordsman
+  window by blade length; the push by guard, less for a stronger or steadier blocker; the chip doubled backed against
+  the wall, part of it with part of the room, none extra in the open), the swordsman
   (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
   block and the swing after, chains by its seed and through a save, its landed hits only hurting), the wolf
   (`behaviors/pounce.test.ts`: circling before its first leap, backing off when walked up to, the bite, the locked
@@ -908,7 +912,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`items/using.test.ts`, any consumable's time and effects coming from its item). The core in a fight
   (`player/absorb.test.ts`: essence absorbed in its time, held still, stopped by a hit with the essence kept, a
   breakthrough growing the stats and bars at once, a whole core refusing it, through a save) and the stats it gives
-  (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger, stamina
+  (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger, strength
+  and steadiness on a blow's knockback, stamina
   recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()` first.
   Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
@@ -1197,7 +1202,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats: the shown
                    and hidden ones, BASE_STATS, FighterStats; what each does: physicalDamage, skillDamage,
                    moveSpeed, maxHpOf, staminaMaxOf, the defenses' taken factors, stunTime, staminaRegenPerSec,
-                   hpRegenPerSec, carryLimit; grownVitals)
+                   hpRegenPerSec, carryLimit, knockbackTakenFactor; grownVitals)
   soul/            core.ts (the core: REALMS, STEP_NAMES, CORE; CoreState (steps done, fill, points placed,
                    inscriptions), newCore, fillToFinish, coreName, coreStats, absorb, placePoint, takeBackPoint,
                    pointsEarned / pointsLeft, coreAfterDeath, coreAtStep, keptCore), inscriptions.ts (INSCRIPTIONS:
@@ -1223,7 +1228,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      and heals over time), health.ts (hurt, by the damage's kind, the target's defenses and shields;
                      heal, lifesteal, regenSystem)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
-                       ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
+                       ring of wall, a collider per fighter, sweeps with the character controller, reach (a
+                       sweep that moves nothing), contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, the sword, dodge, a cast's
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
@@ -1261,7 +1267,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
-                       block, the held block and its stamina or poise, a projectile's `Shot` too; blocking, facingOf),
+                       block, the held block and its stamina or poise, its push and the chip raised against the
+                       wall (pinnedShare), a projectile's `Shot` too; blocking, facingOf),
                        parry.ts (parries: a swing parried by a swing, or two clashing; the recoil by the swings'
                        weights), projectile.ts (projectileSystem: each arrow flies its path (flightAfter), sweeps
                        its step against every foe's upright cylinder, the floor and the wall, and lands, is blocked
@@ -2263,12 +2270,12 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
-| Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share; a body blow's push and the hitstun it gives a player | `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
+| Knockback: how hard a player's light, heavy and stab push an enemy, an arrow's push by its speed, Air's push; how much each enemy takes; a blocked hit's share and its chip against the wall; a body blow's push and the hitstun it gives a player; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`; `HITSTUN_TIME`, `HITSTUN_PER_KNOCKBACK` in `shared/src/battle/fight/combat.ts` |
 | The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise, knockback and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
-| What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
+| What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit, knockback taken | `shared/src/battle/stats.ts` |
 | The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `WIDTH_PX` in `client/src/ui/hud/character/CharacterPanel.tsx` |
 | How the core's sphere looks: each realm's colours and light, the light's size and brightness by step, its breath, when sparks start, a breakthrough's timing, how long the card shows it | `REALM_LOOKS`, `LIGHT`, `SPARKS_FROM` in `client/src/gfx/core/light.ts`; `BREAKTHROUGH`, `BREATH_TIME` in `client/src/gfx/core/sphere.ts`; `BREAKTHROUGH_SHOWN_MS` in `client/src/ui/hud/CoreCard.tsx` |
 | Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
