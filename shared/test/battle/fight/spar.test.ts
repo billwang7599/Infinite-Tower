@@ -48,7 +48,7 @@ describe("a spar: nobody goes under their share of HP", () => {
   test("a player hit down to their share yields: the fight is lost, and they're left at that HP", () => {
     const brute: EnemyDef = {
       ...SWORDSMAN, wielder: { hands: { rightHand: "greatsword" }, armReachM: 1 },
-      attacks: { weapon: swings({ cooldown: 0, recover: 0.2 }) },
+      attacks: { weapon: swings({ cooldown: 0 }) },
     };
     const fight = new Fight({
       arena: ARENA, yieldAt: YIELD_SHARE, players: [player(PLAYER_AT)], enemies: [enemy(brute, NEAR)],

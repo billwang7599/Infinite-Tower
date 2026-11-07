@@ -96,9 +96,9 @@ What's built so far:
   before it hops back out; swinging at it while it circles only tires you. The bog lurker is slow and tanky: it
   creeps up low in the bog, rises with a groan and slams down in front of it, and sweeps its tail all round at
   anyone beside or behind it; dodge them, for a blocked slam costs a lot of stamina and pushes you out of reach of
-  the long opening after it. The Kobold Swordsman swings the same ways
-  in long-told chains, blocks as it walks up, and now and then perfect-blocks you. The Kobold Greatsword fights the same
-  with a much heavier blade. The
+  the long opening after it. The Kobold Swordsman swings the same ways, timed as your own swings with its blade, in
+  chains; it blocks as it walks up, and now and then perfect-blocks you. The Kobold Greatsword fights the same with a
+  much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
   sprite holds its blade on the side you aim from, winds up, strikes and follows through on every attack, and reels

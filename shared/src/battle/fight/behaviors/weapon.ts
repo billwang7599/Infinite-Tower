@@ -3,7 +3,7 @@ import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { toSteps } from "../../../core/time.js";
 import {
-  CHAIN, HYBRID, isSwing, lastFeintStep, parryWay, WAYS, windupTime, type Strike, type Way,
+  CHAIN, chainKind, HYBRID, isSwing, lastFeintStep, parryWay, WAYS, windupTime, type Strike, type SwingDir, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeIn } from "../../../weapons/kinds.js";
 import { feltHeft, type Weapon } from "../../../weapons/weapons.js";
@@ -30,17 +30,16 @@ function pickWay(enemy: EnemyData, last: Way): Way {
   return others[Math.floor(roll(enemy) * others.length)]!;
 }
 
-const defWindup = (time: number) => (strike: Strike) => time + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
-
 function windUp(
-  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon,
-  windup: (strike: Strike) => number, parrying: Way | null = null,
+  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, chained: boolean,
+  parrying: { way: SwingDir; windupTime: number } | null = null,
 ): void {
-  const way = parrying ?? pickWay(enemy, attack.way);
+  const last = attack.way, way = parrying?.way ?? pickWay(enemy, last);
   const strike: Strike = way === "stab" ? "stab" : !parrying && roll(enemy) < attack.def.heavyShare ? "heavy" : "light";
   attack.way = way;
   attack.feint = strike === "heavy" && roll(enemy) < attack.def.heavyFeintShare;
-  startWaySwing(world, e, weapon, strike, way, windup(strike), 1, facing(enemy));
+  const kind = chained && isSwing(way) ? chainKind(last, way) : "opening";
+  startWaySwing(world, e, weapon, strike, way, parrying?.windupTime ?? windupTime(strike, kind), 1, facing(enemy));
   // Not `enter`: that would end the swing.
   const liveAt = world.require(e, Wielder).swing!.liveAt;
   Object.assign(enemy, { state: "weaponWindup", stateTime: 0, duration: liveAt * FIXED_DT });
@@ -59,7 +58,7 @@ function parry(
   if (!isSwing(theirs.way) || liveIn < toSteps(CHAIN.minWindupTime)) return false;
   attack.swingsLeft = 0;
   const heft = feltHeft(weapon, world.require(e, FighterStats).strength);
-  windUp(world, e, enemy, attack, weapon, () => liveIn * FIXED_DT / heft, parryWay(theirs.way));
+  windUp(world, e, enemy, attack, weapon, false, { way: parryWay(theirs.way), windupTime: liveIn * FIXED_DT / heft });
   return true;
 }
 
@@ -96,13 +95,9 @@ export function weaponAttackSystem(events: FightEvent[]): System {
         case "approach": {
           if (!ready || !sense.targetAlive || target === null || attack.cooldown > 0) break;
           if (sense.dist >= def.triggerDist || sense.facingDot <= MIN_FACING_DOT) break;
-          if (attack.riposte) {
-            Object.assign(attack, { riposte: false, swingsLeft: 0 });
-            windUp(world, e, enemy, attack, weapon, (strike) => windupTime(strike, "opening"));
-          } else {
-            attack.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));
-            windUp(world, e, enemy, attack, weapon, defWindup(def.windup));
-          }
+          if (attack.riposte) Object.assign(attack, { riposte: false, swingsLeft: 0 });
+          else attack.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));
+          windUp(world, e, enemy, attack, weapon, false);
           break;
         }
         case "weaponWindup":
@@ -123,11 +118,12 @@ export function weaponAttackSystem(events: FightEvent[]): System {
             if (committed(swing)) break;
           }
           if (weapon && attack.swingsLeft > 0) {
+            if (!canSwing(wielder)) break;
             attack.swingsLeft--;
-            windUp(world, e, enemy, attack, weapon, defWindup(def.chainWindup));
+            windUp(world, e, enemy, attack, weapon, true);
           } else {
             // Not `enter`: the blade recovers.
-            const recover = def.recover * (weapon ? feltHeft(weapon, stats.strength) : 1);
+            const recover = swing ? (swing.endAt - swing.step) * FIXED_DT : 0;
             Object.assign(enemy, { state: "weaponRecover", stateTime: 0, duration: recover });
             attack.cooldown = recover + def.cooldown;
           }

@@ -82,7 +82,7 @@ export const LURKER: EnemyDef = {
 };
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
-  triggerDist: 3, windup: 0.6, chainWindup: 0.4, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
+  triggerDist: 3, minChain: 1, maxChain: 1, heavyShare: 0,
   heavyFeintShare: 0, cooldown: 99, firstDelay: 0, blockReactTime: 0, perfectBlockChance: 0, parryChance: 0,
   ...over,
 });

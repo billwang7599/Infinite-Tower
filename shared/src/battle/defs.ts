@@ -80,9 +80,6 @@ export interface SweepDef extends Omit<AttackDef, "cooldown" | "firstDelay"> {
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
-  windup: number;
-  chainWindup: number;
-  recover: number;
   minChain: number;
   maxChain: number;
   heavyShare: number;

@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, feltHeft, FIXED_DT, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeOf, toSteps,
+  Body, Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeOf, toSteps,
   wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type PlayerInputData, type Skill, type SwingDir,
 } from "@infinite-tower/shared";
-import { initPhysics, type Fight, type FightEvent } from "@infinite-tower/shared/fight";
+import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { fightWith, FULL } from "../../fixtures/fight.js";
+import { fightWith, FULL, setupWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -42,21 +42,16 @@ const play = (seed: number, next: (fight: Fight) => PlayerInputData) => {
 };
 
 describe("the Kobold Swordsman", () => {
-  test("winds up as long as it did with its heavier blade: the first a long tell, the ones after it shorter", () => {
-    const felt = feltHeft(WEAPONS["kobold-blade"], KOBOLD.stats.strength), def = KOBOLD.attacks.weapon!;
-    assert.ok(Math.abs(def.windup * felt - 1.43) < 0.01, `${def.windup * felt}`);
-    assert.ok(Math.abs(def.chainWindup * felt - 0.58) < 0.01, `${def.chainWindup * felt}`);
-  });
-
-  test("its blade weighs as the Basic Sword: its first swing winds up the def's seconds, slower than a stick's", () => {
+  test("its first swing winds up a player's opening with its blade, which feels as the Basic Sword", () => {
     const fight = fightWith(KOBOLD, 1), wielder = fight.world.require(fight.enemies[0]!, Wielder);
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     assert.equal(wielder.swing?.step, 1);
-    const extra = wielder.swing!.attack === "heavy" ? HYBRID.heavy.extraTime : 0, windup = KOBOLD.attacks.weapon!.windup;
-    const liveAt = (blade: "sword" | "old-stick") =>
-      wayStepsAfter(WEAPONS[blade], windup + extra, extra > 0, KOBOLD.stats.strength).liveAt;
-    assert.equal(wielder.swing!.liveAt, liveAt("sword"));
-    assert.ok(liveAt("sword") > liveAt("old-stick"));
+    const strike = strikeOf(wielder.swing!.attack, wielder.swing!.way);
+    const liveAt = (blade: "sword" | "kobold-blade" | "old-stick") =>
+      wayStepsAfter(WEAPONS[blade], windupTime(strike, "opening"), strike === "heavy", KOBOLD.stats.strength).liveAt;
+    assert.equal(wielder.swing!.liveAt, liveAt("kobold-blade"));
+    assert.equal(liveAt("kobold-blade"), liveAt("sword"));
+    assert.ok(liveAt("sword") >= liveAt("old-stick"));
   });
 
   test("a player who reads it beats it, whatever its seed", () => {
@@ -87,11 +82,14 @@ describe("the Kobold Swordsman", () => {
 
 describe("losing a parry to a swordsman", () => {
   const PAST_CLASH_STEPS = toSteps(HYBRID.parry.clashTime) + 2;
-  const OPENING = wayStepsAfter(WEAPONS.sword, windupTime("light", "opening"), false, PLAYER_STATS.strength).liveAt;
+  type Mine = "sword" | "old-stick";
 
-  function answerLate(def: EnemyDef, heavy: boolean, seed: number) {
+  function answerLate(def: EnemyDef, mine: Mine, heavy: boolean, seed: number) {
     const weapon = { ...def.attacks.weapon!, heavyShare: heavy ? 1 : 0, heavyFeintShare: 0 };
-    const fight = fightWith({ ...def, attacks: { weapon } }, seed);
+    const setup = setupWith({ ...def, attacks: { weapon } }), gear = setup.players[0]!.gear;
+    gear.equipment = { ...gear.equipment, rightHand: mine };
+    const fight = new Fight({ ...setup, enemies: [{ ...setup.enemies[0]!, seed }] });
+    const opening = wayStepsAfter(WEAPONS[mine], windupTime("light", "opening"), false, PLAYER_STATS.strength).liveAt;
     const me = fight.players[0]!, it = fight.enemies[0]!;
     const wielder = fight.world.require(it, Wielder), player = fight.world.require(me, Player);
     const blade = WEAPONS[def.wielder!.hands.rightHand as keyof typeof WEAPONS];
@@ -104,7 +102,7 @@ describe("losing a parry to a swordsman", () => {
       const swing = wielder.swing;
       if (press < 0 && swing?.step === 1 && swing.way !== "stab") {
         way = parryWay(swing.way);
-        press = fight.steps + swing.liveAt + PAST_CLASH_STEPS - OPENING;
+        press = fight.steps + swing.liveAt + PAST_CLASH_STEPS - opening;
       }
       if (parried < 0 && fight.events.some((e) => e.type === "parry" && e.by === it && !e.clash)) parried = fight.steps;
       else if (parried >= 0 && free < 0 && player.action !== "stagger") free = fight.steps;
@@ -119,10 +117,13 @@ describe("losing a parry to a swordsman", () => {
   }
 
   test("its counter winds up as a player's opening, and lands only after the player is free to raise a block", () => {
-    const raise = toSteps(guardRaiseTime(WEAPONS.sword, PLAYER_STATS.strength));
-    for (const def of [KOBOLD, ENEMIES["kobold-greatsword"].def, ENEMIES.bram.def]) {
+    const fights = [
+      [KOBOLD, "sword"], [ENEMIES["kobold-greatsword"].def, "sword"], [ENEMIES.bram.def, "old-stick"],
+    ] as const;
+    for (const [def, mine] of fights) {
+      const raise = toSteps(guardRaiseTime(WEAPONS[mine], PLAYER_STATS.strength));
       for (const [heavy, seed] of SEEDS.flatMap((seed) => [[false, seed], [true, seed]] as const)) {
-        const r = answerLate(def, heavy, seed), name = `${def.id}${heavy ? " heavy" : ""} seed ${seed}`;
+        const r = answerLate(def, mine, heavy, seed), name = `${def.id}${heavy ? " heavy" : ""} seed ${seed}`;
         assert.ok(r.parried >= 0 && r.free >= 0 && r.counter >= 0, `${name}: ${JSON.stringify(r)}`);
         assert.ok(r.counter - r.free >= raise, `${name}: free at ${r.free}, its counter live at ${r.counter}`);
         assert.ok(!r.after.some((e) => e.type === "hit" && e.target === r.me), `${name}: never hit`);

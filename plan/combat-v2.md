@@ -251,6 +251,11 @@ These override the spec above where they differ.
 - #322's felt-heft numbers were rescaled with the Basic Sword at 1: a feint recovers 0.38 s × felt heft (was 0.3 ×
   the old 1.3, so the Basic Sword's stays 0.38 s), and a whiff adds 0.2 s × felt heft (0.2 s with the Basic Sword).
   A whiff still holds the whole body (no dodge, block, switch or other hand) until it ends, as #322 has it.
+- Enemies swing by the player's math (the user: "nobody should have any special preset table that differs from the
+  math"): the swordsmen's def `windup`, `chainWindup` and `recover` (and #325's × 1.3 on them) are gone; a Kobold, the
+  Kobold Greatsword and Bram wind up, swing and recover through `windupTime`, `chainKind` and `wayStepsAfter` from
+  their weapon and strength. To make one easier or harder, change its weapon or stats, or its pacing (cooldown, chain
+  length, chances).
 - A swordsman's counter (after it parries or perfect-blocks) winds up as a player's opening with its blade and waits
   its cooldown like any swing; the one it beat recoils 0.25 s (`HYBRID.counter.recoilTime`), so the counter can be
   blocked or dodged. FORMULAS.md, "Swing parries", has the numbers.
