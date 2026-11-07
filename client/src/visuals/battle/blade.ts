@@ -9,7 +9,7 @@ import { OUTLINE, outline, Pen, Pixels, SHADOW } from "../../gfx/look/pixels.js"
 import { BLADE_FROM, BLADE_HALF, POINT } from "../../gfx/look/sword.js";
 import { colorMaterial } from "../materials.js";
 import { buildBow, type HeldBow } from "./bow.js";
-import { keepSharp } from "./pixel.js";
+import { drawOnTop, keepSharp } from "./pixel.js";
 import type { ArenaScene } from "./scene.js";
 import { glintOf, WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
 
@@ -166,8 +166,7 @@ export function cueBlade(scene: Scene, hand: TransformNode, look: WeaponLook): B
     ray.rotation.z = turn;
     ray.material = material;
     ray.isPickable = false;
-    ray.renderingGroupId = 1;
-    keepSharp(ray);
+    drawOnTop(ray);
   }
   glint.setEnabled(false);
   return { glint, material };

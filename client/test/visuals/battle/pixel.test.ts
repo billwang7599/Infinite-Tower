@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { MeshBuilder, NullEngine, Scene, StandardMaterial, UniversalCamera, Vector3 } from "@babylonjs/core";
 import { DYES, SKIN } from "../../../src/gfx/look/palette.js";
 import {
-  DEFAULT_PIXEL_SCALE, LOW_RES_LINES, pixelFlags, pixelScale, rampTones,
+  DEFAULT_PIXEL_SCALE, drawOnTop, drawOverOpaque, inDepthPass, keepSharp, LOW_RES_LINES, PIXEL_DEPTH, pixelBands,
+  pixelFlags, pixelScale, rampTones, renderScale,
 } from "../../../src/visuals/battle/pixel.js";
 
 describe("the pixel-art render's flags", () => {
-  test("by default the arena is pixel art with outlines, anti-aliased, its people 3D", () => {
+  test("by default the arena is pixel art with outlines, anti-aliased, its people 3D, its pixels sized by depth", () => {
     assert.deepEqual(pixelFlags(""), {
-      scale: DEFAULT_PIXEL_SCALE, outline: true, palette: null, player3d: true, steps: null, aa: true,
+      scale: DEFAULT_PIXEL_SCALE, fixed: false, outline: true, palette: null, player3d: true, steps: null, aa: true,
     });
     assert.equal(pixelScale(pixelFlags(""), 768), DEFAULT_PIXEL_SCALE);
   });
@@ -16,6 +18,7 @@ describe("the pixel-art render's flags", () => {
   test("each layer changes by itself", () => {
     const byDefault = pixelFlags("");
     assert.deepEqual(pixelFlags("?pixel=4"), { ...byDefault, scale: 4 });
+    assert.deepEqual(pixelFlags("?pixel=fixed"), { ...byDefault, fixed: true });
     assert.deepEqual(pixelFlags("?outline=0"), { ...byDefault, outline: false });
     assert.deepEqual(pixelFlags("?palette"), { ...byDefault, palette: "ramps" });
     assert.deepEqual(pixelFlags("?palette=bands"), { ...byDefault, palette: "bands" });
@@ -26,7 +29,7 @@ describe("the pixel-art render's flags", () => {
 
   test("the old look is still a URL away", () => {
     assert.deepEqual(pixelFlags("?pixel=1&outline=0&player3d=0"), {
-      scale: null, outline: false, palette: null, player3d: false, steps: null, aa: true,
+      scale: null, fixed: false, outline: false, palette: null, player3d: false, steps: null, aa: true,
     });
   });
 
@@ -41,6 +44,12 @@ describe("the pixel-art render's flags", () => {
     assert.equal(pixelScale(pixelFlags("?pixel=1"), 768), 1);
   });
 
+  test("pixels sized by depth draw at full resolution; fixed ones draw the whole arena small", () => {
+    assert.equal(renderScale(pixelFlags(""), 768), 1);
+    assert.equal(renderScale(pixelFlags("?pixel=fixed"), 768), DEFAULT_PIXEL_SCALE);
+    assert.equal(renderScale(pixelFlags("?pixel=1"), 768), 1);
+  });
+
   test("outline, player3d and aa are on unless set to 0", () => {
     assert.equal(pixelFlags("?outline").outline, true);
     assert.equal(pixelFlags("?outline=1").outline, true);
@@ -53,6 +62,80 @@ describe("the pixel-art render's flags", () => {
     assert.equal(pixelFlags("?steps").steps, null);
     assert.equal(pixelFlags("?steps=0").steps, null);
     assert.equal(pixelFlags("?steps=8").steps, 8);
+  });
+});
+
+describe("pixels sized by depth", () => {
+  const base = DEFAULT_PIXEL_SCALE, fovRad = PIXEL_DEPTH.fovRad;
+  const sizeAt = (depthM: number, limits: number[]) => base - limits.filter((l) => depthM > l).length;
+  const heightPx = (depthM: number, fov = fovRad) => 768 / (2 * depthM * Math.tan(fov / 2));
+
+  test("are the full size up close and shrink a pixel at a time with depth, down to one screen pixel", () => {
+    const limits = pixelBands(base, fovRad);
+    assert.equal(limits.length, base - 1);
+    assert.equal(sizeAt(0.3, limits), base);
+    assert.equal(sizeAt(PIXEL_DEPTH.fullSizeM, limits), base);
+    assert.deepEqual(limits, [...limits].sort((a, b) => a - b));
+    assert.equal(sizeAt(limits.at(-1)! + 0.01, limits), 1);
+    assert.deepEqual(pixelBands(1, fovRad), []);
+  });
+
+  test("so a model walking away keeps about as many pixels, where fixed pixels would halve them", () => {
+    const limits = pixelBands(base, fovRad), far = limits.at(-1)!;
+    const pixels = (depthM: number) => heightPx(depthM) / sizeAt(depthM, limits);
+    const atFullSize = pixels(PIXEL_DEPTH.fullSizeM);
+    for (let d = PIXEL_DEPTH.fullSizeM; d <= far; d += 0.25) {
+      const share = pixels(d) / atFullSize;
+      assert.ok(share > 2 / 3 && share < 3 / 2, `${d} m: ${share.toFixed(2)} of its pixels`);
+    }
+    assert.ok(heightPx(far) / base / atFullSize <= 0.5 + 1e-9);
+  });
+
+  test("a wider view (first person) brings the bands nearer, as much as it shrinks what's seen", () => {
+    const wide = 75 * Math.PI / 180, narrow = pixelBands(base, fovRad), near = pixelBands(base, wide);
+    const shrink = Math.tan(fovRad / 2) / Math.tan(wide / 2);
+    near.forEach((l, i) => assert.ok(Math.abs(l - narrow[i]! * shrink) < 1e-9));
+  });
+});
+
+describe("what the outline reads and darkens", () => {
+  const scene = new Scene(new NullEngine());
+  const camera = new UniversalCamera("camera", new Vector3(0, 0, -6), scene);
+  camera.setTarget(Vector3.Zero());
+  const box = (name: string, x: number) => {
+    const mesh = MeshBuilder.CreateBox(name, { size: 0.5 }, scene);
+    mesh.position.x = x;
+    mesh.material = new StandardMaterial(name, scene);
+    return mesh;
+  };
+  const opaque = box("opaque", -1), seeThrough = box("see-through", -0.5), blade = box("blade", 0);
+  const trail = box("trail", 0.5), sky = box("sky", 1);
+  seeThrough.visibility = 0.5;
+  keepSharp(blade);
+  drawOnTop(trail);
+  sky.infiniteDistance = true;
+  const drawn: string[] = [];
+  for (const mesh of [opaque, seeThrough, blade, trail]) mesh.onBeforeRenderObservable.add(() => drawn.push(mesh.name));
+  drawOverOpaque(scene, () => drawn.push("outline"));
+
+  test("the depth has the blade, so what's behind it can't outline through it, but not the trail or the sky", () => {
+    assert.equal(inDepthPass(opaque), true);
+    assert.equal(inDepthPass(blade), true);
+    assert.equal(inDepthPass(trail), false);
+    assert.equal(inDepthPass(sky), false);
+  });
+
+  test("it darkens the opaque scene before see-through things, the blade and the trail are drawn", () => {
+    for (let i = 0; i < 3; i++) scene.render();
+    const frame = drawn.slice(drawn.lastIndexOf("opaque"));
+    assert.deepEqual(frame, ["opaque", "outline", "see-through", "blade", "trail"]);
+    assert.equal(drawn.filter((n) => n === "outline").length, 3, "once a frame");
+  });
+
+  test("the blade hides behind what's in front of it; the trail is drawn over everything", () => {
+    assert.equal(scene.getAutoClearDepthStencilSetup(blade.renderingGroupId).autoClear, false);
+    assert.equal(scene.getAutoClearDepthStencilSetup(trail.renderingGroupId).autoClear, true);
+    assert.ok(trail.renderingGroupId > blade.renderingGroupId && blade.renderingGroupId > opaque.renderingGroupId);
   });
 });
 

@@ -1,6 +1,6 @@
 import { Mesh, VertexBuffer, VertexData, type Material, type Scene } from "@babylonjs/core";
 import type { Vec3 } from "@infinite-tower/shared";
-import { keepSharp } from "./pixel.js";
+import { drawOnTop } from "./pixel.js";
 
 export const TRAIL_TIME = 0.15;
 const MAX_SAMPLES = 40;
@@ -39,9 +39,8 @@ export function buildSlash(scene: Scene, name: string, material: Material): Slas
   mesh.hasVertexAlpha = true;
   mesh.isPickable = false;
   mesh.alwaysSelectAsActiveMesh = true;
-  mesh.renderingGroupId = 1;
   mesh.setEnabled(false);
-  keepSharp(mesh);
+  drawOnTop(mesh);
   return { mesh, trail: newTrail(), time: 0, positions, colors };
 }
 

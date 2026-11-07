@@ -61,7 +61,7 @@ function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags, sky: Sky):
   pipeline.bloomEnabled = true;
   pipeline.bloomThreshold = 0.9;
   pipeline.bloomWeight = 0.45;
-  pipeline.bloomKernel = pixel.scale === null ? 48 : 16;
+  pipeline.bloomKernel = pixel.scale !== null && pixel.fixed ? 16 : 48;
   pipeline.imageProcessingEnabled = true;
   pipeline.imageProcessing.toneMappingEnabled = true;
   pipeline.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
