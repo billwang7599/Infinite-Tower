@@ -8,7 +8,7 @@ import { breathOf, flickOf } from "../shape.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const ORB_GLOW = new Color3(1.6, 0.55, 0.15);
-const STAFF_HAND_X = 0.2;
+export const STAFF_HAND_X = 0.2;
 const IDLE = { breathTime: 2.1, breathScale: 0.03, earEveryTime: 2.3, earRad: 0.35, nodTime: 4.2, nodRad: 0.06 };
 const offTarget = new Vector3();
 

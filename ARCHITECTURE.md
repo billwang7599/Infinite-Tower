@@ -1745,9 +1745,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
                          tested), animation.ts (framePerson: the model built again when the look or what's worn
                          changes, the gait from the ground speed, the pose on the joints, both arms bent to the pose's
-                         hand targets by reachWith, the 3D blade on grip.R or grip.L (handSide: a bow always in the
-                         left), a bow's string pulled to the off hand, the hair swung by the head's motion; with
-                         &steps only that many times a second)
+                         hand targets round the torso by reachArms and reachWith (reachRound), the 3D blade on grip.R
+                         or grip.L (handSide: a bow always in the left), a bow's string pulled to the off hand, the hair
+                         swung by the head's motion; with &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only
@@ -1799,7 +1799,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          or front, by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
         arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
                          reached each frame with two-joint IK (reachArm, no Babylon: tested) to where its pose puts
-                         the hand; a wielder's arm is its armReachM long
+                         the hand; a wielder's arm is its armReachM long. reachRound (tested), for every 3D arm, the
+                         people's too: the arm goes round its body's lofts (a Clearance), a hand aimed inside comes out
+                         onto them, a held blade's line is kept off them, the elbow swings off its pole as little as
+                         keeps the arm clear, and a hand it can't reach round the body stops short, in front
         weapons.ts       Any wielder's weapon, from its swing: wayCut (a swing's line across the screen, along its way;
                          a stab's straight ahead),
                          strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
@@ -2063,7 +2066,8 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   `startSwing` (`fight/weapons/swing.ts`) with the attack's kind, side and place in its chain. The weapon system does
   the rest. A 3D model draws its blade from `WEAPON_LOOKS` (two-handed or not) and moves it with its weapon kind's
   `MOTIONS` row, in the hand of an arm from `visuals/battle/arm.ts`; its pose puts the hand and turns the body ahead of
-  the blade.
+  the blade. Hand the arm its body's lofts (`ArmLook.body`) and `poseArm` the blade, and the arm and blade go round the
+  body.
 - **A visual** (anything new drawn in a fight). One row in `VISUALS` (`client/src/visuals/visuals.ts`): a
   `Visual` with `spawn` (build its meshes), `frame` (pose them from the entity's components, each frame) and
   `dispose`, and its kind in `kindOf`, from a component the entity already has. Its pose is a function of that

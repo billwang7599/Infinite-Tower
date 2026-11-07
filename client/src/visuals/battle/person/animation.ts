@@ -1,24 +1,28 @@
-import { Color3, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
+import { Color3, Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
   Body, damp, dampFactor, Health, heldIn, Player, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity,
   type Equipment, type Look, type PlayerData, type Vec2, type Vec3, type WeaponId, type WielderData, type World,
 } from "@infinite-tower/shared";
-import { reachArm } from "../arm.js";
-import { dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
+import { BATTLE_BUILDS } from "../../../gfx/look/body.js";
+import { reachRound, type BladeReach, type Clearance } from "../arm.js";
+import { BLADE_FROM_M, dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
 import { bowDrawOf, pullString } from "../bow.js";
 import type { ArenaScene } from "../scene.js";
-import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
-import { shownGear, wearOf, type ShownGear } from "./body.js";
-import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
+import { MOTIONS, WEAPON_LOOKS, type WeaponLook } from "../weapons.js";
+import { SHAPES, shownGear, wearOf, type ShownGear } from "./body.js";
+import { ROUNDNESS, type Section } from "./loft.js";
+import {
+  buildPerson, disposePerson, FILL_EMISSIVE, personBuild, toMetres, type PersonBuild, type PersonModel,
+} from "./model.js";
 import { STILL_HAIR, strideOf, swayHair, type Sway } from "./motion.js";
 import { LANDING, personPose, POSED_JOINTS } from "./pose.js";
-import { restAt, type Joints } from "./skeleton.js";
+import { M_PER_PX, restAt, type JointName, type Joints } from "./skeleton.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const JOINT_RATE = 30;
 const YAW_RATE = 15;
 /** A two-handed grip's off hand, this far (m) down the grip from the sword hand. */
-const OFF_GRIP_M = 0.18;
+const OFF_GRIP_M = 0.1;
 const UPPER_ARM_M = -restAt("forearm.R", "medium").y, FOREARM_M = -restAt("hand.R", "medium").y;
 const LEGS = new Set<string>(["thigh.R", "thigh.L", "shin.R", "shin.L", "foot.R", "foot.L"]);
 
@@ -78,8 +82,41 @@ function aimBone(bone: TransformNode, from: Vector3, to: Vector3): void {
   turnInParent(bone, want);
 }
 
+const TORSO = ["ribs", "belly", "pelvis"] as const;
+// Above where the deltoid ends, the upper arm is the shoulder's joint.
+const UPPER_FROM = SHAPES.shoulder.sections(BATTLE_BUILDS.medium)[0]!.y / -(UPPER_ARM_M / M_PER_PX);
+interface Torso extends Omit<Clearance, "body" | "upperFrom"> {
+  parts: { joint: JointName; sections: Section[]; roundness: number }[];
+}
+const TORSOS = Object.fromEntries(Object.entries(BATTLE_BUILDS).map(([body, b]) => {
+  const thickest = (part: "upperArm" | "forearm" | "hand") =>
+    Math.max(...SHAPES[part].sections(b).flatMap((s) => [s.x, s.z])) * M_PER_PX;
+  const parts = TORSO.map((part) => ({
+    joint: SHAPES[part].joints[0]!, sections: SHAPES[part].sections(b).map(toMetres),
+    roundness: SHAPES[part].roundness ?? ROUNDNESS,
+  }));
+  return [body, { parts, upperM: thickest("upperArm"), foreM: thickest("forearm"), handM: thickest("hand") }];
+})) as Record<Look["body"], Torso>;
+const clearances = new WeakMap<Joints, Clearance>();
+
+function clearanceOf(joints: Joints, type: Look["body"]): Clearance {
+  let c = clearances.get(joints);
+  if (!c) {
+    const { parts, ...thick } = TORSOS[type];
+    const body = parts.map(({ joint, ...part }) => ({ node: joints[joint], ...part }));
+    c = { ...thick, upperFrom: UPPER_FROM, body };
+    clearances.set(joints, c);
+  }
+  return c;
+}
+
+const ahead = new Vector3(), bladeWay = new Vector3();
+
 /** `target`, `holding` (the hand's +y) and `pole` are in the root's frame, as the pose gives them. */
-export function reachWith(joints: Joints, side: "R" | "L", target: Vec3, holding: Quaternion, pole: Vec3): void {
+export function reachWith(
+  joints: Joints, body: Look["body"], side: "R" | "L", target: Vec3, holding: Quaternion, pole: Vec3,
+  blade: BladeReach | null = null,
+): void {
   const upper = joints[`upper_arm.${side}`], fore = joints[`forearm.${side}`], hand = joints[`hand.${side}`];
   for (const j of ["root", "hips", "spine", "chest"] as const) joints[j].computeWorldMatrix(true);
   const root = joints.root.getWorldMatrix();
@@ -87,7 +124,11 @@ export function reachWith(joints: Joints, side: "R" | "L", target: Vec3, holding
   shoulderAt.copyFrom(upper.getAbsolutePosition());
   Vector3.TransformCoordinatesToRef(targetAt.set(target.x, target.y, target.z), root, targetAt);
   Vector3.TransformNormalToRef(poleAt.set(pole.x, pole.y, pole.z), root, poleAt);
-  const reach = reachArm(shoulderAt, targetAt, { upperM: UPPER_ARM_M, foreM: FOREARM_M }, poleAt);
+  Vector3.TransformNormalToRef(Vector3.Forward(), joints.chest.getWorldMatrix(), ahead);
+  joints.root.absoluteRotationQuaternion.multiplyToRef(holding, want);
+  Vector3.Up().applyRotationQuaternionToRef(want, bladeWay);
+  const reach = reachRound(shoulderAt, targetAt, { upperM: UPPER_ARM_M, foreM: FOREARM_M }, poleAt,
+    clearanceOf(joints, body), ahead, blade && { ...blade, way: bladeWay });
   elbowAt.set(reach.elbow.x, reach.elbow.y, reach.elbow.z);
   aimBone(upper, shoulderAt, elbowAt);
   aimBone(fore, elbowAt, targetAt.set(reach.hand.x, reach.hand.y, reach.hand.z));
@@ -161,7 +202,6 @@ export function framePerson(
   }
   joints.root.position.y = pose.legsExact ? pose.rootY : damp(joints.root.position.y, pose.rootY, JOINT_RATE, shownDt);
 
-  const swordSide = side === 1 ? "R" : "L", offSide = side === 1 ? "L" : "R";
   const snap = pose.bladeExact ? 1 : dampFactor(JOINT_RATE, shownDt);
   Quaternion.FromUnitVectorsToRef(up, bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), bladeTurn);
   p.bladeTurn ??= bladeTurn.clone();
@@ -169,17 +209,33 @@ export function framePerson(
   target.set(pose.hand.x, pose.hand.y, pose.hand.z);
   p.handAt ??= target.clone();
   Vector3.LerpToRef(p.handAt, target, snap, p.handAt);
-  reachWith(joints, swordSide, p.handAt, p.bladeTurn, { x: side * 0.5, y: -0.8, z: -0.45 });
+  reachArms(joints, build.look.body, side, p.handAt, p.bladeTurn, pose.offHand, alive ? held : null);
   if (p.blade?.bow) pullString(p.blade.bow, drawing?.drawn ?? 0, alive && (drawing?.nocked ?? false));
-  if (held && held.twoHanded && !held.bow && alive) {
-    up.applyRotationQuaternionToRef(p.bladeTurn, bladeDir);
-    p.handAt.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
-    reachWith(joints, offSide, offTarget, p.bladeTurn, { x: -side * 0.5, y: -0.8, z: -0.45 });
-  } else {
-    offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z);
-    reachWith(joints, offSide, offTarget, UNTURNED, { x: -side * 0.5, y: -0.8, z: -0.45 });
-  }
   swing(p, joints, shownDt);
+}
+
+const ARM_POLE: Vec3 = { x: 0.5, y: -0.8, z: -0.45 };
+const fromWorld = new Matrix();
+
+export function reachArms(
+  joints: Joints, body: Look["body"], side: 1 | -1, hand: Vector3, bladeTurn: Quaternion, offHand: Vec3,
+  held: WeaponLook | null,
+): void {
+  const swordSide = side === 1 ? "R" : "L", offSide = side === 1 ? "L" : "R";
+  const pole = (s: 1 | -1) => ({ x: s * ARM_POLE.x, y: ARM_POLE.y, z: ARM_POLE.z });
+  const blade = held && !held.bow
+    ? { fromM: BLADE_FROM_M, toM: BLADE_FROM_M + held.blade.lengthM, halfM: held.blade.widthM / 2 } : null;
+  reachWith(joints, body, swordSide, hand, bladeTurn, pole(side), blade);
+  if (held && held.twoHanded && !held.bow) {
+    joints.root.getWorldMatrix().invertToRef(fromWorld);
+    Vector3.TransformCoordinatesToRef(joints[`hand.${swordSide}`].getAbsolutePosition(), fromWorld, offTarget);
+    up.applyRotationQuaternionToRef(bladeTurn, bladeDir);
+    offTarget.subtractInPlace(bladeDir.scaleInPlace(OFF_GRIP_M));
+    reachWith(joints, body, offSide, offTarget, bladeTurn, pole(-side as 1 | -1));
+  } else {
+    offTarget.set(offHand.x, offHand.y, offHand.z);
+    reachWith(joints, body, offSide, offTarget, UNTURNED, pole(-side as 1 | -1));
+  }
 }
 
 const headAt = new Vector3(), headVel = new Vector3(), headTurn = new Quaternion();

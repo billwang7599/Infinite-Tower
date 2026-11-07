@@ -306,7 +306,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   - **Lit like the sprite**: every part takes a fill light of its own colour, so dark skin, hair and clothes keep
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
   - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
-    keyframe editor or an export to read; the swing's arm comes from the sword's motions, the arms bent to reach.
+    keyframe editor or an export to read; the swing's hand rides the sword's motion (its draw-back only turns the
+    blade at the wrist), and the free hand hangs under its shoulder as the body twists.
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
     as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); walking, the feet are placed,
@@ -330,6 +331,10 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     lower and nearer the middle than the pose's own; a two-handed grip or a hand on the bowstring stays on the weapon.
     Then both arms go with the camera, so they're in the same place on screen wherever it looks (`FP_ARMS` in
     `client/src/visuals/battle/firstPerson.ts`). Others, and you in third person, see the pose as it is.
+  - **Arms go round the body** (`reachRound` in `arm.ts`, the enemies' arms too): bent to reach the pose's hands, a
+    hand aimed inside the torso comes out onto it, a held blade's line is kept off it, the elbow swings out as little
+    as keeps the arm clear, and a hand the arm can't reach round the body (the bow's string, a two-handed grip far
+    across) stops short, out in front of the shoulder.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

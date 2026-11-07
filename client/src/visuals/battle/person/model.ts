@@ -51,6 +51,10 @@ export function personBuild(look: Look): PersonBuild {
   };
 }
 
+export const toMetres = (s: Section): Section => ({
+  y: s.y * M_PER_PX, x: s.x * M_PER_PX, z: s.z * M_PER_PX, dz: (s.dz ?? 0) * M_PER_PX, dx: (s.dx ?? 0) * M_PER_PX,
+});
+
 export type MaterialKey = RampName | "face" | "hair";
 
 export interface Kit {
@@ -114,9 +118,6 @@ export function buildPerson(
     meshes.push(mesh);
     return mesh;
   };
-  const toMetres = (s: Section): Section => ({
-    y: s.y * M_PER_PX, x: s.x * M_PER_PX, z: s.z * M_PER_PX, dz: (s.dz ?? 0) * M_PER_PX, dx: (s.dx ?? 0) * M_PER_PX,
-  });
 
   const holder = new TransformNode(`person-${e}`, scene);
   holder.parent = parent;
