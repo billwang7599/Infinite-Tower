@@ -5,7 +5,7 @@ import {
   DEFAULT_LOOK, FIXED_DT, LOOK_OPTIONS, PLAYER, WAYS, type Look, type PlayerData, type SwingData, type WeaponId,
 } from "@infinite-tower/shared";
 import { BATTLE_BUILDS } from "../../../../src/gfx/look/body.js";
-import { BLADE_FROM_M } from "../../../../src/visuals/battle/blade.js";
+import { BLADE_FROM_M, holdingOf } from "../../../../src/visuals/battle/blade.js";
 import { handSide, reachArms, reachWith } from "../../../../src/visuals/battle/person/animation.js";
 import { SHAPES } from "../../../../src/visuals/battle/person/body.js";
 import { ROUNDNESS } from "../../../../src/visuals/battle/person/loft.js";
@@ -30,7 +30,15 @@ describe("the hand a 3D person holds its weapon in", () => {
     assert.equal(handSide({ rightHand: "skillbook", leftHand: "training-bow" }, "training-bow"), -1);
     assert.equal(handSide({ rightHand: null, leftHand: null }, null), 1);
   });
+
+  test("a shield is always in the other hand: alone in the right, the left is the sword hand", () => {
+    assert.equal(handSide({ rightHand: "sword", leftHand: "wooden-shield" }, "sword"), 1);
+    assert.equal(handSide({ rightHand: "wooden-shield", leftHand: "sword" }, "sword"), -1);
+    assert.equal(handSide({ rightHand: "wooden-shield", leftHand: null }, null), -1);
+    assert.equal(handSide({ rightHand: null, leftHand: "wooden-shield" }, null), 1);
+  });
 });
+
 
 describe("the 3D person's arms", () => {
   test("bend so the hand lands on the pose's target and holds the blade its way, however the body is turned", () => {
@@ -60,7 +68,10 @@ const TORSO = ["ribs", "belly", "pelvis"] as const;
 const LIMBS = [["upperArm", "upper_arm"], ["forearm", "forearm"], ["hand", "hand"]] as const;
 const SAMPLE_M = 0.01;
 
-interface Case { what: string; player: PlayerData; swing?: SwingData; extra?: Partial<Moment>; weapon: WeaponId | null }
+interface Case {
+  what: string; player: PlayerData; swing?: SwingData; extra?: Partial<Moment>; weapon: WeaponId | null;
+  offWeapon?: WeaponId;
+}
 type Moment = Parameters<typeof personPose>[3];
 
 function cases(swingEvery: number): Case[] {
@@ -97,6 +108,17 @@ function cases(swingEvery: number): Case[] {
       add(`${action} at ${t}`, playerDoing(action, t));
     }
   }
+  for (const guard of ["one", "dual", "shield"] as const) {
+    const offWeapon = guard === "dual" ? "kobold-blade" as const : undefined;
+    for (const way of ["rl", "lr", "tb", "brtl"] as const) {
+      for (const action of ["none", "block"] as const) {
+        all.push({ what: `${guard} ${action} ${way}`, player: playerDoing(action, 1, way), extra: { guard }, weapon: "sword",
+          offWeapon });
+      }
+    }
+  }
+  all.push({ what: "greatsword block", player: playerDoing("block", 1, "rl"), extra: { guard: "one", twoHanded: true },
+    weapon: "greatsword" });
   for (const left of [0.8, 0.4, 0.1]) {
     add(`staggered, ${left} s left`, playerDoing("stagger", 0.1), { stagger: { left, of: 0.8 } });
   }
@@ -122,10 +144,11 @@ function place(joints: Joints, build: PersonBuild, side: 1 | -1, c: Case): void 
   });
   for (const name of POSED_JOINTS) joints[name].rotation.set(p.joints[name].x, p.joints[name].y, p.joints[name].z);
   joints.root.position.y = p.rootY;
-  const turn = new Quaternion();
-  Quaternion.FromUnitVectorsToRef(Vector3.Up(), new Vector3(p.blade.x, p.blade.y, p.blade.z), turn);
-  const hand = new Vector3(p.hand.x, p.hand.y, p.hand.z);
-  reachArms(joints, build.look.body, side, hand, turn, p.offHand, alive ? held : null);
+  const turn = holdingOf(p.blade, p.edge, new Quaternion());
+  const offTurn = p.off ? holdingOf(p.off.blade, p.off.edge, new Quaternion()) : Quaternion.Identity();
+  const hand = new Vector3(p.hand.x, p.hand.y, p.hand.z), offHeld = c.offWeapon ? WEAPON_LOOKS[c.offWeapon] : null;
+  reachArms(joints, build.look.body, side, hand, turn,
+    p.gripped ? null : { hand: p.offHand, holding: offTurn, held: offHeld }, alive ? held : null);
   for (const j of Object.values(joints)) j.computeWorldMatrix(true);
 }
 
@@ -155,12 +178,13 @@ function deepestIn(body: Look["body"], swingEvery: number): { depthM: number; wh
             if (depthM > worst.depthM) worst = { depthM, where: `${swordArm ? "sword" : "off"} ${part}, ${c.what}` };
           }
         }
-        if (!swordArm || !held || held.bow) continue;
+        const inHand = swordArm ? held : c.offWeapon && WEAPON_LOOKS[c.offWeapon];
+        if (!inHand || inHand.bow) continue;
         const grip = joints[`grip.${s}`].getWorldMatrix();
         const edge = (y: number) => Vector3.TransformCoordinates(new Vector3(0, y, 0), grip);
-        for (const at of alongSegment(edge(BLADE_FROM_M), edge(BLADE_FROM_M + held.blade.lengthM), 20)) {
-          const depthM = depthIn(torso, at, held.blade.widthM / 2);
-          if (depthM > worst.depthM) worst = { depthM, where: `the blade, ${c.what}` };
+        for (const at of alongSegment(edge(BLADE_FROM_M), edge(BLADE_FROM_M + inHand.blade.lengthM), 20)) {
+          const depthM = depthIn(torso, at, inHand.blade.widthM / 2);
+          if (depthM > worst.depthM) worst = { depthM, where: `the ${swordArm ? "" : "other "}blade, ${c.what}` };
         }
       }
     }

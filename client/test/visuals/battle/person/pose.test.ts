@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Matrix, Vector3 } from "@babylonjs/core";
-import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData, type Vec3 } from "@infinite-tower/shared";
+import {
+  DEFAULT_LOOK, FIXED_DT, PLAYER, SCREEN_DIR, SWING_DIRS, type SwingData, type SwingDir, type Vec3,
+} from "@infinite-tower/shared";
+import { BLADE_FROM_M } from "../../../../src/visuals/battle/blade.js";
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
 import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
 import { HAIR_SHELL, HEAD } from "../../../../src/visuals/battle/person/head.js";
 import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
 import {
-  CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
+  BLOCK, CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
-import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
+import { GUARD_LEAN, MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../../fixtures/players.js";
 import { swingSteps } from "../../../fixtures/swings.js";
 
@@ -133,6 +136,114 @@ describe("the 3D player's swing", () => {
     const coiled = pose(ATTACKING, light);
     assert.ok(coiled.blade.x < 0 && twist(coiled) < 0, "turned toward the blade, on the left");
     assert.ok(coiled.joints.neck.y > 0, "the head turned back toward the foe");
+  });
+});
+
+const FORWARD: Vec3 = { x: 0, y: 0, z: 1 };
+const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
+const length = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
+const planeOf = (way: SwingDir): Vec3 => cross(FORWARD, { x: -SCREEN_DIR[way].x, y: -SCREEN_DIR[way].y, z: 0 });
+const faceOf = (held: { blade: Vec3; edge: Vec3 }) => cross(held.edge, held.blade);
+
+function closest(a0: Vec3, a: Vec3, b0: Vec3, b: Vec3): { m: number; at: Vec3; ta: number; tb: number } {
+  const w = sub(a0, b0), ab = dot(a, b), d = dot(a, w), e = dot(b, w), den = 1 - ab * ab;
+  const ta = (ab * e - d) / den, tb = (e - ab * d) / den, p = along(a0, a, ta), q = along(b0, b, tb);
+  return { m: length(sub(p, q)), at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2, z: (p.z + q.z) / 2 }, ta, tb };
+}
+
+describe("the 3D player's guard and block", () => {
+  test("aimed, the blade lies in its cut's plane and its edge faces the foe ahead, either hand", () => {
+    const most = Math.max(...Object.values(GUARD_LEAN));
+    for (const side of [1, -1] as const) {
+      for (const way of SWING_DIRS) {
+        const p = pose(playerDoing("none", 1, way), null, { side }), plane = planeOf(way), what = `${side} ${way}`;
+        assert.ok(p.edge, `${what}: an edge`);
+        assert.ok(Math.abs(dot(p.blade, plane)) < 1e-9 && Math.abs(dot(p.edge, plane)) < 1e-9, `${what}: in plane`);
+        assert.ok(dot(p.edge, FORWARD) >= Math.cos(most) - 1e-9, `${what}: the edge ${dot(p.edge, FORWARD)} ahead`);
+        assert.deepEqual(p.held, { way, block: null }, what);
+      }
+    }
+  });
+
+  test("swinging, the blade's flat lies in the cut's plane, its edge leading from the drive into the hit and past", () => {
+    for (const attack of ["light", "heavy"] as const) {
+      for (const way of SWING_DIRS) {
+        const steps = swingSteps(attack, way), { liveAt, endAt } = steps[0]!;
+        for (let step = 1; step < endAt - 1; step++) {
+          for (const alpha of [0.25, 0.75]) {
+            const now = pose(ATTACKING, steps[step]!, { alpha }), next = pose(ATTACKING, steps[step]!, { alpha: alpha + 0.05 });
+            const moved = sub(next.blade, now.blade), what = `${attack} ${way} step ${step}`;
+            if (length(moved) < 1e-4) continue;
+            assert.ok(now.edge && Math.abs(dot(now.edge, moved)) > 0.95 * length(moved), `${what}: along its way`);
+            if (step >= liveAt - 2) assert.ok(dot(now.edge, moved) > 0, `${what}: leading`);
+          }
+        }
+      }
+    }
+  });
+
+  const blocking = (guard: "one" | "dual" | "shield", side: 1 | -1 = 1, twoHanded = false) =>
+    pose(playerDoing("block", 1, "rl"), null, { side, guard, twoHanded });
+
+  test("one blade blocks held across the body, its edge out, the other hand under it, a two-handed grip too", () => {
+    const lengthM = WEAPON_LOOKS.sword.blade.lengthM;
+    for (const side of [1, -1] as const) {
+      for (const twoHanded of [false, true]) {
+        const p = blocking("one", side, twoHanded), what = `${side}${twoHanded ? " two-handed" : ""}`;
+        assert.ok(Math.abs(p.blade.x) > 0.85 && p.blade.x * side < 0, `${what}: across, toward the other side`);
+        assert.ok(p.hand.x * side > 0 && p.hand.z > 0.15, `${what}: the sword hand out ahead on its own side`);
+        assert.ok(p.edge && dot(p.edge, FORWARD) > 0.8, `${what}: the edge toward the foe`);
+        const ta = dot(sub(p.offHand, p.hand), p.blade), m = length(sub(p.offHand, along(p.hand, p.blade, ta)));
+        assert.ok(ta > BLADE_FROM_M + 0.1 && ta < BLADE_FROM_M + lengthM / 2, `${what}: the other hand ${ta} m along`);
+        assert.ok(m < 0.07 && p.offHand.y < along(p.hand, p.blade, ta).y, `${what}: under the blade, ${m} m off`);
+        assert.equal(p.gripped, false, `${what}: off the grip`);
+        assert.deepEqual(p.held, { way: "rl", block: "one" });
+      }
+    }
+    assert.equal(pose(playerDoing("none", 1, "rl"), null, { guard: "one", twoHanded: true }).gripped, true);
+  });
+
+  test("two blades block crossed in an X, edges out, meeting above the hands without passing through", () => {
+    for (const side of [1, -1] as const) {
+      const p = blocking("dual", side), off = p.off!;
+      assert.ok(off, "the other blade held");
+      assert.ok(p.blade.x * side < -0.3 && off.blade.x * side > 0.3, `${side}: each leaning across to the other side`);
+      assert.ok(p.blade.y > 0.5 && off.blade.y > 0.5, `${side}: both up`);
+      assert.ok(p.hand.x * side > 0 && p.offHand.x * side < 0, `${side}: a hand either side`);
+      assert.ok(dot(p.edge!, FORWARD) > 0.7 && dot(off.edge, FORWARD) > 0.7, `${side}: both edges toward the foe`);
+      const x = closest(p.hand, p.blade, p.offHand, off.blade);
+      assert.ok(Math.abs(x.m - BLOCK.dual.crossM) < 0.01, `${side}: ${x.m} m apart where they cross`);
+      assert.ok(x.at.y > Math.max(p.hand.y, p.offHand.y) + 0.1 && Math.abs(x.at.x) < 0.05, `${side}: crossed above`);
+      assert.ok(x.ta > BLADE_FROM_M && x.tb > BLADE_FROM_M, `${side}: on the blades`);
+    }
+    for (const id of ["sword", "kobold-blade", "longsword"] as const) {
+      assert.ok(BLOCK.dual.crossM >= WEAPON_LOOKS[id].blade.widthM, `${id}: edges out, they'd pass through`);
+    }
+  });
+
+  test("a shield blocks raised in front, facing the foe, the blade kept in its guard", () => {
+    for (const side of [1, -1] as const) {
+      const p = blocking("shield", side), carried = pose(playerDoing("none", 1, "rl"), null, { side, guard: "shield" });
+      assert.ok(p.off && dot(faceOf(p.off), FORWARD) > 0.95 && p.off.blade.y > 0.9, `${side}: upright, facing ahead`);
+      assert.ok(p.offHand.y > carried.offHand.y + 0.15 && p.offHand.z > carried.offHand.z, `${side}: raised`);
+      assert.ok(p.offHand.z > BUILD.reachM * 0.7, `${side}: out before the chest`);
+      assert.ok(Math.abs(p.offHand.x) < BUILD.shoulderM, `${side}: in front of the body`);
+      assert.deepEqual(p.blade, carried.blade, `${side}: the sword's guard kept`);
+      assert.ok(carried.off && dot(faceOf(carried.off), FORWARD) > 0.5, `${side}: carried facing ahead, turned out`);
+    }
+  });
+
+  test("a second blade is held at the other side, point up and ahead, out from the body", () => {
+    for (const side of [1, -1] as const) {
+      const p = pose(playerDoing("none", 1, "rl"), null, { side, guard: "dual" });
+      assert.ok(p.off && p.off.blade.y > 0.3 && p.off.blade.z > 0.5 && p.off.blade.x * side < 0, `${side}`);
+      assert.ok(dot(p.off.edge, FORWARD) > 0.5, `${side}: its edge toward the foe`);
+    }
+    assert.equal(pose(playerDoing("none", 1, "rl"), null, { guard: "one" }).off, null);
   });
 });
 

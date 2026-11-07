@@ -1,15 +1,16 @@
 import { Matrix, Quaternion, TransformNode, Vector3 } from "@babylonjs/core";
-import { dampFactor, PLAYER, smoothstep, type SwingData, type Vec3 } from "@infinite-tower/shared";
+import { mirrorWay, PLAYER, smoothstep, type SwingData, type SwingDir, type Vec3 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS, type ArenaView } from "../../modes/battle/camera.js";
 import { orbitBack } from "../../modes/orbit.js";
+import { holdingOf } from "./blade.js";
 import { ARROW_REST } from "./bow.js";
 import type { BowMotion } from "./bowMotion.js";
 import {
-  ARM_POLE, bladeReach, JOINT_RATE, OFF_GRIP_M, reachWith, type HeldArms, type PersonDrawing,
+  ARM_POLE, bladeReach, easeArms, heldKey, OFF_GRIP_M, reachWith, shiftTimeOf, type HeldArms, type PersonDrawing,
 } from "./person/animation.js";
 import { swingArc } from "./person/pose.js";
 import { restAt } from "./person/skeleton.js";
-import { wayCut, WEAPON_LOOKS, type BowLook } from "./weapons.js";
+import { edgeToward, MOTIONS, wayCut, WEAPON_LOOKS, type BowLook, type WeaponLook } from "./weapons.js";
 
 export interface Arms { hand: Vec3; blade: Vec3; offHand: Vec3 }
 
@@ -20,6 +21,15 @@ export const FP_ARMS = {
   hand: { x: 0.12, y: -0.6, depthM: 0.7 }, offHand: { x: -0.32, y: -0.62, depthM: 0.7 },
   blade: { x: -0.15, y: 0.6, z: 1 }, handPull: 0.6, offHandPull: 0.8, bladePull: 0.6, pole: { x: 0.5, y: -0.8, z: -0.2 },
   fade: { fullM: 0.5, goneM: 1.1 },
+} as const;
+
+// As FP_ARMS' spots, for the right hand; each off the line through the middle its way, so the flat shows a little.
+export const FP_GUARD = {
+  depthM: 0.6,
+  hand: {
+    tb: { x: 0.26, y: -0.2 }, trbl: { x: 0.52, y: -0.3 }, rl: { x: 0.6, y: -0.5 }, brtl: { x: 0.6, y: -0.32 },
+    bltr: { x: -0.15, y: -0.5 }, lr: { x: -0.12, y: -0.46 }, tlbr: { x: -0.06, y: -0.3 },
+  } satisfies Record<SwingDir, { x: number; y: number }>,
 } as const;
 
 export const FP_SWING = {
@@ -78,11 +88,11 @@ export function firstPersonArms(arms: Arms, side: 1 | -1, gripped: boolean): Arm
 
 const axes = [new Vector3(), new Vector3(), new Vector3()] as const, basis = new Matrix();
 
-function holdingOf(blade: Vec3, flat: Vec3, to: Quaternion): Quaternion {
-  const x = cross(blade, flat);
-  Matrix.FromXYZAxesToRef(axes[0].set(x.x, x.y, x.z), axes[1].set(blade.x, blade.y, blade.z),
-    axes[2].set(flat.x, flat.y, flat.z), basis);
-  return Quaternion.FromRotationMatrixToRef(basis, to);
+export function guardInView(way: SwingDir, side: 1 | -1): { hand: Vec3; blade: Vec3; edge: Vec3 } {
+  const held = MOTIONS.sword.held(wayCut(way, true)), at = FP_GUARD.hand[side === 1 ? way : mirrorWay(way) as SwingDir];
+  const toModel = (v: Vec3) => fromCamera(v.x, v.y, v.z);
+  const hand = spot({ ...at, depthM: FP_GUARD.depthM }, side);
+  return { hand, blade: toModel(held.blade), edge: toModel(held.edge!) };
 }
 
 export function swungInView(
@@ -115,7 +125,7 @@ export function swungInView(
     flat = unit({ x: face.x - blade.x * off, y: face.y - blade.y * off, z: face.z - blade.z * off });
   }
   const toModel = (v: Vec3) => fromCamera(v.x, v.y, v.z);
-  return { hand: atEye(hand), holding: holdingOf(toModel(blade), toModel(flat), new Quaternion()), set };
+  return { hand: atEye(hand), holding: holdingOf(toModel(blade), toModel(cross(blade, flat)), new Quaternion()), set };
 }
 
 // Metres from the eye (x right, y up, z ahead). Drawn, the arrow lies along the view, so it points at the crosshair,
@@ -161,35 +171,20 @@ export function bowInView(m: BowMotion, look: BowLook): { hand: Vec3; holding: Q
 
 const UP = Vector3.Up(), UNTURNED = Quaternion.Identity();
 
-function swordInView(
-  p: PersonDrawing, gripped: boolean,
-): HeldArms & { swung: { swing: SwingData; set: number } | null } {
-  const pose = p.pose!, side = p.bladeSide, rest = firstPersonArms(pose, side, gripped);
+function swordInView(p: PersonDrawing): HeldArms & { swung: { swing: SwingData; set: number } | null } {
+  const pose = p.pose!, side = p.bladeSide, { gripped } = pose, rest = firstPersonArms(pose, side, gripped);
   const swung = pose.swing && swungInView(pose.swing.at, pose.swing.alpha, side);
-  const hand = swung?.hand ?? rest.hand, holding = swung?.holding
-    ?? Quaternion.FromUnitVectorsToRef(UP, new Vector3(rest.blade.x, rest.blade.y, rest.blade.z), new Quaternion());
-  const blade = UP.applyRotationQuaternion(holding), offHand = gripped ? along(hand, blade, -OFF_GRIP_M) : rest.offHand;
+  const block = pose.held?.block ?? null, way = pose.held?.way ?? null, crossed = block === "one" || block === "dual";
+  const held = crossed ? pose : way ? guardInView(way, side)
+    : { ...rest, edge: edgeToward(rest.blade, POSED_FOR.forward) };
+  const hand = swung?.hand ?? held.hand, holding = swung?.holding ?? holdingOf(held.blade, held.edge, new Quaternion());
+  const blade = UP.applyRotationQuaternion(holding);
+  const offHand = gripped ? along(hand, blade, -OFF_GRIP_M) : block ? pose.offHand : rest.offHand;
   return {
     hand: new Vector3(hand.x, hand.y, hand.z), holding, offHand: new Vector3(offHand.x, offHand.y, offHand.z),
-    offHolding: gripped ? holding : UNTURNED, swung: pose.swing && swung && { swing: pose.swing.at, set: swung.set },
+    offHolding: gripped ? holding : pose.off ? holdingOf(pose.off.blade, pose.off.edge, new Quaternion()) : UNTURNED,
+    swung: pose.swing && swung && { swing: pose.swing.at, set: swung.set },
   };
-}
-
-function moveInView(p: PersonDrawing, want: ReturnType<typeof swordInView>, dt: number): HeldArms {
-  const copy = (a: HeldArms): HeldArms => ({ hand: a.hand.clone(), holding: a.holding.clone(),
-    offHand: a.offHand.clone(), offHolding: a.offHolding.clone() });
-  const shown = p.inView ??= { ...copy(want), from: null }, { swung } = want;
-  if (swung && shown.from?.swing !== swung.swing) shown.from = { ...copy(shown), swing: swung.swing, sinceTime: 0 };
-  if (!swung && shown.from?.swing) shown.from = { ...copy(shown), swing: null, sinceTime: 0 };
-  if (!swung && shown.from && (shown.from.sinceTime += dt) >= FP_SWING.returnTime) shown.from = null;
-  const from = shown.from ?? shown;
-  const k = swung ? swung.set : shown.from ? smoothstep(0, FP_SWING.returnTime, shown.from.sinceTime)
-    : dampFactor(JOINT_RATE, dt);
-  Vector3.LerpToRef(from.hand, want.hand, k, shown.hand);
-  Quaternion.SlerpToRef(from.holding, want.holding, k, shown.holding);
-  Vector3.LerpToRef(from.offHand, want.offHand, k, shown.offHand);
-  Quaternion.SlerpToRef(from.offHolding, want.offHolding, k, shown.offHolding);
-  return shown;
 }
 
 const rootInverse = new Matrix(), rootTurn = new Quaternion(), holderToRoot = new Matrix(), toRoot = new Quaternion();
@@ -198,7 +193,7 @@ const posed = new Matrix(), seen = new Matrix(), carry = new Matrix(), moved = n
 const parentInverse = new Matrix(), look = new Vector3(), eye = new Vector3(), scale = new Vector3();
 const posedTurn = new Quaternion(), seenTurn = new Quaternion(), posedAt = new Vector3(), seenAt = new Vector3();
 
-export function holdInView(p: PersonDrawing, view: ArenaView, gripped: boolean, share: number, dt: number): void {
+export function holdInView(p: PersonDrawing, view: ArenaView, share: number, dt: number): void {
   const { model } = p;
   if (!model || !p.look) return;
   const { joints, holder } = model, side = p.bladeSide;
@@ -213,13 +208,18 @@ export function holdInView(p: PersonDrawing, view: ArenaView, gripped: boolean, 
     const bow = bowInView(p.bow, p.blade.bow.look), v = (a: Vec3) => new Vector3(a.x, a.y, a.z);
     shown = { hand: v(bow.hand), holding: bow.holding, offHand: v(bow.offHand), offHolding: null };
     p.inView = null;
-  } else if (p.pose) shown = moveInView(p, swordInView(p, gripped), dt);
-  else return;
+  } else if (p.pose) {
+    const want = swordInView(p);
+    shown = p.inView = easeArms(p.inView, want, { key: heldKey(p.pose), side, swung: want.swung,
+      shiftTime: shiftTimeOf(p), returnTime: FP_SWING.returnTime, dt });
+  } else return;
   const pole = (s: 1 | -1) => {
     const { x, y, z } = lerp(ARM_POLE, FP_ARMS.pole, share);
     return { x: s * x, y, z };
   };
-  const reach = (s: "R" | "L", hand: Vector3, holding: Quaternion | null, poleSide: 1 | -1, sword: boolean) => {
+  const reach = (
+    s: "R" | "L", hand: Vector3, holding: Quaternion | null, poleSide: 1 | -1, look: WeaponLook | null,
+  ) => {
     const bone = joints[`hand.${s}`];
     Vector3.TransformCoordinatesToRef(bone.getAbsolutePosition(), rootInverse, bodyAt);
     rootTurn.multiplyToRef(bone.absoluteRotationQuaternion, bodyTurned);
@@ -227,12 +227,12 @@ export function holdInView(p: PersonDrawing, view: ArenaView, gripped: boolean, 
     Vector3.LerpToRef(bodyAt, at, share, at);
     if (holding) Quaternion.SlerpToRef(bodyTurned, toRoot.multiplyToRef(holding, turned), share, turned);
     else turned.copyFrom(bodyTurned);
-    const blade = sword && p.blade ? bladeReach(WEAPON_LOOKS[p.blade.weapon]) : null;
     // All in first person the body's hidden, and going round it the arm would step as it sweeps.
-    reachWith(joints, p.look!.body, s, at, turned, pole(poleSide), blade, share < 1);
+    reachWith(joints, p.look!.body, s, at, turned, pole(poleSide), bladeReach(look), share < 1);
   };
-  reach(swordSide, shown.hand, shown.holding, side, true);
-  reach(offSide, shown.offHand, shown.offHolding, -side as 1 | -1, false);
+  const lookOf = (held: { weapon: keyof typeof WEAPON_LOOKS } | null) => held && WEAPON_LOOKS[held.weapon];
+  reach(swordSide, shown.hand, shown.holding, side, lookOf(p.blade));
+  reach(offSide, shown.offHand, shown.offHolding, -side as 1 | -1, lookOf(p.offBlade));
 
   const { right, up, forward } = POSED_FOR;
   Matrix.FromXYZAxesToRef(axes[0].set(right.x, right.y, right.z), axes[1].set(up.x, up.y, up.z),

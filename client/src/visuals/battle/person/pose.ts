@@ -1,8 +1,9 @@
 import {
-  clamp, FIXED_DT, PLAYER, smoothstep, type PlayerData, type SwingData, type Vec2, type Vec3, type WielderData,
+  clamp, FIXED_DT, PLAYER, smoothstep, type GuardKind, type PlayerData, type SwingData, type SwingDir, type Vec2,
+  type Vec3, type WielderData,
 } from "@infinite-tower/shared";
-import { playerBlade } from "../pose.js";
-import { DRAWBACK, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
+import { playerBlade, STAGGERED } from "../pose.js";
+import { DRAWBACK, edgeToward, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
 import { BREATH, breathOf, plantLegs, strideOf, WALK, walkKey } from "./motion.js";
 import { restAt, type JointName } from "./skeleton.js";
@@ -110,7 +111,7 @@ export function swingArc(
 
 function swingBlade(
   motion: WeaponMotion, swing: SwingData, alpha: number, held: BladePose,
-): { blade: Vec3; handBlade: Vec3; handZ: number; arcRad: number; set: number } {
+): { blade: Vec3; edge: Vec3 | null; handBlade: Vec3; handZ: number; arcRad: number; set: number } {
   const cut = wayCut(swing.way, true), stab = swing.way === "stab", heavy = swing.attack === "heavy";
   const backRad = stab ? Math.PI / 2 : SWING_ARC.backRad * (heavy ? DRAWBACK.heavyFactor : 1);
   // A cut ending low would follow through into its own legs.
@@ -119,11 +120,55 @@ function swingBlade(
   if (stab) {
     const ahead = motion.stroke(cut, 0.5), pulledZ = motion.windup(cut, 1, held).handZ;
     const handZ = ahead.handZ + ((ahead.handZ - pulledZ) / 2) * (Math.sin(arcRad) - 1);
-    return { blade: ahead.blade, handBlade: ahead.blade, handZ, arcRad, set };
+    return { blade: ahead.blade, edge: ahead.edge ?? null, handBlade: ahead.blade, handZ, arcRad, set };
   }
   const along = motion.stroke(cut, arcRad / Math.PI);
   const handBlade = motion.stroke(cut, clamp(arcRad, 0, Math.PI) / Math.PI).blade;
-  return { blade: along.blade, handBlade, handZ: along.handZ, arcRad, set };
+  return { blade: along.blade, edge: along.edge ?? null, handBlade, handZ: along.handZ, arcRad, set };
+}
+
+const UP: Vec3 = { x: 0, y: 1, z: 0 }, AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
+const unit = ({ x, y, z }: Vec3): Vec3 => {
+  const l = Math.hypot(x, y, z);
+  return { x: x / l, y: y / l, z: z / l };
+};
+const along = (p: Vec3, d: Vec3, m: number): Vec3 => ({ x: p.x + d.x * m, y: p.y + d.y * m, z: p.z + d.z * m });
+const cross = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+const facing = (face: Vec3) => ({ blade: UP, edge: unit(cross(UP, face)) });
+
+// m in the model's frame for the right hand, y from the shoulders; edges out, crossed blades are a width apart.
+export const BLOCK = {
+  one: { hand: { x: 0.19, y: 0.075, z: 0.24 }, blade: { x: -1, y: 0.12, z: 0.2 }, supportM: 0.45, underM: 0.04 },
+  dual: { hand: { x: 0.14, y: -0.06, z: 0.26 }, blade: { x: -0.5, y: 0.8, z: 0.33 }, crossM: 0.11 },
+  shield: { hand: { x: -0.08, y: 0.04, z: 0.3 } },
+} as const;
+const OFF_CARRY = {
+  hand: { x: -0.2, y: -0.18, z: 0.15 }, blade: { x: -0.3, y: 0.5, z: 0.81 }, shieldFace: { x: -0.5, y: 0, z: 0.87 },
+} as const;
+
+function blockPose(p: PersonPose, kind: GuardKind, b: PersonBuild, side: 1 | -1): void {
+  const at = ({ x, y, z }: Vec3): Vec3 => ({ x: side * x, y: b.shoulderY + y, z });
+  const turned = ({ x, y, z }: Vec3): Vec3 => unit({ x: side * x, y, z });
+  if (kind === "shield") {
+    p.offHand = at(BLOCK.shield.hand);
+    p.off = facing(AHEAD);
+  } else if (kind === "one") {
+    const { hand, blade, supportM, underM } = BLOCK.one, way = turned(blade);
+    const down = unit({ x: way.x * way.y, y: way.y * way.y - 1, z: way.z * way.y });
+    p.hand = at(hand);
+    p.blade = way;
+    p.edge = edgeToward(way);
+    p.offHand = along(along(p.hand, way, supportM), down, underM);
+  } else {
+    const { hand, blade, crossM } = BLOCK.dual, main = turned(blade), off = turned({ ...blade, x: -blade.x });
+    const apart = unit(cross(main, off)), out = apart.z < 0 ? -crossM / 2 : crossM / 2;
+    p.hand = along(at(hand), apart, out);
+    p.offHand = along(at({ ...hand, x: -hand.x }), apart, -out);
+    p.blade = main;
+    p.edge = edgeToward(main);
+    p.off = { blade: off, edge: edgeToward(off) };
+  }
 }
 
 /** The motions are sized for this arm (the kobold's). */
@@ -157,8 +202,13 @@ export function legDrop(thigh: Vec3, shin: Vec3): number {
 /** In the model's frame, feet at 0 and +z ahead. */
 export interface PersonPose {
   blade: Vec3;
+  /** Its hand's +x; null (a bow): turned the shortest way from upright. */
+  edge: Vec3 | null;
   hand: Vec3;
   offHand: Vec3;
+  off: { blade: Vec3; edge: Vec3 } | null;
+  held: { way: SwingDir | null; block: GuardKind | null } | null;
+  gripped: boolean;
   joints: Record<PosedJoint, Vec3>;
   /** The root's height (m), down as the knees bend so the feet stay on the ground. */
   rootY: number;
@@ -184,6 +234,8 @@ export interface PersonMoment {
   landing?: number;
   bow?: BowLook & { drawn: number; flick?: number };
   alpha?: number;
+  guard?: GuardKind | null;
+  twoHanded?: boolean;
 }
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
@@ -208,30 +260,40 @@ function play(
 export function personPose(
   player: Doing, wielder: Pick<WielderData, "swing">, motion: WeaponMotion, o: PersonMoment,
 ): PersonPose {
-  const { build: b, side, alive, alpha = 1 } = o, t = player.actionTime;
+  const { build: b, side, alive, alpha = 1, guard: kind = null } = o, t = player.actionTime;
   const swing = alive && wielder.swing && drawnStep(wielder.swing, alpha) < wielder.swing.endAt ? wielder.swing : null;
-  const guard = playerBlade(player, { swing: null }, alive, motion);
+  const blocking = alive && player.action === "block" && kind !== null && !o.bow ? kind : null;
+  const guard = playerBlade(blocking ? { ...player, action: "none" } : player, { swing: null }, alive, motion);
   const swung = swing && swingBlade(motion, swing, alpha, { blade: guard.blade, handZ: guard.handZ });
   const { blade, handBlade, handZ } = swung ?? guard;
   const reach = b.reachM, scale = reach / MOTION_ARM_M;
   const pivot = { x: side * b.shoulderM * PIVOT_OUT, y: b.shoulderY - reach * PIVOT_DROP, z: 0 };
   const arc = reach * HAND_ARC;
   const joints = Object.fromEntries(POSED_JOINTS.map((j) => [j, { x: 0, y: 0, z: 0 }])) as PersonPose["joints"];
-  const twist = alive ? TWIST_RAD * blade.x : 0;
+  const twist = alive && (!blocking || blocking === "shield") ? TWIST_RAD * blade.x : 0;
+  const offHeld = alive && !o.bow && (kind === "dual" || kind === "shield") ? kind : null;
   if (alive) {
     for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
     joints.spine.x = joints.chest.x = -BEND_RAD * blade.y / 2;
   }
   // Hanging under its shoulder, which the body's twist carries round.
-  const hangX = -side * (b.shoulderM + 0.03), hangZ = 0.05;
+  const hangX = offHeld ? side * OFF_CARRY.hand.x : -side * (b.shoulderM + 0.03);
+  const hangZ = offHeld ? OFF_CARRY.hand.z : 0.05;
   const restOff: Vec3 = {
-    x: hangX * Math.cos(twist) + hangZ * Math.sin(twist), y: b.shoulderY - reach * 0.95,
+    x: hangX * Math.cos(twist) + hangZ * Math.sin(twist),
+    y: offHeld ? b.shoulderY + OFF_CARRY.hand.y : b.shoulderY - reach * 0.95,
     z: hangZ * Math.cos(twist) - hangX * Math.sin(twist),
   };
+  const carried = (v: Vec3) => unit({ ...v, x: side * v.x }), offBlade = carried(OFF_CARRY.blade);
   const p: PersonPose = {
-    blade,
+    blade, edge: swung ? swung.edge : guard.edge,
     hand: { x: pivot.x + handBlade.x * arc, y: pivot.y + handBlade.y * arc, z: handZ * scale + handBlade.z * arc },
-    offHand: restOff, joints, rootY: 0, legsExact: false, swing: swing && swung && { at: swing, alpha, set: swung.set },
+    offHand: restOff,
+    off: offHeld === "dual" ? { blade: offBlade, edge: edgeToward(offBlade) }
+      : offHeld === "shield" ? facing(carried(OFF_CARRY.shieldFace)) : null,
+    held: alive && !o.bow && !STAGGERED.includes(player.action) ? { way: player.way, block: blocking } : null,
+    gripped: alive && !!o.twoHanded && !o.bow && !offHeld && !blocking,
+    joints, rootY: 0, legsExact: false, swing: swing && swung && { at: swing, alpha, set: swung.set },
   };
   const towardOff = (to: Vec3) => {
     const k = keyed(t, [0], [0, 1]);
@@ -263,6 +325,7 @@ export function personPose(
       }
       case "block":
         play(joints, CLIPS.block, t);
+        if (blocking) blockPose(p, blocking, b, side);
         break;
       case "chant":
         towardOff({ x: -side * 0.08, y: b.shoulderY - 0.05, z: reach * 0.85 });

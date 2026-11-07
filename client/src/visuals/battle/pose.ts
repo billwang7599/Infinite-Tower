@@ -2,8 +2,8 @@ import type { PlayerAction, PlayerData, Vec2, Vec3, Way, WielderData } from "@in
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import {
-  drawnBack, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, wayCut, type Cut,
-  type WeaponMotion,
+  cutStart, drawnBack, edgeLeading, edgeToward, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, wayCut,
+  type Cut, type WeaponMotion,
 } from "./weapons.js";
 
 const WAY_POSES: Record<Way, SwordPose> = {
@@ -66,16 +66,17 @@ const DROPPED_BLADE: Vec3 = { x: 0.9, y: 0, z: Math.sqrt(1 - 0.9 ** 2) };
 
 export function playerBlade(
   player: Held, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
-): { blade: Vec3; handBlade: Vec3; exact: boolean; handZ: number } {
-  const still = (blade: Vec3, handZ = REST_BLADE.handZ) => ({ blade, handBlade: blade, exact: false, handZ });
-  if (!alive) return still(DROPPED_BLADE);
-  if (STAGGERED.includes(player.action)) return still(REELING_BLADE);
+): { blade: Vec3; edge: Vec3 | null; handBlade: Vec3; exact: boolean; handZ: number } {
+  const still = (blade: Vec3, edge: Vec3 | null, handZ = REST_BLADE.handZ) =>
+    ({ blade, edge, handBlade: blade, exact: false, handZ });
+  if (!alive) return still(DROPPED_BLADE, edgeToward(DROPPED_BLADE));
+  if (STAGGERED.includes(player.action)) return still(REELING_BLADE, edgeToward(REELING_BLADE));
   const stance = stanceCut(player), held = stance ? motion.held(stance) : motion.rest;
-  if (!swing || swing.step >= swing.endAt) return still(held.blade, held.handZ);
+  if (!swing || swing.step >= swing.endAt) return still(held.blade, held.edge ?? null, held.handZ);
   const cut = wayCut(swing.way, true), stroke = strokeOf(swing);
   const { blade, handZ } = stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn);
-  const pull = pullOf(stroke, swing.attack === "heavy") * SPRITE_DRAWBACK;
-  return { blade: drawnBack(blade, pull), handBlade: blade, exact: stroke.set >= 1, handZ };
+  const pull = pullOf(stroke, swing.attack === "heavy") * SPRITE_DRAWBACK, drawn = drawnBack(blade, pull);
+  return { blade: drawn, edge: edgeLeading(drawn, cutStart(cut)), handBlade: blade, exact: stroke.set >= 1, handZ };
 }
 
 /** How far past side-on the camera goes before the sprite turns round, so side-on it doesn't flicker. */

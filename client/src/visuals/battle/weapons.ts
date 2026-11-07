@@ -48,12 +48,32 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
   return { x: x / l, y: y / l, z: z / l };
 };
 
-/** Unit vector in the wielder's frame, +z ahead. */
-export interface BladePose { blade: Vec3; handZ: number }
+const AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
+const dot = (a: Vec3, b: Vec3): number => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
 
-export const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
+// Pointing straight at `ahead`, its edges are level.
+export function edgeToward(blade: Vec3, ahead: Vec3 = AHEAD): Vec3 {
+  const along = dot(blade, ahead), e = { x: ahead.x - blade.x * along, y: ahead.y - blade.y * along,
+    z: ahead.z - blade.z * along };
+  if (Math.hypot(e.x, e.y, e.z) > 1e-3) return norm(e);
+  const level = cross({ x: 0, y: 1, z: 0 }, blade);
+  return Math.hypot(level.x, level.y, level.z) > 1e-6 ? norm(level) : { x: 1, y: 0, z: 0 };
+}
+
+export function edgeLeading(blade: Vec3, start: Vec3): Vec3 {
+  const e = cross(blade, cross(AHEAD, start));
+  return Math.hypot(e.x, e.y, e.z) > 1e-6 ? norm(e) : edgeToward(blade);
+}
+
+/** Unit vectors in the wielder's frame, +z ahead; a bow's stave has no `edge`. */
+export interface BladePose { blade: Vec3; edge?: Vec3; handZ: number }
+
+const REST = norm({ x: 0.25, y: 0.7, z: 0.65 });
+export const REST_BLADE: BladePose = { blade: REST, edge: edgeToward(REST), handZ: 0.28 };
 export const REELING_BLADE = norm({ x: 0.6, y: -0.5, z: -0.2 });
-const GUARD_OUT = 0.8;
+export const GUARD_LEAN = { highRad: 0.35, sideRad: 0.44, lowRad: 0.25 } as const;
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;
 const STROKE_LEAN = 0.15;
@@ -63,25 +83,29 @@ const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
 });
 
 /** Seen from in front, so the wielder's x is the screen's mirrored. */
-const cutStart = ({ x, y }: Cut): Vec3 => ({ x, y: -y, z: 0 });
+export const cutStart = ({ x, y }: Cut): Vec3 => ({ x, y: -y, z: 0 });
 
 function heldBlade(cut: Cut): BladePose {
-  const start = cutStart(cut);
-  return { blade: lerpBlade(REST_BLADE.blade, { ...start, z: STROKE_LEAN }, GUARD_OUT), handZ: REST_BLADE.handZ };
+  if (cut.x === 0 && cut.y === 0) return REST_BLADE;
+  const start = norm(cutStart(cut)), { highRad, sideRad, lowRad } = GUARD_LEAN;
+  const lean = sideRad + start.y * (start.y > 0 ? highRad - sideRad : sideRad - lowRad);
+  const blade = { x: start.x * Math.cos(lean), y: start.y * Math.cos(lean), z: Math.sin(lean) };
+  return { blade, edge: edgeToward(blade), handZ: REST_BLADE.handZ };
 }
 
 const STAB_HAND_Z = -0.3;
 
 function windupBlade(cut: Cut, k: number, from: BladePose): BladePose {
   const stab = cut.x === 0 && cut.y === 0, handZ = stab ? from.handZ + (STAB_HAND_Z - from.handZ) * k : from.handZ;
-  return { blade: lerpBlade(from.blade, { ...cutStart(cut), z: WINDUP_LEAN }, k), handZ };
+  const blade = lerpBlade(from.blade, { ...cutStart(cut), z: WINDUP_LEAN }, k);
+  return { blade, edge: edgeToward(blade), handZ };
 }
 
 /** `turn` as in strokeOf; past 1 it runs on. */
 function strokeBlade(cut: Cut, turn: number): BladePose {
   const start = cutStart(cut), a = Math.PI * turn;
   const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + STROKE_LEAN });
-  return { blade, handZ: REST_BLADE.handZ };
+  return { blade, edge: edgeLeading(blade, start), handZ: REST_BLADE.handZ };
 }
 
 /**

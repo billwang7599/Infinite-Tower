@@ -130,7 +130,7 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | Piece of gear | Drawings |
 | --- | --- |
 | on the head (a helmet) | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose); the same on every body |
-| held (a weapon) | none: the arena puts a 3D blade (`WEAPON_LOOKS`, painted with its art), or a bow built in code, at the frame's sword hand |
+| held (a weapon) | none: the arena puts a 3D blade (`WEAPON_LOOKS`, painted with its art), or a bow built in code, at the frame's sword hand; a second blade or a shield (a round board built in code) at the other |
 | rigid on the body (a pair of shoulder guards) | 6: a view each, for both shoulders, placed at each body type's landmark |
 | wrap-around top (a chest piece) | 150: 3 body types x 50 |
 | wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
@@ -141,7 +141,8 @@ old stick, the swords, the skillbook, each monster's essence (one bead, in six c
 copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left), a
 sheaf of three arrows and a training quiver (a leather tube on end with a brass band and a strap, three fletchings over
 its mouth; the three are placeholders, admin give only), and a wooden shield (oak boards in an iron rim with a boss;
-not drawn in the arena yet). The sprites draw nothing worn (the arena's 3D people wear
+in the arena a round board built in code, `holdShield` in `blade.ts`).
+The sprites draw nothing worn (the arena's 3D people wear
 it, below); the sword shows in the arena as a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the
 arena's frames are painted without it.
 The blade's faces are `SWORD`'s blade drawn to the blade's length with square pixels, its dark outline shaded instead
@@ -327,7 +328,17 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
   - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
     keyframe editor or an export to read; the swing's hand rides the sword's motion (its draw-back only turns the
-    blade at the wrist), and the free hand hangs under its shoulder as the body twists.
+    blade at the wrist), and the free hand hangs under its shoulder as the body twists, or, holding a second blade or a
+    shield, is held a little up and ahead (`OFF_CARRY`): the blade point up and out, the shield turned out.
+    A held blade is turned by its edge too, not only its line (`holdingOf` in `blade.ts`: the blade the hand's +y, the
+    edge its +x): aimed, it lies in the plane its cut sweeps through (the cut's line across the view and the way
+    ahead), toward where the cut starts and leaning ahead by how high that is (`GUARD_LEAN`), its edge toward the
+    foe (`edgeToward`); through a swing the edge leads it round that plane (`edgeLeading`); a stab's edges are level.
+    Blocking is posed by what blocks (`BLOCK`): one blade held across the body, edge out, the other hand under it (a
+    two-handed blade's too); two crossed in an X above the hands, edges out, a blade's width apart where they cross;
+    a shield raised before the chest, facing the foe, the sword kept in its guard. A change of guard, or into or out
+    of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's heft or the shield's), a near half turn going
+    over the top rather than under; a swing still takes over by its own timing (`easeArms` in `animation.ts`).
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
     as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps). Each key is reached mostly at
@@ -352,9 +363,14 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     string hand pulled back with the draw (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These
     are placeholders, like the bow (AGENTS.md's "Bows").
     In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
-    in view: posed for a fixed first-person view, the hands pulled most of the way toward spots low on the screen
-    (the sword hand right of the middle, the other left) and the blade leaned ahead and a little in, so the sword sits
-    lower and nearer the middle than the pose's own; a two-handed grip stays on the weapon. A sword swing is drawn
+    in view: posed for a fixed first-person view, the other hand pulled most of the way toward a spot low on the
+    screen left of the middle (right of it for the left hand); a two-handed grip stays on the weapon. The aimed way's
+    guard is placed from the eye (`FP_GUARD`): the sword hand toward where the cut starts (the top guard's right of
+    the crosshair under it, the sides' out low, the low ones' out at the bottom), off the line through the middle that
+    way so a little of the blade's flat shows past its edge, the blade in the cut's plane through the view and its
+    edge toward where you look; a block is the pose's own (it's built to read from the eye: the X crossed below the
+    crosshair, the shield's rim just under it); with no way aimed, or reeling, the hand is pulled toward a spot low and
+    right of the middle and the blade leaned ahead, its edge toward where you look. A sword swing is drawn
     from the eye on the same arc's timing (`FP_SWING`): the blade turns from cocked back past where the cut starts,
     through the middle of the screen on the step its hit lands, to past where it ends, the hand swinging round just
     below the middle and reaching out on the hit; a sideways cut's ends are lifted and an upright one's leaned out to

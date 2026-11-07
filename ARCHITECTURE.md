@@ -1848,14 +1848,19 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          key at once (KEY_EASE_TIME), the rest crept over the gap; swingArc, a swing's arc drawn
                          between the fight's steps (SWING_ARC); a bow carried at the side (BOW_CARRY) and drawn side-on,
                          held out clear of the body and head (BOW_DRAWN), the string hand back by the draw; LANDING,
-                         the knees giving; no Babylon: tested), motion.ts (WALK,
+                         the knees giving; each pose's blade edge and what the other hand holds (OFF_CARRY), the guard
+                         held (way, block), a block posed by what blocks (BLOCK: one blade across the body over the
+                         other hand, two crossed in an X, a shield raised); no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
                          a planted one stays put, a walk easing into a run (STRIDE.run) past STRIDE.walkSpeed;
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
                          tested), animation.ts (framePerson: the model built again when the look or what's worn
                          changes, the gait from the ground speed, the pose on the joints, both arms bent to the pose's
                          hand targets round the torso by reachArms and reachWith (reachRound), the 3D blade on grip.R
-                         or grip.L (handSide: a bow always in the left), a bow's string pulled to the off hand, the hair
+                         or grip.L (handSide: a bow always in the left, a shield always the other hand) and a second
+                         blade or a shield on the other (placeHeld); easeArms, the arms eased to the pose (a swing by
+                         its set, a change of guard or block over GUARD_SHIFT by heft, a near half turn over the top),
+                         for the body and first person alike; a bow's string pulled to the off hand, the hair
                          swung by the head's motion; with &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
@@ -1887,8 +1892,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          state); unless &player3d=0, every one of them (you, a duel's rival, Bram) a 3D person (person/)
         firstPerson.ts   Your arms in first person: firstPersonArms pulls the hands toward spots low on the screen and
                          leans the blade ahead (FP_ARMS; the pose's own, the model's frame), posed for a fixed
-                         first-person view (POSED_FOR); a sword swing is drawn from the eye (swungInView, FP_SWING:
-                         across the screen, through its middle on the hit); a bow is placed from the eye instead
+                         first-person view (POSED_FOR); the aimed way's guard is placed from the eye (guardInView,
+                         FP_GUARD: the hand toward where the cut starts, the blade in the cut's plane through the view,
+                         its edge toward where you look), a block is the pose's own; a sword swing is drawn from the
+                         eye (swungInView, FP_SWING: across the screen, through its middle on the hit); a bow is
+                         placed from the eye instead
                          (bowInView, FP_BOW: carried low, or raised with the drawn arrow along the view, the string
                          hand on the nock); holdInView eases them (a swing takes over from where they were, the arm
                          carried back after), reaches them there, fpShare of the way from the body's own by the eye's
@@ -1906,7 +1914,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          from WEAPON_LOOKS, its art painted on both faces by bladeArt, its edges in the steel's light
                          tone: the Kobolds' and every player's); bladeEdge (where it runs in the world, for the
                          trail); its tip's glint just before it goes live (cueBlade, showCue
-                         by glintOf); a flat sprite's held blade (holdBlade, placeBlade: at the
+                         by glintOf); holdingOf, a hand's turn holding a blade along its +y with its edge along +x;
+                         the 3D shield, a round board with a rim and boss before the hand (holdShield, SHIELD); a
+                         flat sprite's held blade (holdBlade, placeBlade: at the
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing); a
                          weapon with a `bow` look gets bow.ts's bow instead
         bow.ts           The 3D bow and arrow, built in code: buildBow (a curved tube of a stave along the hand's +y,
@@ -1934,7 +1944,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a stab's straight ahead),
                          strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
                          MOTIONS, by weapon kind: when the trail shows, a 3D blade held aimed and its way through a
-                         wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
+                         wind-up and a swing, from a cut at any angle, its edge too (edgeToward: the side nearest the
+                         foe; edgeLeading: leading round the cut's plane; a guard leaning ahead by GUARD_LEAN); the
+                         draw-back before it drives (DRAWBACK,
                          pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
                          Kobolds' and the players'; a bow's rest and guard); WEAPON_LOOKS, by weapon: its 3D blade
                          (size, colour, art), its hit-stop and a bow's brace and draw. No Babylon: tested
@@ -2336,6 +2348,11 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Arena camera feel, locked and not | `CAMERA_VIEWS` (first person, and the shoulder view a dodge zooms out to) and the dev-only `CAMERA_PRESETS` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person; how far from the head the eye takes them back to the body | `FP_ARMS` (`fade`) in `client/src/visuals/battle/firstPerson.ts` |
+| Where each way's guard holds the sword hand in first person | `FP_GUARD` in `client/src/visuals/battle/firstPerson.ts` |
+| How far a guard's blade leans ahead (high, level, low) | `GUARD_LEAN` in `client/src/visuals/battle/weapons.ts` |
+| The block's poses by what blocks (one blade, two, a shield); where a second blade or a shield is carried | `BLOCK`, `OFF_CARRY` in `client/src/visuals/battle/person/pose.ts` |
+| How long a change of guard, or into or out of a block, takes by heft | `GUARD_SHIFT` in `client/src/visuals/battle/person/animation.ts` |
+| The 3D shield's size and where it sits on the hand | `SHIELD` in `client/src/visuals/battle/blade.ts` |
 | A sword swing in first person: how far back it's cocked and past the end it goes, the hand's swing, the ends' lift and lean, the return to rest | `FP_SWING` in `client/src/visuals/battle/firstPerson.ts` |
 | The 3D person's swing arc: drawn back, past the end, how hard it drives into the hit, the wind-up's take-over; how quickly a pose's key is reached and the rest crept | `SWING_ARC`, `KEY_EASE_TIME` in `client/src/visuals/battle/person/pose.ts` |
 | Where the bow, the drawn arrow and both hands sit in first person, carried and drawn, and the loose's flick and kick | `FP_BOW` in `client/src/visuals/battle/firstPerson.ts` |
