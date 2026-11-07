@@ -5,7 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, bodyOf, enemy, FULL_HP, FULL_STAMINA, IDLE, input, player, run, STATUE, SWORDSMAN, armed,
+  ARENA, bodyOf, enemy, FULL_HP, FULL_STAMINA, IDLE, input, player, run, STATUE, SWORDSMAN, armed,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -143,16 +143,6 @@ describe("eating in a fight", () => {
     run(fight, USE_TIME, () => BAG);
     assert.equal(meatLeft(fight), 2);
     assert.ok(hpOf(fight) <= cut, "nothing healed");
-  });
-
-  test("a hit that stuns stops it and closes the bag, the meat kept", () => {
-    const fight = hungry(BITER, at(0, 1.5));
-    startEating(fight);
-    for (let i = 0; i < USE_TIME / FIXED_DT && hpOf(fight) === HURT_HP; i++) fight.step([BAG]);
-    assert.ok(hpOf(fight) < HURT_HP, "bitten");
-    assert.equal(me(fight).brokenOff, true);
-    run(fight, USE_TIME, () => BAG);
-    assert.equal(meatLeft(fight), 2);
   });
 
   test("nothing in the bag moves while eating", () => {

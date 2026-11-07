@@ -15,8 +15,8 @@ export interface AttackDef {
   windup: number;
   recover: number;
   damage: number;
+  /** m/s: pushes a guard that blocks it (a hit that lands does damage only). */
   knockback: number;
-  lift: number;
   /** After recovering. */
   cooldown: number;
   /** From the fight's start to the first use. */

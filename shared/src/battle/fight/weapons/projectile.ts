@@ -95,7 +95,7 @@ function strike(ctx: FightContext, o: ProjectileData, target: Entity, struck: Ve
   const dirX = o.vel.x / flat, dirZ = o.vel.z / flat;
   const hit: ActiveHitData = {
     dirX, dirZ, range: 0, minDot: 1, attack: "light", way: null, damage: o.damage,
-    knockback: def.knockbackShare * Math.hypot(o.vel.x, o.vel.y, o.vel.z), lift: 0, poiseDamage: def.poiseDamage,
+    knockback: def.knockbackShare * Math.hypot(o.vel.x, o.vel.y, o.vel.z), poiseDamage: def.poiseDamage,
     alreadyHit: new Set(),
   };
   const from = { x: struck.x - dirX, y: struck.y, z: struck.z - dirZ };

@@ -20,7 +20,7 @@ export const GREY_WOLF: Enemy = {
       pounce: {
         circleM: 4.5, circleSpeed: 3.2, cooldown: 1.2, cooldownSpread: 1.6, firstDelay: 1,
         leapFromM: 6.5, windup: 0.6, lockAt: 0.2, speed: 13, active: 0.35, range: 1, minDot: 0.5,
-        damage: 14, knockback: 6, lift: 2, recover: 0.45, missRecover: 1.1, hopSpeed: 8, hopTime: 0.3,
+        damage: 15, knockback: 6, recover: 0.45, missRecover: 1.1, hopSpeed: 8, hopTime: 0.3,
       },
     },
   },

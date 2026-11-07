@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, castNow, enemy, FULL_HP, IDLE, input, player, run, segment, skill, STATS, STATUE,
+  ARENA, BITER, castNow, enemy, FULL_HP, IDLE, input, player, run, segment, skill, STATS, STATUE, STILL_BITER,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -35,11 +35,11 @@ const hitFor = (fight: Fight, i: number) => fight.events
 const close = (actual: number, expected: number, within = 1e-9) =>
   assert.ok(Math.abs(actual - expected) < within, `${actual} vs ${expected}`);
 
-function bitten(prepare: (fight: Fight) => void): { lost: number; moved: number } {
-  const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
+function bitten(prepare: (fight: Fight) => void, block = false): { lost: number; moved: number } {
+  const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(STILL_BITER, at(0, 1.3))] });
   prepare(fight);
   const from = fight.world.require(fight.players[0]!, Body).pos.z;
-  run(fight, 0.8);
+  run(fight, 0.8, () => input({ block }));
   const me = fight.world.require(fight.players[0]!, Body).pos.z;
   return { lost: FULL_HP - fight.world.require(fight.players[0]!, Health).hp, moved: Math.abs(me - from) };
 }
@@ -268,12 +268,11 @@ describe("Self", () => {
     assert.equal(statusOn(myStatuses(fight).on, "shielded")!.amount, SELF.light.shield * D);
   });
 
-  test("Earth: you take less and aren't knocked back", () => {
-    const plain = bitten(() => {});
-    const warded = bitten((fight) => { applyStatus(myStatuses(fight).on, "warded", SELF.earth.time); });
-    close(warded.lost, plain.lost * STATUS_DEFS.warded.mods.damageTakenFactor);
-    // Only the biter's body still shoves a little.
-    assert.ok(warded.moved < plain.moved / 4);
+  test("Earth: you take less, and a blocked blow doesn't push you", () => {
+    const ward = (fight: Fight) => { applyStatus(myStatuses(fight).on, "warded", SELF.earth.time); };
+    close(bitten(ward).lost, bitten(() => {}).lost * STATUS_DEFS.warded.mods.damageTakenFactor);
+    assert.ok(bitten(() => {}, true).moved > 0.1);
+    assert.equal(bitten(ward, true).moved, 0);
   });
 
   test("Fire: your hits do more; Darkness: they heal you", () => {
@@ -352,17 +351,10 @@ describe("fused Self buffs", () => {
     close(health.hp - from, renewal.healPerSec * D, 0.1);
   });
 
-  test("Bulwark: a blow stuns you for less and doesn't knock you back", () => {
-    const stunned = (status: "bulwark" | null) => {
-      const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
-      if (status) applyStatus(myStatuses(fight).on, status, 10);
-      const health = fight.world.require(fight.players[0]!, Health);
-      for (let i = 0; i < 300 && health.hp === FULL_HP; i++) fight.step([IDLE]);
-      return health.hitstun;
-    };
-    const plain = stunned(null);
-    assert.ok(plain > 0);
-    close(stunned("bulwark"), plain * STATUS_DEFS.bulwark.mods.stunTimeFactor);
+  test("Bulwark: a blocked blow doesn't push you", () => {
+    const bulwark = (fight: Fight) => { applyStatus(myStatuses(fight).on, "bulwark", 10); };
+    assert.ok(bitten(() => {}, true).moved > 0.1);
+    assert.equal(bitten(bulwark, true).moved, 0);
   });
 
   test("Bloodrage: you deal more and take more", () => {

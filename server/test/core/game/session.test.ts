@@ -62,6 +62,13 @@ describe("settings", () => {
   });
 });
 
+describe("a save from before the stamina bar shrank", () => {
+  test("loads with its stamina cut to the bar", () => {
+    const { session } = startSession({ saved: { vitals: { hp: 10, stamina: FULL.stamina + 50 } } });
+    assert.deepEqual(session.vitals, { hp: 10, stamina: FULL.stamina });
+  });
+});
+
 describe("rest", () => {
   test("by a campfire refills HP and stamina, saves, and sends rested", () => {
     const { session, link, saves } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });

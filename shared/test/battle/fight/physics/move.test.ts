@@ -3,7 +3,7 @@ import { before, describe, test } from "node:test";
 import { Health, Player, PLAYER } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, bodyOf, duel, flatDist, flatRadius, input, player, RAM, run, STATUE,
+  ARENA, bodyOf, duel, flatDist, flatRadius, input, player, RAM, run, STATUE,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -143,7 +143,7 @@ describe("bumping into enemies", () => {
   });
 
   for (const [what, setUp] of [
-    ["knocked back (in hitstun)", (h: { hitstun: number; hp: number }) => { h.hitstun = 2; }],
+    ["staggered (in hitstun)", (h: { hitstun: number; hp: number }) => { h.hitstun = 2; }],
     ["dead", (h: { hitstun: number; hp: number }) => { h.hp = 0; }],
   ] as const) {
     test(`${what}, the player slides through the boar`, () => {
@@ -156,28 +156,4 @@ describe("bumping into enemies", () => {
       assert.ok(bodyOf(fight, me).pos.z > 1.6, `slid past the boar's middle (z ${bodyOf(fight, me).pos.z})`);
     });
   }
-});
-
-describe("knockback", () => {
-  test("a bite throws the player back and up, and they land farther away", () => {
-    const fight = duel(BITER, { x: 0, y: 0.05, z: 0 }, { x: 0, y: 0.05, z: 2.3 });
-    const [me, biter] = [fight.players[0]!, fight.enemies[0]!];
-    const lunge = BITER.attacks.lunge!;
-    const health = fight.world.require(me, Health);
-    let steps = 0;
-    while (health.hp === health.max && steps++ < 120) fight.step([input({})]);
-    assert.ok(health.hp < health.max, "bitten");
-
-    const vel = bodyOf(fight, me).vel;
-    assert.equal(vel.y, lunge.lift);
-    assert.ok(Math.abs(Math.hypot(vel.x, vel.z) - lunge.knockback) < 1e-9, "thrown back as hard as the bite says");
-    assert.ok(vel.z < 0, "away from the boar");
-
-    const before = flatDist(bodyOf(fight, me).pos, bodyOf(fight, biter).pos);
-    fight.step([input({})]);
-    assert.equal(fight.world.require(me, Player).grounded, false, "off the ground");
-    run(fight, 1.5);
-    assert.equal(fight.world.require(me, Player).grounded, true, "landed");
-    assert.ok(flatDist(bodyOf(fight, me).pos, bodyOf(fight, biter).pos) > before + 1, "farther away");
-  });
 });

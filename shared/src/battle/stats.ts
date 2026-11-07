@@ -20,7 +20,7 @@ export const AVERAGE_STAT = 10;
 export const BASE_STATS: Stats = Object.fromEntries(STAT_KEYS.map((stat) => [stat, AVERAGE_STAT])) as Stats;
 
 export const HP_PER_VITALITY = 10;
-export const STAMINA_PER_POINT = 15;
+export const STAMINA_PER_POINT = 10;
 /** Damage taken × (DEFENSE_OFFSET + 10) / (DEFENSE_OFFSET + defense), so it never reaches 0. */
 export const DEFENSE_OFFSET = 40;
 /** HP a second = vitality × health regen / this. */

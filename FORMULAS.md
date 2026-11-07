@@ -16,7 +16,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Weapon attacks](#weapon-attacks)
 - [Bows (placeholder)](#bows-placeholder)
 - [Body blows](#body-blows)
-- [Knockback](#knockback)
+- [Hits and pushback](#hits-and-pushback)
 - [Blocks](#blocks)
 - [Swing parries](#swing-parries)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
@@ -40,15 +40,15 @@ an enemy's are in its file in `server/src/core/enemies/`. Every one is ×1 at 10
 |---|---|---|---|
 | strength | 10 | physical damage × √(strength / 10); carry limit 60 × (strength / 10)^¼ | `physicalDamage`, `carryLimit` |
 | agility | 10 | walking and dodging × (agility / 10)^¼, in the arena and on the overworld | `moveSpeed` |
-| stamina | 10 | the stamina bar = 15 × stamina | `staminaMaxOf` |
+| stamina | 10 | the stamina bar = 10 × stamina | `staminaMaxOf` |
 | skillpower | 10 | skill damage × √(skillpower / 10) | `skillDamage` |
 | vitality | 10 | the most HP = 10 × vitality | `maxHpOf` |
 | defense | 10 | physical damage taken × 50 / (40 + defense) | `physicalTakenFactor` |
 | special defense | 10 | skill damage taken × 50 / (40 + special defense) | `skillTakenFactor` |
-| toughness (hidden) | 10 | a stun or stagger × 10 / toughness | `stunTime` |
+| toughness (hidden) | 10 | an enemy's stun or stagger × 10 / toughness (nothing stuns a player it would shorten) | `stunTime` |
 | stamina recovery (hidden) | 10 | stamina refill × stamina recovery / 10 | `staminaRegenPerSec` |
 | health regen (hidden) | 10 | HP a second = vitality × health regen / 200 | `hpRegenPerSec` |
-| steadiness (hidden) | 10 | a player's knockback × (10 / strength)^¼ × (10 / steadiness)^½, kept in 0.25-2 (`KNOCKBACK_TAKEN`) | `knockbackTakenFactor` |
+| steadiness (hidden) | 10 | a player's pushback × (10 / strength)^¼ × (10 / steadiness)^½, kept in 0.25-2 (`KNOCKBACK_TAKEN`) | `knockbackTakenFactor` |
 
 Enemies have every stat at 10 but skillpower 0 (the Goblin Warlock's 10) and health regen 0. An enemy's HP is its own
 `maxHp`, not its vitality (enemy realms come later). Only an enemy that casts (the warlock) has a stamina bar.
@@ -73,7 +73,7 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
   the stats with the most first (`coreAfterDeath`).
 
 Example: Early Yan, 90 in: a boar's essence (20) breaks through to Middle Yan with 10 in. Every shown stat is 11, the
-hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more than before and stamina 15 more.
+hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, HP 10 more than before and stamina 10 more.
 
 ## Inscriptions
 
@@ -106,7 +106,7 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
 - **Blessed** while faith with a god ≥ 100, for each god that has a blessing; no cap.
 - **Faith:** + a quest step's `reward.faith` (Kaelith 20 from each of three quests, Haldis 30, Brannoc 30), or + 25
   from the admin panel (`FAITH_CHEAT`, `server/src/core/game/cheats.ts`). Never lost yet.
-- **Kaelith's Edge:** damage dealt × 1.1 (a sword's 9 does 9.9). **Brannoc's Anvil:** damage taken × 0.9, knockback
+- **Kaelith's Edge:** damage dealt × 1.1 (a sword's 9 does 9.9). **Brannoc's Anvil:** damage taken × 0.9, pushback
   × 0.5. **Haldis's Hearth:** stamina refill × 1.2.
 
 ## Weapon attacks
@@ -134,7 +134,7 @@ extra, 5 twice it, and no strength takes it under 1. Below a weapon's `minStreng
   chant, the bag, a hit taken or being blocked perfectly.
 - **Damage:** a swing the weapon's damage × (1 + 0.25 × momentum, ×2 at most), a heavy ×2 more; a stab × 1.25 ×
   (1 + 0.5 × momentum) and spends that hand's. **Stamina:** a light 13, a heavy 21, a stab 16 (× felt heft).
-  **Poise:** 12, 24, 18. **Knockback** on an enemy: 4, 8, 6 m/s (Knockback, below).
+  **Poise:** 12, 24, 18. **Knockback**, pushing only a guard it's blocked by: 4, 8, 6 m/s (Hits and pushback, below).
 - **Reach** (`wayShape`): (arm reach + blade) × 1.15 for every swing (2.19 m with the Basic Sword), its arc by line:
   160° across, 110° on a diagonal, 60° down from the top; × 1.75 for a stab (16°), to the target's surface; arcs by
   angle to its centre (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`,
@@ -204,8 +204,8 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
 - **Aim:** with no lock-on, straight at the spot under the crosshair (`aimAt`), no arc; locked on, in the low arc at
   that speed that meets the target's middle under the drag and gravity (`launchAt`: the pitch stepped up by 0.5° from
   the straight line until the flight reaches the middle's height there, then halved 50 times), straight at it if it
-  can't. Poise 10 on an enemy, knockback 0.07 × its speed (Knockback); blocked like a light (below). Stuck, it lies
-  `stuckTime` 2 s.
+  can't. Poise 10 on an enemy, knockback 0.07 × its speed (pushing a guard: Hits and pushback); blocked like a light
+  (below). Stuck, it lies `stuckTime` 2 s.
 
 Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
 60 × (0.0625 + 0.5) / 3 = 11.25 m/s, and loosed level from chest height lands 3.3 m off; held 1 s or more, 12 at
@@ -215,53 +215,42 @@ Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) d
 ## Body blows
 
 An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a
-player who isn't blocking, it knocks them back at its `knockback` m/s × their knockback taken (Knockback, below;
-plus `lift` up; not while Warded) and takes control away (hitstun) for (`HITSTUN_TIME` 0.25 +
-`HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness (`combat.ts`). A weapon's hit on a player only hurts: no knockback, no hitstun.
+player who isn't blocking, it only hurts, as every hit that lands (Hits and pushback, below); its `knockback` pushes
+only a guard that blocks it.
 
-| Blow | Damage | Knockback (m/s) | Hitstun (s) |
-|---|---|---|---|
-| Boar bite (lunge) | 16 | 8 | 0.41 |
-| Boar charge | 30 | 15 | 0.55 |
-| Wolf bite (pounce) | 14 | 6 | 0.37 |
-| Lurker slam | 38 | 12 | 0.49 |
-| Lurker tail sweep | 20 | 10 | 0.45 |
-| Warlock's staff (lunge) | 5 | 3 | 0.31 |
+| Blow | Damage | Knockback (m/s) |
+|---|---|---|
+| Boar bite (lunge) | 16 | 8 |
+| Boar charge | 30 | 15 |
+| Wolf bite (pounce) | 15 | 6 |
+| Lurker slam | 38 | 12 |
+| Lurker tail sweep | 20 | 10 |
+| Warlock's staff (lunge) | 5 | 3 |
 
-## Knockback
+## Hits and pushback
 
-`knock` and `knockbackOf` in `fight/combat.ts`. A knock sets the body moving at its speed (m/s), half away from the
-attacker and half along the blow; the floor and the wall stop it as they stop any move. A knocked player slides to a
-stop at 24 m/s² (`PLAYER.accel` × 0.4) through their hitstun (above). A knocked enemy is slowed by its own
-state's acceleration (25 m/s² walking or winding up, 30 staggered, 60 stunned, 15 dead; quicker in a lunge or a
-step into its swing), so it slides about v² / 50 m walking, and it isn't stunned: it goes on with what it was
-doing, so no chain of hits can lock it, and none lifts it.
+`land` and `knockbackOf` in `fight/combat.ts`; the push in `blocked` (`fight/weapons/defend.ts`).
 
-- **A player's hits on an enemy:** `knockbackSpeed` in `HYBRID`, a light 4 m/s, a stab 6, a heavy 8, whatever the
-  blade and the strength (heft doesn't count: a greatsword's longer reach with a bigger push kept a Kobold out of
-  reach of its own swings); an arrow `knockbackShare` 0.07 × its speed as it strikes; Air 12 × its factor (Skills).
-  Blocked (held) × `HYBRID.block.pushbackFactor` 0.6 × the guard's push (Blocks, below); perfectly, none.
-- **× the enemy's `knockbackFactor`** (1 if not given; Enemies, below) and its statuses' knockback factor (Warded
-  and Bulwark 0, Brannoc's Anvil 0.5); none while it's armored, committed to a blow (the boar's charge, the wolf's
-  crouch and leap, the lurker's rise, slam, coil and sweep).
-- **A player** takes × `knockbackTakenFactor` (strength and steadiness, Stats above: 1 at the start, 0.84 at
-  strength 20, 0.63 at steadiness 25, never under 0.25) × its statuses', from every push: body blows, Air and blocks.
-- A weapon or an arrow pushes no player it lands on, in a duel or from an enemy; only body blows and Air do, and any
-  hit into a held block (Blocks, below).
-
-How far it slides, walking (in 1/60 s steps):
-
-| Hit | m/s | Kobold, wolf, warlock, Bram (1) | Boar (0.7) | Bog lurker (0.3) |
-|---|---|---|---|---|
-| Light | 4 | 0.29 m | 0.13 m | 0.02 m |
-| Stab | 6 | 0.67 m | 0.32 m | 0.05 m |
-| Heavy | 8 | 1.2 m | 0.58 m | 0.1 m |
-| Arrow, full draw (~55 m/s) | ~3.9 | 0.3 m | 0.15 m | 0.02 m |
-
-Example: a sword light lands as the blade goes live and carries its swinger on at 4 m/s for its 0.13 s (0.53 m), so a
-Kobold slid 0.29 m ends 0.24 m nearer than before (0.53 m with no knockback); a heavy (0.6 m of step) leaves it 0.6 m
-further off. A Kobold blocking the heavy is pushed at 0.6 × 8 = 4.8 m/s, about 0.45 m. A training dummy (0) never
-moves.
+- **A hit that lands does damage only** (combat v2, the user: "Hits do damage only"): a weapon, an arrow or a body
+  blow on anyone with the guard down hurts, and nothing more: no knockback, no lift, no stun. A player then has
+  `hurtInvuln` 0.6 s and their momentum chain breaks. An enemy staggers only when its poise breaks (Poise, below),
+  never from one hit. Air is a skill, and still blows its target away (Skills).
+- **Only a block pushes:** a hit into a held guard sets the blocker moving at the hit's knockback × the target's
+  resistance × `HYBRID.block.pushbackFactor` 0.6 × the guard's `pushFactor` (shield 0.6, one blade 1, two blades 1.2),
+  half away from the attacker and half along the blow; the floor and the wall stop it as they stop any move. One
+  rule for players and enemies. It's movement only: it takes no control away, so a blocker sliding back, or pinned to
+  the wall, can turn, step, keep blocking, attack or dodge on the very next step. Blocked perfectly, no push.
+- **The hit's knockback:** `knockbackSpeed` in `HYBRID`, a light 4 m/s, a stab 6, a heavy 8, whatever the blade and
+  the strength; an arrow `knockbackShare` 0.07 × its speed as it strikes; a body blow its own (above); Air 12 × its
+  factor (Skills).
+- **Resistance:** an enemy's `knockbackFactor` (1 if not given; Enemies, below), none while it's armored, committed to
+  a blow; a player's `knockbackTakenFactor` (strength and steadiness, Stats above: 1 at the start, 0.84 at strength
+  20, 0.63 at steadiness 25, never under 0.25); either × its statuses' knockback factor (Warded and Bulwark 0,
+  Brannoc's Anvil 0.5).
+- **The slide:** a blocking player slows at `PLAYER.accel` 60 m/s², so slides v² / 120 (a sword light 5 cm, a heavy
+  19 cm); an enemy at its state's acceleration (25 m/s² walking), so a Kobold blocking slides about 0.1 m from a
+  light, 0.23 m from a stab and 0.42 m from a heavy (in 1/60 s steps). Only the wielders block (the Kobolds, Bram), so
+  the boar's, wolf's and lurker's factors now only meet Air.
 
 ## Blocks
 
@@ -271,17 +260,15 @@ moves.
   stamina (a heavy × `heavyStaminaFactor` 2); a body blow costs its damage and pushes you back at 60% of its
   knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime` 0.8 s.
   Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
-  costs it the hit's poise instead (below), and pushes it back at 60% of the hit's knockback.
+  costs it the hit's poise instead (below), and pushes it back by the same rule as a player.
 - **By guard** (`GUARDS` in `hybrid.ts`, the hands' guard from `guardOf` in `kinds.ts`): a shield in either hand
   blocks for the hands; else a melee weapon in each is two blades, else one weapon is one blade. The held block's
   chip, its stamina and its push go by it: shield 8% chip, stamina × 0.6, push × 0.6, covering 90° either side;
   one blade the numbers above; two blades 32% chip, stamina × 1.35, push × 1.2. The perfect window and raise time
   take the shield's own length and heft (the Wooden shield: 1.1, so 0.2 s, and heft 1, up in 0.1 s), or the
   swinging blade's.
-- **Pushed back:** any hit into a held block pushes the blocker at `knockbackOf` (the hit's knockback × a player's
-  `knockbackTakenFactor`, or an enemy's `knockbackFactor`, × statuses) × 0.6 × the guard's push: a sword light 2.4
-  m/s with one blade, a heavy 4.8, a stab 3.6. A blocking player slows at `PLAYER.accel` 60 m/s², so slides v² / 120
-  (light 5 cm, heavy 19 cm); an enemy at its state's acceleration.
+- **Pushed back** (Hits and pushback, above): a sword light 2.4 m/s with one blade, a heavy 4.8, a stab 3.6; movement
+  only, never a lock.
 - **Backed against the wall:** the wall stopping all of that slide, the chip goes × `pinnedChipFactor` 2; part of it,
   × 1 + (2 − 1) × the share stopped (`pinnedShare` in `defend.ts`, swept by the physics). Players and enemies alike.
   Body blows chip nothing, so nothing more.
@@ -293,7 +280,8 @@ moves.
   `perfectAtLengthM` 1.1 (`perfectBlockTime`): sword 0.2, longsword 0.25, greatsword 0.35 s. A weapon landing in it
   (even with block let go again) is stopped with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina
   (if it has a bar) and is staggered `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s
-  before. Body blows can't be blocked perfectly.
+  (30 steps) before, so mashing opens none, while a reader can still press for each swing of a chain. Body blows can't
+  be blocked perfectly.
 - **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
   pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
   the next 0.5 s's) and ends the chain. Then the blade recovers `feint.recoverTime` 0.38 s × felt heft (the Basic
@@ -336,7 +324,7 @@ partly parrying a heavy: 0.5 × 0.5 = 0.25 s. A sword light fully parrying a Kob
   or already staggered.
 - Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s × 10 / toughness
   (`elements.lightning`).
-- Enemies have no hurt invulnerability, and a hit doesn't stun them; it knocks them back (Knockback, above).
+- Enemies have no hurt invulnerability, and a hit neither stuns nor moves them (Hits and pushback, above).
 - Any stun or stagger (those above, and a perfect block's or a parry's recoil) ends the attack under way (`stun` in
   `fight/behaviors/common.ts`): a Kobold's swing, the rest of its chain and its quick answer are dropped, and every
   attack waits its whole `cooldown` once the stun is over (the stun's time + `cooldown`; the wolf's, which counts only
@@ -351,26 +339,27 @@ next blade is live 3.03 s after the block.
 
 `PLAYER` in `shared/src/battle/player.ts`; `combat.ts`.
 
-- **Hitstun** (no control): a body blow (0.25 + 0.02 × knockback) × 10 / toughness; blocked perfectly or with the
-  guard broken, the stagger above. Toughness shortens only the body blow's: the counterplay's openings stay as they are.
-  Weapon hits and skills give none.
+- **Hitstun** (no control): only the counterplay's staggers, earned by the other side: the guard broken (0.8 s),
+  blocked perfectly (0.4 s), a parry's recoil or a clash. No hit gives any (Hits and pushback), nor do skills; so a
+  player's toughness has nothing to shorten for now.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
 - **Dodge i-frames:** from `dodge.iframeStart` 0.05 to `iframeEnd` 0.25 s of the 0.42 s dodge, counted in steps from
   the one it starts on (steps 3 to 14), weapon and body hits miss. Another dodge can't start until `dodge.cooldown`
   0.25 s (15 steps) after one ends.
 - Neither stops a skill: Bolts, Beams, Novas, clouds and burning hurt through them, and through a block.
-- **What breaks off a chant**, a cast's wind-up, writing a page or the bag: any hitstun (losing the chant's words), or
-  a dodge (keeping them). An enemy's chant breaks when it's stunned, staggered or killed (`cantCast` in
-  `fight/skills/skilled.ts`). A weapon hit doesn't break a chant.
+- **What breaks off a chant**, a cast's wind-up, writing a page or the bag: a dodge (keeping the words), or hitstun
+  (losing them). A hit doesn't: it only hurts (it still stops eating). An enemy's chant breaks when it's stunned,
+  staggered or killed (`cantCast` in `fight/skills/skilled.ts`).
 
 ## Stamina
 
 `PLAYER` and the player's controller (`fight/player/controller.ts`).
 
-- The bar is 15 × the stamina stat (150). It refills at `staminaRegenPerSec` 45 × stamina recovery / 10 a second
-  × the statuses' `staminaRegenFactor` (1.5 while Charged, 1.2 with Haldis's blessing), from `staminaRegenDelay`
-  0.6 s after an action ends: not while attacking, dodging, casting, blocking or staggered, but while standing,
-  walking, chanting, writing or in the bag. Empty to full: 0.6 + 150 / 45 = 3.9 s. It doesn't refill on the overworld.
+- The bar is 10 × the stamina stat (100; combat v2 costs everything against 100). It refills at
+  `staminaRegenPerSec` 45 × stamina recovery / 10 a second × the statuses' `staminaRegenFactor` (1.5 while Charged,
+  1.2 with Haldis's blessing), from `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging,
+  casting, blocking or staggered, but while standing, walking, chanting, writing or in the bag. Empty to full: 0.6 +
+  100 / 45 = 2.8 s. It doesn't refill on the overworld. A save from when the bar was 150 loads cut to the bar.
 - Any stamina above 0 starts an attack or a dodge; its cost may take the bar down to 0. A skill needs its whole cost
   to start, and pays it on release.
 
@@ -378,13 +367,13 @@ next blade is live 3.03 s after the block.
 |---|---|---|
 | Light / heavy / stab | 13 / 21 / 16 × felt heft: Basic Sword 13 / 21 / 16, longsword 15.5 / 25 / 19, greatsword 21.1 / 34 / 25.9 | `HYBRID`, `strikeCost` |
 | Holding a block | 5 a second | `HYBRID.block.holdStaminaPerSec` |
-| A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
+| A blocked hit | its damage (a heavy × 2) × the guard's stamina factor (shield 0.6, two blades 1.35); a perfect block nothing | `HYBRID.block.heavyStaminaFactor`, `GUARDS` |
 | Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |
 | Feinting a heavy | 10 | `HYBRID.feint.cost` |
 | Dodge | 30; heavy × 1.3 = 39; overloaded can't; Hasted × 0.7 = 21 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 
-The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds up a cast).
+The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds up a cast).
 
 ## Movement
 
@@ -458,13 +447,13 @@ Forms and modifiers:
   attacks' wind-ups ÷ 1.5 while it lasts.
 - **Delay:** the hand-off to the next segment waits 1 s per word.
 - **Self:** Fire, Empowered 8 s (deals × 1.2); Water, heals 0.3 D and clears harmful statuses; Earth, Warded 6 s
-  (takes × 0.7, no knockback); Air, Hasted 5 s (moves × 1.3, dodges × 0.7); Lightning, Charged 5 s (stamina refills
+  (takes × 0.7, no pushback); Air, Hasted 5 s (moves × 1.3, dodges × 0.7); Lightning, Charged 5 s (stamina refills
   × 1.5); Light, a shield of 1 D for 6 s; Darkness, Siphoning 8 s (heals 10% of the damage you deal). Extend × 2 the
   time, Amplify × 1.5 the heal and shield.
 - **Fused Self** (both elements in one Self stage, on top of each one's own): Fire + Air, Frenzy 10 s (stacks to 3:
   each stack deals × 1.1 and attacks cost × 0.85); Water + Light, Renewal 8 s (heals 0.2 D a second); Earth +
-  Lightning, Bulwark 6 s (stuns × 0.5, no knockback); Darkness + Fire, Bloodrage 8 s (deals × 1.35, takes × 1.25).
-  Extend × 2 the time, Amplify × 1.5 Renewal's heal.
+  Lightning, Bulwark 6 s (stuns × 0.5, though nothing stuns a player it would shorten; no pushback); Darkness + Fire,
+  Bloodrage 8 s (deals × 1.35, takes × 1.25). Extend × 2 the time, Amplify × 1.5 Renewal's heal.
 
 **Statuses** (`STATUS_DEFS` in `shared/src/battle/statuses.ts`) change stats by factors that multiply, once per
 stack and across statuses (lifesteal adds). Put on again, a status keeps the longer of its time left and the new
@@ -502,8 +491,8 @@ Each in `server/src/core/enemies/<id>.ts`.
 | HP | 160 | 70 | 200 | 160 | 160 | 40 | 60 |
 | Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
 | Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
-| Knockback taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 14 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
+| Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 |
+| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -558,7 +547,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 - **Boar meat:** + 35% of the most HP (its `consumable`'s `healShare`; 35 at the start), once its `useTime` (1 s) is
   up, on the overworld or in a fight; refused at full HP. Bread + 20% (20), a health potion + 50% (50), the same way.
-- **Stamina tonic:** stamina to full (`staminaShare` 1; 150 at the start), after 1 s; refused at full stamina, not at
+- **Stamina tonic:** stamina to full (`staminaShare` 1; 100 at the start), after 1 s; refused at full stamina, not at
   full HP.
 - **HP regen:** vitality × health regen / 200 HP a second (0.5 at the start: empty to full in 200 s), on the
   overworld, in fights and in the arena after a win; in a fight, not for 5 s after any damage (`HP_REGEN_PAUSE_TIME`).

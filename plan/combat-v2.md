@@ -251,3 +251,5 @@ These override the spec above where they differ.
 - #322's felt-heft numbers were rescaled with the Basic Sword at 1: a feint recovers 0.38 s × felt heft (was 0.3 ×
   the old 1.3, so the Basic Sword's stays 0.38 s), and a whiff adds 0.2 s × felt heft (0.2 s with the Basic Sword).
   A whiff still holds the whole body (no dodge, block, switch or other hand) until it ends, as #322 has it.
+- Decisions 1 and 2 (#326) pin the open question on stamina: the bar is 100 at the start (10 a point), and a save
+  with more loads cut to it. FORMULAS.md, "Hits and pushback", has the rules.

@@ -42,6 +42,10 @@ test("HP comes from vitality, and the stamina bar from stamina", () => {
   assert.equal(staminaMaxOf({ ...BASE_STATS, stamina: 25 }), 25 * STAMINA_PER_POINT);
 });
 
+test("the stamina bar is 100 at the start (combat v2: everything is costed against 100)", () => {
+  assert.equal(staminaMaxOf(BASE_STATS), 100);
+});
+
 test("strength and skillpower scale damage by their square root", () => {
   close(physicalDamage(9, { ...BASE_STATS, strength: times(4) }), 18);
   close(skillDamage(10, { ...BASE_STATS, skillpower: times(4) }), 20);

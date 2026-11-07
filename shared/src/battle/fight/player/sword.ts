@@ -1,5 +1,5 @@
 import type { Entity, World } from "../../../core/ecs.js";
-import { FIXED_DT } from "../../../core/time.js";
+import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { shotOf } from "../../../skills/effects.js";
 import {
   CHAIN, chainKind, guardRaiseTime, HYBRID, lastFeintStep, perfectBlockTime, MOMENTUM, momentumDamage, strikeCost,
@@ -49,15 +49,14 @@ export function readSword(t: SwordTurn): void {
   const blockPressed = input.block && !player.last.block;
   const feinted = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
+  player.sinceBlockPress += dt;
   if (blockPressed) {
     const strength = t.world.require(t.e, FighterStats).strength;
-    player.perfectBlockLeft = guard && !feinted && player.sinceBlockPress >= HYBRID.block.remashTime
+    const rested = toSteps(player.sinceBlockPress) >= toSteps(HYBRID.block.remashTime);
+    player.perfectBlockLeft = guard && !feinted && rested
       ? guardRaiseTime(guard, strength) + perfectBlockTime(guard) : 0;
     player.sinceBlockPress = 0;
-  } else {
-    player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
-    player.sinceBlockPress += dt;
-  }
+  } else player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
   if (wielder.comboTime > 0) {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);

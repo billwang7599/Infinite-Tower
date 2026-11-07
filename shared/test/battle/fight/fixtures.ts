@@ -30,7 +30,7 @@ export const STEPPER: EnemyDef = {
 
 const lunge = (over: Partial<LungeDef>): LungeDef => ({
   triggerDist: 2.8, range: 2.6, minDot: 0.35, windup: 0.3, active: 0.18, recover: 0.5, speed: 6,
-  damage: 10, knockback: 8, lift: 3, cooldown: 99, firstDelay: 0, ...over,
+  damage: 10, knockback: 8, cooldown: 99, firstDelay: 0, ...over,
 });
 
 /** Rushes forward for a second when someone is close in front; its hit never reaches anyone, only its body does. */
@@ -39,8 +39,11 @@ export const RAM: EnemyDef = {
   attacks: { lunge: lunge({ triggerDist: 3, range: -1, minDot: 1, windup: 0.1, active: 1, speed: 4, damage: 0 }) },
 };
 
-/** Stands still and bites what comes close in front: damage, knockback and lift. */
+/** Stands still and bites what comes close in front. */
 export const BITER: EnemyDef = { ...ENEMY_BASE, turnRate: 3, attacks: { lunge: lunge({}) } };
+
+/** Bites without lunging, so its body never shoves anyone. */
+export const STILL_BITER: EnemyDef = { ...BITER, attacks: { lunge: lunge({ speed: 0 }) } };
 
 /** Like the wild boar: walks up, lunges up close, charges from afar. */
 export const BOAR: EnemyDef = {
@@ -49,14 +52,14 @@ export const BOAR: EnemyDef = {
     lunge: lunge({ triggerDist: 2.8, windup: 0.65, recover: 0.75, damage: 16, cooldown: 0.6 }),
     charge: {
       minDist: 5, maxDist: 22, range: 1.9, minDot: 0.2, windup: 1.1, lockAt: 0.3, speed: 17, maxChargeTime: 1.6,
-      recover: 0.9, stunTime: 2.2, damage: 30, knockback: 15, lift: 6, cooldown: 4.5, firstDelay: 2,
+      recover: 0.9, stunTime: 2.2, damage: 30, knockback: 15, cooldown: 4.5, firstDelay: 2,
     },
   },
 };
 
 export const pounce = (over: Partial<PounceDef>): PounceDef => ({
   circleM: 4, circleSpeed: 3, leapFromM: 5.5, windup: 0.5, lockAt: 0.2, speed: 12, active: 0.35, range: 1.1,
-  minDot: 0.5, recover: 0.5, missRecover: 1, hopSpeed: 8, hopTime: 0.3, damage: 12, knockback: 5, lift: 2,
+  minDot: 0.5, recover: 0.5, missRecover: 1, hopSpeed: 8, hopTime: 0.3, damage: 12, knockback: 5,
   cooldown: 1.5, cooldownSpread: 1, firstDelay: 1, ...over,
 });
 
@@ -67,9 +70,9 @@ export const WOLF: EnemyDef = {
 
 export const slam = (over: Partial<SlamDef>): SlamDef => ({
   triggerDist: 3, range: 2.6, minDot: 0.5, windup: 1, lockAt: 0.3, active: 0.15, recover: 1.2, damage: 40,
-  knockback: 10, lift: 3, cooldown: 0.5, firstDelay: 0.5,
+  knockback: 10, cooldown: 0.5, firstDelay: 0.5,
   sweep: {
-    range: 2.6, minDot: -1, belowDot: 0.3, windup: 0.6, active: 0.2, recover: 0.8, damage: 15, knockback: 8, lift: 2,
+    range: 2.6, minDot: -1, belowDot: 0.3, windup: 0.6, active: 0.2, recover: 0.8, damage: 15, knockback: 8,
   },
   ...over,
 });

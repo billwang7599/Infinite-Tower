@@ -20,10 +20,9 @@ export const BOG_LURKER: Enemy = {
     attacks: {
       slam: {
         triggerDist: 3, range: 2.6, minDot: 0.5, windup: 1.3, lockAt: 0.35, active: 0.15, recover: 1.5,
-        damage: 38, knockback: 12, lift: 4, cooldown: 0.8, firstDelay: 1.5,
+        damage: 38, knockback: 12, cooldown: 0.8, firstDelay: 1.5,
         sweep: {
           range: 2.8, minDot: -1, belowDot: 0.3, windup: 0.75, active: 0.2, recover: 1, damage: 20, knockback: 10,
-          lift: 2,
         },
       },
     },

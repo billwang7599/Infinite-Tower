@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, castNow, dumpState, enemy, IDLE, input, player, run, segment, skill, STATUE, SWORDSMAN,
+  ARENA, castNow, dumpState, enemy, IDLE, input, player, run, segment, skill, STATUE, SWORDSMAN,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -118,20 +118,6 @@ describe("casting", () => {
     let steps = 0;
     while (player.action === "attack" && steps++ < 120) fight.step([IDLE]);
     assert.equal(player.action, "cast");
-  });
-
-  test("a hit that stuns during the wind-up interrupts it at no cost", () => {
-    const slow = skill(segment("bolt", ["fire", "earth", "lightning"]));
-    const fight = new Fight({
-      arena: ARENA, players: [player(at(0, -1), onPage(slow))], enemies: [enemy(BITER, at(0, 1.5))],
-    });
-    const stamina = fight.world.require(me(fight), Stamina);
-    const before = stamina.value;
-    fight.step([input({ cast: slow })]);
-    run(fight, releaseTime(slow) + 0.2);
-    assert.ok(fight.world.require(me(fight), Health).hp < 100, "bitten");
-    assert.equal(stamina.value, before);
-    assert.equal(shots(fight).length, 0);
   });
 
   test("a sword hit during the wind-up only hurts: the cast still goes off", () => {
