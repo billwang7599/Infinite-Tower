@@ -102,7 +102,7 @@ overhead, 16° stab), so a wide across-swing trades precision for coverage.
 **Timing.** Each attack is wind-up (readable) → live blade (~0.1 s) → recovery (~0.08 s). Wind-up depends on how the
 swing follows the last one: an opening swing or one after a stab is slowest, a reverse swing is fastest, a
 perpendicular change slowest of the chained options. Weight scales every timing by how heavy the wielder feels the
-weapon: feltWeight = (weight / the Basic Sword's) × 10 / strength, one linear rule for every weapon, so strength
+weapon: feltWeight = (weight / the Basic Sword's) × √(10 / strength), one rule for every weapon, so strength
 lightens a light weapon as much as a heavy one; the floor below is what keeps anything from going superhuman.
 
 **The hard floor — the reactability guarantee.** After all scaling, every wind-up passes through one clamp:
@@ -237,8 +237,9 @@ These override the spec above where they differ.
    greatsword 4.86; the old stick halved instead, to 0.385, and its damage 5 to 3: "half the weight of the stick. it
    shouldnt be doing that much damage either"). Felt = (weight / the Basic Sword's) × 10 / strength, one linear rule
    for every weapon and guard, light ones included (it replaced felt = weight under 1 and max(1, 1 + (weight − 1) ×
-   10 / strength) over it), so the Basic Sword feels 1.0 at strength 10, 2.0 at 5 and 0.5 at 20. Wherever weight
-   sets a time it's the felt weight. A light weapon's low weight lowers its wind-up, down to the floor.
+   10 / strength) over it), so the Basic Sword feels 1.0 at strength 10, 2.0 at 5 and 0.5 at 20; later strength's
+   part became × √(10 / strength), as damage's, so 1.41 at 5 and 0.71 at 20 (the weight's stays linear).
+   Wherever weight sets a time it's the felt weight. A light weapon's low weight lowers its wind-up, down to the floor.
 5. Every final wind-up = max(0.40 s, computed). Raise the base times and keep the spread, don't flatten it to the
    floor. Basic Sword at strength 10: reverse 0.40, other 0.48, perpendicular 0.60, opening/after a stab 0.56; heavy
    opening stays ~0.92 (#317 feel); stab 0.45. Live 0.13 s, recovery 0.10 s (today's post-#317 sword values).
@@ -253,9 +254,9 @@ These override the spec above where they differ.
    through the same math as any strength, no table of its own: felt heft (so every time and cost), damage (√2), the
    guard's raise and a parry's weight. A block's stamina goes × 10 / that strength for every guard, so a two-handed
    block costs half and a stronger fighter blocks more cheaply; chip stays the guard's. Enemies alike, but the Kobolds
-   stay one-handed ("i want the kobalts to stay one handed"). With felt heft linear in 1 / strength, two hands halve
-   every weapon's, the Basic Sword's too (0.5 at strength 10, its lights at the 0.4 s floor); kept at 2× after that
-   rule, not retuned.
+   stay one-handed ("i want the kobalts to stay one handed"). With felt heft in 1 / √strength, two hands put every
+   weapon's × 1 / √2, the Basic Sword's too (0.71 at strength 10, its opening light at the 0.4 s floor); kept at 2×
+   after that rule, not retuned.
 
 ## Notes from building Phase 1
 

@@ -37,17 +37,17 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Basic Sword is the measure: felt 1 at average strength, twice that at half of it, half at twice", () => {
+  test("the Basic Sword is the measure: felt 1 at average strength, 2 at a quarter of it, half at 4 times", () => {
     assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT), 1);
-    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT / 2), 2);
-    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT * 2), 0.5);
+    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT / 4), 2);
+    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT * 4), 0.5);
   });
 
-  test("one linear rule for every weapon and guard: heft over the Basic Sword's, over strength's share of 10", () => {
+  test("one rule for every weapon and guard: heft over the Basic Sword's, × √(10 / strength)", () => {
     const guards = [...Object.values(WEAPONS), ITEMS["wooden-shield"].shield];
     for (const guard of guards) {
       for (const strength of [1, AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
-        const want = (guard.heft / WEAPONS.sword.heft) * (AVERAGE_STAT / strength);
+        const want = (guard.heft / WEAPONS.sword.heft) * Math.sqrt(AVERAGE_STAT / strength);
         assert.ok(Math.abs(feltHeft(guard, strength) - want) < 1e-9, `${guard.heft} ${strength}`);
       }
     }
