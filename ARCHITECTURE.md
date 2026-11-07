@@ -136,18 +136,24 @@ main.ts
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
   only while their layer is on top (the chant's, and the arena's bag's, let through only the dodge and the walk keys,
   for the dodge's way; the arena's bag takes its R and Enter from the overworld's keys, first, then the arena's);
-  the arena camera reads the fight's last poll. Actions also owns the mouse: the pointer may lock while the arena is
-  on top (`setLayers`, with Auto mouse lock); in the overworld it counts on the canvas as it is, captured only while
-  a drag turns the camera (`lockWhileHeld`, below). Both cameras read its movement each frame with
-  `actions.lookDelta()`: only a drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held,
-  counts, and the poll's `dragging` says one is turning it (the arena's pan). While you aim (`AIMING`), the arena sets
-  `setFreeLook`, and every move counts with no button and no flicks. A drag past `DRAG.startPx` where the pointer
-  isn't captured already (the overworld) asks `Mouse.lockWhileHeld` to lock it, with raw movement where the browser
-  has it, until the drag button comes up; refused, the drag goes on with the pointer free. The first move after that
-  lock is dropped (a browser may report its jump into the lock there), and Esc or leaving the tab ends the drag. A
-  drag button that's another action's too (the right one: the arena's heavy attack, the overworld's item turn) does
-  that action as it's let go, and only if it never dragged that far; no mode sees `Mouse`. Mouse movement in the
-  arena is also read as flicks there: a quick move one of 8 ways (`FLICK`, scaled by the flick sensitivity) comes in
+  the arena camera reads the fight's last poll. Actions also owns the mouse: the pointer is held captured (pointer
+  lock) while the overworld or the arena is on top (`PLAYING`) and no panel worked with the pointer is open over it
+  (`setLayers`'s `mouseFree`, the character panel's), taken by Auto mouse lock as that starts or by a press on the
+  canvas; every screen, the bags, the chant and the dialogs over it let it go. The overworld's lock asks for raw
+  movement where the browser has it, the arena's for the OS's (`RAW_MOVEMENT`). A lock the browser lets go while
+  still wanted, with the page in focus, is the player's Esc, whose key the browser keeps: it fires Esc's action
+  (Settings' `menu`), and an Esc key coming just after (`ESC_ECHO_MS`) is dropped. `actions.pointer` tells the UI
+  whether it's captured (the arena's reticle). Where it's wanted but not captured, the mouse counts for nothing, and a
+  press there only asks for the lock. Both cameras read its movement each frame with `actions.lookDelta()`: in the
+  overworld every move while captured, and anywhere a drag, past `DRAG.startPx` with the place's `dragCamera` middle
+  or right button held; the poll's `dragging` says a drag is turning it (the arena's pan). While you aim (`AIMING`),
+  the arena sets `setFreeLook`, and every move counts with no button and no flicks. A drag past `DRAG.startPx` with
+  the pointer free over the world (the character panel open) asks `Mouse.lockWhileHeld` to lock it, with raw
+  movement, until the drag button comes up; refused, the drag goes on with the pointer free. The first move after
+  that lock is dropped (a browser may report its jump into the lock there), and Esc or leaving the tab ends the drag.
+  A drag button that's another action's too (the right one: the arena's heavy attack, the overworld's item turn) does
+  that action as it's let go, and only if it never dragged that far; no mode sees `Mouse`. Captured, mouse movement
+  in the arena is read as flicks: a quick move one of 8 ways (`FLICK`, scaled by the flick sensitivity) comes in
   the poll's `flicks` (`right`, `upLeft`, ...), which the arena's input turns into the swing's way (straight down
   into none); not while a drag button is held.
   The scroll wheel is no action: the poll's `zoom` is the notches turned since the last poll (+ out), each event
@@ -1456,17 +1462,20 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      (startPinging: Net's ping, every 2 s)
     core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
                      text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
-                     it sends; captureKey for rebinding), mouse.ts (optional,
-                     pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
-                     auto lock is on; shouldAutoLock is that rule; lockWhileHeld, a camera drag's lock while its
-                     button is held; buttons as "Mouse0"…, read from pointer events
+                     it sends; captureKey for rebinding), mouse.ts (optional
+                     pointer lock: on a press on the canvas while the game wants the mouse, or by itself as it
+                     starts wanting it when auto lock is on, asked again as raw movement is wanted or not;
+                     shouldAutoLock is that rule; onLock tells a lock lost while wanted (Esc) from one let go;
+                     lockWhileHeld, a camera drag's lock while its button is held; buttons as "Mouse0"…, read
+                     from pointer events
                      since Babylon's scene cancels pointerdown, which stops mousedown; the wheel's notches,
                      `WHEEL`), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
                      layer's held and pressed actions and its axes, the flicks read from the mouse's movement
                      (`FLICK`; `FLICKS`, the 8-way aim), `lookDelta` for both cameras' drag (`DRAG`), a shared
-                     drag button's action on release, the wheel's `zoom`, and when the mouse may lock)
+                     drag button's action on release, the wheel's `zoom`, when the mouse is held captured, the
+                     lock's loss as Esc, and `pointer` for the UI)
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default keys,
@@ -1532,7 +1541,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens, the Inscribed utilities (carved bars, cut-corner frames),
-                       the game canvas's pointer (cursor.svg)
+                       the pointer everywhere (cursor.svg; text fields keep the I-beam)
                        and the range and checkbox inputs
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers
@@ -1558,7 +1567,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        what each does, for the bag, the shop and the character panel), blessings.ts (GOD_NAMES,
                        BLESSING_TEXT),
                        BattleHud.tsx (the battle's mode and extras: the foe's name, statuses and bar at the bottom,
-                       the hotbar, the chant, the result banner, the arena's countdown and the leave popup; its bag
+                       the hotbar, the chant, the result banner, the arena's countdown, the leave popup and the
+                       reticle, a dot at the middle while the mouse is captured; its bag
                        is the fight's gear, no cloth, opened only while fighting or after a win, then the server's
                        gear with the drops' pile), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left
                        in both modes, under the chat: your portrait and name, turned by a click, or on a breakthrough

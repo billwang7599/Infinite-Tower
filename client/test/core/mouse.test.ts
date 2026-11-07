@@ -4,10 +4,13 @@ import { Mouse, shouldAutoLock } from "../../src/core/mouse.js";
 import { fakePointerLock, settle, type LockAnswer } from "../fixtures/pointer-lock.js";
 
 function setup(answer: LockAnswer = "grant") {
-  const { win, doc, canvas, grant, escape } = fakePointerLock(answer);
+  const { win, doc, canvas, grant, escape, blur } = fakePointerLock(answer);
   const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document, win);
-  const click = () => canvas.dispatchEvent(new Event("click"));
-  return { mouse, canvas, doc, click, escape, grant };
+  const click = (button = 0) =>
+    canvas.dispatchEvent(Object.assign(new Event("pointerdown"), { button, buttons: [1, 4, 2][button] }));
+  const changes: { locked: boolean; byPlayer: boolean }[] = [];
+  mouse.onLock((locked, byPlayer) => changes.push({ locked, byPlayer }));
+  return { mouse, canvas, doc, click, escape, grant, blur, changes };
 }
 
 describe("shouldAutoLock", () => {
@@ -51,6 +54,42 @@ describe("Mouse lock", () => {
     click();
     assert.equal(canvas.requests.length, 1);
     assert.equal(mouse.locked, true);
+  });
+
+  test("a press with any button on the game asks for it", () => {
+    for (const button of [0, 1, 2]) {
+      const { mouse, canvas, click } = setup();
+      mouse.setLockable(true, false);
+      click(button);
+      assert.equal(canvas.requests.length, 1, `${button}`);
+      assert.equal(mouse.locked, true);
+    }
+  });
+
+  test("raw movement where it's wanted (the overworld), asked again as that changes while locked", () => {
+    const { mouse, canvas } = setup();
+    mouse.setLockable(true, true, true);
+    mouse.setLockable(true, true, false);
+    mouse.setLockable(true, true, false);
+    assert.deepEqual(canvas.requests, [{ unadjustedMovement: true }, { unadjustedMovement: false }]);
+    assert.equal(mouse.locked, true);
+  });
+
+  test("a lock lost while still wanted is the player's (Esc); let go by the game or with the window's focus, it isn't", () => {
+    const { mouse, escape, changes } = setup();
+    mouse.setLockable(true, true);
+    escape();
+    mouse.setLockable(false, true);
+    mouse.setLockable(true, true);
+    mouse.setLockable(false, true);
+    assert.deepEqual(changes, [
+      { locked: true, byPlayer: false }, { locked: false, byPlayer: true },
+      { locked: true, byPlayer: false }, { locked: false, byPlayer: false },
+    ]);
+    const lostFocus = setup();
+    lostFocus.mouse.setLockable(true, true);
+    lostFocus.blur();
+    assert.deepEqual(lostFocus.changes.at(-1), { locked: false, byPlayer: false });
   });
 
   test("a click asks nothing while the mouse isn't wanted", () => {

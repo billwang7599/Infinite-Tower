@@ -45,7 +45,16 @@ export function BattleHud() {
       <ArenaTimer />
       <ChantPopup />
       <LeaveArena />
+      <Reticle />
     </Hud>
+  );
+}
+
+function Reticle() {
+  const locked = useStore(useGame().input.pointer, (s) => s.locked);
+  if (!locked) return null;
+  return (
+    <div id="reticle" className="absolute top-1/2 left-1/2 size-[3px] -translate-1/2 bg-bone/90 ring-1 ring-pit/50" />
   );
 }
 

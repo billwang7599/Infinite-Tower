@@ -43,8 +43,8 @@ What's built so far:
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
   warm haze glows on the sky toward a low sun). The
-  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Held, the arrows
-  or a right-button drag turn the camera (walking follows it) and tilt it, and the wheel zooms it. Everyone shares
+  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. The mouse or the
+  held arrows turn the camera (walking follows it) and tilt it, and the wheel zooms it. Everyone shares
   the world: you see other players (their chibi and name, crossed swords while they fight), and an enemy someone
   touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in an arena of
   your own, everything working player against player, that costs and wins nothing. Next to a player's crossed
@@ -102,8 +102,9 @@ What's built so far:
   sprite holds its blade on the side you aim from, winds up, strikes and follows through on every attack, and reels
   when staggered. Another player facing your camera (in a duel, say) shows their
   front, face and all.
-- **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
-  click with Auto mouse lock off). Every key can be rebound in Settings. In a fight (always locked on, starting in
+- **Controls:** keyboard + mouse or trackpad, which is required (the game holds the mouse captured while you play,
+  from the start or a click with Auto mouse lock off; menus and panels let it go, with the game's own pointer, and Esc
+  opens Settings). Every key can be rebound in Settings. In a fight (always locked on, starting in
   first person): WASD move, Q switches to the enemy nearest the screen's middle, Right Shift to the closest, the
   arrows or a middle- or right-button drag pan the camera (let go, it snaps to the enemy in view nearest the middle),
   a drawn bow or a skill cast aims with the mouse, the wheel zooms it into first person and out, V steps through the
