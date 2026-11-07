@@ -16,7 +16,7 @@ export const typedDamage = (amount: (type: DamageType) => number): Damage =>
 export const scaleDamage = (damage: Damage, factor: number): Damage => typedDamage((type) => damage[type] * factor);
 export const damageTotal = (damage: Damage): number => damage.slash + damage.stab + damage.blunt;
 
-export const DAMAGE_PER_HEFT = 3;
+export const DAMAGE_PER_HEFT = 5;
 
 export const DAMAGE_PROFILES = {
   sword: { slash: 0.9, blunt: 0.1, stab: 0.55 },

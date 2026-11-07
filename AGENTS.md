@@ -225,6 +225,15 @@ Decided by the user:
   typed hit lands in one place (`hurtPhysical`). A beast's body blow is blunt for now (the agent's pick, bites too).
   The item tooltip shows a weapon's numbers by type (zeros left out), and the Advanced stats each strike's at your
   strength.
+- Harder hits (the user: "keep the felt weight and stuff the same... we can increase kobalt strength back up. but we
+  should make hits more punishing", then "lets start users with 100"; tests and bot fights only, not hand-played):
+  `DAMAGE_PER_HEFT` went from 3 to 5 and the bow's arrows from 12 to 20 stab, so every weapon hits about 5 / 3 as
+  hard; the old stick (3 blunt, a stab of 1), beasts' body blows, enemies' HP, the player's 100 HP, felt heft, timings
+  and swing stamina are unchanged. Slash / stab / blunt: the Basic Sword and the Kobold blade 14 / 8 / 2 (a light 16,
+  as halves round up), the longsword 16 / 12 / 2, the greatsword and the Kobold greatsword 19 / 10 / 5. A blocked
+  hit's stamina is its damage, so blocking costs more too. The Kobolds keep strength 10. In the bot fights (20
+  seeds) a reader still beats every Kobold at full HP in about 3 / 5 the time; one who only swings loses to the
+  Swordsman and the Shieldbearer every time and to the Greatsword 18 of 20.
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -1187,7 +1196,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   `shared/src/weapons/bow.ts` and the items' data (`ITEMS`). A weapon kind says what it does (`MOVES` in
   `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit shapes and timings) or ranged (the bow: a draw, a
   loose, a projectile), and the fight branches on that, not on the kind's name. The Training bow (1 x 3, length 1.2,
-  12 stab, off the swords' damage rule, power 60 m/s, heft 3, no least strength), the Arrow (1 x 1, stacks of 20 in a
+  20 stab, off the swords' damage rule, power 60 m/s, heft 3, no least strength), the Arrow (1 x 1, stacks of 20 in a
   bag cell, weight 0.05) and the Training quiver (1 x 2, weight 0.5) come only from the admin panel's give: no shop,
   drop or quest has them.
   - Two hands: a bow (the kinds in `TWO_HANDED`, `weapons/weapons.ts`) and anything else are never held together.
