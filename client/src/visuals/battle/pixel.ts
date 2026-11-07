@@ -14,16 +14,17 @@ export interface PixelFlags {
 
 // 2 × 8 m (the camera to the player, measured) × tan(fov / 2) × 64 texels / 1.8 m: a sprite texel per low-res line.
 export const LOW_RES_LINES = 275;
+export const DEFAULT_PIXEL_SCALE = 3;
 
 export function pixelFlags(search: string): PixelFlags {
   const params = new URLSearchParams(search);
-  const n = Math.round(Number(params.get("pixel")));
+  const pixel = params.get("pixel"), n = Math.round(Number(pixel));
   const palette = params.get("palette"), steps = Math.round(Number(params.get("steps")));
   return {
-    scale: !params.has("pixel") ? null : n >= 1 ? n : "auto",
-    outline: params.has("outline"),
+    scale: pixel === null ? DEFAULT_PIXEL_SCALE : pixel === "" || pixel === "auto" ? "auto" : n >= 2 ? n : null,
+    outline: params.get("outline") !== "0",
     palette: palette === null ? null : palette === "bands" ? "bands" : "ramps",
-    player3d: params.has("player3d"),
+    player3d: params.get("player3d") !== "0",
     steps: steps >= 1 ? steps : null,
   };
 }
