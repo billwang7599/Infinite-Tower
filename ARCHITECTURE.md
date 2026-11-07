@@ -493,12 +493,11 @@ main.ts
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is each weapon item's `weapon` component in `ITEMS`,
   gathered by `shared/src/weapons/weapons.ts` into `WEAPONS` (each weapon by item id: its `kind`, the moveset it swings
-  with, its length, heft, minimum strength and damage profile; `feltHeft` is the heft a wielder's strength feels,
-  `canWield` whether it's enough). Its damage has one owner, `weaponDamage` there: `DAMAGE_PER_HEFT` × heft × quality,
+  with, its length, heft and damage profile; `feltHeft` is the heft a wielder's strength feels, so any strength
+  wields any weapon, only slower). Its damage has one owner, `weaponDamage` there: `DAMAGE_PER_HEFT` × heft × quality,
   or a hand-set `baseDamage`, split into slash, stab and blunt by its profile (`DAMAGE_PROFILES`); `strikeDamage`
   (`hybrid.ts`) and `loosedDamage` (`bow.ts`) scale it, and nothing else holds a damage number for a weapon.
-  Equipping a weapon is refused below its minimum by the shared gear rules (`moveGear`), on the server, in a fight and
-  in the bag screen alike. The sword's rules and numbers are in `shared/src/weapons/hybrid.ts`:
+  The sword's rules and numbers are in `shared/src/weapons/hybrid.ts`:
   the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and momentum (`CHAIN`, `MOMENTUM`), the strikes and the block
   (`HYBRID`), the hit shapes (`wayShape`: one reach from the wielder's own arm reach plus the weapon's length, the arc
   by line), and `wayStepsAfter`, `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's
@@ -1344,9 +1343,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
-                   heft and minStrength, a bow's powerMps; DAMAGE_TYPES and Damage (slash, stab, blunt), typedDamage,
+                   heft, a bow's powerMps; DAMAGE_TYPES and Damage (slash, stab, blunt), typedDamage,
                    scaleDamage, damageTotal; DAMAGE_PER_HEFT, DAMAGE_PROFILES, weaponDamage (a weapon's damage by
-                   type); feltHeft, canWield, twoHanded, weaponIn, weaponItemIn,
+                   type); feltHeft, twoHanded, weaponIn, weaponItemIn,
                    weaponHandIn (the hand that swings: the active one's weapon first, Hands.active);
                    AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
@@ -1675,7 +1674,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        BagGrid.tsx draws a grid (the bag, the backpack, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots (the worn ones 3 by 3, the
                        wrists and rings, the cosmetics; QuiverSlot, the hip's, for the quiver's column); bagMouse.ts
-                       holds those states as plain data (and why a drop into a hand was refused: tooWeak, noHands),
+                       holds those states as plain data (and why a drop into a hand was refused: noHands),
                        itemInfo.ts the tooltip's lines (a weapon's damage by type among them) and the rarity
                        colours' classes,
                        grid.ts the cell and slot sizes),
@@ -2266,7 +2265,7 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
 - **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
   that reveals it; the questbook lists it under that quest once the step is done.
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand) with a `weapon` component
-  (kind, length, heft, minimum strength, and its damage `profile`, a row of `DAMAGE_PROFILES` in
+  (kind, length, heft, and its damage `profile`, a row of `DAMAGE_PROFILES` in
   `shared/src/weapons/weapons.ts`, a new sort of blade adding its own), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
@@ -2355,7 +2354,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | What | Where |
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, heft, minimum strength, damage profile, quality, a hand-set `baseDamage` off the rule) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
+| Weapons: the arsenal (length, heft, damage profile, quality, a hand-set `baseDamage` off the rule) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | Weapon damage: per heft, and each profile's slash, blunt and stab shares | `DAMAGE_PER_HEFT`, `DAMAGE_PROFILES` in `shared/src/weapons/weapons.ts` |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint and its recovery, the clash's stagger, the lunge, the walk while swinging, the live blade's turn cap, a whiff's overextension; the block by guard (shield, one blade, two) | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`, `GUARDS`); a shield's length and heft, its `shield` in `ITEMS` |
 | Pushback (only blocks push; a hit that lands only hurts): how hard a light, heavy and stab push a guard, an arrow's push by its speed, a body blow's, Air's push; how much each fighter takes; a blocked hit's share and its chip against the wall; how much a player takes by strength and steadiness | `KNOCKBACK_TAKEN` in `shared/src/battle/stats.ts`, `knockbackSpeed` in `HYBRID` (`shared/src/weapons/hybrid.ts`), `knockbackShare` in `BOW` (`bow.ts`), `air.knockbackSpeed` in `SKILL_EFFECTS`; each enemy's `knockbackFactor` and its attacks' `knockback` (`server/src/core/enemies/<id>.ts`); `HYBRID.block.pushbackFactor`, `pinnedChipFactor`, `GUARDS` |

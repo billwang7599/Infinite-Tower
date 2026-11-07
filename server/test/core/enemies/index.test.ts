@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  canWield, ENEMY_IDS, gripOf, isWeapon, itemDef, ITEMS, UNIQUE_ITEMS, type EnemyId, type ItemEffect, type ItemId,
-  type WeaponId,
+  ENEMY_IDS, gripOf, itemDef, ITEMS, UNIQUE_ITEMS, type EnemyId, type ItemEffect, type ItemId,
 } from "@infinite-tower/shared";
 import { ENEMIES, rollDrops, TREASURE, TREASURE_TIERS } from "../../../src/core/enemies/index.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
@@ -26,15 +25,6 @@ const essenceOf = (item: string): number => {
 };
 
 describe("enemies' weapons", () => {
-  test("every enemy is strong enough for the weapon it holds", () => {
-    for (const id of ENEMY_IDS) {
-      const { stats, wielder } = ENEMIES[id].def;
-      for (const item of [wielder?.hands.rightHand, wielder?.hands.leftHand].filter((held) => isWeapon(held ?? null))) {
-        assert.ok(canWield(item as WeaponId, stats.strength), `${id}: ${item}`);
-      }
-    }
-  });
-
   test("every Kobold holds its weapon in one hand, its off hand emptied too; Bram holds his stick in both", () => {
     const grip = (id: EnemyId) => gripOf({ rightHand: null, ...ENEMIES[id].def.wielder!.hands, leftHand: null });
     for (const id of ["kobold-swordsman", "kobold-greatsword", "kobold-shieldbearer"] as const) {

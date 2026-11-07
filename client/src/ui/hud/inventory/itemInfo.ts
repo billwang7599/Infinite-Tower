@@ -73,9 +73,8 @@ function wornText({ wearable, pack }: ItemDef): string | null {
 }
 
 function wieldedText(item: WeaponId): string {
-  const { minStrength: need, powerMps } = WEAPONS[item], hands = twoHanded(item) ? "Takes both hands" : "In a hand";
-  const wielded = `${hands}: ${WIELDED[movesOf(WEAPONS[item]).style]}${powerMps ? ` Up to ${powerMps} m/s.` : ""}`;
-  return need > 0 ? `${wielded} Needs ${need} strength.` : wielded;
+  const { powerMps } = WEAPONS[item], hands = twoHanded(item) ? "Takes both hands" : "In a hand";
+  return `${hands}: ${WIELDED[movesOf(WEAPONS[item]).style]}${powerMps ? ` Up to ${powerMps} m/s.` : ""}`;
 }
 
 export function itemInfo(stack: BagItem): ItemInfo {

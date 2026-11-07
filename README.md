@@ -178,7 +178,7 @@ What's built so far:
 - **Equipment:** hands, head, body, legs and boots; you start empty-handed (Bram's stick is the first weapon), and dying
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower, costs more stamina and hits harder,
-  less so the stronger you are, and too heavy for your strength it can't be wielded. A weapon's tooltip gives its
+  less so the stronger you are; anyone can wield any weapon, the weak only slower. A weapon's tooltip gives its
   slash, stab and blunt damage.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), the region's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the

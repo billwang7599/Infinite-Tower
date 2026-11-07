@@ -6,7 +6,7 @@
 import {
   carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type CarvePrice,
   type Cell, type CoreState, type Gear, type GearMove, type GridName, type GridSpot, type ShopView, type Slot,
-  type Spot, type Stats, type UseSpot, type WeaponId,
+  type Spot, type Stats, type UseSpot,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { NO_FOCUS } from "../../components/noFocus.js";
@@ -64,10 +64,8 @@ export function InventoryPanel(props: PanelProps) {
   const { ui, input, actions } = useGame();
   const { useItem: use, moveItem: move, request } = actions;
   const openSkillbook = () => ui.skillbookScreen.set({ open: true });
-  const tooWeak = (item: WeaponId) => say(ui.notifications, { kind: "tooWeak", item });
   const noHands = (refused: NoHands) => say(ui.notifications, { kind: "noHands", ...refused });
   const stacked = stacksGrids(useStageSize());
-  const strength = stats?.strength ?? 0;
   const settingsOpen = useStore(ui.settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
@@ -145,14 +143,12 @@ export function InventoryPanel(props: PanelProps) {
   });
 
   const up = (p: Pointer) => {
-    const { mouse: next, move: moved, tooWeak: weak, noHands: full } =
-      pointerUp(current(), gear, p, performance.now(), strength);
+    const { mouse: next, move: moved, noHands: full } = pointerUp(current(), gear, p, performance.now());
     set(next);
     send(moved);
-    if (weak) tooWeak(weak);
-    else if (full) noHands(full);
+    if (full) noHands(full);
   };
-  const fits = canDrop(mouse, gear, strength);
+  const fits = canDrop(mouse, gear);
   const { drag, pointer } = mouse;
   const dragged = drag && (drag.from.in === "slot"
     ? { item: drag.item, count: 1, x: 0, y: 0, turned: false }

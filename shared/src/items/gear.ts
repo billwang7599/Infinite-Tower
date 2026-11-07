@@ -1,7 +1,7 @@
 import {
   addItem, bagCounts, bagWeight, fits, itemAt, moveItem, stackSizeIn, takeItems, type Bag, type BagItem,
 } from "./bag.js";
-import { canWield, isWeapon, twoHanded } from "../weapons/weapons.js";
+import { twoHanded } from "../weapons/weapons.js";
 import { itemDef, ITEMS, type ItemCounts, type ItemId, type WornOn } from "./items.js";
 
 export const SLOTS = [
@@ -143,7 +143,7 @@ function freeOtherHand(gear: Gear, hand: Hand): Gear | null {
   return put.left === 0 ? put.gear : null;
 }
 
-export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean, strength: number): Gear | null {
+export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gear | null {
   const moving = stackIn(gear, from);
   if (!moving || to.in === "pile") return null;
   if (from.in !== "slot" && to.in === from.in) {
@@ -152,7 +152,6 @@ export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean, stre
   }
   if (to.in === "slot") {
     if (!fitsSlot(moving.item, to.slot) || moving.count !== 1) return null;
-    if (isWeapon(moving.item) && !canWield(moving.item, strength)) return null;
     let worn: Gear;
     if (from.in !== "slot") {
       if (gear.equipment[to.slot]) return null;

@@ -139,10 +139,10 @@ Decided by the user:
   loadouts by what's in each hand) is [plan/combat-v2.md](plan/combat-v2.md).
 - Heft scales everything and strength scales heft down (the user: "heft scales everything which is realistic", "a
   stronger person would use a greatsword well, while a weaker person wouldn't"): a weapon's wind-up, live time,
-  recovery and stamina costs go × the heft its wielder feels, players and enemies alike. Each weapon has a minimum
-  strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing it, and the
-  bag screen says why. The test numbers: Basic Sword 0, longsword 6, greatsword 9. A lone weapon held in both hands
-  puts in twice the strength (below).
+  recovery and stamina costs go × the heft its wielder feels, players and enemies alike. Any weapon can be wielded
+  at any strength (the user: "lower base strength needed to wield strength to like 0. if they have lower strength
+  it'll just be super sluggish"; it replaced a minimum strength per weapon, below which it wouldn't go into a hand):
+  a weak wielder only feels it heavier. A lone weapon held in both hands puts in twice the strength (below).
 - Swords are heavier (the user: "increase sword weight, swinging is too easy"; tests only, not hand-played): the
   sword, longsword and greatsword got 30% more heft, and the Kobolds' blades followed (the user: "also make their
   swords heavier too"), an enemy's recovery after a chain going × its felt heft too, as a player's does. The Kobold's
