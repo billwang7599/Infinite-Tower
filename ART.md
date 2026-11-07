@@ -330,7 +330,12 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     blade at the wrist), and the free hand hangs under its shoulder as the body twists.
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
     one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
-    as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); walking, the feet are placed,
+    as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps). Each key is reached mostly at
+    once (`KEY_EASE_TIME`), the rest crept over the gap to the next, so nothing holds dead still. A swing's blade runs
+    along one arc (`swingArc`, `SWING_ARC`): drawn back over the wind-up, still creeping back, driven faster and faster
+    into the step its hit lands on, pointing straight ahead there, then slowing on past the far side (less on a cut
+    ending low, which would go into the legs); it takes over from wherever the arm was, and it's drawn between the
+    fight's steps as far as real time is past the last (`alpha`); walking, the feet are placed,
     not keyed (`STRIDE`, `plantLegs` in `motion.ts`): a foot down sweeps back under the hip at the ground's speed the
     way it goes (ahead, back or aside), so it stays put, then lifts and swings forward; a walk's strides grow longer
     and quicker up to `STRIDE.walkSpeed`, then ease into a run by full speed: 2.8 strides a second (`STRIDE.run`), long
@@ -349,14 +354,22 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     In first person (your own, the camera inside your head) only the arms and what they hold show, and they're always
     in view: posed for a fixed first-person view, the hands pulled most of the way toward spots low on the screen
     (the sword hand right of the middle, the other left) and the blade leaned ahead and a little in, so the sword sits
-    lower and nearer the middle than the pose's own; a two-handed grip stays on the weapon. A bow is placed from the
+    lower and nearer the middle than the pose's own; a two-handed grip stays on the weapon. A sword swing is drawn
+    from the eye on the same arc's timing (`FP_SWING`): the blade turns from cocked back past where the cut starts,
+    through the middle of the screen on the step its hit lands, to past where it ends, the hand swinging round just
+    below the middle and reaching out on the hit; a sideways cut's ends are lifted and an upright one's leaned out to
+    the sword hand's side, so a slash crosses the whole view and the chop comes down through it from over that
+    shoulder; a stab is pulled back and driven at the middle. After a swing the arm is carried back to rest, eased
+    (`returnTime`). A bow is placed from the
     eye instead (`FP_BOW`): carried low across the bottom right, canted, pointing ahead and down; drawn, raised so the
     arrow lies along the view below and right of the crosshair, so it points at it, the stave canted with its top to
     the right, clear of the crosshair, and the string hand on the nock pulling it back toward you as the grip is
     pushed out (the chibi's arms are shorter than the draw); loosed, the string hand flicks back and out and the bow's
     top kicks forward. Raising, drawing, loosing and lowering are eased (`BOW_MOTION`), so neither hand ever jumps.
     Then both arms go with the camera, so they're in the same place on screen wherever it looks (`FP_ARMS` in
-    `client/src/visuals/battle/firstPerson.ts`). Others, and you in third person, see the pose as it is.
+    `client/src/visuals/battle/firstPerson.ts`). As the eye leaves your head (a dodge, a zoom) they glide by its
+    distance from first person's place to the body's, all the body's before the body shows (`FP_ARMS.fade`).
+    Others, and you in third person, see the pose as it is.
   - **Arms go round the body** (`reachRound` in `arm.ts`, the enemies' arms too): bent to reach the pose's hands, a
     hand aimed inside the torso comes out onto it, a held blade's line is kept off it, the elbow swings out as little
     as keeps the arm clear, and a hand the arm can't reach round the body (the bow's string, a two-handed grip far

@@ -1,4 +1,4 @@
-import type { PlayerAction, PlayerData, SwingData, Vec2, Vec3, Way, WielderData } from "@infinite-tower/shared";
+import type { PlayerAction, PlayerData, Vec2, Vec3, Way, WielderData } from "@infinite-tower/shared";
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import {
@@ -66,16 +66,15 @@ const DROPPED_BLADE: Vec3 = { x: 0.9, y: 0, z: Math.sqrt(1 - 0.9 ** 2) };
 
 export function playerBlade(
   player: Held, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
-  drawback = SPRITE_DRAWBACK, strokeAt: (swing: SwingData) => { set: number; turn: number } = strokeOf,
 ): { blade: Vec3; handBlade: Vec3; exact: boolean; handZ: number } {
   const still = (blade: Vec3, handZ = REST_BLADE.handZ) => ({ blade, handBlade: blade, exact: false, handZ });
   if (!alive) return still(DROPPED_BLADE);
   if (STAGGERED.includes(player.action)) return still(REELING_BLADE);
   const stance = stanceCut(player), held = stance ? motion.held(stance) : motion.rest;
   if (!swing || swing.step >= swing.endAt) return still(held.blade, held.handZ);
-  const cut = wayCut(swing.way, true), stroke = strokeAt(swing);
+  const cut = wayCut(swing.way, true), stroke = strokeOf(swing);
   const { blade, handZ } = stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn);
-  const pull = pullOf(stroke, swing.attack === "heavy") * drawback;
+  const pull = pullOf(stroke, swing.attack === "heavy") * SPRITE_DRAWBACK;
   return { blade: drawnBack(blade, pull), handBlade: blade, exact: stroke.set >= 1, handZ };
 }
 

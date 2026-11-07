@@ -12,7 +12,7 @@ import { fighter } from "./battle.js";
 import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
 import { pullString } from "./bow.js";
 import { bowDrawOf } from "./bowMotion.js";
-import { holdInView, restShoulders } from "./firstPerson.js";
+import { fpShare, holdInView, restShoulders } from "./firstPerson.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
@@ -128,10 +128,12 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   if (sprite.person) {
     if (sprite.armsInView) restShoulders(sprite.person);
     framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
-    sprite.armsInView = hidden && ctx.pixel.steps === null;
+    const share = hidden && ctx.pixel.steps === null ? fpShare(ctx.battle.view.eye, ctx.battle.blend.pos(world, e)) : 0;
+    sprite.armsInView = share > 0;
     const held = weapon && WEAPON_LOOKS[weapon], alive = health.hp > health.floor;
     const gripped = alive && !!held?.twoHanded;
-    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, gripped);
+    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, gripped, share, dt);
+    else sprite.person.inView = null;
   } else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {
     const { holder, joints } = sprite.person.model, arms = [joints["upper_arm.R"], joints["upper_arm.L"]];

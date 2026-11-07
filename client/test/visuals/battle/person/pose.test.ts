@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Matrix, Vector3 } from "@babylonjs/core";
-import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData } from "@infinite-tower/shared";
+import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData, type Vec3 } from "@infinite-tower/shared";
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
 import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
@@ -37,39 +37,76 @@ const twist = (p: PersonPose) => p.joints.hips.y + p.joints.spine.y + p.joints.c
 const BOW_CLEAR_M = 0.04;
 
 describe("keyed poses", () => {
-  test("ease into each key over a short time, then hold it until the next", () => {
+  test("each key is eased into over the whole gap to the next: most of the way at once, then creeping, never held", () => {
     const at = [0, 1], values = [0, 10, 4];
     assert.equal(keyed(0, at, values), 0);
-    const easing = keyed(KEY_EASE_TIME / 2, at, values);
-    assert.ok(easing > 0 && easing < 10);
-    assert.equal(keyed(KEY_EASE_TIME, at, values), 10);
-    assert.equal(keyed(0.9, at, values), 10);
-    assert.equal(keyed(1 + KEY_EASE_TIME, at, values), 4);
+    assert.ok(keyed(KEY_EASE_TIME, at, values) > 5, "most of the way quickly");
+    let last = keyed(KEY_EASE_TIME, at, values);
+    for (let t = 2 * KEY_EASE_TIME; t < 1; t += KEY_EASE_TIME) {
+      const now = keyed(t, at, values);
+      assert.ok(now > last + 0.05 && now < 10, `still creeping toward the key at ${t}: ${now}`);
+      last = now;
+    }
+    close(keyed(1, at, values), 10, "there on the next key");
     assert.equal(keyed(-1, at, values), 0);
   });
 
-  test("a key closer than the ease is reached before the next starts, so nothing jumps", () => {
-    const at = [0, KEY_EASE_TIME / 3], values = [0, 10, 4];
-    close(keyed(KEY_EASE_TIME / 3 - 1e-12, at, values), 10, "reached");
+  test("the last key is eased into until the clip's end, else over the ease, then held", () => {
+    const at = [0, 1], values = [0, 10, 4];
+    const toEnd = keyed(1.5, at, values, 2);
+    assert.ok(toEnd < 10 && toEnd > 4);
+    close(keyed(2, at, values, 2), 4, "at the end");
+    close(keyed(1 + KEY_EASE_TIME, at, values), 4, "no end: over the ease");
+    assert.equal(keyed(5, at, values), 4);
+  });
+
+  test("nothing jumps, even between keys closer than the ease", () => {
+    for (const at of [[0, 1], [0, KEY_EASE_TIME / 3, KEY_EASE_TIME / 2]]) {
+      const values = [0, 10, 4, 7], dt = 1e-4;
+      for (let t = -0.01; t < 1.2; t += dt) {
+        const jump = Math.abs(keyed(t + dt, at, values, 1.1) - keyed(t, at, values, 1.1));
+        assert.ok(jump < 0.1, `${JSON.stringify(at)}: ${jump} in ${dt} s at ${t}`);
+      }
+    }
   });
 });
 
-describe("the 3D player's swing, pose to pose", () => {
+const angleRad = (a: Vec3, b: Vec3) => Math.acos(Math.min(1, a.x * b.x + a.y * b.y + a.z * b.z));
+
+describe("the 3D player's swing", () => {
   for (const attack of ["light", "heavy"] as const) {
-    test(`a ${attack} holds its wind-up, holds the strike's end and holds the follow-through`, () => {
-      const steps = swingSteps(attack, "lr"), { driveAt, liveAt, liveUntil, endAt } = steps[0]!;
-      const at = (step: number) => pose(ATTACKING, steps[step]!);
-      assert.ok(driveAt > EASE_STEPS, "the wind-up is longer than the ease");
-      assert.deepEqual(at(EASE_STEPS).blade, at(driveAt - 1).blade, "the wind-up held");
-      assert.ok(at(driveAt - 1).blade.z < 0, "drawn back behind");
+    test(`a ${attack} never stops: the wind-up creeps back, the cut sweeps through and follows on past`, () => {
+      const steps = swingSteps(attack, "lr"), { driveAt, liveAt, endAt } = steps[0]!;
+      const at = (step: number) => pose(ATTACKING, steps[step]!, { alpha: 1 });
+      const along: number[] = [];
+      for (let step = 1; step < endAt; step++) {
+        const { x, z } = at(step).blade, a = Math.atan2(z, -x), last = along.at(-1) ?? a;
+        along[step] = last + Math.atan2(Math.sin(a - last), Math.cos(a - last));
+      }
+      for (let step = EASE_STEPS + 1; step < driveAt - 1; step++) {
+        assert.ok(along[step + 1]! < along[step]!, `${attack}: creeping back at step ${step}`);
+      }
+      for (let step = driveAt + 2; step < endAt - 2; step++) {
+        assert.ok(along[step + 1]! > along[step]! + 0.004, `${attack}: sweeping round at step ${step}`);
+      }
+      assert.ok(at(driveAt).blade.z < 0, "drawn back behind");
+      assert.ok(Math.abs(at(liveAt).blade.x) < 0.05 && at(liveAt).blade.z > 0.9, "straight ahead on the hit");
+      assert.ok(at(endAt - 1).blade.x > 0.5 && at(endAt - 1).blade.z < 0, "followed through past the right");
+      assert.equal(at(driveAt).swing?.set, 1, "taken over");
       assert.ok(lean(at(1)) < 0 && lean(at(1)) > lean(at(EASE_STEPS)), "eased into");
-      assert.ok(at(liveUntil - 1).blade.z > at(liveAt).blade.z - 1e-9, "sweeping round in front");
-      const follow = Math.min(endAt - 1, liveUntil + EASE_STEPS);
-      assert.deepEqual(at(follow).blade, at(endAt - 1).blade, "the follow-through held");
-      assert.ok(at(endAt - 1).blade.x > 0.5, "through to the right, where a left-to-right cut ends");
-      assert.equal(at(liveAt).bladeExact, true);
     });
   }
+
+  test("drawn between the fight's steps: a share of the way to the next", () => {
+    const steps = swingSteps("light", "lr"), { driveAt, liveAt } = steps[0]!;
+    for (const step of [3, driveAt + 2, liveAt]) {
+      const before = pose(ATTACKING, steps[step]!, { alpha: 1 }), after = pose(ATTACKING, steps[step + 1]!, { alpha: 0 });
+      assert.deepEqual(before.blade, after.blade, `step ${step}`);
+      const half = pose(ATTACKING, steps[step + 1]!, { alpha: 0.5 }).blade;
+      const whole = angleRad(before.blade, pose(ATTACKING, steps[step + 1]!, { alpha: 1 }).blade);
+      assert.ok(angleRad(before.blade, half) > whole * 0.2 && angleRad(before.blade, half) < whole * 0.8, `${step}`);
+    }
+  });
 
   test("winding up it sits back on its back leg; striking, the front foot steps in and the body leans through", () => {
     const steps = swingSteps("light", "lr"), { driveAt, liveAt, liveUntil, endAt } = steps[0]!;
@@ -97,15 +134,16 @@ describe("the 3D player's swing, pose to pose", () => {
 });
 
 describe("the 3D player's other actions", () => {
-  test("a dodge plays its clip: crouched and leaning the way it goes, then recovering, held between", () => {
+  test("a dodge plays its clip: crouched and leaning the way it goes at once, still going, then recovering", () => {
     const at = (t: number, dodge = { x: 0, z: 1 }) => pose(playerDoing("dodge", t), null, { dodge });
-    const launched = at(KEY_EASE_TIME), keys = CLIPS.dodge.joints;
+    const keyAt = CLIPS.dodge.at[1], launched = at(keyAt), keys = CLIPS.dodge.joints;
     close(lean(launched), keys.root.x[1], "leaning ahead");
     close(launched.joints["thigh.L"].z, keys["thigh.L"].z[1], "legs apart");
     assert.ok(crouch(launched) > 0.5, "crouched");
-    assert.deepEqual(at(KEY_EASE_TIME * 1.5), launched, "held");
+    assert.ok(lean(at(KEY_EASE_TIME)) > keys.root.x[1] * 0.6, "most of the way at once");
+    assert.ok(lean(at(keyAt / 2)) < lean(launched) - 0.01, "still going, not held");
     assert.ok(crouch(at(PLAYER.dodge.duration * 0.95)) < crouch(launched), "recovering");
-    const right = at(KEY_EASE_TIME, { x: 1, z: 0 });
+    const right = at(keyAt, { x: 1, z: 0 });
     close(roll(right), -keys.root.x[1], "to the right, leaning right as far as ahead");
     close(lean(right), 0, "and not ahead");
     assert.ok(right.rootY < 0, "dropped so the feet stay down");
