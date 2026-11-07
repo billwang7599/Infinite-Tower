@@ -41,7 +41,8 @@ What's built so far:
   (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low in the Mistwood's reeds. Touching
   one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
-  24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The
+  24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
+  warm haze glows toward a low sun). The
   stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
   the camera a quarter turn (walking follows it), up and down tilt it. Everyone shares the world: you see other players
   (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone until it
@@ -74,7 +75,8 @@ What's built so far:
   lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, grey wolf, bog lurker, Kobold Swordsman or Goblin Warlock in a small
   round arena, each with its own look (a forest clearing, stone ruins, a mire, a quarry), lit by a 24-minute day: the
-  sun and moon rise and set, the shadows follow them, and glowing mushrooms light the mire.
+  sun and moon rise and set under a sky that's bluer overhead, the sun glowing and casting rays through the trees,
+  stars at night, the shadows follow them, and glowing mushrooms light the mire.
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the wheel or K stabs,
   and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in

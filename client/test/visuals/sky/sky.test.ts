@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Color3, MeshBuilder, NullEngine, PointLight, Scene, ShaderStore, ShadowGenerator, StandardMaterial,
+  Color3, DirectionalLight, MeshBuilder, NullEngine, PointLight, Scene, ShaderStore, ShadowGenerator, StandardMaterial,
 } from "@babylonjs/core";
 import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/fogFragmentDeclaration.js";
-import type { Vec3 } from "@infinite-tower/shared";
+import { sunAt, type Vec3 } from "@infinite-tower/shared";
 import { daylightAt, directLightAt, setDayClock } from "../../../src/visuals/sky/daylight.js";
 import {
-  cardYawRad, createSky, MAX_MAP_LIGHTS, nearestLights, SHADOW_MAP_LIGHTS, SHADOW_SWAP_MARGIN_M, type MapLight,
-  type SkyLook,
+  cardYawRad, createSky, FILL, MAX_MAP_LIGHTS, nearestLights, SHADOW_MAP_LIGHTS, SHADOW_SWAP_MARGIN_M,
+  type MapLight, type SkyLook,
 } from "../../../src/visuals/sky/sky.js";
 import { arenaSky } from "../../../src/visuals/arenas/index.js";
 import { REGION_LOOKS } from "../../../src/visuals/regions/index.js";
@@ -180,9 +180,46 @@ describe("map lights", () => {
     const scene = new Scene(new NullEngine());
     const sky = createSky(scene);
     const m = new StandardMaterial("m", scene);
+    sky.look(MIRE, Array.from({ length: MAX_MAP_LIGHTS }, (_, i) => ({ at: { x: i, y: 1, z: 0 },
+      color: new Color3(1, 0.5, 0.2), intensity: 3, rangeM: 8, flicker: 0 })));
     sky.frame(0, { x: 0, y: 2, z: 0 });
-    assert.ok(m.maxSimultaneousLights >= 2 + MAX_MAP_LIGHTS);
+    assert.ok(m.maxSimultaneousLights >= scene.lights.length);
     scene.dispose();
+  });
+});
+
+describe("the sun's light", () => {
+  const litAt = (fraction: number) => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    sky.look(REGION_LOOKS["grass-field"].env, []);
+    setDayClock({ fraction, speed: 0 });
+    sky.frame(0, { x: 0, y: 5, z: -5 });
+    const [fill, body] = ["sky-fill", "sky-body"].map((n) => scene.getLightByName(n) as DirectionalLight);
+    return { scene, sky, fill: fill!, body: body! };
+  };
+  const done = (scene: Scene) => {
+    setDayClock({ speed: 1 });
+    scene.dispose();
+  };
+
+  test("a fill light comes low from the side away from the sun, cooler and weaker than it", () => {
+    const { scene, fill, body } = litAt(0.42), sun = sunAt(0.42), { direction: d } = fill;
+    assert.ok(d.x * sun.x + d.z * sun.z > 0);
+    assert.ok(d.y < 0 && -d.y < Math.hypot(d.x, d.z));
+    assert.ok(Math.abs(fill.intensity - FILL.share * body.intensity) < 1e-9);
+    assert.ok(fill.diffuse.b / fill.diffuse.r > body.diffuse.b / body.diffuse.r);
+    done(scene);
+  });
+
+  test("its glow points at the sun and is warm, and there's none at night", () => {
+    const day = litAt(0.42);
+    assert.deepEqual(day.sky.glow.toSun, sunAt(0.42));
+    assert.ok(day.sky.glow.color.r > day.sky.glow.color.b && day.sky.glow.color.b > 0);
+    done(day.scene);
+    const night = litAt(0);
+    assert.deepEqual(night.sky.glow.color.asArray(), [0, 0, 0]);
+    done(night.scene);
   });
 });
 

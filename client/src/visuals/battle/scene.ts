@@ -40,7 +40,7 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
 
   const sky = createSky(scene);
   const pixel = pixelFlags(search);
-  postProcess(scene, camera, pixel);
+  postProcess(scene, camera, pixel, sky);
   const materials = createMaterials(scene);
   const floorY = (at: Vec3) =>
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
@@ -50,7 +50,7 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
   };
 }
 
-function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags): void {
+function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags, sky: Sky): void {
   const pipeline = new DefaultRenderingPipeline("post", true, scene, [camera]);
   // Pixel art takes MSAA, at its low resolution: FXAA would smear the textures' pixels too.
   pipeline.samples = pixel.aa && pixel.scale !== null ? 4 : 1;
@@ -67,5 +67,5 @@ function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags): void {
   pipeline.imageProcessing.vignetteEnabled = true;
   pipeline.imageProcessing.vignetteWeight = 2;
   pipeline.imageProcessing.vignetteColor = new Color4(0, 0, 0.05, 0);
-  pixelPost(scene, camera, pixel);
+  pixelPost(scene, camera, pixel, sky);
 }
