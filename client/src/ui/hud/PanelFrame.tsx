@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CloseButton } from "../components/CloseButton.js";
+import { PANEL_HEAD, PANEL_TITLE } from "../components/styles.js";
 import { fitPanel, useStageSize, type Size } from "./layout.js";
 
 interface FrameProps {
@@ -36,13 +37,10 @@ export function PanelFrame({ id, title, titleId, close, width, shownWidth, child
         width, top: fit?.top, right: fit?.right, transform: fit ? `scale(${fit.scale})` : undefined,
         visibility: fit ? undefined : "hidden",
       }}
-      className={
-        "absolute w-max origin-top-right rounded-sm border border-white/15 bg-night/90 px-5 py-4 "
-        + "font-normal shadow-[0_12px_40px_#000a]"
-      }
+      className="absolute w-max origin-top-right cut-14 engraved px-6 py-5 font-normal"
     >
-      <header className="mb-3 flex items-center justify-between">
-        <h2 id={titleId} className="font-title text-xl tracking-[0.08em] text-victory">{title}</h2>
+      <header className={`mb-3 ${PANEL_HEAD}`}>
+        <h2 id={titleId} className={PANEL_TITLE}>{title}</h2>
         <CloseButton close={close} />
       </header>
       {children}

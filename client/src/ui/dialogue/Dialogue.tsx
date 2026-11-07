@@ -1,4 +1,5 @@
 import type { DialogueOffer } from "@infinite-tower/shared";
+import { EngravedFrame } from "../components/EngravedFrame.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
@@ -32,26 +33,32 @@ export function Dialogue() {
       id="dialogue"
       className={
         "pointer-events-auto absolute bottom-5 left-1/2 flex w-[min(36rem,50%)] -translate-x-1/2 flex-col gap-3 "
-        + "rounded-sm border border-victory/40 bg-night p-4 font-ui text-white shadow-[0_12px_40px_#000a]"
+        + "cut-14 engraved p-5 text-bone"
       }
     >
       <button
         type="button" aria-label={`${name} says`} {...NO_FOCUS} onClick={next}
         className="flex min-h-24 cursor-pointer items-start gap-4 text-left"
       >
-        {look && <LookPicture look={look} view="portrait" className="size-24 shrink-0 rounded-sm bg-black/40" />}
+        {look && (
+          <EngravedFrame className="shrink-0">
+            <LookPicture look={look} view="portrait" className="block size-24" />
+          </EngravedFrame>
+        )}
         <div className="flex flex-col gap-1.5">
-          <div id="dialogue-name" className="font-title text-lg tracking-[0.08em] text-victory">{name}</div>
+          <div id="dialogue-name" className="text-[15px] font-semibold tracking-[0.16em] text-cinnabar uppercase">
+            {name}
+          </div>
           <p id="dialogue-line" className="text-base/snug">{text}</p>
         </div>
       </button>
       {offer && (
-        <div id="dialogue-offer" className="flex items-center justify-end gap-3 border-t border-white/10 pt-3">
-          <span className="mr-auto text-sm text-white/75">
+        <div id="dialogue-offer" className="flex items-center justify-end gap-3 border-t border-bone/13 pt-3">
+          <span className="mr-auto text-sm text-bone/75">
             {offer.kind === "quest"
-              ? <><span className="font-semibold text-victory">{offer.title}</span>: {offer.step}</>
-              : offer.kind === "shop" ? <span className="font-semibold text-victory">{offer.name}</span>
-              : offer.kind === "train" ? <>Spar with <span className="font-semibold text-victory">{offer.foe}</span></>
+              ? <><span className="font-semibold text-cinnabar">{offer.title}</span>: {offer.step}</>
+              : offer.kind === "shop" ? <span className="font-semibold text-cinnabar">{offer.name}</span>
+              : offer.kind === "train" ? <>Spar with <span className="font-semibold text-cinnabar">{offer.foe}</span></>
               : `Hand over ${describeItems({ [offer.item]: offer.count })}?`}
           </span>
           <button type="button" id="dialogue-take" {...NO_FOCUS} className={BUTTON.primary} onClick={() => take(offer)}>

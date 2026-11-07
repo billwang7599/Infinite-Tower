@@ -1,20 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --font-ui: system-ui, sans-serif;
-  --font-title: Georgia, serif;
+  --font-sans: "Gill Sans", "Gill Sans MT", sans-serif;
+  --font-seal: "Hiragino Mincho ProN", "Songti SC", serif;
 
-  --color-night: #0b0d1a;
-  --color-chip: #e8d8a0;   /* souls-style damage lag chip */
-  --color-hp: #d8463c;
-  --color-hp-dark: #8f1f1a;
-  --color-stamina: #5fc26a;
-  --color-stamina-dark: #2a7a36;
-  --color-boss: #b8322a;
-  --color-boss-dark: #6e1612;
-  --color-died: #a8231b;
-  --color-victory: #e8c45a;
-  --color-error: #ff8f86;
+  --color-stone: #16171b;
+  --color-pit: #0a0a0c;
+  --color-bone: #e8dfc8;
+  --color-cinnabar: #d9583c;
+  --color-seal-ink: #1a0d08;
+  --color-verdigris: #8cc4ae;
+  --color-chip: #f6ead0;   /* souls-style damage lag chip */
+  --color-hp: #e2664a;
+  --color-hp-dark: #c24a32;
+  --color-stamina: #ece2c8;
+  --color-stamina-dark: #cfc3a4;
+  --color-boss: #c8352b;
+  --color-boss-dark: #9c2219;
+  --color-error: #e2664a;
   --color-ping-good: #6fd27a;
   --color-ping-fair: #f0b23c;
   --color-ping-poor: #ff6a5c;
@@ -29,8 +32,9 @@
   --color-rarity-legendary: #f0a83c;
   --color-rarity-unique: #ff5148;
 
-  --text-shadow-hud: 0 2px 4px #000a;
-  --text-shadow-title: 0 0 28px #e8c45a66, 0 4px 14px #000d;
+  --text-shadow-hud: 0 1px 2px #000;
+  --text-shadow-letterpress: 0 -1px 0 #000, 0 1px 0 #e8dfc830, 0 2px 12px #000a;
+  --text-shadow-title: 0 0 28px #d9583c55, 0 4px 14px #000d;
 
   --animate-rise: rise 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   /* The title's backdrop (ui/screens/title/backdrop/). Durations and delays are set per element. */
@@ -60,11 +64,54 @@
 }
 
 @layer base {
-  html, body { @apply m-0 h-full overflow-hidden bg-night; }
+  html, body { @apply m-0 h-full overflow-hidden bg-stone; }
+
+  input[type="range"] {
+    @apply h-3.5 appearance-none bg-transparent;
+    &::-webkit-slider-runnable-track { @apply h-[3px] carved; }
+    &::-moz-range-track { @apply h-[3px] carved; }
+    &::-webkit-slider-thumb { @apply -mt-[5.5px] h-3.5 w-2 appearance-none bg-cinnabar; }
+    &::-moz-range-thumb { @apply h-3.5 w-2 rounded-none border-0 bg-cinnabar; }
+  }
+  input[type="checkbox"] {
+    @apply grid size-4 appearance-none place-content-center bg-pit/70 inset-ring inset-ring-bone/35;
+    &::before { @apply size-2 content-[''] bg-cinnabar opacity-0; }
+    &:checked { @apply inset-ring-cinnabar; }
+    &:checked::before { @apply opacity-100; }
+  }
 }
 
+/* cut-<px> only sets the cut: clip-cut clips to it, engraved draws its plate with it. */
+@utility cut-* { --cut: calc(--value(integer) * 1px); }
+@utility clip-cut {
+  clip-path: polygon(
+    var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut)
+  );
+}
+/* The plate is a ::before, so tooltips and dragged items can still leave the frame. */
+@utility engraved {
+  isolation: isolate;
+  &::before {
+    @apply pointer-events-none absolute inset-0 -z-10 clip-cut bg-stone/96 content-[''];
+    box-shadow: inset 0 0 0 1px #e8dfc838, inset 0 0 0 5px var(--color-stone), inset 0 0 0 6px #e8dfc81a;
+  }
+}
+@utility carved { @apply bg-pit/80 inset-shadow-[0_1px_2px_#000] shadow-[0_1px_0_#e8dfc824]; }
+
+/* Pointed ends, --point (5px by default) long. */
+@utility clip-pointed {
+  clip-path: polygon(
+    var(--point, 5px) 0, calc(100% - var(--point, 5px)) 0, 100% 50%, calc(100% - var(--point, 5px)) 100%,
+    var(--point, 5px) 100%, 0 50%
+  );
+}
 @utility bar {
-  @apply relative mb-1.5 overflow-hidden rounded-[2px] border border-gilt/60 bg-black/70;
-  box-shadow: inset 0 1px 3px #000c, 0 1px 2px #0008;
+  @apply relative mb-1.5 carved clip-pointed;
+  &::after {
+    @apply absolute inset-0 content-[''];
+    background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), #0009 calc(10% - 1px) 10%);
+  }
 }
 @utility bar-layer { @apply absolute inset-y-0 left-0; }
+

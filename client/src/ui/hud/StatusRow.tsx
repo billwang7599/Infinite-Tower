@@ -21,8 +21,8 @@ function StatusTile({ icon }: { icon: StatusIcon }) {
   return (
     <li data-status={icon.status} aria-label={look.name} className="flex w-8 flex-col items-center">
       <div
-        className={`relative size-8 overflow-hidden rounded-[3px] border bg-black/75 ${
-          icon.harmful ? "border-died shadow-[0_0_6px_#a8231b88]" : "border-gilt shadow-[0_0_6px_#e8c45a44]"
+        className={`relative size-8 cut-6 clip-cut bg-pit/85 inset-ring ${
+          icon.harmful ? "inset-ring-cinnabar/60" : "inset-ring-bone/27"
         }`}
       >
         <svg viewBox="0 0 24 24" className="absolute inset-1 size-[22px]" aria-hidden="true">
@@ -35,10 +35,10 @@ function StatusTile({ icon }: { icon: StatusIcon }) {
           />
         )}
         {icon.stacks > 1 && (
-          <span className="absolute right-0.5 bottom-0 text-[11px]/none font-bold text-white">{icon.stacks}</span>
+          <span className="absolute right-1 bottom-0.5 text-[11px]/none font-bold">{icon.stacks}</span>
         )}
       </div>
-      <span className="mt-0.5 text-[10px]/none font-semibold tabular-nums text-white/85">
+      <span className="mt-0.5 text-[10px]/none font-semibold tabular-nums">
         {icon.secondsLeft === null ? "" : `${icon.secondsLeft}s`}
       </span>
     </li>

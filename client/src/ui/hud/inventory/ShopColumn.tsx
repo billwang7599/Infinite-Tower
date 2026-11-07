@@ -3,7 +3,7 @@ import {
   type CoreState, type Gear, type InscriptionId, type ItemId, type ShopView,
 } from "@infinite-tower/shared";
 import { NO_FOCUS } from "../../components/noFocus.js";
-import { BUTTON } from "../../components/styles.js";
+import { BUTTON, LABEL, WELL } from "../../components/styles.js";
 import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
 import { ItemPicture } from "./BagGrid.js";
 import { useGame } from "../../context.js";
@@ -12,7 +12,8 @@ import { RARITY_TEXT } from "./itemInfo.js";
 
 // A greatsword, 4 cells tall, at 1 screen pixel per art pixel.
 const PICTURE_PX = 64;
-const SMALL_BUTTON = `${BUTTON.primary} px-2.5! py-1! text-xs!`;
+const SMALL_BUTTON = `${BUTTON.primary} px-2.5! py-1! tracking-[0.1em]!`;
+const ROW = "flex gap-2.5 bg-pit/40 p-1.5 inset-ring inset-ring-bone/10";
 const EXCHANGES = COINS.flatMap((coin, i) => {
   const smaller = COINS[i + 1];
   return smaller ? [[coin, smaller], [smaller, coin]] as [CoinId, CoinId][] : [];
@@ -36,16 +37,16 @@ export function ShopColumn({ shop, gear, core }: ShopColumnProps) {
       {shop.stock.length > 0 && (
         <ul className="flex flex-col gap-1.5">
           {shop.stock.map(({ item, price, fullPrice }) => (
-            <li key={item} data-item={item} className="flex items-center gap-2.5 rounded-sm bg-black/40 p-1.5">
-              <div className="relative size-16 shrink-0 rounded-sm border border-white/10 bg-black/60">
+            <li key={item} data-item={item} className={`items-center ${ROW}`}>
+              <div className={`relative size-16 shrink-0 cut-7 clip-cut ${WELL}`}>
                 <ItemPicture item={item} turned={false} maxPx={PICTURE_PX} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className={`truncate ${RARITY_TEXT[itemDef(item).rarity]}`}>{itemDef(item).name}</div>
                 <div className="text-xs tabular-nums">
-                  <span className="text-victory">{formatPrice(price)}</span>
+                  <span className="font-semibold">{formatPrice(price)}</span>
                   {price < fullPrice && (
-                    <span className="ml-1.5 text-white/40 line-through">{formatPrice(fullPrice)}</span>
+                    <span className="ml-1.5 text-bone/40 line-through">{formatPrice(fullPrice)}</span>
                   )}
                 </div>
               </div>
@@ -64,16 +65,16 @@ export function ShopColumn({ shop, gear, core }: ShopColumnProps) {
           core={core} remove={shop.carving.remove} uncarve={(inscription) => request({ t: "uncarve", inscription })}
         />
       )}
-      {discounted && <p className="text-xs text-white/50 italic">Your first purchase here is cheaper.</p>}
+      {discounted && <p className="text-xs text-bone/50 italic">Your first purchase here is cheaper.</p>}
       {buys.length > 0 && (
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-bone/50">
           Buys {buys.map((item) => itemDef(item).name.toLowerCase()).join(", ")}: pick one in your bag to sell it.
         </p>
       )}
-      <div className="flex flex-col gap-1.5 border-t border-white/10 pt-2.5">
+      <div className="flex flex-col gap-1.5 border-t border-bone/13 pt-2.5">
         <div className="flex items-baseline justify-between">
-          <span className="text-xs tracking-[0.12em] text-white/50 uppercase">Your coins</span>
-          <span id="shop-money" className="font-semibold text-victory tabular-nums">{formatPrice(money)}</span>
+          <span className={LABEL}>Your coins</span>
+          <span id="shop-money" className="font-semibold tabular-nums">{formatPrice(money)}</span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {EXCHANGES.map(([from, to]) => {
@@ -103,17 +104,17 @@ function Rings({ core, remove, uncarve }: RingsProps) {
   return (
     <div id="shop-rings" className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs tracking-[0.12em] text-white/50 uppercase">Rings on your core</span>
+        <span className={LABEL}>Rings on your core</span>
         <span className="text-xs tabular-nums">{core.inscriptions.length} / {inscriptionSlots(core)}</span>
       </div>
       <ul className="flex flex-col gap-1.5">
         {core.inscriptions.map((id) => {
           const price = remove[inscriptionRarity(id)];
           return (
-            <li key={id} data-inscription={id} className="flex items-start gap-2 rounded-sm bg-black/40 p-1.5">
+            <li key={id} data-inscription={id} className={`items-start ${ROW}`}>
               <div className="min-w-0 flex-1">
                 <div className={RARITY_TEXT[inscriptionRarity(id)]}>{inscriptionName(id)}</div>
-                <p className="text-xs text-white/55">{INSCRIPTION_TEXT[id]}</p>
+                <p className="text-xs text-bone/55">{INSCRIPTION_TEXT[id]}</p>
               </div>
               <button
                 type="button" {...NO_FOCUS} className={SMALL_BUTTON} data-uncarve={id} onClick={() => uncarve(id)}
@@ -125,7 +126,7 @@ function Rings({ core, remove, uncarve }: RingsProps) {
           );
         })}
       </ul>
-      <p className="text-xs text-white/50">Pick a sigil in your bag to carve it.</p>
+      <p className="text-xs text-bone/50">Pick a sigil in your bag to carve it.</p>
     </div>
   );
 }

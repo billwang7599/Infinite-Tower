@@ -74,7 +74,7 @@ export function EquipmentSlots(props: SlotsProps) {
       {row(WORN, SLOT_PX, SLOT_GAP_PX, SLOT_COLUMNS)}
       {row(JEWELLERY, SMALL_SLOT_PX, SMALL_SLOT_GAP_PX)}
       <div className="flex flex-col gap-1.5">
-        <h4 className="font-title text-xs tracking-[0.06em] text-white/50">Cosmetics (looks only)</h4>
+        <h4 className="text-[11px] tracking-[0.2em] text-bone/50 uppercase">Cosmetics (looks only)</h4>
         {row(COSMETICS, SMALL_SLOT_PX, SMALL_SLOT_GAP_PX)}
       </div>
     </div>
@@ -91,17 +91,17 @@ function SlotBox({ gear, mouse, fits, area, shown: { slot, label, outline, mirro
   const landingHere = !!mouse.drag && same(landing(mouse, gear), here);
   const selected = !mouse.drag && same(mouse.selected, here);
   const hovered = !mouse.drag && same(mouse.hover?.stack ?? null, here);
-  const state = landingHere ? `border-2 border-dashed bg-black/60 ${fits ? "border-stamina" : "border-hp"}`
-    : selected ? "border-2 border-victory bg-black/60 shadow-[0_0_10px_#e8c45a99]"
-    : hovered ? "border border-white/35 bg-white/10"
-    : `border bg-black/60 shadow-[inset_0_2px_10px_#000] ${item ? "border-victory/30" : "border-white/15"}`;
+  const state = landingHere ? `border-2 border-dashed bg-pit/65 ${fits ? "border-verdigris" : "border-error"}`
+    : selected ? "bg-pit/65 inset-ring-2 inset-ring-cinnabar"
+    : hovered ? "bg-bone/10 inset-ring inset-ring-bone/40"
+    : `bg-pit/65 inset-shadow-[0_2px_6px_#000] inset-ring ${item ? "inset-ring-verdigris/60" : "inset-ring-bone/22"}`;
   const small = px < SLOT_PX;
   return (
     <div className="flex flex-col items-center gap-1">
       <div
         ref={area(slot)} id={`slot-${slot}`} data-slot={slot} data-item={item ?? ""}
         aria-label={item ? `${label}: ${itemDef(item).name}` : `${label}: empty`}
-        className={`relative rounded-sm ${state}`} style={{ width: px, height: px }}
+        className={`relative cut-7 clip-cut ${state}`} style={{ width: px, height: px }}
       >
         {item ? (
           <div className={dragged ? "opacity-25" : ""}>
@@ -112,14 +112,14 @@ function SlotBox({ gear, mouse, fits, area, shown: { slot, label, outline, mirro
             viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth={1.5}
             strokeLinecap="round" strokeLinejoin="round"
             className={
-              `absolute inset-0 m-auto text-white/15 ${small ? "size-6" : "size-11"} ${mirrored ? "-scale-x-100" : ""}`
+              `absolute inset-0 m-auto text-bone/15 ${small ? "size-6" : "size-11"} ${mirrored ? "-scale-x-100" : ""}`
             }
           >
             {outline}
           </svg>
         )}
       </div>
-      <span className={`font-title tracking-[0.04em] text-white/50 ${small ? "text-[10px]" : "text-xs"}`}>
+      <span className={`tracking-[0.04em] text-bone/50 ${small ? "text-[10px]" : "text-xs"}`}>
         {label}
       </span>
     </div>

@@ -7,15 +7,14 @@ interface BarProps {
   fill: string;
   /** Souls-style damage chip: a pale layer that lags behind after a hit. */
   chip?: boolean;
-  className?: string;
+  className: string;
 }
 
-export function Bar({ fraction, fill, chip = false, className = "h-2.5" }: BarProps) {
+export function Bar({ fraction, fill, chip = false, className }: BarProps) {
   return (
     <div className={`bar ${className}`}>
       {chip && <DamageChip fraction={fraction} />}
       <div className={`bar-layer bg-linear-to-b ${fill}`} style={{ width: percent(fraction) }} />
-      <div className="bar-layer h-1/2 w-full bg-white/12" />
     </div>
   );
 }

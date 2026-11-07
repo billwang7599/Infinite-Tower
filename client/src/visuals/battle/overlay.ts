@@ -12,14 +12,14 @@ const WEDGES = 8;
 const SHOWN_WEDGES = [0, 1, 2, 3, 4, 5, 7];
 // In the HUD's CSS pixels. The ring's centre sits clear above the foe's bar and its statuses (BossBar, ~110 px up).
 export const AIM_HUD = {
-  ringAboveBottomPx: 160, ringRadiusPx: 30, wedgeLengthPx: 11, wedgeThickPx: 3, stabPx: 4, crossGapPx: 3,
-  crossArmPx: 5, crossThickPx: 1.5,
+  ringAboveBottomPx: 176, ringRadiusPx: 48, wedgeLengthPx: 18, wedgeThickPx: 5, ringEdgePx: 1.6, stabPx: 6.4,
+  crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1,
 };
 const AIMING: readonly PlayerAction[] = ["draw", "loose", "chant", "cast", "beam"];
-const DIM = "rgba(255, 255, 255, 0.28)";
-const GOLD = "rgba(232, 196, 90, 0.9)";
-const CROSS = "rgba(255, 255, 255, 0.85)";
-const EDGE = "rgba(11, 13, 26, 0.45)";
+const DIM = "rgba(232, 223, 200, 0.3)";
+const LIT = "rgba(217, 88, 60, 0.95)";
+const CROSS = "rgba(232, 223, 200, 0.9)";
+const EDGE = "rgba(22, 23, 27, 0.5)";
 const MARKER_GAP_M = 0.5;
 const MARKER_SPIN_RAD_PER_SEC = 2.5;
 const MARKER_WAIST_M = 0.17;
@@ -107,13 +107,13 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   const { ring, crosshair } = aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting);
   const { ring: { x, y }, crosshair: centre, scale: s } = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
   g.strokeStyle = EDGE;
-  g.lineWidth = s;
+  g.lineWidth = H.ringEdgePx * s;
   if (ring) {
     for (const i of SHOWN_WEDGES) {
       const a = (i * 2 * Math.PI) / WEDGES;
       g.setTransform(1, 0, 0, 1, x + Math.cos(a) * H.ringRadiusPx * s, y - Math.sin(a) * H.ringRadiusPx * s);
       g.rotate(-a);
-      g.fillStyle = i === ring.lit ? GOLD : DIM;
+      g.fillStyle = i === ring.lit ? LIT : DIM;
       g.beginPath();
       g.rect((-H.wedgeThickPx * s) / 2, (-H.wedgeLengthPx * s) / 2, H.wedgeThickPx * s, H.wedgeLengthPx * s);
       g.fill();
@@ -123,7 +123,7 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   }
   if (ring?.stab) {
     const r = H.stabPx * s;
-    g.fillStyle = GOLD;
+    g.fillStyle = LIT;
     g.beginPath();
     g.moveTo(x + r, y);
     g.lineTo(x, y - r);
@@ -135,6 +135,7 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   }
   if (!crosshair) return;
   const gap = H.crossGapPx * s, arm = H.crossArmPx * s, thick = H.crossThickPx * s;
+  g.lineWidth = H.crossEdgePx * s;
   g.fillStyle = CROSS;
   g.beginPath();
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {

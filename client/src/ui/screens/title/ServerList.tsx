@@ -23,12 +23,12 @@ export function ServerList({ servers, picked, disabled, pick }: ServerListProps)
                 "flex w-full cursor-pointer items-center justify-between border px-3 py-1.5 text-sm transition-colors "
                 + "disabled:cursor-default "
                 + (chosen
-                  ? "border-victory/70 bg-black/40 text-white"
-                  : "border-white/15 text-white/60 hover:text-white")
+                  ? "border-cinnabar/70 bg-stone/60 text-bone"
+                  : "border-bone/15 text-bone/60 hover:text-bone")
               }
             >
               <span>{server.name}</span>
-              <span className={full ? "text-error" : "text-white/50"}>
+              <span className={full ? "text-error" : "text-bone/50"}>
                 {full ? "Full" : `${server.players} / ${server.maxPlayers}`}
               </span>
             </button>

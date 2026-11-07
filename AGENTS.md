@@ -189,10 +189,10 @@ Decided by the user:
     by its own chances. The boar and the Goblin Warlock just keep working. The 3D player blade follows the ways.
   - A ring shows your aim all the time, For Honor style (the user: "it should bring back the ring (with the
     bottom ring missing) to consistently show what stance we're using. not just the indication on attack. similar to
-    for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. It's HUD, small at the
-    bottom centre of the screen, above the foe's bar, and the same in every camera view (the user: "attack position
-    should be the hud, so that its not hidden per view or whatever"; then the bottom centre, not the middle). Only you
-    see yours; enemies and other players get no ring, and their swings no marker.
+    for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. It's HUD, at the bottom
+    centre of the screen, above the foe's bar, and the same in every camera view (the user: "attack position should
+    be the hud, so that its not hidden per view or whatever"; then the bottom centre, not the middle; then "the rings
+    should be bigger"). Only you see yours; enemies and other players get no ring, and their swings no marker.
   - Another's swing is read off its weapon (the user picked the weapon cue: "we need to make sure our models and
     animations clearly show the sword swing"): its blade drawn back on the side the swing comes from (each of the 7
     ways, and a stab's hand drawn back with the blade level), further for a heavy; a glint at the blade's tip just
@@ -612,10 +612,11 @@ them; treat them as changeable, and still ask before deciding new ones):
     2.8 s (`BREAKTHROUGH` in `sphere.ts`). With the portrait up, the card turns to the core for it and back 4.3 s after
     it began; a click turns it back sooner. Several steps at once are one breakthrough. The admin's step buttons and a
     step lost on death change the sphere with no moment.
-  - The card is 128 px wide, bottom left in both modes: the portrait (the creation one, at 2x) and your name in a band
-    on its front, the sphere and the step's name ("Middle Yan 炎"; the glyph for Yan, Ling and Tian) on its back; it
-    turns in 0.6 s. It stays turned between the overworld and fights (not after returning to the title), and in a fight
-    it shows the fight's core, so a breakthrough there shows at once. No key turns it.
+  - The card is 128 px wide, bottom left in both modes: the portrait (the creation one, at 2x) and your name under it
+    on its front, the sphere and the step's name ("Middle Yan") on its back, each name after the realm's seal (its
+    glyph, for Yan, Ling and Tian); it turns in 0.6 s. It stays turned between the overworld and fights (not after
+    returning to the title), and in a fight it shows the fight's core, so a breakthrough there shows at once. No key
+    turns it.
   - The realm line under the bars is gone: the card's back and the character panel name the step.
   - The chat and the arena's hotbar moved up above the card, and the notices keep clear of its right edge.
   - It's painted at most 30 times a second and only while the core side shows (under 1 ms a paint).
@@ -681,12 +682,12 @@ them; treat them as changeable, and still ask before deciding new ones):
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the
     old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
-  - The aim ring: 7 faint wedges 30 px (the HUD's CSS pixels) round a point 160 px above the screen's bottom middle,
-    clear of the foe's bar and its statuses, the aimed one gold, and a gold diamond in its middle while a stab winds
-    up; hidden with no sword in hand, once you're down and once the fight is decided. The crosshair is a small white
-    cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any Form)
-    or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`). Unlocked,
-    the aim is the level way from you to the first foe, the floor or the wall on the screen's centre line
+  - The aim ring: 7 faint wedges 48 px (the HUD's CSS pixels) round a point 176 px above the screen's bottom middle,
+    clear of the foe's bar and its statuses, the aimed one cinnabar, and a cinnabar diamond in its middle while a stab
+    winds up; hidden with no sword in hand, once you're down and once the fight is decided. The crosshair is a small
+    bone cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any
+    Form) or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`).
+    Unlocked, the aim is the level way from you to the first foe, the floor or the wall on the screen's centre line
     (`crosshairAim` in `client/src/modes/battle/input.ts`), so with a camera off to the side a shot still crosses the
     centre line at what the crosshair shows (a foe under it is hit); nearer than 1 m ahead, it's the camera's way.
     Both, the lock-on diamond and other fighters' chant words are HUD: drawn sharp at full resolution over the pixel
@@ -706,11 +707,15 @@ them; treat them as changeable, and still ask before deciding new ones):
   stuns ×0.5, no knockback), Darkness + Fire Bloodrage (8 s, ×1.35 dealt, ×1.25 taken). A used-up Light shield comes
   off; Warded and Bulwark stop an Air skill's push too, and Charged speeds a casting enemy's refill as a player's.
 - The battle HUD (the user: "make sure the battle hud looks nice"; the look is the agent's, checked in a headless
-  browser at 1366x768 and 1920x1080, not hand-played): your HP bar, with its numbers, and stamina bar top left, gilt
-  framed, and your statuses under them; the foe's name, its statuses and its bar at the bottom. A status is a tile
-  with its icon (`client/src/ui/hud/statusLooks.ts`), gold-rimmed for a buff and red for a debuff, darkened
+  browser at 1366x768 and 1920x1080, not hand-played): your HP bar, with its numbers right of it, and stamina bar top
+  left, and your statuses under them; the foe's name, its statuses and its bar at the bottom. A status is a tile
+  with its icon (`client/src/ui/hud/statusLooks.ts`), a bone line for a buff and cinnabar for a debuff, darkened
   clockwise as its time runs out, with whole seconds left under it and its stacks in the corner (from 2). Buffs come
-  before debuffs. The overworld's bars got the same frame. There's no mana bar: stamina is the only one.
+  before debuffs. The overworld's bars are the same. There's no mana bar: stamina is the only one.
+- The HUD's and the menus' look is "Inscribed" (the user picked it from the HUD lab's mockups: "inscribed is pretty
+  good… enemy health should be red though still"): carved bars with pointed ends and a notch every tenth, cut-corner
+  frames, Gill Sans capitals, bone text and a cinnabar seal on names, the foe's bar red (ART.md's "HUD and menus").
+  It replaced the gilt look outright, with no setting to switch back.
 - Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the

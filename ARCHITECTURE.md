@@ -579,10 +579,11 @@ main.ts
   (`GameRequests`), forwarded once it has loaded. A message the server takes as it is goes through `request(msg)`;
   `OVERWORLD_ONLY` in `game.ts` keeps the ones that only make sense on the overworld from going out anywhere else.
 - **Styling is Tailwind v4** (`@tailwindcss/vite`, no config file). Colours and fonts are `@theme` tokens in
-  `client/src/ui/styles.css` (`bg-hp`, `text-victory`, `font-title`, ...), shared pieces are `@utility` classes
-  (`bar`, `bar-layer`). Write each class name out in full (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``),
-  because Tailwind can't find names built from pieces; joining whole names (a long list over two strings) is
-  fine. Motion comes with `motion-reduce:animate-none`.
+  `client/src/ui/styles.css` (`bg-hp`, `text-bone`, `text-cinnabar`, `font-seal`, ...), shared pieces are `@utility`
+  classes (`bar`, `bar-layer`, `carved`, `clip-pointed`, `cut-*` with `clip-cut` or `engraved`), and the range and
+  checkbox inputs are styled once there; the look is ART.md's "HUD and menus". Write each class name out in full
+  (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``), because Tailwind can't find names built from pieces; joining
+  whole names (a long list over two strings) is fine. Motion comes with `motion-reduce:animate-none`.
 - **Every screen sees the same amount, at most**: 16:9 (`shared/src/overworld/view.ts`).
   `client/index.html` puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see
   a little less width. Every window fits that frame: the side panels (bag, shop, character) shrink to fit with
@@ -1479,15 +1480,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
-      styles.css       Tailwind v4 entry + @theme tokens
+      styles.css       Tailwind v4 entry + @theme tokens, the Inscribed utilities (carved bars, cut-corner frames)
+                       and the range and checkbox inputs
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
-                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers),
-                       styles.ts (BUTTON,
-                       TEXT_INPUT), Modal.tsx (Settings' and the questbook's frame over the game), CloseButton.tsx
-                       (the ✕ of every panel and screen), Confirm.tsx (a question with two answers: a duel challenge,
-                       leaving the drops), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the
-                       game), useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
-                       portrait, or the chibi facing front)
+                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers
+                       right of the bars), EngravedFrame.tsx (a picture behind cut corners and a double engraved
+                       line: the card, the dialogue, the character panel), styles.ts (BUTTON, TEXT_INPUT,
+                       PANEL_TITLE, PANEL_HEAD, WELL, LABEL), Modal.tsx (Settings' and the questbook's frame over
+                       the game), CloseButton.tsx (the ✕ of every panel and screen), Confirm.tsx (a question with two
+                       answers: a duel challenge, leaving the drops), noFocus.ts (buttons a click can't focus, so Space
+                       / Enter stay with the game), useAction.ts (a component listening for actions), LookPicture.tsx (a
+                       look on a canvas: the portrait, or the chibi facing front)
       hud/             Hud.tsx (the shell both modes' HUDs are: your bars and statuses top left, the ping top right,
                        the Interact button ("Rest by the fire" / "Join the fight" / "Open the pile" / "Talk" /
                        "Look" / "Bind to this pad"), the panel and Interact keys, and the side panels, one at a time:
@@ -1497,7 +1500,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        OverworldHud.tsx (the overworld's mode and extras: your name, region name, the
                        buttons, the compass, the challenge key and a challenge's Accept / Decline notice; its bag is
                        your save's, with the cloth and the shop), StatusRow.tsx (status tiles: an
-                       icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;
+                       icon, a dark sweep for the time gone, seconds left, stacks; a bone line for a buff, cinnabar
+                       for a debuff;
                        statusLooks.ts: each status's name, colour and SVG icon), inscriptions.ts (INSCRIPTION_TEXT:
                        what each does, for the bag, the shop and the character panel), blessings.ts (GOD_NAMES,
                        BLESSING_TEXT),
@@ -1507,11 +1511,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        gear with the drops' pile), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left
                        in both modes, under the chat: your portrait and name, turned by a click, or on a breakthrough
                        for its moment, to your core, gfx/core/'s sphere painted while it shows, and
-                       the realm and step), character/ (CharacterPanel.tsx: the
-                       panel and its tabs, from panelTabs.ts's tables, drawn by Tabs.tsx; StatsTab.tsx: the
-                       portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
-                       between − (only by a campfire) and + for free points, hovering them previewing the change and
-                       what the stat does; CoreTab.tsx: the sphere big, with its rings, and the rings listed;
+                       the realm and step), RealmSeal.tsx (the realm's glyph as a cinnabar seal before your name,
+                       the step's and the result banner; none for a realm without a glyph), character/
+                       (CharacterPanel.tsx: the panel and its tabs, from panelTabs.ts's tables, drawn by Tabs.tsx;
+                       StatsTab.tsx: the portrait, the core's realm and step, the shown stats as a polygon chart, each
+                       one's number between − (only by a campfire) and + for free points, hovering them previewing the
+                       change and what the stat does; CoreTab.tsx: the sphere big, with its rings, and the rings listed;
                        RelationshipsTab.tsx: its sub-tabs, so far only Gods, your faith with each; chart.ts:
                        chartPoints, the polygon's corners for any number of stats, and chartMax, its rim: the most a
                        stat could be at the step), paintSphere.ts (usePaintedSphere: a sphere painted onto a canvas
@@ -1561,8 +1566,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form, or the server list, Play / Retry and Log out; status line, the
                          sequence's layers), LoginForm.tsx, ServerList.tsx (name and players / cap, or Full),
-                         MenuButton.tsx (the big "◆ Play"), styles.ts, sequence.ts (the enter / leave sequences'
-                         stages and timing), useSequence.ts (the stage for the title's phase)
+                         MenuButton.tsx (the big "Play", marked with a cinnabar bar), styles.ts, sequence.ts (the
+                         enter / leave sequences' stages and timing), useSequence.ts (the stage for the title's phase)
           backdrop/        The title's low-poly scene on a 2D canvas: Backdrop.tsx (the scene + light shafts, motes,
                          grain, vignette), Scene.tsx (canvas, frame loop), draw.ts (painter's order, glow layer),
                          world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,

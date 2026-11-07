@@ -127,7 +127,7 @@ function Creation() {
   return (
     <div
       id="creation-screen" data-step={active ? step : "waiting"}
-      className={`fixed inset-0 overflow-hidden bg-white font-ui select-none ${
+      className={`fixed inset-0 overflow-hidden bg-white select-none ${
         out ? "animate-white-in [animation-direction:reverse]" : ""
       }`}
       style={out ? { animationDuration: `${OUT_MS[motion]}ms`, animationDelay: `${CONTENT_OUT_MS[motion]}ms` }

@@ -1,20 +1,19 @@
 import { coreName } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
-import { coreLight, REALM_LOOKS } from "../../gfx/core/light.js";
 import { BREAKTHROUGH, CoreSphere, SPHERE_PX } from "../../gfx/core/sphere.js";
+import { EngravedFrame } from "../components/EngravedFrame.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX } from "./layout.js";
 import { usePaintedSphere } from "./paintSphere.js";
+import { RealmSeal } from "./RealmSeal.js";
 
-const FACE =
-  "col-start-1 row-start-1 overflow-hidden rounded-sm bg-black ring-1 ring-victory/50 backface-hidden "
-  + "group-hover:ring-victory";
+const FACE = "col-start-1 row-start-1 backface-hidden";
 const BAND =
-  "h-5 truncate border-t border-victory/30 px-1 text-center font-title text-[11px]/5 tracking-[0.14em] "
-  + "text-victory uppercase";
+  "mt-1 flex h-5 items-center justify-center gap-2 text-xs/5 font-semibold tracking-[0.24em] text-bone uppercase "
+  + "text-shadow-hud";
 const BREAKTHROUGH_SHOWN_MS = BREAKTHROUGH.endTime * 1000 + 1500;
 
 export function CoreCard() {
@@ -52,7 +51,6 @@ export function CoreCard() {
 
   usePaintedSphere(canvas, sphere, showCore);
 
-  const glyph = core ? REALM_LOOKS[coreLight(core.steps).realm].glyph : "";
   return (
     <button
       type="button" id="core-card" data-face={showCore ? "core" : "portrait"} {...NO_FOCUS}
@@ -70,17 +68,25 @@ export function CoreCard() {
         }`}
       >
         <div className={FACE}>
-          <div className="aspect-square bg-linear-to-b from-night to-black">
-            {look && <LookPicture look={look} view="portrait" className="size-full" />}
+          <EngravedFrame className="aspect-square">
+            {look && <LookPicture look={look} view="portrait" className="block size-full" />}
+          </EngravedFrame>
+          <div className={BAND}>
+            <RealmSeal core={core} />
+            <span className="truncate">{name}</span>
           </div>
-          <div className={BAND}>{name}</div>
         </div>
         <div className={`${FACE} rotate-y-180`}>
-          <canvas
-            ref={canvas} id="core-sphere" width={SPHERE_PX} height={SPHERE_PX} aria-hidden
-            className="aspect-square w-full [image-rendering:pixelated]"
-          />
-          <div id="core-card-name" className={BAND}>{core && `${coreName(core)} ${glyph}`}</div>
+          <EngravedFrame>
+            <canvas
+              ref={canvas} id="core-sphere" width={SPHERE_PX} height={SPHERE_PX} aria-hidden
+              className="block aspect-square w-full [image-rendering:pixelated]"
+            />
+          </EngravedFrame>
+          <div className={BAND}>
+            <RealmSeal core={core} />
+            <span id="core-card-name" className="truncate">{core && coreName(core)}</span>
+          </div>
         </div>
       </div>
     </button>

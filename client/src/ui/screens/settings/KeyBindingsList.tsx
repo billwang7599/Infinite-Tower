@@ -65,7 +65,7 @@ export function KeyBindingsList({ bindings, input }: { bindings: KeyBindings; in
           unbind={(action, key) => bindings.unbind(action, key)}
         />
       ))}
-      <p aria-live="polite" className="sticky bottom-0 min-h-10 bg-night py-2.5 text-sm text-victory">{notice}</p>
+      <p aria-live="polite" className="sticky bottom-0 min-h-10 bg-stone py-2.5 text-sm text-cinnabar">{notice}</p>
     </div>
   );
 }
@@ -83,7 +83,7 @@ function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps)
   const hasMouse = actions.some((a) => actionDef(a).mouse || actionDef(a).wheel);
   return (
     <section className="mt-4">
-      <h4 className="mb-1 text-xs tracking-[0.3em] text-white/45 uppercase">{GROUP_TITLES[group]}</h4>
+      <h4 className="mb-1 text-xs tracking-[0.3em] text-bone/45 uppercase">{GROUP_TITLES[group]}</h4>
       {actions.map((action) => (
         <BindingRow
           key={action.action}
@@ -137,8 +137,8 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
               aria-label={`Add a key for ${def.label}`}
               onClick={() => listenFor(null)}
               className={
-                "h-7 w-7 cursor-pointer rounded-sm border border-dashed border-white/25 text-white/45 "
-                + "transition-colors hover:border-white/60 hover:text-white"
+                "h-7 w-7 cursor-pointer border border-dashed border-bone/25 text-bone/45 transition-colors "
+                + "hover:border-cinnabar hover:text-cinnabar"
               }
             >
               +
@@ -146,7 +146,7 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
           )
         )}
         {mouseColumn && (
-          <span className="ml-1 w-22 text-right text-xs text-white/45">
+          <span className="ml-1 w-22 text-right text-xs text-bone/45">
             {[...def.mouse?.map(mouseName) ?? [], ...def.wheel ? [WHEEL_NAME] : []].join(" / ")}
           </span>
         )}
@@ -168,19 +168,18 @@ function KeyChip({ code, change, remove }: ChipProps) {
     <span
       data-key={code}
       className={
-        "inline-flex h-7 items-stretch rounded-sm border border-b-2 border-white/25 bg-white/8 text-[13px] "
-        + "font-semibold"
+        "inline-flex h-7 items-stretch bg-pit/55 text-xs font-semibold inset-ring inset-ring-bone/33"
       }
     >
       {change ? (
         <button
           type="button" aria-label={`Change ${name}`} onClick={change}
-          className="min-w-7 cursor-pointer px-2 transition-colors hover:text-victory"
+          className="min-w-7 cursor-pointer px-2 transition-colors hover:text-cinnabar"
         >
           {name}
         </button>
       ) : (
-        <span className="flex min-w-7 items-center justify-center px-2 text-white/60">{name}</span>
+        <span className="flex min-w-7 items-center justify-center px-2 text-bone/60">{name}</span>
       )}
       {remove && (
         <button
@@ -188,8 +187,8 @@ function KeyChip({ code, change, remove }: ChipProps) {
           aria-label={`Remove ${name}`}
           onClick={remove}
           className={
-            "cursor-pointer border-l border-white/15 px-1.5 font-normal text-white/40 transition-colors "
-            + "hover:text-white"
+            "cursor-pointer border-l border-bone/15 px-1.5 font-normal text-bone/40 transition-colors "
+            + "hover:text-cinnabar"
           }
         >
           ×
@@ -203,7 +202,7 @@ function PressAKey() {
   return (
     <span
       className={
-        "inline-flex h-7 animate-pulse items-center rounded-sm border border-victory px-2 text-[13px] text-victory "
+        "inline-flex h-7 animate-pulse items-center px-2 text-xs text-cinnabar inset-ring inset-ring-cinnabar "
         + "motion-reduce:animate-none"
       }
     >

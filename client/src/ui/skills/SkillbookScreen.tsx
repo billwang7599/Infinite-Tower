@@ -2,12 +2,15 @@ import { skillOf, wordsOf, type Word } from "@infinite-tower/shared";
 import { useMemo, useState } from "react";
 import { CloseButton } from "../components/CloseButton.js";
 import { NO_FOCUS } from "../components/noFocus.js";
-import { BUTTON } from "../components/styles.js";
+import { BUTTON, PANEL_HEAD, PANEL_TITLE } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
 import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { NO_CHANT, skillText, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
+
+const PAGE = "flex h-16 w-full cursor-pointer flex-col border-l-3 bg-pit/50 px-2 py-1 text-left inset-ring";
+const PAGE_IDLE = "border-bone/35 inset-ring-bone/16 hover:bg-bone/5";
 
 export function SkillbookScreen({ writingPage = null }: { writingPage?: number | null }) {
   const { ui: { skills, skillbookScreen }, input, actions: { saveSkill: save } } = useGame();
@@ -34,11 +37,11 @@ export function SkillbookScreen({ writingPage = null }: { writingPage?: number |
       id="skillbook" aria-label="Skillbook"
       className={
         "pointer-events-auto absolute top-1/2 left-1/2 w-[min(720px,90%)] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)] overflow-y-auto "
-        + "rounded-sm border border-white/15 bg-night/95 px-6 py-5 font-normal shadow-[0_12px_40px_#000a]"
+        + "cut-14 engraved px-7 py-6 font-normal"
       }
     >
-      <header className="mb-3 flex items-center justify-between">
-        <h2 className="font-title text-2xl tracking-[0.12em] text-victory">Skillbook</h2>
+      <header className={`mb-3 ${PANEL_HEAD}`}>
+        <h2 className={PANEL_TITLE}>Skillbook</h2>
         <CloseButton close={close} />
       </header>
       <ol className="mb-4 grid grid-cols-4 gap-2">
@@ -46,18 +49,16 @@ export function SkillbookScreen({ writingPage = null }: { writingPage?: number |
           <li key={i}>
             <button
               type="button" {...NO_FOCUS} data-page={i} onClick={() => turnTo(i)}
-              className={`flex h-16 w-full cursor-pointer flex-col rounded-sm border px-2 py-1 text-left ${
-                i === page ? "border-victory bg-victory/10" : "border-white/15 hover:bg-white/5"
-              }`}
+              className={`${PAGE} ${i === page ? "border-cinnabar inset-ring-cinnabar/50" : PAGE_IDLE}`}
             >
-              <span className="text-xs text-victory">Page {i + 1}</span>
+              <span className="text-xs text-verdigris">Page {i + 1}</span>
               <span className="line-clamp-2 text-xs">{written ? skillText(written) : "Blank"}</span>
             </button>
           </li>
         ))}
       </ol>
       {known.size === 0
-        ? <p className="text-center text-sm text-white/60">You don't know any words yet.</p>
+        ? <p className="text-center text-sm text-bone/60">You don't know any words yet.</p>
         : (
           <SkillBuilder chant={chant} known={known} input={input} change={setChant} />
         )}
@@ -70,7 +71,7 @@ export function SkillbookScreen({ writingPage = null }: { writingPage?: number |
         </button>
       </div>
       {writingPage !== null && (
-        <p id="skillbook-writing" className="mt-3 text-center text-xs text-white/70">
+        <p id="skillbook-writing" className="mt-3 text-center text-xs text-bone/70">
           Writing on page {writingPage + 1}…
         </p>
       )}

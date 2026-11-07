@@ -1,7 +1,7 @@
 import { SAVE_IN_FIGHT_TIME, skillOf, type Word } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import { NO_FOCUS } from "../components/noFocus.js";
-import { BUTTON } from "../components/styles.js";
+import { BUTTON, PANEL_TITLE } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
 import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
@@ -43,10 +43,10 @@ export function ChantPopup() {
       id="chant" aria-label="Chant"
       className={
         "pointer-events-auto absolute top-1/2 left-1/2 w-[min(640px,88%)] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)] overflow-y-auto "
-        + "rounded-sm border border-white/15 bg-night/75 px-6 py-5 font-normal shadow-[0_12px_40px_#000a]"
+        + "cut-14 engraved px-7 py-6 font-normal"
       }
     >
-      <h2 className="mb-2 text-center font-title text-2xl tracking-[0.12em] text-victory">Chant</h2>
+      <h2 className={`mb-3 text-center ${PANEL_TITLE}`}>Chant</h2>
       <SkillBuilder chant={state} known={known} input={input} busy={busy} change={(to) => chant.set(to)} />
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <button
@@ -66,11 +66,11 @@ export function ChantPopup() {
         ))}
       </div>
       {busy && (
-        <div id="chant-writing" className="mt-3 text-center text-xs text-white/70">
+        <div id="chant-writing" className="mt-3 text-center text-xs text-bone/70">
           Writing on page {writingPage + 1}…
-          <div className="mt-1 h-1.5 bg-white/10">
+          <div className="mt-1 h-1.5 carved">
             <div
-              className="h-full origin-left animate-page-fill bg-victory"
+              className="h-full origin-left animate-page-fill bg-cinnabar"
               style={{ animationDuration: `${SAVE_IN_FIGHT_TIME}s` }}
             />
           </div>

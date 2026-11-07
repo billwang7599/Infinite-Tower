@@ -4,8 +4,10 @@ import {
   SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type Character, type CoreState,
   type ShownStat, type Stats,
 } from "@infinite-tower/shared";
+import { EngravedFrame } from "../../components/EngravedFrame.js";
 import { LookPicture } from "../../components/LookPicture.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
+import { RealmSeal } from "../RealmSeal.js";
 import { CHART_RADIUS_PX, CHART_RINGS, chartMax, chartPoints, LABEL_RADIUS_PX } from "./chart.js";
 
 const times = (factor: number) => `×${factor.toFixed(2)}`;
@@ -27,8 +29,8 @@ const STAT_TEXT: Record<ShownStat, { name: string; short?: string; effect: (stat
 };
 
 const POINT_BUTTON =
-  "pointer-events-auto size-5 cursor-pointer rounded-sm border border-white/25 leading-none "
-  + "enabled:hover:border-white/60 enabled:hover:bg-white/10 disabled:cursor-default disabled:opacity-30";
+  "pointer-events-auto size-5 cursor-pointer bg-pit/65 leading-none inset-ring inset-ring-bone/30 "
+  + "enabled:hover:bg-bone/10 enabled:hover:inset-ring-cinnabar disabled:cursor-default disabled:opacity-30";
 
 const svgPoints = (points: [number, number][]) => points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 const allAt = (value: number) => SHOWN_STATS.map(() => value);
@@ -62,20 +64,20 @@ function StatChart({ core, byFire, statPoint }: ChartProps) {
           aria-hidden width={2 * VIEW} height={2 * VIEW} viewBox={`${-VIEW} ${-VIEW} ${2 * VIEW} ${2 * VIEW}`}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         >
-          {RING_SHAPES.map((ring) => <polygon key={ring} points={ring} className="fill-none stroke-white/15" />)}
+          {RING_SHAPES.map((ring) => <polygon key={ring} points={ring} className="fill-none stroke-bone/15" />)}
           {SPOKE_ENDS.map(([x, y], i) => (
             <line
               key={SHOWN_STATS[i]} x1={0} y1={0} x2={x} y2={y}
-              className={hovered === SHOWN_STATS[i] ? "stroke-white/50" : "stroke-white/15"}
+              className={hovered === SHOWN_STATS[i] ? "stroke-bone/50" : "stroke-bone/15"}
             />
           ))}
           <polygon
-            points={shape(stats)} strokeWidth={1.5} strokeLinejoin="round" className="fill-victory/30 stroke-victory"
+            points={shape(stats)} strokeWidth={1.5} strokeLinejoin="round" className="fill-cinnabar/20 stroke-cinnabar"
           />
           {previewStats && (
             <polygon
               id="character-chart-preview" points={shape(previewStats)} strokeWidth={1.5} strokeDasharray="3 2"
-              strokeLinejoin="round" className="fill-white/10 stroke-white"
+              strokeLinejoin="round" className="fill-bone/10 stroke-bone"
             />
           )}
         </svg>
@@ -91,7 +93,7 @@ function StatChart({ core, byFire, statPoint }: ChartProps) {
                 transform: `translate(${-50 + (50 * x) / LABEL_RADIUS_PX}%, ${-50 + (50 * y) / LABEL_RADIUS_PX}%)`,
               }}
             >
-              <span className={`whitespace-nowrap ${hovered === key ? "text-white" : "text-white/75"}`}>
+              <span className={`whitespace-nowrap ${hovered === key ? "text-bone" : "text-bone/75"}`}>
                 {text.short ?? text.name}
               </span>
               <span className="flex items-center gap-1">
@@ -103,7 +105,7 @@ function StatChart({ core, byFire, statPoint }: ChartProps) {
                 >
                   −
                 </button>
-                <span className="min-w-6 text-center text-sm text-victory tabular-nums">{stats[key]}</span>
+                <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{stats[key]}</span>
                 <button
                   type="button" aria-label={`Place a point in ${text.name}`} {...NO_FOCUS}
                   className={POINT_BUTTON} disabled={free <= 0}
@@ -117,16 +119,16 @@ function StatChart({ core, byFire, statPoint }: ChartProps) {
           );
         })}
       </div>
-      <p id="character-stat-effect" className="mt-2 min-h-12 text-xs text-white/55">
+      <p id="character-stat-effect" className="mt-2 min-h-12 text-xs text-bone/55">
         {hovered && (
           <>
-            <span className="font-semibold text-white">{STAT_TEXT[hovered].name}</span>
+            <span className="font-semibold text-bone">{STAT_TEXT[hovered].name}</span>
             <br />
             {STAT_TEXT[hovered].effect(stats)}
             {previewStats && (
               <>
                 <br />
-                <span className="text-white/85">→ {STAT_TEXT[hovered].effect(previewStats)}</span>
+                <span className="text-bone/85">→ {STAT_TEXT[hovered].effect(previewStats)}</span>
               </>
             )}
           </>
@@ -145,14 +147,16 @@ export function StatsTab({ character, core, byFire, statPoint }: StatsTabProps) 
     <div className="flex h-full gap-6">
       <div className="flex w-[140px] shrink-0 flex-col gap-2">
         {character && (
-          <LookPicture
-            look={character.look} view="portrait"
-            className="size-[140px] rounded-sm bg-linear-to-b from-night to-black ring-1 ring-white/10"
-          />
+          <EngravedFrame>
+            <LookPicture look={character.look} view="portrait" className="block size-[140px]" />
+          </EngravedFrame>
         )}
-        <span id="character-core" className="font-title text-base tracking-wide text-victory">{coreName(core)}</span>
-        <span id="character-points" className="text-xs text-white/70">
-          Free points: <span className="font-semibold text-white tabular-nums">{pointsLeft(core)}</span>
+        <span className="flex items-center gap-2 text-[13px] tracking-[0.2em] uppercase">
+          <RealmSeal core={core} />
+          <span id="character-core">{coreName(core)}</span>
+        </span>
+        <span id="character-points" className="text-xs text-bone/70">
+          Free points: <span className="font-semibold text-bone tabular-nums">{pointsLeft(core)}</span>
         </span>
       </div>
       <div className="min-w-0 flex-1">

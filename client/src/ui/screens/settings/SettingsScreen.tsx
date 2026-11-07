@@ -47,14 +47,14 @@ function HudSection({ hud }: { hud: HudSettings }) {
       <div className={`mt-2 ${SETTING_ROW}`}>
         <label htmlFor="show-ping" className="flex flex-col">
           <span className={SETTING_LABEL}>Show ping</span>
-          <span className="text-xs text-white/45">The round trip to the server, in the top-right corner</span>
+          <span className="text-xs text-bone/45">The round trip to the server, in the top-right corner</span>
         </label>
         <input
           id="show-ping"
           type="checkbox"
           checked={showPing}
           onChange={(e) => hud.setShowPing(e.currentTarget.checked)}
-          className={`size-4 cursor-pointer accent-victory ${FOCUS_RING}`}
+          className={`cursor-pointer ${FOCUS_RING}`}
         />
       </div>
     </section>
@@ -65,10 +65,10 @@ function HudSection({ hud }: { hud: HudSettings }) {
 function Footer({ close, returnToTitle }: { close: () => void; returnToTitle: () => void }) {
   const [confirming, setConfirming] = useState(false);
   return (
-    <footer className="flex items-center justify-between gap-4 border-t border-white/10 px-7 py-4">
+    <footer className="mx-7 mb-2 flex items-center justify-between gap-4 border-t border-bone/13 py-4">
       {confirming ? (
         <>
-          <span className="text-sm text-white/75">Are you sure?</span>
+          <span className="text-sm text-bone/75">Are you sure?</span>
           <span className="flex gap-2">
             <button type="button" autoFocus onClick={() => setConfirming(false)} className={BUTTON.plain}>Stay</button>
             <button type="button" id="settings-leave" onClick={returnToTitle} className={BUTTON.danger}>
@@ -78,7 +78,7 @@ function Footer({ close, returnToTitle }: { close: () => void; returnToTitle: ()
         </>
       ) : (
         <>
-          <button type="button" id="settings-return" onClick={() => setConfirming(true)} className={BUTTON.plain}>
+          <button type="button" id="settings-return" onClick={() => setConfirming(true)} className={BUTTON.danger}>
             Return to title
           </button>
           <button type="button" autoFocus onClick={close} className={BUTTON.primary}>

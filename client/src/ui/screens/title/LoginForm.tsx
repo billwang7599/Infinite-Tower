@@ -9,7 +9,7 @@ import type { SignInKind, UiActions } from "../../state.js";
 import { MenuButton } from "./MenuButton.js";
 import { LINK } from "./styles.js";
 
-const FIELD = `${TEXT_INPUT} w-72 placeholder:text-white/35 disabled:opacity-50`;
+const FIELD = `${TEXT_INPUT} w-72 disabled:opacity-50`;
 
 export function LoginForm({ busy, submit }: { busy: boolean; submit: UiActions["signIn"] }) {
   const [kind, setKind] = useState<SignInKind>("login");
@@ -40,7 +40,7 @@ export function LoginForm({ busy, submit }: { busy: boolean; submit: UiActions["
       />
       <MenuButton
         type="submit" disabled={busy}
-        className="mt-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-victory"
+        className="mt-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cinnabar"
       >
         {registering ? "Create account" : "Log in"}
       </MenuButton>
