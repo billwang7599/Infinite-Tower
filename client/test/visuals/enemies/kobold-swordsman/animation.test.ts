@@ -135,6 +135,7 @@ describe("a hit-stop on a kobold: its blade holds, then goes on with no jump", (
     world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
     world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
     world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
+    world.add(e, FighterStats, BASE_STATS);
     const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "weapon", stateTime: 0, duration: 0.5, yaw: 0 } as
       unknown as EnemyData);
     const wielder = world.add(e, Wielder,
@@ -194,12 +195,14 @@ describe("a kobold raises its guard while its block is up", () => {
     { visual: koboldGreatswordVisual, weapon: "kobold-greatsword" },
   ] as const;
 
-  function run({ visual, weapon }: (typeof kobolds)[number], stunAt: number, blocks = true) {
+  function run(
+    { visual, weapon }: (typeof kobolds)[number], stunAt: number, blocks = true, strength = BASE_STATS.strength,
+  ) {
     const scene = new Scene(new NullEngine()), world = new World(), e = world.spawn();
     world.add(e, Body, { pos: { x: 0, y: 0.9, z: 0 }, vel: { x: 0, y: 0, z: 0 }, centerHeight: 0.9, collider: 0 });
     world.add(e, Health, { hp: 30, max: 30, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
     world.add(e, Skilled, { chanting: false, casting: null } as unknown as SkilledData);
-    world.add(e, FighterStats, BASE_STATS);
+    world.add(e, FighterStats, { ...BASE_STATS, strength });
     const enemy = world.add(e, Enemy, { def: { radius: 0.5 }, state: "approach", stateTime: 0, duration: 0, yaw: 0 } as
       unknown as EnemyData);
     world.add(e, Wielder, newWielder({ rightHand: weapon, leftHand: null, active: "rightHand" }, ARM_REACH_M));
@@ -236,7 +239,8 @@ describe("a kobold raises its guard while its block is up", () => {
 
   for (const kobold of kobolds) {
     test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by heft, never jumping`, () => {
-      const { frames, upAt } = run(kobold, STUN_AT), shiftTime = guardShiftTime(WEAPONS[kobold.weapon].heft);
+      const { frames, upAt } = run(kobold, STUN_AT);
+      const shiftTime = guardShiftTime(WEAPONS[kobold.weapon], BASE_STATS.strength);
       const at = (time: number) => frames.find((f) => f.time >= time - 1e-9)!.hand;
       assert.ok(upAt > BLOCK_REACT_TIME && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
       assert.ok(Vector3.Distance(at(upAt), plain) < 0.01, "on guard until its block is up");
@@ -249,12 +253,17 @@ describe("a kobold raises its guard while its block is up", () => {
     });
   }
 
+  const halfway = (kobold: (typeof kobolds)[number], strength = BASE_STATS.strength) => {
+    const { frames, upAt } = run(kobold, STUN_AT, true, strength);
+    return frames.find((f) => f.time > upAt && share(f.hand) >= 0.5)!.time - upAt;
+  };
+
   test("a heavier blade's guard rises slower", () => {
-    const halfway = (kobold: (typeof kobolds)[number]) => {
-      const { frames, upAt } = run(kobold, STUN_AT);
-      return frames.find((f) => f.time > upAt && share(f.hand) >= 0.5)!.time - upAt;
-    };
     assert.ok(halfway(kobolds[1]) > halfway(kobolds[0]) + 0.01);
+  });
+
+  test("a weaker kobold's guard rises slower, its blade felt heavier", () => {
+    assert.ok(halfway(kobolds[0], BASE_STATS.strength / 2) > halfway(kobolds[0]) + 0.01);
   });
 });
 

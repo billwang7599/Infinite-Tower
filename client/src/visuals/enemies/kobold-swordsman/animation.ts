@@ -1,7 +1,7 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, dampFactor, Enemy, guardOf, Health, itemDef, smoothstep, weaponItemIn, WEAPONS, Wielder,
-  wrapAngle, type Vec3,
+  Body, clamp, damp, dampFactor, Enemy, FighterStats, guardOf, Health, itemDef, smoothstep, weaponItemIn, WEAPONS,
+  Wielder, wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { poseArm } from "../../battle/arm.js";
@@ -77,7 +77,8 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const cut = wayCut(drawn?.way ?? "tb", true);
     const state = health.hp <= 0 ? "dead" : drawn && !swing ? "weapon" : enemy.state;
     const guard = guardOf(hands), up = !!guard && health.hp > 0 && blocking(world, e);
-    const raiseBy = guard ? (up ? poseDt : -poseDt) / guardShiftTime(guard.guard.heft) : 0;
+    const strength = world.require(e, FighterStats).strength;
+    const raiseBy = guard ? (up ? poseDt : -poseDt) / guardShiftTime(guard.guard, strength) : 0;
     nodes.guardRaised = clamp(nodes.guardRaised + raiseBy, 0, 1);
     const guardShare = smoothstep(0, 1, nodes.guardRaised);
     const pose = koboldPose(state, t, k, cut, nodes.motion,

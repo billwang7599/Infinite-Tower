@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, ITEM_IDS, itemDef, ITEMS, loosedDamage,
-  loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS, WEAPONS, wayShape,
-  wayStepsAfter, type Weapon,
+  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, ITEM_IDS, itemDef, ITEMS,
+  loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS,
+  WEAPONS, wayShape, wayStepsAfter, type Weapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
@@ -74,10 +74,11 @@ describe("the bow's draw", () => {
   });
 
   test("heft stretches its times and its cost, as it does a swing's", () => {
-    const heavy: Weapon = { ...TRAINING_BOW, heft: 1.5 };
+    const heavy: Weapon = { ...TRAINING_BOW, heft: TRAINING_BOW.heft * 1.5 }, felt = feltHeft(heavy, AVERAGE_STAT);
     assert.equal(drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), BOW.draw.fullTime);
-    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "fullTime"), BOW.draw.fullTime * 1.5);
-    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "minTime"), BOW.draw.minTime * 1.5);
-    assert.equal(drawCost(BOW, heavy, AVERAGE_STAT), BOW.draw.cost * 1.5);
+    assert.ok(felt > 1);
+    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "fullTime"), BOW.draw.fullTime * felt);
+    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "minTime"), BOW.draw.minTime * felt);
+    assert.equal(drawCost(BOW, heavy, AVERAGE_STAT), BOW.draw.cost * felt);
   });
 });

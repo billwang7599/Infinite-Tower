@@ -102,8 +102,8 @@ overhead, 16° stab), so a wide across-swing trades precision for coverage.
 **Timing.** Each attack is wind-up (readable) → live blade (~0.1 s) → recovery (~0.08 s). Wind-up depends on how the
 swing follows the last one: an opening swing or one after a stab is slowest, a reverse swing is fastest, a
 perpendicular change slowest of the chained options. Weight scales every timing by how heavy the wielder feels the
-weapon: feltWeight = max(1.0, 1 + (weight − 1) × 10 / strength). The max(1.0, …) clamp means strength can make a
-heavy weapon feel normal but never makes any weapon faster than its base — nothing goes superhuman.
+weapon: feltWeight = (weight / the Basic Sword's) × 10 / strength, one linear rule for every weapon, so strength
+lightens a light weapon as much as a heavy one; the floor below is what keeps anything from going superhuman.
 
 **The hard floor — the reactability guarantee.** After all scaling, every wind-up passes through one clamp:
 
@@ -168,9 +168,9 @@ tightly-windowed on purpose — a read, not a panic button.
 
 ## Weapons
 
-Starting values, all derived from the three stats — tune from here. Weight is relative to the Basic Sword (1.0);
-reach is the full edge reach; damage type sets the guard/armour interaction. These are points in the stat space, not
-special cases.
+Starting values, all derived from the three stats — tune from here. Weight is relative to the Basic Sword (1.0 here;
+its heft in the game is 3.0, so a heft is the weight × 3); reach is the full edge reach; damage type sets the
+guard/armour interaction. These are points in the stat space, not special cases.
 
 | Weapon | Hands | Weight | Reach (m) | Type | Plays like |
 |---|---|---|---|---|---|
@@ -231,17 +231,22 @@ These override the spec above where they differ.
    can always act while pinned.
 3. Hit-stop is local: the attacker's blade and a touch of camera stop for ~50 ms on contact. The fight never pauses
    ("nothing should ever pause the whole fight").
-4. Weapon weight: the Basic Sword is 1.0 by definition (rescale every weight by 1/1.3 from today's values). Strength can
-   never make a weapon feel lighter than its own base: felt = weight for weight < 1; felt = max(1, 1 + (weight − 1) ×
-   10 / strength) for weight ≥ 1. A light weapon's low weight does lower its wind-up, down to the floor.
+4. Weapon weight: the Basic Sword is the measure (every weight was rescaled by 1/1.3, then tripled, the user: "for all
+   swords, triple their weight"; the shield and the bow too, so every weight is on one scale: the Basic Sword, the
+   Kobold blade, the Wooden shield and the training bow 3.0, the longsword 3.57, the greatsword and the Kobold
+   greatsword 4.86; the old stick halved instead, to 0.385, and its damage 5 to 3: "half the weight of the stick. it
+   shouldnt be doing that much damage either"). Felt = (weight / the Basic Sword's) × 10 / strength, one linear rule
+   for every weapon and guard, light ones included (it replaced felt = weight under 1 and max(1, 1 + (weight − 1) ×
+   10 / strength) over it), so the Basic Sword feels 1.0 at strength 10, 2.0 at 5 and 0.5 at 20. Wherever weight
+   sets a time it's the felt weight. A light weapon's low weight lowers its wind-up, down to the floor.
 5. Every final wind-up = max(0.40 s, computed). Raise the base times and keep the spread, don't flatten it to the
    floor. Basic Sword at strength 10: reverse 0.40, other 0.48, perpendicular 0.60, opening/after a stab 0.56; heavy
    opening stays ~0.92 (#317 feel); stab 0.45. Live 0.13 s, recovery 0.10 s (today's post-#317 sword values).
 6. Momentum pays in damage only (+25%/point, cap ×2; stab cashes out +50%/point), it no longer shortens wind-ups.
 7. Phase 1 only: one sword duel that feels good. No damage types, armour, dagger/mace, three-stat weapons, enemy AI
    feints or latency budgets (that's Phase 2). Q stays an instant tap.
-8. The sword is renamed the Basic Sword: the base, comparison weapon, weight 1.0 at base strength (10), every other
-   weapon measured against it. Its stored item id stays `sword`, so saves and inventories don't break.
+8. The sword is renamed the Basic Sword: the base, comparison weapon, weight 3.0 (felt 1.0 at base strength, 10),
+   every other weapon measured against it. Its stored item id stays `sword`, so saves and inventories don't break.
 
 ## Notes from building Phase 1
 
@@ -249,7 +254,8 @@ These override the spec above where they differ.
   recovery, a whiff's longer one and a feint's all land on the hand that swung, and that hand can't swing until it's
   over; with a blade in each hand the other may. There's no per-fighter feint counter.
 - #322's felt-heft numbers were rescaled with the Basic Sword at 1: a feint recovers 0.38 s × felt heft (was 0.3 ×
-  the old 1.3, so the Basic Sword's stays 0.38 s), and a whiff adds 0.2 s × felt heft (0.2 s with the Basic Sword).
+  the old 1.3, so the Basic Sword's stays 0.38 s at strength 10), and a whiff adds 0.2 s × felt heft (0.2 s with the
+  Basic Sword at strength 10).
   A whiff still holds the whole body (no dodge, block, switch or other hand) until it ends, as #322 has it.
 - Enemies swing by the player's math (the user: "nobody should have any special preset table that differs from the
   math"): the swordsmen's def `windup`, `chainWindup` and `recover` (and #325's × 1.3 on them) are gone; a Kobold, the

@@ -101,7 +101,7 @@ export const parryWindowTime = (weapon: Weapon): number =>
   HYBRID.parry.windowTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
 export const guardRaiseTime = (weapon: Guard, strength: number): number =>
-  HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft;
+  Math.max(0, HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft);
 
 export type ParryKind = "full" | "partial";
 

@@ -337,8 +337,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     Blocking is posed by what blocks (`BLOCK`, `guardPose` in `battle/guard.ts`): one blade held across the body,
     edge out, the other hand under it (a two-handed blade's too); two crossed in an X above the hands, edges out, a
     blade's width apart where they cross; a shield raised before the chest, facing the foe, the sword kept in its
-    guard. A change of guard, or into or out of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's heft
-    or the shield's), a near half turn going over the top rather than under; a swing still takes over by its own
+    guard. A change of guard, or into or out of a block, eases over `GUARD_SHIFT` (0.1 s, longer by the weapon's or
+    the shield's felt heft), a near half turn going over the top rather than under; a swing still takes over by its own
     timing (`easeArms` in `animation.ts`). An enemy blocks in the same stance (Bram as a person; the Kobolds' own rig
     through `guardPose`, its spots measured lower and further out, `KOBOLD_GUARD_FIT`, to clear the snout and the
     leaning chest; the Kobold Shieldbearer carries its shield by `carryPose` and raises it), raised while the fight
