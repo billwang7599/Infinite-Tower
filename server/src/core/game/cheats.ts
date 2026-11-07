@@ -31,6 +31,10 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       battle?.room.edit(battle.seat, (world, me) => { world.require(me, Player).invulnerable = cheat.on; });
       session.link.send({ t: "invulnerable", on: cheat.on });
       return;
+    case "keepInventory":
+      session.keepInventory = cheat.on;
+      session.link.send({ t: "keepInventory", on: cheat.on });
+      return;
     case "give": {
       if (!session.inWorld) return;
       let left = 0;

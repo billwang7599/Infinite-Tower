@@ -5,7 +5,7 @@ import {
   PlayerInput, type Bag, type Equipment, type ItemCounts, type Vec2,
 } from "@infinite-tower/shared";
 import { initPhysics, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
-import { newPlayer, STARTER_BACKPACK } from "../../../src/core/content/player.js";
+import { fullVitals, newPlayer, STARTER_BACKPACK } from "../../../src/core/content/player.js";
 import { rollDrops } from "../../../src/core/enemies/index.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import type { GameSession } from "../../../src/core/game/session.js";
@@ -123,6 +123,67 @@ describe("dying alone", () => {
   });
 });
 
+describe("with the keep inventory cheat on", () => {
+  const keeping = (saved: Parameters<typeof fighting>[0] = {}) => {
+    const started = fighting(saved);
+    started.session.cheat({ kind: "keepInventory", on: true });
+    return started;
+  };
+  const carried = (session: GameSession) => ({ ...bagCounts(session.bag), ...bagCounts(session.gear.pack) });
+
+  test("a death keeps the bag and the hands, leaves no pile, lists nothing lost; the rest of dying is as ever", () => {
+    const { session, link, saves } = keeping();
+    die(session);
+    assert.deepEqual(pilesOn(session.overworld), []);
+    assert.deepEqual(session.battle!.drops.piles, []);
+    assert.deepEqual(link.last("battleResult").lost, {});
+    assert.equal(link.last("battleResult").won, false);
+    assert.deepEqual(bagCounts(session.bag), bagCounts(CARRIED));
+    assert.deepEqual(session.gear.equipment, BLADE_IN_HAND);
+    assert.deepEqual(link.last("battleResult").gear.equipment, BLADE_IN_HAND);
+    assert.deepEqual(bagCounts(saves.at(-1)!.bag), bagCounts(CARRIED));
+    assert.equal(session.vitals.hp, fullVitals(session.stats).hp, "woken whole, as any death");
+  });
+
+  test("the backpack stays on, with all that's in it", () => {
+    const pack = addItem(packFor("canvas-backpack"), "wolf-pelt", 1).bag;
+    const equipment = { ...BLADE_IN_HAND, back: "canvas-backpack" } as const;
+    const { session } = keeping({ bag: emptyBag(), pack, equipment });
+    die(session);
+    assert.deepEqual(pilesOn(session.overworld), []);
+    assert.equal(session.gear.equipment.back, "canvas-backpack");
+    assert.deepEqual(carried(session), { "wolf-pelt": 1 });
+  });
+
+  test("disconnecting mid-fight drops nothing, and the save keeps it all", () => {
+    const { session, saves } = keeping();
+    const { overworld } = session;
+    session.disconnect();
+    assert.deepEqual(pilesOn(overworld), []);
+    assert.deepEqual(bagCounts(saves.at(-1)!.bag), bagCounts(CARRIED));
+    assert.deepEqual(saves.at(-1)!.equipment, BLADE_IN_HAND);
+  });
+
+  test("turned off again, a death drops everything as before", () => {
+    const { session, link } = keeping();
+    session.cheat({ kind: "keepInventory", on: false });
+    die(session);
+    assert.deepEqual(countsAt(session.overworld, FIGHT_SPOT), DROPPED);
+    assert.deepEqual(link.last("battleResult").lost, DROPPED);
+  });
+
+  test("refused on a production server: a death there drops it all", () => {
+    const { session, link } = startSession({ dev: false, saved: { bag: CARRIED, equipment: BLADE_IN_HAND } });
+    session.overworld.place(session.me, FIGHT_SPOT);
+    session.cheat({ kind: "keepInventory", on: true });
+    assert.equal(link.all("keepInventory").length, 0);
+    session.overworld.startEncounter(session.me, null, "wild-boar");
+    step(session, 2);
+    die(session);
+    assert.deepEqual(countsAt(session.overworld, FIGHT_SPOT), DROPPED);
+  });
+});
+
 const ACCOUNTS: Account[] = [ACCOUNT, { id: "player-2", username: "p2" }, { id: "player-3", username: "p3" }];
 const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
 /** BAG, and the backpack a new player wears. */
@@ -223,6 +284,14 @@ describe("dying while others fight on", () => {
     const both = { ...boar, ...EACH_DROPS, "boar-meat": (boar["boar-meat"] ?? 0) + 3 };
     assert.deepEqual(countsAt(host.overworld, home), both);
     assert.equal(pilesOn(host.overworld).length, 1);
+  });
+
+  test("with keep inventory on, they fall and nothing lies in the arena", async (t) => {
+    const { host, guest, kill } = await together(t);
+    guest.cheat({ kind: "keepInventory", on: true });
+    kill(1);
+    assert.deepEqual(host.battle!.drops.piles, []);
+    assert.deepEqual(bagCounts(guest.bag), bagCounts(BAG));
   });
 
   test("everyone down: all of it lands where the fight began at once", async (t) => {

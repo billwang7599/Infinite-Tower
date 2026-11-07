@@ -156,10 +156,12 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    const { bag, pack, equipment } = session.gear;
-    lost = carriedCounts({ bag, pack, equipment });
-    session.gear = { ...session.gear, bag: { ...bag, items: [] }, pack: packFor(null), equipment: emptyEquipment() };
-    dropWhereFell(battle, overworld, lost);
+    if (!session.keepInventory) {
+      const { bag, pack, equipment } = session.gear;
+      lost = carriedCounts({ bag, pack, equipment });
+      session.gear = { ...session.gear, bag: { ...bag, items: [] }, pack: packFor(null), equipment: emptyEquipment() };
+      dropWhereFell(battle, overworld, lost);
+    }
     me = session.wakeOnPad();
     session.core = coreAfterDeath(core);
     coreLost = session.core.steps < core.steps ? "step" : session.core.fill < core.fill ? "fill" : null;

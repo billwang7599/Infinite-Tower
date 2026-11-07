@@ -54,6 +54,7 @@ describe("parseClientMsg", () => {
       { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
       { t: "cheat", cheat: { kind: "encounter", enemy: "kobold-swordsman" } },
       { t: "cheat", cheat: { kind: "invulnerable", on: true } },
+      { t: "cheat", cheat: { kind: "keepInventory", on: false } },
       { t: "cheat", cheat: { kind: "give", item: "boar-meat", count: 5 } },
       { t: "cheat", cheat: { kind: "heal" } },
       { t: "cheat", cheat: { kind: "coreStep", add: false } },
@@ -330,6 +331,7 @@ describe("parseClientMsg", () => {
     assert.equal(cheat({ kind: "encounter", enemy: "dragon" }), null);
     assert.equal(cheat({ kind: "encounter" }), null);
     assert.equal(cheat({ kind: "invulnerable", on: "yes" }), null);
+    assert.equal(cheat({ kind: "keepInventory" }), null);
     assert.equal(cheat({ kind: "give", item: "gold", count: 1 }), null);
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: 0 }), null);
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1.5 }), null);

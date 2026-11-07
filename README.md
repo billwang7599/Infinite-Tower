@@ -228,8 +228,9 @@ if it's left out; any whole number of ms, 0 for none), so the netcode can be fel
 needed. Production never delays.
 
 **The admin panel (dev only).** F1 in the game opens a panel of cheats: the time of day and how fast it runs,
-invulnerability, a heal, completing the current quest, resetting your save, a fight with any enemy, and any item into
-the bag. Production has no panel and its server ignores cheats.
+invulnerability, keep inventory (on by default), a heal, completing the current quest, resetting your save, a fight with
+any enemy, and any item into the bag. Its settings are kept in the browser. Production has no panel and its server
+ignores cheats.
 
 **Troubleshooting.**
 

@@ -182,6 +182,7 @@ export const MAX_GIVE_COUNT = 100;
 const CheatSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("encounter"), enemy: z.enum(ENEMY_IDS) }),
   z.object({ kind: z.literal("invulnerable"), on: z.boolean() }),
+  z.object({ kind: z.literal("keepInventory"), on: z.boolean() }),
   z.object({
     kind: z.literal("give"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]),
     count: z.number().int().min(1).max(MAX_GIVE_COUNT),
