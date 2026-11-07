@@ -884,6 +884,36 @@ describe("Actions: the game holds the mouse while you play", () => {
     }
   });
 
+  test("Esc closing what's over play captures the mouse as Esc comes up, and nothing opens again", () => {
+    const CLOSED_BY_ESC: [Layer, Layer, ActionName][] = [
+      ["overworld", "settings", "menu"], ["battle", "settings", "menu"], ["overworld", "bag", "closeBag"],
+      ["overworld", "admin", "closeAdmin"], ["overworld", "dialogue", "closeDialogue"],
+      ["overworld", "questbook", "closeQuestbook"], ["overworld", "chat", "closeChat"],
+      ["battle", "chant", "closeChant"], ["battle", "battleBag", "closeBag"], ["battle", "leaveArena", "stayInArena"],
+    ];
+    for (const [mode, over, close] of CLOSED_BY_ESC) {
+      const { actions, listen, press, release, escape, mouse, canvas } = setupWith(
+        { autoLock: true, locked: false }, mode, over,
+      );
+      let layers: Layer[] = [mode, over];
+      const show = (next: Layer[]) => {
+        layers = next;
+        actions.setLayers(layers);
+        return true;
+      };
+      listen("menu", () => show(layers.at(-1) === "settings" ? [mode] : [mode, "settings"]));
+      if (close !== "menu") listen(close, () => show([mode]));
+      press("Escape");
+      assert.deepEqual(layers, [mode], `${over} closed`);
+      // Chrome and Firefox let go of a lock as Esc comes up, keeping the key from the page.
+      if (mouse.locked) escape();
+      else release("Escape");
+      assert.deepEqual(layers, [mode], `${over} stays closed, and Settings shut`);
+      assert.equal(mouse.locked, true, `${over}: captured`);
+      assert.equal(canvas.requests.length, 1, over);
+    }
+  });
+
   test("a lock the game lets go (a screen opens), or one lost to another window, opens nothing", () => {
     const { actions, listen, blur, mouse } = setup("overworld");
     const menu = listen("menu");

@@ -41,6 +41,7 @@ export class Mouse extends Buttons {
   locked = false;
   /** Only capture the mouse when the current mode wants it. */
   private lockable = false;
+  private autoLockDue = false;
   private rawMovement = false;
   private dragLockButtons: readonly string[] | null = null;
   private skipNextMove = false;
@@ -119,17 +120,24 @@ export class Mouse extends Buttons {
     this.lockChanged = listener;
   }
 
-  /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured at once if `autoLock`. */
-  setLockable(lockable: boolean, autoLock: boolean, rawMovement = false): void {
+  /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured if `autoLock`, Esc up. */
+  setLockable(lockable: boolean, autoLock: boolean, rawMovement = false, escHeld = false): void {
     const wasLockable = this.lockable, rawChanged = rawMovement !== this.rawMovement;
     this.lockable = lockable;
     if (lockable) {
       this.dragLockButtons = null;
       this.rawMovement = rawMovement;
     }
-    if (shouldAutoLock({ wasLockable, lockable, autoLock, locked: this.locked })) void this.lock();
-    else if (lockable && this.locked && rawChanged) void this.lock();
+    this.autoLockDue = lockable
+      && (this.autoLockDue || shouldAutoLock({ wasLockable, lockable, autoLock, locked: this.locked }));
+    if (lockable && this.locked && rawChanged) void this.lock();
+    if (!escHeld) this.lockIfDue();
     if (!lockable) this.unlock();
+  }
+
+  lockIfDue(): void {
+    if (this.autoLockDue && !this.locked) void this.lock();
+    this.autoLockDue = false;
   }
 
   lockWhileHeld(buttons: readonly string[]): void {

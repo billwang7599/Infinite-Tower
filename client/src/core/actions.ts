@@ -129,6 +129,9 @@ export class Actions {
       if (key === "Escape" && Date.now() - this.escapedAtMs < ESC_ECHO_MS) return true;
       return this.keydown(key, repeat);
     });
+    keyboard.onRelease((key) => {
+      if (key === "Escape") mouse.lockIfDue();
+    });
     mouse.onMove((dx, dy, atMs) => this.moved(dx, dy, atMs));
     mouse.onLock((locked, byPlayer) => {
       this.pointer.set({ locked });
@@ -156,8 +159,10 @@ export class Actions {
       this.freeLook = false;
     }
     const top = this.top;
+    // Chrome and Firefox let go of a lock taken while Esc is down as it comes up: Esc closing a screen locks after.
     this.mouse.setLockable(
       PLAYING.includes(top) && !mouseFree, this.mouseSettings.get().autoLock, RAW_MOVEMENT.includes(top),
+      this.keyboard.held.has("Escape"),
     );
   }
 

@@ -142,7 +142,9 @@ main.ts
   canvas; every screen, the bags, the chant and the dialogs over it let it go. The overworld's lock asks for raw
   movement where the browser has it, the arena's for the OS's (`RAW_MOVEMENT`). A lock the browser lets go while
   still wanted, with the page in focus, is the player's Esc, whose key the browser keeps: it fires Esc's action
-  (Settings' `menu`), and an Esc key coming just after (`ESC_ECHO_MS`) is dropped. `actions.pointer` tells the UI
+  (Settings' `menu`), and an Esc key coming just after (`ESC_ECHO_MS`) is dropped. Chrome and Firefox let go of a lock
+  taken while Esc is down as it comes up, so a screen Esc closes takes the lock only as Esc comes up (the keyboard's
+  `onRelease`, `Mouse.lockIfDue`), not to reopen Settings. `actions.pointer` tells the UI
   whether it's captured (the arena's reticle). Where it's wanted but not captured, the mouse counts for nothing, and a
   press there only asks for the lock. Both cameras read its movement each frame with `actions.lookDelta()`: in the
   overworld every move while captured, and anywhere a drag, past `DRAG.startPx` with the place's `dragCamera` middle
@@ -1463,11 +1465,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      close; passes on the page's `?ping=`; holds messages until the first listeners), api.ts (every
                      HTTP call: who's logged in, log in, register, log out, the server list), ping.ts
                      (startPinging: Net's ping, every 2 s)
-    core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
+    core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions,
+                     each key let go to onRelease;
                      text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
                      it sends; captureKey for rebinding), mouse.ts (optional
                      pointer lock: on a press on the canvas while the game wants the mouse, or by itself as it
-                     starts wanting it when auto lock is on, asked again as raw movement is wanted or not;
+                     starts wanting it when auto lock is on (with Esc down, as it comes up: lockIfDue), asked
+                     again as raw movement is wanted or not;
                      shouldAutoLock is that rule; onLock tells a lock lost while wanted (Esc) from one let go;
                      lockWhileHeld, a camera drag's lock while its button is held; buttons as "Mouse0"…, read
                      from pointer events

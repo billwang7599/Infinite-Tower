@@ -15,18 +15,26 @@ function fieldKeeps(target: EventTarget | null, code: string): boolean {
 
 export class Keyboard extends Buttons {
   private listener: KeyListener = () => false;
+  private released: (key: string) => void = () => {};
   private capture: ((key: string) => boolean) | null = null;
 
   constructor(target: Window = window) {
     super();
     target.addEventListener("keydown", (e) => this.keydown(e));
-    target.addEventListener("keyup", (e) => this.release(e.code));
+    target.addEventListener("keyup", (e) => {
+      this.release(e.code);
+      this.released(e.code);
+    });
     // Avoid stuck keys when the tab loses focus.
     target.addEventListener("blur", () => this.releaseAll());
   }
 
   listen(listener: KeyListener): void {
     this.listener = listener;
+  }
+
+  onRelease(listener: (key: string) => void): void {
+    this.released = listener;
   }
 
   captureKey(take: (key: string) => boolean): () => void {

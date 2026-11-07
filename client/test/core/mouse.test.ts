@@ -46,6 +46,21 @@ describe("Mouse lock", () => {
     assert.equal(canvas.requests.length, 1);
   });
 
+  test("Esc held as it becomes wanted, the lock waits for Esc to come up; not wanted by then, nothing's asked", () => {
+    const { mouse, canvas } = setup();
+    mouse.setLockable(true, true, false, true);
+    assert.equal(canvas.requests.length, 0);
+    mouse.lockIfDue();
+    mouse.lockIfDue();
+    assert.equal(canvas.requests.length, 1);
+    assert.equal(mouse.locked, true);
+    mouse.setLockable(false, true);
+    mouse.setLockable(true, true, false, true);
+    mouse.setLockable(false, true);
+    mouse.lockIfDue();
+    assert.equal(canvas.requests.length, 1);
+  });
+
   test("with auto lock off, nothing is asked until a click", () => {
     const { mouse, canvas, click } = setup();
     mouse.setLockable(false, false);
