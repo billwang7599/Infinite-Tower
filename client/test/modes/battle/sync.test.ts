@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BASE_STATS, Body, dodgeCost, emptyBag, packFor, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, maxHpOf, newCore,
-  Player, quantizeInput, Stamina, staminaMaxOf, type ClientMsg, type EnemyDef, type PlayerInputData, type ServerMsgOf,
-  type StepInput,
+  addItem, BASE_STATS, Body, BOW, dodgeCost, emptyBag, emptyEquipment, packFor, FIXED_DT, HASH_EVERY_STEPS, Health,
+  IDLE_INPUT, maxHpOf, newCore, Player, Projectile, quantizeInput, Stamina, staminaMaxOf, type ClientMsg, type EnemyDef,
+  type PlayerInputData, type ServerMsgOf, type StepInput,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
 import { resultShown } from "../../../src/modes/battle/context.js";
@@ -40,11 +40,15 @@ const script = (step: number): PlayerInputData => input({
 
 /** The server's side, honest and on time: its fight runs each change from its step, until the next. */
 class FakeServer {
-  readonly fight = new Fight(SETUP);
+  readonly fight: Fight;
   private changes: StepInput[] = [];
   private held: PlayerInputData = IDLE_INPUT;
   upTo = 0;
   resyncs = 0;
+
+  constructor(setup = SETUP) {
+    this.fight = new Fight(setup);
+  }
 
   receive(net: FakeNet): void {
     for (const msg of net.sent.splice(0)) {
@@ -78,8 +82,8 @@ class FakeServer {
   }
 }
 
-function setup() {
-  const fight = new Fight(SETUP);
+function setup(fightSetup = SETUP) {
+  const fight = new Fight(fightSetup);
   const net = new FakeNet();
   const sync = new FightSync(fight, 0, (msg) => net.send(msg));
   /** One frame with one step: run it, send what's due. */
@@ -87,7 +91,7 @@ function setup() {
     sync.advance(next);
     sync.flush();
   };
-  return { fight, net, sync, step, server: new FakeServer() };
+  return { fight, net, sync, step, server: new FakeServer(fightSetup) };
 }
 
 const inputsSent = (sent: ClientMsg[]) => sent.flatMap((m) => (m.t === "battleInput" ? [m] : []));
@@ -268,6 +272,58 @@ describe("the client's own copy of the fight", () => {
       server.run(35);
       assert.deepEqual(fight.save(), server.fight.save(), `synced at ${syncAt}`);
     }
+  });
+});
+
+describe("arrows on both sides", () => {
+  const ARCHER: FightSetup = {
+    ...SETUP,
+    players: [{
+      ...SETUP.players[0]!,
+      gear: {
+        bag: addItem(emptyBag(), BOW.ammo, 10).bag, pack: packFor(null),
+        equipment: { ...emptyEquipment(), rightHand: "training-bow" },
+      },
+    }],
+  };
+  /** Draws for 40 steps of every 70, locked on. */
+  const shooting = (step: number) =>
+    input({ locked: 0, attack: step % 70 === 1 ? "light" : null, attackHeld: step % 70 >= 1 && step % 70 <= 40 });
+  const flying = (fight: Fight) => [...fight.world.query(Projectile)];
+
+  test("fly the same on the server's copy: the hashes match all through", () => {
+    const { net, sync, step, server } = setup(ARCHER);
+    for (let i = 1; i <= 150; i++) {
+      step(shooting(i));
+      server.receive(net);
+      for (const hash of server.run()) sync.onHash(hash);
+    }
+    assert.equal(sync.stats.mismatches, 0);
+    assert.ok(server.fight.world.require(server.fight.enemies[0]!, Health).hp < 100, "the arrows landed");
+  });
+
+  test("one the client lost comes back with the server's fight, and flies on as the server's does", () => {
+    const { fight, net, sync, step, server } = setup(ARCHER);
+    let dropped = false;
+    for (let i = 1; i <= 50; i++) {
+      step(shooting(i));
+      if (!dropped && flying(fight).length > 0) {
+        for (const [e] of flying(fight)) fight.world.destroy(e);
+        fight.world.flush();
+        dropped = true;
+      }
+      server.receive(net);
+      for (const hash of server.run()) sync.onHash(hash);
+    }
+    assert.ok(dropped && flying(server.fight).length > 0, "still in flight on the server");
+    server.receive(net);
+    assert.equal(server.resyncs, 1);
+    sync.onSync(server.sync());
+    assert.equal(flying(fight).length, flying(server.fight).length);
+    for (let i = 51; i <= 110; i++) step(shooting(i));
+    server.receive(net);
+    server.run(fight.steps);
+    assert.deepEqual(fight.save(), server.fight.save());
   });
 });
 

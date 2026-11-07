@@ -461,7 +461,16 @@ main.ts
   the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
   when, what and which way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
   the same way, raising its hitbox exactly while it's live. Ending an action or an enemy state (`enter`) ends its swing
-  (`endSwing`). The visuals draw the blade from the swing's steps and its way.
+  (`endSwing`). The visuals draw the blade from the swing's steps and its way. What a kind does is data, `MOVES` in
+  `shared/src/weapons/kinds.ts`: a melee kind (the sword) carries its hit shapes and timings, a ranged kind (the bow,
+  a placeholder: AGENTS.md's "Bows, a prep") its ammo, draw and projectile (`BOW` in `weapons/bow.ts`). The fight asks
+  `meleeOf` / `rangedOf`, never a kind's name: only a melee weapon swings or aims a way, and a ranged one in hand
+  turns the light attack into a draw while the input's `attackHeld` stays true (`fight/player/bow.ts`), loosing a
+  `Projectile` entity. `projectileSystem` (`fight/weapons/projectile.ts`, after the combat system) moves each by its
+  velocity and gravity and sweeps the step against every foe's upright cylinder (`Fighter.radius`, `heightM`), the
+  floor and the wall, with plain math; one that meets a foe goes through `defend` with a `Shot` (where it came from,
+  for the guard's facing) and else `land`s like a blade, and one in the floor or wall lies `stuckTime`. Projectiles
+  are in the fight's snapshot and hash, so they resync like the rest.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
   `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
@@ -830,7 +839,13 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included); an invulnerable player
   taking no damage, its flag in the state and hash. A duel (`duel.test.ts`, and the sword's defences above): hits and
-  Bolts player against player, the lock, and how it ends. `weapons/hybrid.test.ts` for the ways' rules. Eating in a
+  Bolts player against player, the lock, and how it ends. `weapons/hybrid.test.ts` for the ways' rules;
+  `weapons/kinds.test.ts` for what each kind does and the bow's draw damage and heft. The bow (`player/bow.test.ts`:
+  held to draw, let go to loose one arrow from the bag, its cost, none without arrows, the least draw, damage by the
+  draw, no block while drawing, a dodge keeping the arrow, level unlocked and an arc to a locked target) and its
+  arrows (`weapons/projectile.test.ts`: velocity and gravity step by step, the lifetime, stuck in the floor and the
+  wall, the first foe hit once even at speed, over a short one, never its own side, a held block from in front and
+  not behind, a perfect block, a dodge; exact through a save, and in the hash). Eating in a
   fight (`player/use.test.ts`): healed and one
   used up once its `useTime` is up, held still, not at full HP or with the bag shut, stopped (nothing eaten) by
   closing the bag, a dodge, a hit that only hurts or one that stuns, and through a save; and the shared rule
@@ -980,7 +995,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
-  nor dropped; another player's inputs coming late rolled back and replayed; every step's events reported, a
+  nor dropped; arrows flying the same on both sides, and one the client lost coming back with the server's fight;
+  the light attack held read into `attackHeld`; another player's inputs coming late rolled back and replayed; every
+  step's events reported, a
   replayed step's again; the result and its banner waiting for the
   server; after a win that keeps the arena open, still sending and checking), the leave popup's keys (the leave key
   again leaves, Esc stays) and pace (real time's steps, catching up after a stall, a backlog dropped, ahead when late
@@ -1100,7 +1117,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
-                   SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
+                   SkillObject, Projectile (an arrow in flight or stuck), Enemy, LungeAttack, ChargeAttack,
+                   WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), statuses.ts (STATUS_DEFS: every status, harmful or
                    not, its stat mods, stack cap and amount; StatMods, NO_MODS; applyStatus, endStatus, cleanse,
                    timeLeft, stacksOf, modsFrom, modsOf: a fighter's), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
@@ -1143,7 +1161,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        no attacks or block; no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
                        aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
                        / heavy / stab
-                       on the old momentum chains, the held block), use.ts (useSystem: a consumable used
+                       on the old momentum chains, the held block; a ranged weapon hands off to bow.ts), bow.ts
+                       (drawBow: the light attack held draws, let go looses an arrow from the bag, at the lock-on
+                       target or where you face; no block while drawing), use.ts (useSystem: a consumable used
                        once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
@@ -1165,8 +1185,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
-                       block, the held block and its stamina or poise; blocking, facingOf), parry.ts (parries: a
-                       swing parried by a swing, or two clashing; the recoil by the swings' weights)
+                       block, the held block and its stamina or poise, a projectile's `Shot` too; blocking, facingOf),
+                       parry.ts (parries: a swing parried by a swing, or two clashing; the recoil by the swings'
+                       weights), projectile.ts (projectileSystem: each arrow falls, sweeps its step against every
+                       foe's upright cylinder, the floor and the wall, and lands, is blocked or sticks; launchAt: the
+                       low arc to a point; tested)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -1194,6 +1217,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
                    heft and minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape),
+                   kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
+                   meleeOf, rangedOf, meleeIn: what the fight branches on), bow.ts (BOW: the bow's placeholder draw,
+                   ammo and projectile numbers; drawTime, drawCost, drawnShare, loosedDamage),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
                    wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime)
@@ -1669,12 +1695,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a nose and blush, painted on the head's front; hairTexels; HAIR_STYLES, each a shell cut round
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
                          each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
-                         into over KEY_EASE_TIME and held; no Babylon: tested), animation.ts (framePerson: the pose on
-                         the joints, both arms bent to the pose's hand targets by reachWith, the 3D blade on grip.R or
-                         grip.L; with &steps only that many times a second)
+                         into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, the string
+                         hand back by the draw; no Babylon: tested), animation.ts (framePerson: the pose on the
+                         joints, both arms bent to the pose's hand targets by reachWith, the 3D blade or bow on grip.R
+                         or grip.L, a bow's string pulled to the off hand; with &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
-                         sparks (parried), and a broken guard's jolt and flash (guardBroken); impactPose and
+                         sparks (parried), and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only
+                         the target, and one blocked sparks where it struck (arrowStopped); impactPose and
                          joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a dead enemy
@@ -1700,7 +1728,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          tone: the Kobolds' and every player's); bladeEdge (where it runs in the world, for the
                          trail); its tip's glint just before it goes live (cueBlade, showCue
                          by glintOf); a flat sprite's held blade (holdBlade, placeBlade: at the
-                         sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
+                         sprite's hand on its plane, turned the way the player faces, eased but for mid-swing); a
+                         weapon with a `bow` look gets bow.ts's bow instead
+        bow.ts           The 3D bow and arrow, built in code: buildBow (a curved tube of a stave along the hand's +y,
+                         a grip wrap, a string of two segments and an arrow nocked on it), pullString (the string's
+                         middle drawn back by bowDrawOf: the shared drawnShare), arrowVisual (an arrow in flight,
+                         along its velocity; stuck, its head sunk in)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it, on the
                          overlay
         pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered
@@ -1717,8 +1750,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          MOTIONS, by weapon kind: when the trail shows, a 3D blade held aimed and its way through a
                          wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
                          pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
-                         Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade (size, colour, art) and
-                         its hit-stop. No Babylon: tested
+                         Kobolds' and the players'; a bow's rest and guard); WEAPON_LOOKS, by weapon: its 3D blade
+                         (size, colour, art), its hit-stop and a bow's brace and draw. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a perfect block's, a broken guard's
                          flash), the chant's and wind-up's
@@ -1949,8 +1982,9 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   (kind, length, damage, heft, minimum strength), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
-  the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its
-  sprite poses).
+  the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS`, a `MOVES` row (`shared/src/weapons/kinds.ts`:
+  melee with its hit shapes and timings, or ranged with its ammo, draw and projectile) and a `MOTIONS` row (and, for
+  the player, its sprite poses). A ranged weapon's look adds `bow` (brace and draw) to its `WEAPON_LOOKS` row.
 - **A wearable or a backpack.** An item in `ITEMS` with `wearable: { on }` (the kind of slot; `cosmetic: true` for a
   look worn over that piece) and its bag picture (`client/src/gfx/items/items.ts`); a backpack also has `pack: { cols,
   rows }`, the grid it brings. A new kind of slot is a name in `SLOTS` and its `SLOT_TAKES` (`shared/src/items/gear.ts`),
@@ -2028,6 +2062,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
+| The bow (placeholders): the draw's cost, times, least damage and walking pace, the loose's recovery, the arrow's speed, gravity, lifetime, time stuck, size, poise and where it leaves the bow | `BOW` in `shared/src/weapons/bow.ts` |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
@@ -2063,6 +2098,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | The aim ring (wedge size, radius, height, colours, the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
+| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours and how deep it sinks stuck; a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist and the carry (`DRAW_TWIST`, `BOW_CARRY` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |

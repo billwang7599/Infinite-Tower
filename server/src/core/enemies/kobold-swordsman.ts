@@ -11,6 +11,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     maxHp: 160,
     stats: { ...BASE_STATS, skillpower: 0, healthRegen: 0 },
     radius: 0.5,
+    heightM: 1.3,
     walkSpeed: 2.6,
     turnRate: 4,
     poise: 80,

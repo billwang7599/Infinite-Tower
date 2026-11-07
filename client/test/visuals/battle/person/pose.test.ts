@@ -5,7 +5,7 @@ import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import {
   CLIPS, KEY_EASE_TIME, keyed, personPose, WALK_KEYS, type PersonPose,
 } from "../../../../src/visuals/battle/person/pose.js";
-import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
+import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../../fixtures/players.js";
 import { swingSteps } from "../../../fixtures/swings.js";
 
@@ -116,5 +116,43 @@ describe("the 3D player's other actions", () => {
     assert.equal(legs(step * 1.6), legs(step * 1.9));
     assert.notEqual(legs(step * 1.01), legs(step * 1.9));
     assert.equal(pose().joints["thigh.L"].x, 0);
+  });
+});
+
+describe("the 3D player's bow", () => {
+  const BOW = WEAPON_LOOKS["training-bow"].bow!;
+  const bowPose = (player: ReturnType<typeof playerDoing>, drawn = 0): PersonPose =>
+    personPose(player, { swing: null }, MOTIONS.bow, {
+      build: BUILD, side: 1, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0,
+      walk: { phase: 0, amp: 0 }, bow: { ...BOW, drawn },
+    });
+
+  test("drawing, it's held out ahead at the shoulders, upright, the string hand pulling back with the draw", () => {
+    const begun = bowPose(playerDoing("draw", 0.1), 0), half = bowPose(playerDoing("draw", 0.5), 0.5);
+    const full = bowPose(playerDoing("draw", 1), 1);
+    for (const p of [begun, half, full]) {
+      assert.ok(p.hand.z > BUILD.reachM * 0.8, "out ahead");
+      assert.ok(Math.abs(p.hand.y - BUILD.shoulderY) < 0.1, "at the shoulders");
+      assert.ok(p.blade.y > 0.9, "upright");
+      close(p.offHand.x, p.hand.x, "on the string");
+    }
+    close(begun.offHand.z, begun.hand.z - BOW.braceM, "on the string at rest");
+    close(full.offHand.z, full.hand.z - BOW.braceM - BOW.drawM, "pulled back all the way");
+    close(half.offHand.z, half.hand.z - BOW.braceM - BOW.drawM / 2, "halfway");
+    assert.ok(twist(full) < 0, "turned side-on, the bow arm ahead");
+  });
+
+  test("just loosed, the string hand is still back by the face", () => {
+    const p = bowPose(playerDoing("loose", 0.05));
+    assert.ok(p.offHand.z < p.hand.z - BOW.braceM - BOW.drawM / 2);
+  });
+
+  test("carried low at the side at rest, not up like a sword; across the chest to guard", () => {
+    const carried = bowPose(playerDoing("none", 1));
+    assert.deepEqual(carried.blade, MOTIONS.bow.rest.blade);
+    assert.notDeepEqual(MOTIONS.bow.rest.blade, MOTIONS.sword.rest.blade);
+    assert.ok(carried.hand.y < BUILD.waistY, "down by the hip");
+    assert.ok(carried.hand.x > BUILD.shoulderM, "out at the side");
+    assert.ok(bowPose(playerDoing("block", 1)).blade.x < -0.5);
   });
 });

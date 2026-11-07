@@ -225,6 +225,38 @@ function oldStick(px: Pixels): void {
 
 const sword = blade(3, 7), longsword = blade(3, 10), greatsword = blade(4, 12);
 
+// The string is on layer 2, left out of the outline.
+function trainingBow(px: Pixels): void {
+  const mid = px.height / 2, reach = mid - 2, tipX = 3.5, bellyX = 11;
+  const centre = (y: number) => tipX + (bellyX - tipX) * (1 - ((y - mid) / reach) ** 2);
+  const stave: Mask = (x, y) => Math.abs(y + 0.5 - mid) <= reach
+    && Math.abs(x + 0.5 - centre(y + 0.5)) <= 1.2 + 0.8 * (1 - Math.abs(y + 0.5 - mid) / reach);
+  const wood = new Pen(px, 0);
+  wood.fill(stave, ink("crust", BASE));
+  wood.shade((x, y) => stave(x, y) && !stave(x - 1, y), LIGHT);
+  wood.shade((x, y) => stave(x, y) && !stave(x + 1, y), SHADOW);
+  const grip = both(stave, rect(0, mid - 4, 15, mid + 3));
+  wood.fill(grip, ink("leather", BASE));
+  wood.shade(both(grip, (_x, y) => y % 2 === 0), SHADOW, "leather");
+  new Pen(px, 2).fill(rect(Math.floor(tipX), 3, Math.floor(tipX), px.height - 4), ink("fat", LIGHT));
+}
+
+function arrow(px: Pixels): void {
+  const tips: Point[] = [[4, 3.5], [8, 2.5], [12, 3.5]], nock: Point = [8, 14.5];
+  const shafts = union(...tips.map((tip) => bar(nock, tip, 0.7)));
+  const wood = new Pen(px, 0);
+  wood.fill(shafts, ink("root", LIGHT));
+  wood.shade((x, y) => shafts(x, y) && !shafts(x + 1, y), SHADOW);
+  const head = new Pen(px, 1);
+  const points = union(...tips.map(([x, y]) => polygon([[x - 1.5, y + 1.5], [x, y - 2.5], [x + 1.5, y + 1.5]])));
+  head.fill(points, ink("steel", BASE));
+  head.shade(litEdge(points, 1), LIGHT);
+  const fletch = polygon([[5, 11], [11, 11], [10, 15], [6, 15]]);
+  head.fill(fletch, ink("fat", BASE));
+  head.shade(darkEdge(fletch, 1), SHADOW);
+  head.fill(both(shafts, rect(0, 8, 15, 9)), ink("leather", BASE));
+}
+
 function skillbook(px: Pixels): void {
   const pages = new Pen(px, 0);
   const block = rect(6, 5, 28, 28);
@@ -421,7 +453,8 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "gold-coin": coin("gold"), "bog-pearl": pearl, "sigil-of-grit": sigil("moss"), "sigil-of-embers": sigil("frost"),
   "sigil-of-the-last-breath": sigil("wisp"), "sigil-of-the-red-blade": sigil("gold"),
   "sigil-of-the-first-door": sigil("blood"), "canvas-backpack": backpack, "wool-cap": cap, "leather-belt": belt,
-  "copper-ring": ring, "braided-bracelet": bracelet, "feathered-hat": featheredHat,
+  "copper-ring": ring, "braided-bracelet": bracelet, "feathered-hat": featheredHat, "training-bow": trainingBow,
+  arrow,
 };
 
 const drawn = new Map<ItemId, Picture>();

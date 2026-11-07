@@ -80,9 +80,7 @@ export function combatSystem(events: FightEvent[]): System {
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
         if (targetFighter.side === attackerFighter.side || targetHealth.hp <= targetHealth.floor) continue;
         if (hit.alreadyHit.has(target)) continue;
-        const player = world.get(target, Player);
-        if (player?.action === "dodge"
-          && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
+        if (dodging(world, target)) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
         // Before hurt invulnerability: a blade meeting a blade isn't a hit.
         if (parries(world, events, attacker, hit, target)) break;
@@ -93,11 +91,26 @@ export function combatSystem(events: FightEvent[]): System {
           if (!world.has(attacker, ActiveHit)) break;
           continue;
         }
-        if (player) hitPlayer(world, events, attacker, hit, target, player);
-        else hitEnemy(world, events, attacker, hit, target);
+        land(world, events, attacker, hit, target);
       }
     }
   };
+}
+
+/** In a dodge's i-frames. */
+export function dodging(world: World, e: Entity): boolean {
+  const player = world.get(e, Player);
+  return player?.action === "dodge"
+    && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd;
+}
+
+/** A hit nothing stopped. `at`: where a projectile struck. */
+export function land(
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
+): void {
+  const player = world.get(target, Player);
+  if (player) hitPlayer(world, events, attacker, hit, target, player, at);
+  else hitEnemy(world, events, attacker, hit, target, at);
 }
 
 export function spend(stamina: StaminaData, cost: number): void {
@@ -148,6 +161,7 @@ export function stagger(world: World, e: Entity, time: number): void {
 
 function hitPlayer(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData,
+  at?: Vec3,
 ): void {
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health);
@@ -168,7 +182,9 @@ function hitPlayer(
   endChain(world.require(target, Wielder));
   lifesteal(world, attacker, dealt, hit.attack !== null);
   burnOnHit(world, attacker, target, hit);
-  events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
+  events.push({
+    type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null, ...(at && { at }),
+  });
 }
 
 function strikeDummy(enemy: EnemyData, health: HealthData, strike: Strike): void {
@@ -184,7 +200,9 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
   player.using = null;
 }
 
-function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
+function hitEnemy(
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, at?: Vec3,
+): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
   if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, hit.way === "stab" ? "stab" : hit.attack);
   const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
@@ -192,5 +210,7 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   enemy.poise -= hit.poiseDamage;
   lifesteal(world, attacker, damage, hit.attack !== null);
   burnOnHit(world, attacker, target, hit);
-  events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
+  events.push({
+    type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null, ...(at && { at }),
+  });
 }

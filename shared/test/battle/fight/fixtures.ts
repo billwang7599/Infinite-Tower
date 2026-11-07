@@ -1,7 +1,7 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, packFor, Health,
-  LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject,
+  LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Projectile, Sidestep, SkillAttack, Skilled, SkillObject,
   SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
   type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3, type WeaponAttackDef,
@@ -115,9 +115,9 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null, block: false,
-  cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
-  use: null,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, attackHeld: false, dodge: false, way: null,
+  block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false,
+  gear: null, use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -170,7 +170,9 @@ export function dumpState(fight: Fight): string {
     };
   });
   const shots = [...fight.world.query(SkillObject)].map(([, shot]) => shot);
-  return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows, shots });
+  const arrows = [...fight.world.query(Projectile)]
+    .map(([, { shooter, weapon, pos, vel, damage, left, stuck }]) => ({ shooter, weapon, pos, vel, damage, left, stuck }));
+  return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows, shots, arrows });
 }
 
 /**

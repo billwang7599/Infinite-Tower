@@ -4,12 +4,12 @@ import { ITEM_IDS, itemDef, ITEMS, type ItemId } from "../items/items.js";
 
 export type AttackKind = "light" | "heavy";
 
-export const WEAPON_KINDS = ["sword"] as const;
+export const WEAPON_KINDS = ["sword", "bow"] as const;
 export type WeaponKind = (typeof WEAPON_KINDS)[number];
 
 export interface Weapon {
   kind: WeaponKind;
-  /** The blade (m): every attack's reach grows with it. */
+  /** The blade (m), or a bow's stave: a swing's reach and a guard's perfect window grow with it. */
   length: number;
   damage: number;
   heft: number;

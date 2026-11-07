@@ -8,6 +8,7 @@ export const TRAINING_DUMMY: Enemy = {
     maxHp: 100,
     stats: { ...BASE_STATS, skillpower: 0, healthRegen: 0 },
     radius: 0.4,
+    heightM: 1.7,
     walkSpeed: 0,
     turnRate: 0,
     poise: 1000,

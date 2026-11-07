@@ -5,7 +5,7 @@ import type {
   ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, SlamDef, WeaponAttackDef,
 } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
-import type { AttackKind } from "../weapons/weapons.js";
+import type { AttackKind, WeaponId } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
@@ -18,10 +18,11 @@ import type { PageWrite, PlayerInputData } from "./input.js";
 
 /**
  * "stagger": recoiling from a perfect block, or with a block broken (in hitstun). "write": writing a page, from the chant or the bag.
- * "bag": the bag screen open. "use": using an item from the bag.
+ * "bag": the bag screen open. "use": using an item from the bag. "draw": drawing a bow, "loose": just after loosing.
  */
 export type PlayerAction =
-  | "none" | "attack" | "dodge" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use" | "block";
+  | "none" | "attack" | "dodge" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use" | "block" | "draw"
+  | "loose";
 
 export interface PlayerData {
   grounded: boolean;
@@ -146,6 +147,19 @@ export interface SkillObjectData {
 }
 export const SkillObject = defineComponent<SkillObjectData>("SkillObject");
 
+/** `left`: seconds still to fly, or to lie stuck. */
+export interface ProjectileData {
+  shooter: Entity;
+  /** What loosed it: its kind's `projectile` says how it flies. */
+  weapon: WeaponId;
+  pos: Vec3;
+  vel: Vec3;
+  damage: number;
+  left: number;
+  stuck: boolean;
+}
+export const Projectile = defineComponent<ProjectileData>("Projectile");
+
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");
 
@@ -161,8 +175,11 @@ export interface BodyData {
 export const Body = defineComponent<BodyData>("Body");
 
 export type TeamId = "player" | "enemy";
-/** `radius`: hurt radius on the ground. Different `side`s are foes: enemies -1, players 0, or their seat in a duel. */
-export interface FighterData { team: TeamId; side: number; radius: number }
+/**
+ * `radius`: hurt radius on the ground, `heightM` how tall from the feet. Different `side`s are foes: enemies -1,
+ * players 0, or their seat in a duel.
+ */
+export interface FighterData { team: TeamId; side: number; radius: number; heightM: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 
 export interface ActiveHitData {

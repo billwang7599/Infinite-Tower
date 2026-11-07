@@ -3,7 +3,8 @@ import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { toSteps } from "../../../core/time.js";
 import { HYBRID, isSwing, lastFeintStep, parryWay, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
-import { feltHeft, weaponIn, type Weapon } from "../../../weapons/weapons.js";
+import { meleeIn } from "../../../weapons/kinds.js";
+import { feltHeft, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
@@ -68,7 +69,7 @@ export function weaponAttackSystem(events: FightEvent[]): System {
   return (world, dt) => {
     for (const [e, attack, enemy, wielder] of world.query(WeaponAttack, Enemy, Wielder)) {
       const def = attack.def, sense = enemy.sense, move = enemy.move, swing = wielder.swing;
-      const weapon = weaponIn(wielder.hands), target = sense.target;
+      const weapon = meleeIn(wielder.hands), target = sense.target;
       attack.cooldown -= dt;
       if (target !== null && swingStarts(world, enemy, target)) {
         attack.perfectBlockRead = roll(enemy) < def.perfectBlockChance;

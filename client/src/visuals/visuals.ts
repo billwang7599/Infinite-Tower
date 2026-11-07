@@ -1,6 +1,7 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, heldIn, Player, regionAt, SkillObject, weaponItemIn, Wielder, type DayChange, type EnemyId, type Entity,
+  Enemy, heldIn, Player, Projectile, regionAt, SkillObject, weaponItemIn, Wielder, type DayChange, type EnemyId,
+  type Entity,
   type Hand, type Look, type NpcId, type SkillObjectKind, type Theme, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
@@ -12,7 +13,8 @@ import {
   OverworldActor, OverworldPos, type OverworldActorData, type OverworldState,
 } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
-import { clash, guardBroken, parried, strike } from "./battle/impact.js";
+import { arrowVisual } from "./battle/bow.js";
+import { arrowStopped, clash, guardBroken, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
 import { arenaOverlay } from "./battle/overlay.js";
 import { pixelScale } from "./battle/pixel.js";
@@ -37,7 +39,7 @@ export interface Visual<S, Scene = ArenaScene> {
   dispose(s: S): void;
 }
 
-export type VisualKind = "player" | EnemyId | SkillObjectKind;
+export type VisualKind = "player" | EnemyId | SkillObjectKind | "arrow";
 
 type AnyVisual<Scene = ArenaScene> = Visual<any, Scene>;
 
@@ -49,10 +51,12 @@ export const VISUALS: Record<VisualKind, AnyVisual> = {
   cloud: cloudVisual,
   wait: waitVisual,
   imbue: imbueVisual,
+  arrow: arrowVisual,
 };
 
 export function kindOf(world: World, e: Entity): VisualKind | null {
   if (world.get(e, Player)) return "player";
+  if (world.has(e, Projectile)) return "arrow";
   return world.get(e, Enemy)?.def.id ?? world.get(e, SkillObject)?.kind ?? null;
 }
 
@@ -67,9 +71,13 @@ export const EFFECTS: Effects = {
   slam: (scene) => shake(scene, 0.35),
   hit(scene, ev, world) {
     shake(scene, ev.team === "player" ? 0.15 + ev.damage * 0.008 : 0.06);
-    if (ev.weapon) strike(scene, world, ev.by, ev.target);
+    if (ev.weapon) strike(scene, world, ev.by, ev.target, ev.at);
   },
   block(scene, ev, world) {
+    if (ev.at) {
+      shake(scene, ev.perfect || ev.broken ? 0.14 : 0.08);
+      return arrowStopped(scene, world, ev.target, ev.at, ev);
+    }
     if (ev.perfect) {
       shake(scene, 0.14);
       parried(scene, world, ev.target, ev.by);
@@ -207,7 +215,7 @@ export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanv
     }
     if (fight) {
       const { world } = fight, kinds = new Map<Entity, VisualKind>();
-      for (const type of [Player, Enemy, SkillObject]) {
+      for (const type of [Player, Enemy, SkillObject, Projectile]) {
         for (const [e] of world.query(type)) {
           const kind = kindOf(world, e);
           if (kind) kinds.set(e, kind);

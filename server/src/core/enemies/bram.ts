@@ -8,6 +8,7 @@ export const BRAM: Enemy = {
     maxHp: 60,
     stats: { ...BASE_STATS, skillpower: 0, healthRegen: 0 },
     radius: 0.45,
+    heightM: PLAYER.height,
     walkSpeed: 2.2,
     turnRate: 3,
     poise: 60,

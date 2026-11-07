@@ -11,6 +11,7 @@ export const GOBLIN_WARLOCK: Enemy = {
     maxHp: 40,
     stats: { ...BASE_STATS, healthRegen: 0 },
     radius: 0.45,
+    heightM: 1.2,
     walkSpeed: 2.4,
     turnRate: 4,
     poise: 20,

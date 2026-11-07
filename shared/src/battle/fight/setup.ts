@@ -96,7 +96,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Health, { ...fresh(maxHpOf(setup.stats)), hp: setup.vitals.hp });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
-  world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius });
+  world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius, heightM: PLAYER.height });
   const passives = [
     ...setup.core.inscriptions.map((id) => INSCRIPTIONS[id].status),
     ...(setup.blessings ?? []).map((god) => BLESSINGS[god].status),
@@ -165,7 +165,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
     world.add(e, Wielder, wielder({ rightHand: null, leftHand: null, ...def.wielder.hands }, def.wielder.armReachM));
   }
   world.add(e, Health, fresh(def.maxHp));
-  world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius });
+  world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius, heightM: def.heightM ?? 2 * def.radius });
   world.add(e, FighterStats, { ...def.stats });
   const stamina = staminaMaxOf(def.stats);
   if (def.attacks.skill) world.add(e, Stamina, { value: stamina, max: stamina, regenDelay: 0 });

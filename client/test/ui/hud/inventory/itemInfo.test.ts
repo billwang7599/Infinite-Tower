@@ -44,6 +44,11 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
   });
 
+  test("a bow says it's drawn and shoots arrows from the bag; an arrow says it's shot from a bow", () => {
+    assert.match(itemInfo(stack("training-bow")).effect ?? "", /drawn and loosed.*arrows from your bag/);
+    assert.match(itemInfo(stack("arrow")).effect ?? "", /from a bow/);
+  });
+
   test("a weapon that needs strength says how much", () => {
     assert.ok(itemInfo(stack("greatsword")).effect?.endsWith(`Needs ${WEAPONS.greatsword.minStrength} strength.`));
     assert.ok(!itemInfo(stack("sword")).effect?.includes("strength"));

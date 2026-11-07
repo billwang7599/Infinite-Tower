@@ -23,6 +23,7 @@ export function readPlayerInput(polled: Polled, yaw: number, way: SwingDir, inpu
   input.aimZ = cos;
   input.jump = polled.held.has("jump");
   input.attack = polled.pressed.flatMap((action) => ATTACKS[action] ?? []).at(-1) ?? null;
+  input.attackHeld = polled.held.has("lightAttack");
   // A tap shorter than a step still dodges.
   const tapped = (action: Pressed) => polled.pressed.includes(action) || polled.held.has(action);
   input.dodge = tapped("dodge");

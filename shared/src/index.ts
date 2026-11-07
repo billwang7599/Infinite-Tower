@@ -24,6 +24,8 @@ export * from "./skills/skill.js";
 export * from "./skills/effects.js";
 export * from "./weapons/weapons.js";
 export * from "./weapons/hybrid.js";
+export * from "./weapons/bow.js";
+export * from "./weapons/kinds.js";
 export * from "./world/layout.js";
 export * from "./world/tiles.js";
 export * from "./world/arena.js";

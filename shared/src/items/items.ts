@@ -144,6 +144,16 @@ export const ITEMS = {
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
     weapon: { kind: "sword", length: 1.9, damage: 14, heft: 1.6, minStrength: 9 },
   },
+  "training-bow": {
+    name: "Training bow", rarity: "common",
+    description: "A plain ash bow strung for the butts, light to draw. It's no use without arrows.", cols: 1, rows: 3,
+    stackSize: 1, weight: 1, wearable: { on: "hand" },
+    weapon: { kind: "bow", length: 1.2, damage: 12, heft: 1, minStrength: 0 },
+  },
+  arrow: {
+    name: "Arrow", rarity: "common", description: "A birch shaft with an iron head and grey goose fletching.", cols: 1,
+    rows: 1, stackSize: 20, weight: 0.05,
+  },
   skillbook: {
     name: "Skillbook", rarity: "common",
     description: "A worn book of four pages. You need it in hand to use skills, and to write in it.",

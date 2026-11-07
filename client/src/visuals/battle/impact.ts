@@ -39,16 +39,29 @@ const levelUnit = (from: Vec3, to: Vec3): Vec3 => {
 };
 const STILL = { x: 0, y: 0, z: 0 };
 
-export function strike(scene: ArenaScene, world: World, by: Entity, target: Entity): void {
+/** `shot`: where a projectile struck: only the target is jolted, away from it. */
+export function strike(scene: ArenaScene, world: World, by: Entity, target: Entity, shot?: Vec3): void {
   const hands = world.get(by, Wielder)?.hands, item = hands && weaponItemIn(hands);
   if (!item) return;
   const stopMs = WEAPON_LOOKS[item].hitStopMs, { eye, at } = scene.battle.view;
   const ahead = levelUnit(eye, at), right = { x: ahead.z, y: 0, z: -ahead.x };
-  const away = levelUnit(world.require(by, Body).pos, world.require(target, Body).pos);
+  const away = levelUnit(shot ?? world.require(by, Body).pos, world.require(target, Body).pos);
   const swing = world.get(by, Wielder)?.swing;
   const push = joltOf(swing ? wayCut(swing.way, !world.has(by, LocalPlayer)) : null, away, right);
-  scene.impacts.set(by, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
+  if (!shot) scene.impacts.set(by, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
   scene.impacts.set(target, { ageMs: 0, stopMs, push, pushMs: JOLT_MS });
+}
+
+export function arrowStopped(
+  scene: ArenaScene, world: World, guard: Entity, struck: Vec3, how: { perfect?: boolean; broken?: boolean },
+): void {
+  const { perfect, broken } = how;
+  const g = world.require(guard, Body).pos, back = levelUnit(struck, g);
+  const push = { x: back.x * BOUNCE_M, y: 0, z: back.z * BOUNCE_M };
+  scene.impacts.set(guard, { ageMs: 0, stopMs: perfect ? PARRY_HIT_STOP_MS : 0, push, pushMs: BOUNCE_MS });
+  if (perfect) scene.skills.bursts.parry(struck);
+  else scene.skills.bursts.sparks(struck);
+  if (broken) scene.skills.bursts.guardBroken({ x: g.x, y: g.y + SPARK_UP_M, z: g.z });
 }
 
 const meeting = (a: Vec3, b: Vec3): Vec3 =>

@@ -5,6 +5,7 @@ import {
   CHAIN, chainKind, guardRaiseTime, HYBRID, lastFeintStep, perfectBlockTime, MOMENTUM, momentumDamage, startupTime,
   strikeCost, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
+import { meleeOf, rangedOf } from "../../../weapons/kinds.js";
 import type { Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
@@ -15,6 +16,7 @@ import { imbueOf } from "../skills/cast.js";
 import { canPayStamina, payStamina, spend } from "../combat.js";
 import { modsOf } from "../../statuses.js";
 import { endChain, endSwing, startWaySwing } from "../weapons/swing.js";
+import { drawBow } from "./bow.js";
 import { startAction } from "./controller.js";
 
 export interface SwordTurn {
@@ -37,7 +39,7 @@ export function readSword(t: SwordTurn): void {
   const { player, input, wielder, weapon, dt } = t, swing = wielder.swing;
   const locked = swing !== null && swing.step < swing.liveUntil;
   const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.last.attack;
-  player.way = weapon ? input.way : null;
+  player.way = meleeOf(weapon) ? input.way : null;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
@@ -92,11 +94,13 @@ function strike(t: SwordTurn, strike: Strike): void {
 }
 
 export function attackOrBlock(t: SwordTurn): boolean {
-  const { world, e, player, input, wielder, stamina, weapon } = t;
-  const cost = weapon && player.queued !== null
-    ? strikeCost(weapon, player.queued, world.require(e, FighterStats).strength) * modsOf(world, e).attackCostFactor
+  const { world, e, player, input, wielder, stamina, weapon } = t, ranged = rangedOf(weapon);
+  if (ranged && drawBow(t, ranged)) return true;
+  const cost = meleeOf(weapon) && player.queued !== null
+    ? strikeCost(weapon!, player.queued, world.require(e, FighterStats).strength) * modsOf(world, e).attackCostFactor
     : 0;
-  if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && canPayStamina(world, e, stamina, cost)) {
+  if (t.free && meleeOf(weapon) && player.attackBuffer > 0 && player.queued !== null
+    && canPayStamina(world, e, stamina, cost)) {
     strike(t, player.queued);
     payStamina(world, e, stamina, cost);
     player.attackBuffer = 0;

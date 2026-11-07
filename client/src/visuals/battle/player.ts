@@ -10,6 +10,7 @@ import { LocalPlayer } from "../../modes/components.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
+import { bowDrawOf, pullString } from "./bow.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
@@ -202,6 +203,8 @@ function drawSprite(
     }, faceYaw, playerBlade(player, wielder, alive, motion), dt);
   }
   if (sprite.blade) showCue(sprite.blade.cue, alive ? swing : null);
+  const drawing = sprite.blade?.bow && bowDrawOf(world, e);
+  if (sprite.blade?.bow) pullString(sprite.blade.bow, drawing?.drawn ?? 0, alive && (drawing?.nocked ?? false));
 
 
   const below = ctx.battle.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;
