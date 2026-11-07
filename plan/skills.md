@@ -1,237 +1,81 @@
 # Skills
 
-Status: **being built**. The user's design, condensed (their own doc isn't in the repo). A skill is a chain of words.
-Built so far: the grammar (`shared/src/skills/skill.ts`), the words each player knows (saved), casting in the
-shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), PR D's chanting in fights, the
-skillbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/skills/`), and PR E's Beam, Imbue, Forms with no
-element and every modifier, and PR F's effects (`client/src/visuals/battle/skills.ts`). Numbers marked *placeholder* are
-the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills/effects.ts`).
-
-## Words
-
-- **Gear**: anything equipped (weapons, armour, the skillbook). Physical combat comes from gear.
-- **Skill**: an ability built from words. Anyone can use skills, with or without a book. The skillbook only saves
-  sequences for quick-cast.
-- **Stamina**: what both gear and skills spend. **Skillpower** scales skill damage. It may become soul / soulpower
-  later, for the lore.
-- **Skill grammar**: the rules. A form, then elements, then modifiers, each applied in order to everything before it.
-- **Word**: one of a form, an element or a modifier.
-- **Skill sequence**: one specific string of words (e.g. Bolt Fire Split). A skillbook page holds one.
-- **Building**: putting a sequence together, by chanting it or quick-casting it from a page.
-- **Validating**: checking a sequence against the grammar. Internal only, never shown to players.
-- **Release**: the moment a built skill fires.
-- **Effect**: what it leaves in the world (bolts in flight, a cloud, an Imbue).
-- **Cast**: the whole lifecycle (build, then release, then effect). It's resolved when its last effect ends. One open
-  cast per entity for now. Avoid the word "channel".
+Status: **mostly built**. The user's design, condensed (their own doc isn't in the repo). A skill is a chain of words
+cast in fights. Built: the grammar (`shared/src/skills/skill.ts`), every Form, element, modifier and reaction, the
+words each player knows, chanting, the skillbook's pages and quick-cast, any fighter's skills (`Skilled`), the Goblin
+Warlock that casts, and the effects' looks. The numbers are in `SKILL_EFFECTS` (`shared/src/skills/effects.ts`); the
+formulas in FORMULAS.md, "Skills"; the words for talking about skills in AGENTS.md.
 
 ## Decided by the user
 
-- **Grammar:** `skill = segment {segment}`, `segment = form stage`, `stage = {element} {modifier}`. Every segment has
-  its own Form; each fires when the previous one completes. A skill is data (`{ segments: [{ form, elements,
-  modifiers }] }`), not parsed text.
-- **Forms:** Bolt (a projectile), Beam (a held stream), Nova (a burst around its origin), Imbue (carried on
-  the next hits: 3 hits or 8 s), Self (you only, for now). Summon is removed for now.
-- **Elements** are a set (order doesn't matter): Fire, Water, Earth, Air, Lightning, Light, Darkness. Opposites
-  (Fire / Water, Earth / Air, Light / Darkness) can't share a stage, but may be in different segments.
-- **Modifiers** change their whole stage: Amplify, Widen, Pierce, Split, Extend, Swift, Delay (holds back the hand-off
-  after the segment completes), Follow (homing; skills may home, unlike weapons). Extend only ever means "lasts
-  longer"; Extend on Nova is a lingering cloud (like Minecraft's lingering potion).
-- **Modifiers go in order:** each changes the shot built from the Form, the elements and the modifiers before it.
-  Amplify then Split gives two Bolts, both amplified; Follow then Split, split Bolts that all home; Split then Split
-  splits each Bolt again. A repeat is a full step, applied again (no diminishing returns); repeats will cost more
-  stamina later instead.
-- **No caps** on modifiers or segments: a segment takes any number of modifiers (Splits too), and a chain any number
-  of segments; stamina is the only limit.
-- **Split** splits the Bolt, and each further Split splits the split ones: n Splits make 2^n Bolts, each smaller and
-  dealing 10% less per Split (×0.9^n).
-- **Which modifiers fit which Form** (the builder rejects the rest): Amplify any; Widen Beam, Nova; Pierce Bolt,
-  Beam; Split Bolt; Extend Beam, Nova, Imbue, Self; Swift Bolt, Beam, Imbue.
-- **Cost:** stamina from the same bar as dodging and blocking, not mana (the mana stat is gone). Form 3, element 2,
-  modifier 1 (placeholders). No word cap: a chain's cost grows exponentially with its number of segments, and that
-  is the only limit. Dev servers will use a near-minimal cost through one scale (not built). No cooldowns.
-- **Casting:** release time 0.3 s + 0.1 s per word. Stamina is paid at release; short of it, the cast doesn't start.
-  You move slower while winding up; a dodge cancels the wind-up at no cost, and so does a hit that stuns or
-  staggers you (a sword hit only hurts, so the cast still goes off). A cast pressed mid-swing waits for the swing to let
-  go, like a dodge. Your own skills never hurt you. A Beam is held and paid per second.
-- **Aim:** Bolt and Beam aim as an arrow does (`aimOf`), flat: at the locked enemy, or along the crosshair unlocked
-  (a chant, a cast or a Beam frees the camera to aim and keeps the lock from the fight, as a drawn bow does); Follow
-  homes onto the locked enemy, or the one nearest the aim's line when unlocked. Lock-on is close to auto-aim, so it's
-  balanced by the defender: a Bolt aims at where the target is, never leads, so a step aside makes it miss; Follow
-  turns slowly, so a late dodge shakes it; the Kobold (not the boar) sometimes steps aside from a Bolt winding up at
-  it (`sidestep` in `server/src/core/enemies/kobold-swordsman.ts`: a chance per cast, a reaction time, stepping
-  `leadTime` before it leaves).
-- **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
-  Splits give four next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
-  segment's travel direction; after a directionless one (Nova, Self, Imbue) it takes the caster's facing when it
-  fires.
-- **Objects** (clouds) last until the fight ends; allies may use each other's. Hidden caps guard the server, like
-  `MAX_FIGHT_TIME`: 12 per player, 60 per fight.
-- **No skills on the overworld.** In fights anyone may use skills: enemies "could both quick cast and chant", and so
-  will other players. What a chanter is chanting is shown in a small popup in front of them, always while they chant
-  ("if we look close enough we can see what they're chanting"); your own chant is the big popup. Interrupts are the
-  same for every chanter. One cast at a time per entity until it resolves. Built: the `Skilled` component on every
-  fighter (below), and the Goblin Warlock, an enemy that casts (`skill` in its attacks).
-- **Stats:** skillpower (was spellpower, then Intellect) scales skill damage. D below is a skill's base damage after
-  skillpower.
-- **Elements** (numbers are placeholders; each element is its own damage type, so per-element resistances can apply;
-  enemies have none yet). Statuses go on with a hit, and a target can hold several:
+- **Grammar.** A skill is one or more segments, each a Form, then elements, then modifiers. Each segment fires when
+  the one before completes. A skill is data, not parsed text. Nothing about skills is magic-only: they make magic,
+  enhance yourself or anything else (they were called spells).
+- **Forms**: Bolt (a projectile), Beam (a held stream), Nova (a burst round its origin), Imbue (carried on your next
+  hits), Self (you only, for now). Summon is out for now.
+- **Elements** are a set: Fire, Water, Earth, Air, Lightning, Light, Darkness, each its own damage type with a status
+  (Burning, Wet, Rooted, Pushed, Shocked, Marked, Cursed). Opposites (Fire and Water, Earth and Air, Light and
+  Darkness) can't share a segment, but may be in different ones.
+- **Reactions** on whoever a skill hits, players in duels too, each with a cooldown per target: Conduct (Lightning on
+  Wet), Doused (Fire on Wet, Water on Burning), Fanned (Air on Burning), Eclipse (Darkness on Marked).
+- **Modifiers** change their whole segment, in order, each applied to the shot built so far: Amplify, Widen, Pierce,
+  Split, Extend (only ever "lasts longer"; on a Nova a lingering cloud, like Minecraft's lingering potion), Swift,
+  Delay, Follow (homing: skills may home, weapons don't). A repeat is a full step, no diminishing returns; repeats
+  will cost more stamina later. Which fit which Form: Amplify any; Widen Beam and Nova; Pierce Bolt and Beam; Split
+  Bolt; Extend Beam, Nova, Imbue and Self; Swift Bolt, Beam and Imbue.
+- **Split** splits a Bolt, and each further Split splits the split ones again (2ⁿ Bolts, each smaller and weaker);
+  they start round you and fly in to meet a point ahead, so they don't spawn in a line.
+- **No caps** on modifiers or segments, in the rules, the builder or the wire: stamina is the only limit (plus guards
+  on the server's work). Cost grows exponentially with the segments. No mana, no cooldowns.
+- **Casting** takes a release time by word count; stamina is paid at release. You move slower while winding up; a
+  dodge cancels it, and so does a hit that staggers you. Your own skills never hurt you. A Beam is held and paid as it
+  runs.
+- **Skill damage** scales with skillpower (it may become soul power later, for the lore).
+- **Lock-on stays, so skills are balanced on the defender's side**: a Bolt flies at where the target is, never where
+  it's going; Follow turns slowly enough for a late dodge; the Kobold sometimes steps aside from a Bolt winding up at
+  it. The wind-up, the slower walk and the cost keep skills from being spammed. Skills ignore dodge i-frames, hurt
+  invulnerability and blocks, for now.
+- **Aim**: skills aim as the bow does (one aim): at the locked target, or at the crosshair unlocked. Follow homes onto
+  the locked enemy, or unlocked the one nearest the aim's line.
+- **Fights only.** Anyone may chant, with no book, and quick-cast: players, enemies, other players. Others' chant words
+  show in a small popup in front of them while they chant; your own is the big popup. Interrupts are the same for
+  every chanter. One cast at a time per fighter for now (maybe two later).
+- **Chanting** opens a big popup in the middle: a carousel of squares filled one word at a time (a Form, then
+  elements, modifiers or a Form; a Form starts the next segment, the filled squares sliding left). Words are clicked,
+  searched (Tab), or picked in two steps: 1 Form, 2 Element, 3 Modifier, then that kind's words by number. Its keys are
+  a layer of their own, so 1-4 don't cast there. The fight goes on and you can't move; only a stagger cancels it; a
+  dodge closes it and keeps the squares. A chanted skill costs the same as a saved one and is for that cast only.
+- **The skillbook** is an item held in a hand. It only saves skills for quick-cast: 4 pages, keys 1-4 (rebindable).
+  Writing a page in a fight is like chanting (standing still, a stagger cancels it, it takes time). Pages and words
+  are saved and checked by the server, and kept on death.
+- **Words** are learned per player and saved. A new player knows none; how words are learned is open.
 
-  | Element | Hit | Status |
-  |---|---|---|
-  | Fire | 0.8D | Burning: 0.25D a second for 4 s; a new hit refreshes it, never stacks |
-  | Water | 0.5D | Wet, 6 s: no damage, sets up Conduct and Doused |
-  | Earth | 1.2D + poise damage | Rooted: moves 60% slower for 2 s |
-  | Air | 0.4D + about 3 m of knockback | Pushed (instant only) |
-  | Lightning | 1.0D, arcing to one nearby enemy at 50% | Shocked: stacks to 3 (5 s, refreshed per stack); at 3 the target is stunned 1 s and the stacks clear |
-  | Light | 0.5D on enemies | Marked, 8 s: sets up Eclipse. On yourself (Self) a shield of 1.0D for 6 s |
-  | Darkness | 0.9D, and you heal 20% of it | Cursed: the target deals 15% less damage for 6 s |
+## Decided by the agent (changeable)
 
-- **Reactions** (on whoever a skill hits, players in duels too; decided by the server, each with a cooldown per
-  target):
-
-  | Reaction | When | What it does | Cooldown |
-  |---|---|---|---|
-  | Conduct | Lightning hits Wet | Lightning ×1.5 and arcs to up to 2 more enemies within 6 m at 50%; the Wet is used up | 3 s |
-  | Doused | Fire hits Wet, or Water hits Burning | Burning and Wet are removed (Fire's Burning isn't applied) | 2 s |
-  | Fanned | Air hits Burning | the Burning does double for the rest of its time and spreads to one enemy within 4 m | 4 s |
-  | Eclipse | Darkness hits Marked | a 1.5D burst around the target; the Mark is used up and Cursed isn't applied | 5 s |
-
-  A stage's elements are a set: all its statuses go on first, then the reactions are checked against the result
-  (so Nova · Water + Lightning conducts in one stage). If one hit could trigger two, they resolve in the order
-  Conduct, Doused, Fanned, Eclipse. Any other pair just applies both statuses.
-- **Words** are learned per player and saved in the database. For now every player knows every word (the starter
-  kit in AGENTS.md). Chaining unlocks when a player learns a second Form. How words are learned: later.
-- **The skillbook** is an item, equipped in a hand (see [inventory.md](inventory.md)). It only saves and quick-casts:
-  "book purely to save and quickcast"; chanting works the same without it. Saved skills are written in it: 4 for now,
-  cast with one key each (quick casting). Building and saving a skill happens at a campfire, by typing words into boxes
-  that autofill from learned words (a rejected word greyed out with its reason), or in a fight (below). Built: outside
-  fights the book opens from the bag screen anywhere (the agent's pick: no campfire needed, as the later ruling says
-  outside fights) and a page is written at once.
-- **Chanting in a fight:** the grammar view can be brought up in battle "to chant/create spells on the fly. the
-  spellbook is just for quick casting". It's "a big popup at the center of the screen showing 3 squares, each one is
-  what word goes in there. ie one square for bolt, one for fire, and one for augment." It's a carousel, one square at
-  a time, the next appearing as you fill one: "we pick form, next one is element. we pick element, next one is
-  element or augment or form. if element, same 3. etc etc". After a modifier, the next square is another modifier or
-  a Form (elements come before modifiers in a segment). Picking a Form starts the next chained segment in the same
-  carousel: the filled squares slide left, and a chain link or arrow marks where each segment starts.
-  - Words go in either way: click a square and pick from the known words, or pick from a list. Typing works too: a
-    searchable dropdown, number keys quick-select from it, Backspace undoes the last word. These keys go through the
-    Actions / bindings system as their own layer (the popup's number keys don't cast saved skills).
-  - The fight keeps going while it's open (no pause or slow-down), and you can't move. A hit cancels the chant only if
-    it staggers you. A dodge closes the popup and keeps the squares, so reopening it carries on.
-  - A chanted skill costs the same as a saved one; it's "just slower to use" (the time spent building it). No extra
-    chant time beyond picking the words, then its release time.
-  - A chanted skill exists for that one cast only. Saving one into the skillbook is a skillbook + bag interaction,
-    in a fight or outside one; in a fight it works like chanting (you can't move, a stagger cancels it) and takes 2 s.
-
-## Decided by the agent (the user asked for these; changeable)
-
-- **Numbers:** D = 10 at Skillpower 10. Bolt: 20 m/s, 16 m range, 0.3 m wide, at chest height. Nova: 3 m around its
-  origin (to the target's surface). Earth: 20 poise damage. Air: 12 m/s of knockback (about 3 m). Lightning's plain
-  arc reaches 5 m (Conduct's 6 m), at 50% of the hit's Lightning damage. Eclipse's burst: 3 m. Moving while winding
-  up: 40% of walking speed.
-- **Self per element:** Fire: +20% damage dealt for 8 s (Empowered). Water: clears your harmful statuses and heals
-  0.3D. Earth: 30% less damage taken and no knockback for 6 s (Warded). Air: +30% move speed and 30% cheaper dodges
-  for 5 s (Hasted). Lightning: +50% stamina regeneration for 5 s (Charged). Light: a shield of 1.0D for 6 s. Darkness:
-  your hits heal you 10% of their damage for 8 s (Siphoning). These count for sword hits too.
-- **Fused Self buffs** (the user asked for "some buff skills or something (with timer)", numbers the agent's): a Self
-  stage holding both elements of a pair puts on that pair's status too, on top of each element's own. Fire + Air:
-  Frenzy, 10 s, stacking to 3 (each cast a stack), each stack +10% damage dealt and 15% cheaper attacks. Water +
-  Light: Renewal, heals 0.2D a second for 8 s. Earth + Lightning: Bulwark, stuns from hits half as long and no
-  knockback for 6 s. Darkness + Fire: Bloodrage, +35% damage dealt and +25% taken for 8 s. No new words: any player
-  who knows the two elements and Self can cast them.
-- **One status system** (statuses, buffs and debuffs alike): put on again, a status keeps the longer of its time left
-  and the new time, takes the new amount (a shield's, a burn's) and gains a stack up to its cap, all its stacks on one
-  timer. A status can be permanent (no time), so inscriptions and blessings can be statuses later, through the same
-  stat mods.
-- **Imbue** imbues your own sword, for now; arena props come later.
-- **No element:** a plain hit of 0.6D with no status (Imbue adds it to sword hits); Self with none does nothing.
-- **Beam:** a line 10 m long and 0.35 m wide that strikes the first enemy on it as it starts and every 0.5 s, each
-  tick 50% of a hit, for 1 s. As a skill's first segment it streams from the caster along their aim (the locked
-  enemy, or the crosshair's way) and is held while the cast key is (a page's key; a chanted Beam is a tap): held, it
-  costs its own words' cost ×2 a second (no chain growth), and its 1 s runs from the release. While it lasts you
-  walk at 40% and can't swing; a dodge or a stun ends it at once with no hand-off; running out of stamina ends the
-  hold. A later Beam starts where the segment before it ended and keeps its direction. It hands off where it ends:
-  in the enemy it stops in, or at its range or the wall.
-- **Imbue:** the next 3 sword hits that land within 8 s (light or heavy; blocked ones don't count) each
-  also strike with its elements at 50% of a hit. A new Imbue replaces the old one (without its hand-off). It hands
-  off from the enemy the last hit landed on (onward from you through it, skipping it), or from you when it runs out.
-- A share of a hit (a Beam's tick, an Imbue, a cloud, a split Bolt, Amplify) scales its damage, poise damage and
-  knockback; statuses go on in full, so a Lightning Beam stacks Shocked every tick.
-- **Modifiers,** in one ordered pass (`shotOf` in `effects.ts`). A "+%" one multiplies the shot so far, so repeats
-  compound (Amplify twice ×2.25); a "+units" one adds. Amplify ×1.5 damage (Self: its heal and shield). Widen ×1.5
-  radius (a Nova's, a Beam's width). Pierce: a Bolt goes through 2 more enemies before it stops (it still hands off
-  once, at its end); a Beam strikes up to 3 on its line. Split: twice the Bolts, each ×0.8 radius and ×0.9 damage; each
-  hands off. Split Bolts start at random spots in an upright circle round the caster, across the aim like a halo, its
-  lowest point 0.3 m off the ground and its radius 0.75 m × √Bolts within 1.5-3 m; each spot is the best of 8 random
-  tries (the farthest from the others), so they're well apart and bunch only when there are too many. The caster's seed
-  in the fight's state places them (the server picks it). They fly in to meet 10 m ahead, each aimed at that point plus
-  up to 0.5 m of random jitter, then fly on straight at that height. Extend ×2 time (a Beam's, an Imbue's hits and time,
-  Self's statuses); on a Nova, the first leaves a cloud as wide as the Nova for 8 s, pulsing it every second at 40%, its
-  hand-off still at the burst, and each after it doubles the cloud's time. Swift ×1.5 speed (a Bolt's flight, a Beam's
-  ticks; an Imbue's swings start quicker). Delay holds the hand-off back 1 s each (on a skill's last segment it does
-  nothing). Follow turns a Bolt up to 3 rad/s each toward its target, picked as it fires (the locked enemy, else the
-  one nearest the aim's line, none behind; if it dies, the one nearest its heading); a dodge's i-frames don't make it
-  lose the target. Split Bolts that home aim side by side beside it, 4 Bolt radii apart (all within 3 m), closing in
-  only over the last 2.5 m, so they come in apart rather than as one clump.
-- **Caps:** a player's 13th cloud ends their oldest, and so does the fight's 61st. A guard on the server's work, not
-  a game rule: a fight holds at most 256 skill objects (`MAX_LIVE_SHOTS`); past it, new ones (Bolts from a Split,
-  hand-offs) don't spawn. A chain too long to count costs Infinity, so it's never cast.
-- A cast waits behind a buffered dodge, and goes before a buffered swing. Casting works in the air.
-- Only a hit that stuns or staggers you (a boar's bite or charge, a broken guard) interrupts the wind-up; the
-  Kobold's sword only hurts, so the cast goes off, as with the chant.
-- A later Bolt starts where the one before it ended and ignores the enemy that one hit.
-- Conduct's two arcs replace Lightning's plain one; arcs and the Eclipse burst do damage only (no statuses). Fanned
-  spreads the doubled Burning, with the time it has left, to the nearest enemy within 4 m. A new Fire hit resets a
-  Fanned burn to the normal rate.
-- The wire has no skill caps, only the socket's 16 KB a message (over it, the socket closes): about 1,600 modifiers
-  or 300 segments in one input, 76 modifiers when a frame's 16 inputs all carry a held cast.
-- The chant and writing a page run in the shared fight, so the server decides them: the fight holds a chanter still,
-  casts a skill that's on none of the pages only from an open chant (pages matched by their words), writes a page
-  after `SAVE_IN_FIGHT_TIME` (2 s), and the server saves the fight's pages with its result. Stamina still recovers
-  while chanting or writing (as standing does). A dodge out of the chant goes where the walk keys point (backwards
-  with none); closing the chant mid-write stops it, and nothing is written.
-
-- **Any fighter's skills** (`Skilled`, `fight/skills/skilled.ts`): what it's chanting (its words), the skill winding up,
-  a held Beam, its aim and target, its seed. The player's keys and, later, an enemy's brain drive it through the same
-  calls: `startCast` (a quick-cast, or a chant's release), `chant(words)` and `releaseChant`. The player's chant words
-  reach the fight as the input `chantWords` (the whole list, on the step it changes), checked by the server against the
-  words they know. A stun (or a recoil or stagger for an enemy) breaks it off. A fighter without a `Stamina` pays
-  nothing. An enemy that casts (a `skill` attack) gets a stamina bar like a player's and pays the same; the boar and
-  the Kobold have none, and skillpower 0.
-
-## PRs
-
-1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
-2. **D** the skillbook's 4 saved skills, quick-cast keys 1-4, the builder and chanting in fights (built); learning
-   words (not built: for now everyone knows every word).
-3. **E** the remaining Forms (Beam, Imbue) and modifiers, objects and their caps (built).
-4. **F** the effects (built, in code: shaders, particles and meshes, one look per element and Form, the chant's
-   circle, the Imbue glow on the sword's trail, the four reactions). Not built: statuses shown on their targets
-   (Burning, Wet, Shocked stacks, ...), Self's lasting statuses on the player, sounds.
-
-5. **G** any fighter's skills (`Skilled`), chanting without the book, the chant's words in the fight and over
-   other chanters (built). **H** the Goblin Warlock, an enemy that uses them (built: quick-casts and chants Bolt Fire,
-   sometimes with Follow or Split, keeping its distance).
-
-## Later
-
-- Multicast: about two casts open at once per entity, instead of one.
-- Advanced boss AI that builds its chants to suit the situation, and quick-casts for quick skills.
-- "One cast at a time until it resolves" counts only the build and wind-up for the player for now: you can cast again
-  while your last skill's effects are still out (the warlock waits for its own to end). Whether a cast should block the
-  next until its last effect ends is open.
+- Every number: D, the Bolt's speed and range, the Nova's radius, element hits and statuses, reaction numbers,
+  release time, the modifiers' strengths, the Beam's length, ticks and cost, Imbue's hits, word costs and the chain's
+  growth.
+- Self per element: Empowered (Fire), cleansing heal (Water), Warded (Earth), Hasted (Air), Charged (Lightning), a
+  Light shield, Siphoning (Darkness). Fused Self buffs for some pairs (the user asked for "buff skills with a timer"):
+  Frenzy, Renewal, Bulwark, Bloodrage.
+- One status system for statuses, buffs and debuffs: a renewed status keeps the longer time and gains a stack to its
+  cap; a status may be permanent, which is how inscriptions and blessings plug in.
+- Imbue imbues your own sword. A plain hit with no element. A share of a hit scales its damage, poise and knockback;
+  statuses go on in full.
+- The hand-off: each projectile hands off once, where it ends; a later Bolt or Beam keeps the direction before it.
+- Clouds last 8 s (doubled by each further Extend) and are capped per player and per fight; a fight holds at most
+  `MAX_LIVE_SHOTS` skill objects.
+- The chant and writing a page run in the shared fight, so the server decides them; a skill on no page is cast only
+  from an open chant. Outside fights the book opens from the bag and writes a page at once, anywhere.
+- A cast waits behind a buffered dodge and goes before a buffered swing; casting works in the air.
 
 ## Open
 
-- The agent's placeholders for fits nobody decided: Delay fits every Form, Follow only Bolt.
-- The chain's growth: each extra segment doubles the whole skill's cost (`SKILL.chainGrowth`, placeholder).
-- The agent's reading of the grammar: a repeated element is refused (elements are a set); Lightning has no opposite.
-- The agent's clouds last 8 s, doubled by each further Extend, against "Objects (clouds) last until the fight ends"
-  above: a cloud that pulses for the whole fight seemed too strong; the user to decide.
-- The dev cost scale.
-- Repeated modifiers will cost more stamina (the user's plan; how much is open). For now every modifier costs 1.
-- With many Bolts every one hands off, so Splits then another Bolt with Splits multiply; `MAX_LIVE_SHOTS` (256) is
-  the agent's pick, for the user to change.
-- How words are learned.
-- Statuses on players from enemies' authored attacks (the battle HUD shows every status on you and your foe).
+- How words are learned, and the dev cost scale.
+- How much repeated modifiers cost more.
+- The agent's placeholders nobody decided: which modifiers fit which Form beyond the user's list (Delay fits every
+  Form, Follow only Bolt), the chain's growth, a repeated element refused, Lightning with no opposite.
+- Clouds: the user said they last until the fight ends; the agent's 8 s is for the user to decide.
+- Whether a cast should block the next until its last effect ends (only the build and wind-up do for players now).
+- Multicast; boss AI that builds chants to suit the situation; statuses from enemies' own attacks.
+- Statuses shown on their targets, and skill sounds.

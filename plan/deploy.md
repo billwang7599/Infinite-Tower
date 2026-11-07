@@ -1,31 +1,14 @@
 # Deploying
 
-Status: **idea**, future plans only. Nothing is decided.
+Status: **idea**. Hosting on one machine behind a Cloudflare Tunnel is built (README, "Hosting").
 
-## The user's idea
+## Decided
 
-The client on **Cloudflare Workers** (static assets), the server on **AWS EC2** or **Google Cloud Run**.
+- Squash the migrations into one before launch, while no real player's data exists; after launch they're only added
+  to.
 
-## Notes gathered so far
+## Open
 
-- **Keep one origin.** The login cookie belongs to the page's host, and the client always calls `/api` and `/ws` on
-  its own host. A Worker in front of the static assets can forward `/api/*` and `/ws` to the game server
-  (`assets.run_worker_first` with those paths), so the browser never talks to a second domain.
-- **One VM fits better than Cloud Run** for now: Cloud Run ends WebSocket connections at its request timeout
-  (5 minutes by default, 60 at most), and the server keeps who's online and every session in memory, so it must
-  run as exactly one instance.
-- **Postgres**: a managed instance in the same region as the server; the server only needs `DATABASE_URL`.
-- **Server changes this needs** (none done yet, they belong in the deploy PR):
-  - Fastify's `trustProxy`, or the login rate limit sees every player as the proxy's IP address.
-  - A `HOST` setting: the server listens on every interface (`::`) right now; dev could use localhost only.
-- `npm start` already builds the client and serves it, `/api` and `/ws` from one process; production cookies are
-  `Secure`.
-- **Squash the migrations before launch** (the user: yes). Until a real player's data exists, the 0000-00NN files
-  can become one migration made fresh from `schema.ts`, and the dev databases reset. After launch they're never
-  squashed, only added to. With more than one server, migrations run once per deploy, not at each server's start.
-
-## Open questions
-
-- AWS or Google? Which region?
-- The domain name.
-- Whether the server serves the client too (simplest) or Cloudflare does.
+- The user's earlier idea: the client on Cloudflare Workers, the server on a cloud VM, with managed Postgres. One
+  origin must be kept (the login cookie), and the server must stay a single instance while sessions live in memory.
+- The domain name; with more than one server, running migrations once per deploy.

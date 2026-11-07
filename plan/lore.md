@@ -1,239 +1,93 @@
 # Lore
 
-Status: **direction**. Built from the character outward, one ring at a time; names for things come out of it. The
-tower from [vision.md](vision.md) is optional here: the user said we don't have to keep it.
+Status: **direction**. Built from the player outward, one ring at a time; names come out of it. What's marked the
+user's is decided; names and details marked OptChat's are drafts for the user to change. The tower is optional here.
 
-## Ring 0: the player (decided by the user)
+## Ring 0: the player (the user's)
 
-- **The game breaks the fourth wall.** That's what makes it fun. The world knows its avatars are driven by real
-  people, the actual person at the keyboard, from outside it.
-- **The seed.** The player gives a portion of their real soul to the game. In the avatar it becomes an empty shell,
-  and monster essence fills it. After that the soul is the avatar's own, but still tethered to the player's.
-- **The core is that soul.** A stronger soul makes a stronger character; growing the core ([core.md](core.md)) is
-  growing it. It's shown as a sphere with light growing from its centre, not a filling orb or bar: nothing should
-  read like an XP system. Each step the light grows bigger and brighter, and its colour changes with each realm,
-  from fiery (Yan, Sol) to ethereal (Lux, Ling, Tian).
-- **Dying.** The avatar disintegrates and drops everything it carried (the bag, what's equipped, the skillbook), and
-  the shell's fill is lost. If the fill is already empty, death takes a whole step. The words you know survive:
-  knowledge lives in the seed. Built as such: a new avatar starts with nothing, and dying drops all it carries.
-- **Drops.** Anyone can pick up what a dead avatar dropped, for a while; then it crumbles. Built (a pile that vanishes
-  after 10 minutes on the overworld; AGENTS.md); the crumbling isn't drawn.
+- **The game breaks the fourth wall**; that's what makes it fun. The world knows its avatars are driven by real people
+  at the keyboard, from outside it.
+- **The seed.** A player gives a portion of their real soul to the game. In the avatar it becomes an empty shell that
+  monster essence fills; after that it's the avatar's own, but still tethered to the player's.
+- **The core is that soul.** Growing the core is growing it, shown as light growing from a sphere's centre, bigger and
+  brighter each step, its colour going from fiery (Yan, Sol) to ethereal (Lux, Ling, Tian). Never a bar, never XP.
+- **Dying** disintegrates the avatar: it drops everything it carried, and the shell's fill is lost (with none, a whole
+  step). The words it knows survive: knowledge lives in the seed. Anyone may take what it dropped, for a while, then
+  it crumbles.
 
-## Ring 1: the world (decided by the user)
+## Ring 1: the world (the user's)
 
-- **Natives** live in their own universe. They understand avatars as souls from other worlds, summoned into these
-  bodies. The players' world is ours: the real one, where they sit. Logging off is being desummoned.
-- They call players **avatars**: human in their eyes, but driven by someone from elsewhere.
-- **The natives are split:** factions believe different things about avatars. In time there will be many, with
-  their own smaller stories inside the big one: kingdoms at war, wars between races, wars of faith. None are needed
-  yet. In play so far it's personal: the Waking Hollow's Maren thinks avatars were sent for a reason (the Harvest's
-  answer), its hunter Tobin that a thing that can't stay dead has no business hunting (the Turning's), and they share a
-  fire anyway. Corwin, who keeps the Grass Field's east road for Valdris, holds to the Oath (keep your word, go home
-  when called); Ilse, Nyra's weaver in the Mistwood, finds no thread for avatars on the loom and goes looking for the
-  snapped-tether myth's proof (a Kobold's thread, thin and knotted, which proves nothing either way). In Highmere,
-  Ottilie, Aurel's priest, holds to the Harvest; Captain Edda keeps the crown's claim on avatars without believing
-  the crown can keep them; Odo keeps the roll of arrivals, whose first leaves, older than the castle, hold only tallies
-  (a hint at the Maker, no more). In the Mistwood, Sorrel, Calyx's herbalist, holds to the Harvest too, and counts
-  the wood growing a little thinner every year (the starving, glimpsed, not explained), and the mist off its mire is
-  loose soul rising.
+- **Natives** live in their own universe and see avatars (their word) as souls from other worlds, summoned into
+  bodies: human to them, but driven from elsewhere. The players' world is ours. Logging off is being desummoned.
+- **The natives are split**: factions believe different things about avatars, and in time there will be many, with
+  smaller stories inside the big one (wars of kingdoms, races and faith). None are needed yet; in play it's personal,
+  each NPC holding to one god's answer.
+- **Monsters are native**, not avatars. What people say about them comes in three layers: everyone believes the world
+  leaks soul that clumps into beasts; the truth, found later, is that the world is starving for soul through Vesk's
+  rift and the Maker's door refills it; a myth says some monsters are avatars whose tether snapped.
+- **The soul cycle** (lore only, nothing in play follows it): bodies cost soul; loose soul pools in the land and clumps
+  into beasts (a respawn); a kill moves soul; the rift takes a cut of every exchange, so left alone the world starves;
+  avatars are the pump that brings new soul in. Bosses are where soul has pooled thick.
 - **The Empire of Aurevaine** (the user picked a second city and "something extravagant"; the names are OptChat's):
-  Highmere is the second city of the Most Radiant and Thrice-Crowned Empire of Aurevaine ("Aurevaine", "the Empire"),
-  its oldest and most sacred: the Door City, where the Maker's door first opened. The Emperor, His Imperial Radiance
-  Valerian Aurelius IX, holds court far away in Seraphel, the Gilded Throne, a newer and richer capital. Osric of House
-  Vantmere, Vassal-King of Highmere ("His Majesty"), holds the city for him. Seraphel wants a firmer hand on the door
-  and more of what comes through it sent its way; Osric writes back politely. In play it's a hint only (the king's
-  welcome, riders from Seraphel talked about at the Gilded Door), no plot yet. Highmere is built as wards, each its own
-  map: the Castle Ward and the Market Ward now, Temple Hill and the Lower Town later.
-- **Names** (the user's rule) pass down the medieval way. City-born commoners (Seraphel, Highmere) have inherited
-  surnames, mostly old trades or places, that no longer fit them: Fennick Cooper changes money, and Hesper Wainwright
-  keeps the Gilded Door. Country folk (the quarry, the Mistwood, farms) have bynames that describe them and aren't
-  inherited yet: "Harl of the Pit", "Sorrel by-the-Fen". Nobles take a house name or "of <seat>": Osric of House
-  Vantmere, King of Highmere. The imperial dynasty is the Aurelian line. People use a short name where they really
-  would. So far only the NPCs added with Highmere's wards have full names.
-- **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
-- What people say about monsters, in three layers:
-  - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
-  - The truth, found later: the world is starving for soul through Vesk's rift, and the Maker made a door to other
-    universes to refill it (see Ring 3). Souls come in through it as seeds and grow fat on monsters.
-  - A myth: some monsters are avatars whose tether snapped, gone wild. Nobody can prove it either way.
+  Highmere is its ancient, sacred second city, the Door City, held by a vassal king while the Emperor's court sits in
+  a newer, richer capital (Seraphel) that wants a firmer hand on the door. A hint only, no plot yet. Highmere is built
+  ward by ward: the Castle and Market Wards now, Temple Hill and the Lower Town later.
+- **Names** pass down the medieval way (AGENTS.md): city surnames from old trades or places that no longer fit,
+  country bynames, noble houses.
 
-### The soul cycle (lore only; nothing in play follows it yet)
+## Ring 2: the gods and the Transcendents (the user's)
 
-- **Bodies cost soul.** Every living thing is a body (its capacity) filled with soul. Breeding spends part of the
-  parent's soul on the young, which grow by eating and killing.
-- **The land holds loose soul.** Where it pools, it clumps into beasts: that's what a respawn is, and it uses up the
-  pool.
-- **A kill moves soul.** The killer takes part of what the dead held; the rest sinks back into the land. An avatar
-  that dies loses fill to whatever killed it, or to the land.
-- **The rift takes its cut.** Every time soul changes hands, a little is lost through Vesk's rift for good. Left to
-  themselves, natives and monsters pass around less and less: that's the starving.
-- **Avatars are the pump.** Their tethers keep bringing new soul in through the door, and what they lose when they
-  die stays in the world. The loop: door → avatars → kills and deaths → monsters and land → drained by the rift →
-  refilled only by new avatars.
-- **Bosses** are where the cycle runs thick: a place where loose soul has pooled for a long time, or (if the myth is
-  true) an avatar whose tether snapped and who has been eating ever since.
+- **One pantheon, divided against itself**, Greek and Norse in look. The gods are their own kind of being, not grown
+  from avatars. They're the first twelve, who shaped the world, but they didn't make everything, and the summoning is
+  beyond them: they can't cause it, stop it or fully explain it.
+- **Transcendents**: an avatar whose soul breaks past Peak Tian, a rank above the realms, not a god. One seat per god,
+  twelve in all, for the strongest or most honoured players (maybe after a quest): the game's leaderboard.
+- **The gods are seen both ways**: through shrines, priests and natives, and sometimes walking the world themselves.
+- **No good side and no bad side.** They split over what to do with avatars, each answer with a fair case and a price.
+  A player backs a god or stays neutral, and can switch or go back, for some effort, never locked. The natives'
+  factions each follow one too.
+- **The orders** (the user's idea): every god heads a craft, and people follow a god for what they do; praying to one
+  doesn't make you one of their order. Each god's order holds masters and hopefuls alike. Blessings come now and then
+  to the talented, not the most devout. Players can be blessed too, through high faith with a god; blessings have no
+  cap and aren't inscriptions.
 
-OptChat's reading, for the user to check: chat between players is souls talking across the world, from wherever
-their people really are.
+OptChat's drafts: four philosophies (the Harvest: feed the starving world; the Ascent: let the strong rise; the Oath:
+bind avatars and send them home; the Turning: death must take its due), twelve gods with a domain, a philosophy and an
+order each (Valdris, Brannoc, Thalor, Aurel, Calyx, Haldis, Kaelith, Ithra, Nyra, Morvane, Skadrin, Vesk), as named in
+the game's code and lines.
 
-## Ring 2: the gods and the Transcendents (decided by the user)
+## Ring 3: the Maker (the user's direction)
 
-- **One pantheon, divided against itself.** The look is Greek and Norse: an Olympus-like court, Norse-like doom.
-  The gods are their own kind of being, not grown from avatars.
-- **The gods aren't all-powerful.** They are the first twelve, who shaped the world, but they didn't make
-  everything, and the summoning of avatars is beyond them: they can't cause it, stop it or fully explain it.
-- **Transcendents** (a working name): an avatar whose soul breaks past Peak Tian becomes one. They are a rank above
-  the realms, not gods, so the climb has a top that players reach and the gods stay something else.
-- **One Transcendent per god.** Each god has one seat, so twelve gods means twelve Transcendents: the twelve
-  strongest or most honoured players, who may also have to clear a quest to take the seat. The seats are the
-  game's leaderboard.
-- **The gods are seen both ways.** They speak through shrines, priests and natives, and sometimes walk the world
-  themselves.
-- **No good side and no bad side.** The pantheon is split by philosophies, each with a fair case and a price, not
-  by heroes and villains. The player chooses which god (and so which philosophy) to back, or stays neutral and
-  backs none. The natives' factions each follow one too. Like every choice in the game, it's never locked: the
-  player can switch gods or go back to neutral, for some effort, but never for nothing.
-
-### The question they split over
-
-The world is starving for soul, and souls from our world are now walking in it as avatars, sent by something the
-gods don't understand. What should be done with them? Each philosophy has its own answer (OptChat's draft, for the
-user to change):
-
-- **The Harvest:** souls are what the world lacks, so feed it. Avatars are a gift sent to save it, and some will be
-  spent. The fields grow again, and nobody asks the avatars.
-- **The Ascent:** the strong should rise. Let avatars climb, and let the best become Transcendents, maybe one day
-  gods. The world gets new strength, and the old order may not survive it.
-- **The Oath:** every soul belongs to its own world, and the old laws hold. Bind the avatars by oath, keep them in
-  their place and in time send them home. Order is kept, and the world goes on starving.
-- **The Turning:** all things die and come back. A soul that can't die (an avatar desummons instead) is a wound in
-  the wheel; death must take its due, which is why dying costs an avatar so much. The cycle is honest, and it is
-  merciless.
-
-### The twelve (names made up by OptChat, for the user to change)
-
-Original gods that echo Olympus and Asgard without being them.
-
-| God | Domain | Philosophy |
-| --- | --- | --- |
-| Valdris | king of the court, oaths and order | the Oath |
-| Brannoc | the forge | the Oath |
-| Thalor | storm and sea | the Oath |
-| Aurel | dawn and light; a core's light is his | the Harvest |
-| Calyx | growth and harvest; the starving land | the Harvest |
-| Haldis | the hearth; the campfires are hers | the Harvest |
-| Kaelith | war and the blade | the Ascent |
-| Ithra | words; the tongue skills are spoken in | the Ascent |
-| Nyra | fate, the loom; avatars have no thread on it, so she studies the summoning | the Ascent |
-| Morvane | death; the souls of this world | the Turning |
-| Skadrin | winter and the hunt; the monsters | the Turning |
-| Vesk | tricks, roads and doorways | none: free choice itself, helps whoever pays |
-
-The gods inside a philosophy still disagree on how far to go, and a god can change sides, so the lines can move.
-
-### The orders (the user's idea)
-
-- **Every god heads a craft.** People follow a god because of what they do: every smith knows Brannoc, every
-  hunter Skadrin. Knowing and praying to a god doesn't make you one of their order.
-- **Each god has an order**, the faithful who follow that god religiously and lead the craft's worship. Being in
-  one doesn't make you good at the craft: the orders hold masters and hopefuls alike.
-- **Blessings.** The faithful follow for the god's blessing, but it comes now and then, and to the talented, not
-  to the most devout. A great smith who never prays may be blessed before a priest of the forge, which the orders
-  argue over endlessly. Players can be blessed too (user's decision), by earning high faith (reputation) with
-  that god, maybe through the god's own quests later. Blessings have no cap, and they aren't inscriptions
-  (plan/inscriptions.md). Built as a first pass: faith per god from some quest rewards and three gods' blessings
-  (AGENTS.md, "Blessings"); how faith is really earned and lost, and the other gods' blessings, are still open.
-
-The orders, drafted by OptChat (names and crafts for the user to change):
-
-| God | Order | Craft |
-| --- | --- | --- |
-| Valdris | the Sworn Court | judges, heralds, nobles, anyone who keeps the law |
-| Brannoc | the Anvil Brotherhood | smiths, armourers, miners |
-| Thalor | the Tidewardens | sailors, fishers, ferrymen, weather-callers |
-| Aurel | the Dawnkeepers | healers, lamplighters, glassmakers |
-| Calyx | the Green Hands | farmers, herbalists, millers |
-| Haldis | the Hearthkin | innkeepers, cooks, the keepers of campfires |
-| Kaelith | the Ninefold Blade | soldiers, duellists, sword schools |
-| Ithra | the Collegium of Thresholds | scholars of the tongue and its skills (below) |
-| Nyra | the Loomreaders | seers, chroniclers, archivists |
-| Morvane | the Quiet Hands | undertakers, gravediggers, those who sit with the dying |
-| Skadrin | the Hunt | hunters, trappers, tanners |
-| Vesk | the Waywise | merchants, couriers, money-changers, thieves |
-
-Odo the chronicler fits Nyra's, Fennick the changer Vesk's and Bram Kaelith's, if the user wants them in one.
-
-## Ring 3: the Maker (the user's direction; details open)
-
-- **The true creator is the game's maker: the user.** The Maker made the world and the twelve, then stepped back.
-  The gods know something came before them, but not fully who or what. Like the avatars, the Maker belongs to our
-  world, which is why the summoning (souls coming in from there) is beyond the gods.
-- **The rift: Vesk's mistake.** Vesk, the devious god of doorways, ran an experiment to open a door and take soul
-  from somewhere else. It tore the other way: a rift that bleeds the world's soul out. It is permanent and can't be
-  closed. The gods blame each other; that it was Vesk is a late reveal.
-- **The door: the Maker's answer.** The Maker made a door to other universes so souls can come in and restore what
-  the rift loses. The gods didn't make it and can't close it. Out of the fiction, the door is the game's netcode and
-  servers: the way players get in.
-- **Summoning pads.** Where the door opens, avatars arrive on large pedestals that harness its energy. Drafted by
-  OptChat: the start of each level (where you log in) is one. Built: every level you can wake in starts on a pad, but
-  Highmere has only its platform (a player saved in the Market Ward wakes there). The first
-  and largest is the platform in Highmere's hall, where the Maker's door first opened: the city grew round it, its
-  castle round the hall, to guard and use the stream of avatars, and its rulers hold that what comes through is theirs
-  by right. Every avatar first wakes there, and wakes there again after dying; the court herald greets them. In play,
-  Ilse finds no thread on Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at
-  the Maker, no more.
-- **How skills are conjured (the user's pick: a mix of the Maker's tongue and the soul).** The words are the
-  tongue the Maker wrote the world in, so a skill is a sentence the world obeys. Ithra didn't invent it; she was the
-  first to learn it. But a spoken word does nothing alone: a soul has to push it into the world. The words say what
-  happens, the soul gives the force, and skillpower is how hard a soul pushes. That's why the words you know survive
-  death (they're written into your soul, not your shell), and why avatars pick them up so fast: they come from the
-  Maker's side.
-- **Copied pads.** A pad is a skill carved in stone: the words that pull the door open, cut into rock, with the
-  door's energy pushing them instead of a soul. Highmere's platform is the Maker's own; every other pad is a copy of
-  its carvings, made by the Collegium of Thresholds.
-- **The Collegium of Thresholds (the user's pick: a religious order under Ithra, a science faction).** To them,
-  learning the tongue is worship: every new word, and every new way to use an old one, brings them closer to Ithra.
-  They're always chasing new words and new uses for skills, and they test them, write them down and argue over them
-  like scholars. The pads are their greatest work, copied from the Maker's platform. Drafted by OptChat: a copy takes
-  rare stone and years of exact carving, so there are few, and the crown of Aurevaine pays for each where it wants
-  avatars to arrive. The Old Quarry was where they cut pad stone, until the good stone ran out. They follow the
-  Ascent through Ithra, and avatars, who learn words so fast, fascinate them. Nyra studies the pads because, like
-  avatars, they have no thread on her loom.
-- **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
-  the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence
-  all at once. That is the game shutting down when its players leave. In play the world never visibly withers.
-- **Souls can come from any universe.** Ours, the real one, is the first: the players. Later the door can let in
-  others as crossovers: an avatar shaped like a character from another story (an SAO character's avatar), or like a
-  figure of myth (a Thor avatar). What crosses is an avatar in their shape, not the person themselves.
-- Nyra comes closest to the truth: avatars have no thread on her loom, so she knows they come from outside her
-  world, and she has guessed that someone stands behind them.
+- **The true creator is the game's maker, the user**, who made the world and the twelve, then stepped back. The gods
+  know something came before them. Like avatars, the Maker belongs to our world, which is why the summoning is beyond
+  the gods.
+- **The rift is Vesk's mistake**: an experiment to take soul from elsewhere tore the other way, permanent and
+  unclosable. The gods blame each other; that it was Vesk is a late reveal.
+- **The door is the Maker's answer**, letting souls in from other universes to restore what the rift loses. The gods
+  can't close it. Out of the fiction, the door is the netcode and servers.
+- **Summoning pads** are large pedestals that harness the door. The first and largest is Highmere's platform, where
+  the door first opened; the city and castle grew round it, and its rulers hold that what comes through is theirs.
+- **Skills are the Maker's tongue, pushed by a soul** (the user's mix): the words are the language the world was
+  written in, so a skill is a sentence the world obeys; Ithra was the first to learn it. The words say what happens,
+  the soul gives the force (skillpower). That's why words survive death and why avatars learn them so fast.
+- **Copied pads**: a pad is a skill carved in stone, the door's energy pushing it. Every pad but Highmere's is a copy,
+  carved by the **Collegium of Thresholds**, Ithra's order (the user's pick: a religious order that's a science
+  faction): to them learning the tongue is worship, and they test, record and argue over words like scholars.
+  OptChat's drafts: the crown pays for each pad; the Old Quarry was where they cut pad stone.
+- **The world lives only while souls keep coming.** Not a slow decay: when the last soul runs out it blips out of
+  existence at once, the game shutting down when its players leave. In play it never visibly withers.
+- **Souls can come from any universe.** Ours is the first; later, crossover avatars shaped like other stories'
+  characters or myths' figures. What crosses is an avatar in their shape, not the person.
 
 ## Open
 
-- How long drops last before they crumble.
-- The Maker's in-world name, and whether the Maker ever shows up in the game.
-- Whether the rift and the door are places in the world (somewhere to find, a boss behind one), or only lore.
-- Crossover avatars: how they come in (events, items, accounts?), and how the world treats one shaped like a god
-  of another myth (a Thor avatar next to a Norse-looking pantheon).
-- What desummoning looks like: the empty shell fading, or the summon animation in reverse (the user is fine with
-  either).
-- Whether the soul cycle shows in play later (a monster that kills you carries your lost fill; places where many
-  avatars die grow stronger monsters; bosses born from pools). Mechanics, so asked before anything is built.
-- To be determined: players can likely join an order and leave it when they like (the user's lean). OptChat's
-  draft: one order at a time; joining is a small rite at the order's hall; leaving is free but drops your faith
-  with that god a step, so hopping has a cost; members get the order's quests first and a discount on its
-  services (the Collegium's carving). Nothing decided.
-- How faith with a god is really earned and lost (god quests?), and the blessings of the nine gods with none yet.
-  Inscriptions' open questions are in plan/inscriptions.md.
-- Factions beyond the orders (kingdoms, guilds), later as the world grows.
-- What Seraphel's firmer hand on the door means in play, and what Temple Hill and the Lower Town hold.
-- Backing a god in play: when the player chooses, what switching or going back to neutral costs, and what backing
-  one gives. These are mechanics, so they're asked before anything is built.
-- When and why a god walks the world (a late boss, an event?).
-- Whether the realm names (Yan, Sol, Lux, Ling, Tian) stay as they are next to a Greek and Norse pantheon.
-- The seats: what "strongest or most honoured" measures, what the quest is, what a seat gives, and whether it's lost
-  on death, to a stronger player or each season. Whether a neutral player can hold a seat (Vesk's, or none).
-
-## Later rings
-
-What the tower (or whatever replaces it) is (maybe the Maker's, older than the gods), the words skills are spoken in.
+- How long drops last before they crumble, and whether the crumbling is drawn.
+- The Maker's in-world name and whether the Maker shows up; whether the rift and the door are places.
+- What desummoning looks like (the shell fading, or the summon in reverse: the user is fine with either).
+- Whether the soul cycle shows in play (mechanics, so asked first).
+- Joining and leaving the orders (the user's lean: join one, leave freely); how faith is earned and lost; the other
+  gods' blessings.
+- Backing a god in play: when, what it gives, what switching costs; when and why a god walks the world.
+- The Transcendents' seats: what earns one, what it gives, whether it's lost; whether a neutral player can hold one.
+- Crossover avatars; factions beyond the orders; what Seraphel's firmer hand means in play; what Temple Hill and the
+  Lower Town hold; whether the realm names stay.
