@@ -13,14 +13,17 @@ import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
 } from "./model.js";
 import { koboldPose } from "./pose.js";
+import { breathOf } from "../shape.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const HEAD_COUNTER = 0.6;
 const TAIL_TRAIL = 0.8;
+const IDLE = { breathTime: 2.4, breathScale: 0.03, tailTime: 3.1, tailRad: 0.12 };
 const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3();
 
 type KoboldNodes = KoboldModel & {
-  blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion; look: WeaponLook | null; cue: BladeCue | null;
+  clock: number; blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion; look: WeaponLook | null;
+  cue: BladeCue | null;
   slash: Slash;
 };
 
@@ -31,7 +34,8 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, look, wielder.armReachM, build);
     // Empty-handed, its hand still moves like a sword's.
     return {
-      ...model, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"], look,
+      ...model, clock: 0, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"],
+      look,
       cue: look ? cueBlade(ctx.scene, model.swordArm.hand, look) : null,
       slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx),
     };
@@ -60,7 +64,11 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
     nodes.head.rotation.y = -nodes.chest.rotation.y * HEAD_COUNTER;
-    nodes.tail.rotation.y = -nodes.hips.rotation.y * TAIL_TRAIL + Math.sin(nodes.gait) * amp * 0.4;
+    nodes.clock += dt;
+    nodes.tail.rotation.y = -nodes.hips.rotation.y * TAIL_TRAIL + Math.sin(nodes.gait) * amp * 0.4
+      + breathOf(nodes.clock, IDLE.tailTime) * IDLE.tailRad;
+    const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
+    nodes.torso.scaling.set(1 + breath, 1, 1 + breath);
 
     const hand = nodes.swordArm.hand;
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), nodes.blade);

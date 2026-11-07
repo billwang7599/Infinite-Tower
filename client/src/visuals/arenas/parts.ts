@@ -1,10 +1,12 @@
 import {
-  Color3, MeshBuilder, StandardMaterial, TransformNode, type Material, type Mesh, type Scene,
+  Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Material, type Scene,
 } from "@babylonjs/core";
 import type { ArenaScene } from "../battle/scene.js";
 import { speckleTexture, type SpeckleOptions } from "../textures.js";
 
 const GROUND_SIZE_M = 120;
+/** A patch's texture repeats, so its specks come out the floor's size. */
+const PATCH_TILES = 0.4;
 
 /** Disposing the root also disposes the materials passed to `own`. */
 export function lookRoot(scene: Scene, name: string): { root: TransformNode; own<M extends Material>(m: M): M } {
@@ -40,7 +42,7 @@ export function floor(ctx: ArenaScene, root: TransformNode, ground: Material, di
 /** `y`: each template's height at scale 1. */
 export function scatter(
   ctx: ArenaScene, root: TransformNode, parts: [Mesh, number][],
-  spots: { x: number; z: number; scale: number; yaw: number }[], castShadows = true,
+  spots: Spot[], castShadows = true,
 ): void {
   for (const [tpl] of parts) {
     tpl.isVisible = false;
@@ -66,6 +68,44 @@ export function ringSpots(
     const scale = minScale + rand() * (maxScale - minScale);
     return { x: Math.sin(a) * r, z: Math.cos(a) * r, scale, yaw: rand() * Math.PI };
   });
+}
+
+type Spot = { x: number; z: number; scale: number; yaw: number };
+
+export function patches(
+  ctx: ArenaScene, root: TransformNode, own: <M extends Material>(m: M) => M, name: string,
+  colors: Pick<SpeckleOptions, "base" | "specks">, spots: Spot[],
+): void {
+  const blot = MeshBuilder.CreateDisc(name, { radius: 1, tessellation: 7 }, ctx.scene);
+  blot.rotation.x = Math.PI / 2;
+  blot.scaling.z = 0.65;
+  blot.bakeCurrentTransformIntoVertices();
+  const m = own(speckled(ctx.scene, name, { ...colors, count: 900, maxRadiusPx: 5, seed: name.length }, PATCH_TILES));
+  m.zOffset = -2;
+  blot.material = m;
+  blot.receiveShadows = true;
+  scatter(ctx, root, [[blot, 0.012]], spots, false);
+}
+
+export function tuft(scene: Scene, name: string, heightM: number, blades = 5): Mesh {
+  const parts = Array.from({ length: blades }, (_, i) => {
+    const a = (i / blades) * Math.PI * 2, h = heightM * (0.7 + 0.3 * ((i * 7) % 3) / 2);
+    const blade = MeshBuilder.CreateCylinder(name, { height: h, diameterTop: 0, diameterBottom: 0.07, tessellation: 3 },
+      scene);
+    blade.position.set(Math.sin(a) * 0.06, h / 2, Math.cos(a) * 0.06);
+    blade.rotation.set(Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35);
+    return blade;
+  });
+  const clump = Mesh.MergeMeshes(parts, true)!;
+  clump.name = name;
+  return clump;
+}
+
+export function boulder(scene: Scene, name: string): Mesh {
+  const rock = MeshBuilder.CreatePolyhedron(name, { type: 2, size: 0.5 }, scene);
+  rock.scaling.set(1.2, 0.65, 0.95);
+  rock.bakeCurrentTransformIntoVertices();
+  return rock;
 }
 
 /** Nothing in an arena moves, so every mesh is frozen. */

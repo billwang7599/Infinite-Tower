@@ -1,14 +1,18 @@
 import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import { colorMaterial } from "../../materials.js";
 import { buildArm, type Arm } from "../../battle/arm.js";
+import { loft } from "../../battle/person/loft.js";
 import type { ArenaScene } from "../../battle/scene.js";
+import { enemyMaterial, lengthwise, limb } from "../shape.js";
 
 const ARM_REACH_M = 0.5;
 
 export interface GoblinModel {
   root: TransformNode;
   model: TransformNode;
+  gown: Mesh;
+  head: TransformNode;
+  ears: TransformNode[];
   staffArm: Arm;
   offArm: Arm;
   legs: [TransformNode, TransformNode];
@@ -18,6 +22,7 @@ export interface GoblinModel {
   baseEmissive: Color3[];
   gait: number;
   visualYaw: number;
+  clock: number;
 }
 
 export function disposeGoblin(v: GoblinModel): void {
@@ -31,11 +36,11 @@ export function buildGoblin(
   const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
-    const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.04, 0.04, 0.04));
+    const m = enemyMaterial(scene, name, hex, 0.04);
     materials.push(m);
     return m;
   };
-  const skin = mat("goblin-skin", "#5f8a3a"), robe = mat("goblin-robe", "#3b2a52");
+  const skin = mat("goblin-skin", "#6d9a42"), robe = mat("goblin-robe", "#4a3766");
   const trim = mat("goblin-trim", "#8a6a2a");
   const wood = mat("goblin-wood", "#5a3c22"), eyes = mat("goblin-eyes", "#ffb03a");
   eyes.emissiveColor = new Color3(0.9, 0.5, 0.1);
@@ -63,15 +68,26 @@ export function buildGoblin(
 
   const hip = (x: number): TransformNode => {
     const pivot = node("g-hip", model, x, 0.3, 0);
-    const leg = part(MeshBuilder.CreateBox("g-leg", { width: 0.1, height: 0.3, depth: 0.12 }, scene), pivot, skin);
-    leg.position.y = -0.15;
+    part(limb(scene, "g-leg", { x: 0, y: 0, z: 0 }, { x: 0, y: -0.27, z: 0 }, 0.09, 0.07, 6), pivot, skin);
+    const foot = part(MeshBuilder.CreateSphere("g-foot", { diameter: 0.12, segments: 5 }, scene), pivot, wood);
+    foot.scaling.set(0.9, 0.5, 1.6);
+    foot.position.set(0, -0.28, 0.05);
     return pivot;
   };
   const legs: GoblinModel["legs"] = [hip(-0.09), hip(0.09)];
 
-  const gown = part(MeshBuilder.CreateCylinder("g-robe", { height: 0.6, diameterTop: 0.26, diameterBottom: 0.56,
-    tessellation: 10 }, scene), model, robe);
-  gown.position.y = 0.48;
+  const gown = part(loft(scene, "g-robe", [
+    { y: 0.17, x: 0.29, z: 0.27, dz: -0.02 }, { y: 0.3, x: 0.24, z: 0.22, dz: -0.01 },
+    { y: 0.55, x: 0.17, z: 0.15, dz: 0 }, { y: 0.74, x: 0.19, z: 0.16, dz: -0.02 },
+    { y: 0.84, x: 0.11, z: 0.11, dz: 0 },
+  ], 2.1), model, robe);
+  part(loft(scene, "g-sash", [{ y: 0.47, x: 0.2, z: 0.18 }, { y: 0.53, x: 0.19, z: 0.17 }]), model, trim);
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    const tatter = part(limb(scene, "g-tatter", { x: 0, y: 0, z: 0 }, { x: 0, y: -0.12, z: 0 }, 0.12, 0, 3), model,
+      robe);
+    tatter.position.set(Math.sin(a) * 0.25, 0.16, Math.cos(a) * 0.23);
+  }
   const hem = part(MeshBuilder.CreateTorus("g-hem", { diameter: 0.54, thickness: 0.04, tessellation: 16 }, scene),
     model, trim);
   hem.position.y = 0.2;
@@ -83,15 +99,19 @@ export function buildGoblin(
     tessellation: 6 }, scene), head, skin);
   nose.rotation.x = Math.PI / 2;
   nose.position.set(0, -0.03, 0.22);
-  const hood = part(MeshBuilder.CreateCylinder("g-hood", { height: 0.34, diameterTop: 0, diameterBottom: 0.4,
-    tessellation: 10 }, scene), head, robe);
-  hood.position.set(0, 0.17, -0.04);
-  hood.rotation.x = -0.35;
+  part(lengthwise(scene, "g-hood", [
+    { z: -0.42, w: 0.01, h: 0.01, dy: -0.02 }, { z: -0.3, w: 0.07, h: 0.06, dy: 0.12 },
+    { z: -0.12, w: 0.18, h: 0.15, dy: 0.12 }, { z: 0.05, w: 0.21, h: 0.2, dy: 0.06 },
+    { z: 0.13, w: 0.2, h: 0.2, dy: 0.04 },
+  ]), head, robe);
+  const ears: TransformNode[] = [];
   for (const s of [-1, 1]) {
-    const ear = part(MeshBuilder.CreateCylinder("g-ear", { height: 0.3, diameterTop: 0, diameterBottom: 0.1,
-      tessellation: 6 }, scene), head, skin);
-    ear.position.set(s * 0.24, 0.03, -0.02);
-    ear.rotation.z = -s * 1.25;
+    const ear = node("g-ear", head, s * 0.14, 0.03, -0.02);
+    const flap = part(MeshBuilder.CreateCylinder("g-ear", { height: 0.3, diameterTop: 0, diameterBottom: 0.1,
+      tessellation: 6 }, scene), ear, skin);
+    flap.position.x = s * 0.12;
+    flap.rotation.z = -s * 1.25;
+    ears.push(ear);
     const eye = part(MeshBuilder.CreateSphere("g-eye", { diameter: 0.06, segments: 6 }, scene), head, eyes);
     eye.position.set(s * 0.08, 0.03, 0.15);
   }
@@ -126,5 +146,8 @@ export function buildGoblin(
   for (const p of parts) sky.castShadows(p);
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
-  return { root, model, staffArm, offArm, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw };
+  return {
+    root, model, gown, head, ears, staffArm, offArm, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw,
+    clock: 0,
+  };
 }

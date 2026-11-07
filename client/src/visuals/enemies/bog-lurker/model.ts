@@ -1,11 +1,12 @@
-import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
-import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import { colorMaterial } from "../../materials.js";
+import { Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial } from "@babylonjs/core";
+import type { EnemyDef, Entity, Vec3 } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
+import { enemyMaterial, lengthwise, limb } from "../shape.js";
 
 export interface LurkerModel {
   root: TransformNode;
   model: TransformNode;
+  trunk: Mesh;
   head: TransformNode;
   jaw: TransformNode;
   tail: TransformNode;
@@ -31,14 +32,14 @@ export function buildLurker(
   const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
-    const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.08, 0.08, 0.06));
+    const m = enemyMaterial(scene, name, hex, 0.08);
     materials.push(m);
     return m;
   };
-  const hide = mat("lurker-hide", "#3d4a2c");
-  const belly = mat("lurker-belly", "#7a7550");
-  const moss = mat("lurker-moss", "#5a7a2c");
-  const dark = mat("lurker-dark", "#20261a");
+  const hide = mat("lurker-hide", "#4d5c38");
+  const belly = mat("lurker-belly", "#8a8459");
+  const moss = mat("lurker-moss", "#668a32");
+  const dark = mat("lurker-dark", "#2e3624");
   const teeth = mat("lurker-teeth", "#d6cfa8");
   const eyes = mat("lurker-eyes", "#c8e05a");
   eyes.emissiveColor = new Color3(0.2, 0.28, 0.05);
@@ -59,74 +60,85 @@ export function buildLurker(
   };
   const sphere = (name: string, under: TransformNode, material: StandardMaterial) =>
     part(MeshBuilder.CreateSphere(name, { diameter: 1, segments: 10 }, scene), under, material);
-  const box = (name: string, under: TransformNode, material: StandardMaterial, w: number, h: number, d: number) =>
-    part(MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene), under, material);
+  const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 
   const root = new TransformNode(`lurker-root-${e}`, scene);
   root.parent = parent;
   root.position.y = -def.radius;
   const model = node(`lurker-model-${e}`, root, 0, 0, 0);
 
-  const body = sphere("l-body", model, hide);
-  body.scaling.set(1.75, 0.95, 2.05);
-  body.position.set(0, 0.8, 0);
-  const under = sphere("l-belly", model, belly);
-  under.scaling.set(1.45, 0.6, 1.7);
-  under.position.set(0, 0.55, 0.1);
+  const trunk = part(lengthwise(scene, "l-body", [
+    { z: -1.05, w: 0.35, h: 0.2, dy: -0.12 }, { z: -0.85, w: 0.72, h: 0.38, dy: -0.06 },
+    { z: -0.3, w: 0.86, h: 0.46, dy: 0 }, { z: 0.3, w: 0.9, h: 0.5, dy: 0.04 }, { z: 0.8, w: 0.75, h: 0.42, dy: 0.08 },
+    { z: 1.08, w: 0.5, h: 0.28, dy: 0.1 },
+  ], 2.1), model, hide);
+  trunk.position.y = 0.8;
+  const under = part(lengthwise(scene, "l-belly", [
+    { z: -0.75, w: 0.5, h: 0.14 }, { z: 0, w: 0.74, h: 0.2 }, { z: 0.8, w: 0.55, h: 0.16 },
+  ]), trunk, belly);
+  under.position.y = -0.3;
   for (const [x, z, size] of [[0, 0.55, 0.5], [0.3, 0, 0.42], [-0.28, -0.35, 0.46], [0.05, -0.75, 0.36]] as const) {
-    const lump = sphere("l-moss", model, moss);
+    const lump = sphere("l-moss", trunk, moss);
     lump.scaling.set(size, size * 0.55, size);
-    lump.position.set(x, 1.25, z);
+    lump.position.set(x, 0.45, z);
   }
+  part(Mesh.MergeMeshes(Array.from({ length: 6 }, (_, i) => {
+    const z = -0.7 + i * 0.28, y = 0.5 + 0.04 * Math.sin(i);
+    return limb(scene, "l-ridge", v(0, y, z), v(0, y + 0.16, z - 0.1), 0.16, 0, 4);
+  }), true)!, trunk, dark);
 
   const head = node("l-head", model, 0, 0.95, 1.05);
-  const skull = box("l-skull", head, hide, 1.05, 0.38, 0.75);
-  skull.position.set(0, 0.05, 0.25);
-  const brow = box("l-brow", head, dark, 0.9, 0.12, 0.25);
-  brow.position.set(0, 0.28, 0.05);
+  part(lengthwise(scene, "l-skull", [
+    { z: -0.15, w: 0.45, h: 0.22, dy: 0.08 }, { z: 0.15, w: 0.53, h: 0.22, dy: 0.08 },
+    { z: 0.5, w: 0.46, h: 0.15, dy: 0.04 }, { z: 0.66, w: 0.32, h: 0.1, dy: 0.02 },
+  ], 2.6), head, hide);
+  const brow = part(lengthwise(scene, "l-brow", [{ z: -0.05, w: 0.42, h: 0.07 }, { z: 0.18, w: 0.36, h: 0.05 }]),
+    head, dark);
+  brow.position.y = 0.28;
   const jaw = node("l-jaw", head, 0, -0.12, 0);
-  const lower = box("l-jaw", jaw, belly, 0.95, 0.16, 0.7);
-  lower.position.set(0, -0.06, 0.3);
+  part(lengthwise(scene, "l-jaw", [
+    { z: -0.05, w: 0.46, h: 0.1, dy: -0.04 }, { z: 0.45, w: 0.42, h: 0.08, dy: -0.06 },
+    { z: 0.64, w: 0.3, h: 0.06, dy: -0.06 },
+  ], 2.6), jaw, belly);
   for (const s of [-1, 1]) {
     const eye = sphere("l-eye", head, eyes);
     eye.scaling.setAll(0.17);
     eye.position.set(s * 0.32, 0.32, 0.12);
     for (const x of [0.12, 0.32]) {
-      const tooth = part(MeshBuilder.CreateCylinder("l-tooth", { height: 0.12, diameterTop: 0, diameterBottom: 0.06,
-        tessellation: 4 }, scene), head, teeth);
-      tooth.position.set(s * x, -0.17, 0.55);
-      tooth.rotation.x = Math.PI;
+      part(limb(scene, "l-tooth", v(s * x, -0.13, 0.55), v(s * x, -0.25, 0.55), 0.06, 0, 4), head, teeth);
     }
   }
 
   const tail = node("l-tail", model, 0, 0.7, -0.95);
-  const base = part(MeshBuilder.CreateCylinder("l-tail", { height: 1.1, diameterTop: 0.25, diameterBottom: 0.6,
-    tessellation: 8 }, scene), tail, hide);
-  base.rotation.x = -Math.PI / 2;
-  base.position.set(0, -0.15, -0.5);
-  const tip = part(MeshBuilder.CreateCylinder("l-tip", { height: 0.8, diameterTop: 0, diameterBottom: 0.25,
-    tessellation: 6 }, scene), tail, dark);
-  tip.rotation.x = -Math.PI / 2;
-  tip.position.set(0, -0.25, -1.45);
+  part(lengthwise(scene, "l-tail", [
+    { z: -1.85, w: 0.02, h: 0.02, dy: -0.3 }, { z: -1.3, w: 0.13, h: 0.11, dy: -0.25 },
+    { z: -0.6, w: 0.25, h: 0.2, dy: -0.17 }, { z: 0, w: 0.34, h: 0.28, dy: -0.06 },
+  ]), tail, hide);
 
   const shoulder = (s: number): TransformNode => {
     const pivot = node("l-shoulder", model, s * 0.78, 0.95, 0.55);
-    const arm = box("l-arm", pivot, hide, 0.32, 0.85, 0.34);
-    arm.position.y = -0.4;
-    const claws = box("l-claws", pivot, dark, 0.42, 0.14, 0.45);
-    claws.position.set(0, -0.84, 0.08);
+    part(limb(scene, "l-arm", v(0, 0.1, 0), v(s * 0.04, -0.42, 0.04), 0.42, 0.28), pivot, hide);
+    part(limb(scene, "l-forearm", v(s * 0.04, -0.42, 0.04), v(0, -0.78, 0.06), 0.28, 0.3), pivot, hide);
+    for (const cx of [-0.12, 0, 0.12]) {
+      part(limb(scene, "l-claw", v(cx, -0.8, 0.12), v(cx * 1.3, -0.88, 0.36), 0.08, 0, 4), pivot, dark);
+    }
     return pivot;
   };
   for (const s of [-1, 1]) {
-    const hind = box("l-hind", model, hide, 0.34, 0.5, 0.5);
-    hind.position.set(s * 0.72, 0.28, -0.55);
+    part(lengthwise(scene, "l-hind", [
+      { z: -0.85, w: 0.16, h: 0.12, dy: 0.15 }, { z: -0.55, w: 0.22, h: 0.3, dy: 0.3 },
+      { z: -0.25, w: 0.16, h: 0.2, dy: 0.32 },
+    ]), model, hide).position.x = s * 0.72;
+    const foot = sphere("l-foot", model, dark);
+    foot.scaling.set(0.34, 0.12, 0.42);
+    foot.position.set(s * 0.74, 0.06, -0.45);
   }
 
   for (const p of parts) sky.castShadows(p);
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
-    root, model, head, jaw, tail, arms: [shoulder(-1), shoulder(1)], materials, baseEmissive, eyes, gait: 0,
+    root, model, trunk, head, jaw, tail, arms: [shoulder(-1), shoulder(1)], materials, baseEmissive, eyes, gait: 0,
     visualYaw: yaw, spin: 0, clock: 0,
   };
 }

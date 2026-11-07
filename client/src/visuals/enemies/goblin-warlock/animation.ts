@@ -4,10 +4,12 @@ import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import { buildGoblin, disposeGoblin, type GoblinModel } from "./model.js";
 import { goblinPose } from "./pose.js";
+import { breathOf, flickOf } from "../shape.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const ORB_GLOW = new Color3(1.6, 0.55, 0.15);
 const STAFF_HAND_X = 0.2;
+const IDLE = { breathTime: 2.1, breathScale: 0.03, earEveryTime: 2.3, earRad: 0.35, nodTime: 4.2, nodRad: 0.06 };
 const offTarget = new Vector3();
 
 export const goblinVisual = fighter<GoblinModel & { handAt: Vector3; offAt: Vector3 | null }>("enemy", {
@@ -41,6 +43,13 @@ export const goblinVisual = fighter<GoblinModel & { handAt: Vector3; offAt: Vect
     nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
     nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);
     nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, dt);
+    nodes.clock += dt;
+    const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
+    nodes.gown.scaling.set(1 + breath, 1, 1 + breath);
+    nodes.head.rotation.x = breathOf(nodes.clock, IDLE.nodTime) * IDLE.nodRad;
+    nodes.ears.forEach((ear, i) => {
+      ear.rotation.y = (i ? 1 : -1) * IDLE.earRad * flickOf(nodes.clock + i * 0.7, IDLE.earEveryTime);
+    });
     nodes.stars.setEnabled(pose.stars);
     if (pose.stars) nodes.stars.rotation.y += dt * 5;
 

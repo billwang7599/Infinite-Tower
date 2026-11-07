@@ -3,9 +3,11 @@ import { Body, ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapA
 import { fighter } from "../../battle/battle.js";
 import { buildBoar, disposeBoar, type BoarModel } from "./model.js";
 import { boarPose } from "./pose.js";
+import { breathOf, flickOf } from "../shape.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI, 0] as const; // diagonal pairs move together
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
+const IDLE = { breathTime: 1.9, breathScale: 0.03, earEveryTime: 3.1, earRad: 0.5, tailTime: 0.9, tailRad: 0.35 };
 
 export const boarVisual = fighter<BoarModel>("enemy", {
   spawn(ctx, world, e, node) {
@@ -28,6 +30,12 @@ export const boarVisual = fighter<BoarModel>("enemy", {
     for (let i = 0; i < 4; i++) nodes.legs[i]!.rotation.x = pose.legs[i] ?? Math.sin(nodes.gait + LEG_PHASE[i]!) * amp;
     const bob = Math.abs(Math.sin(nodes.gait)) * 0.05 * Math.min(1, speed / 3);
 
+    const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
+    nodes.trunk.scaling.set(1 + breath, 1 + breath, 1);
+    nodes.ears.forEach((ear, i) => {
+      ear.rotation.z = (i ? -1 : 1) * IDLE.earRad * flickOf(nodes.clock + i * 0.4, IDLE.earEveryTime);
+    });
+    nodes.tail.rotation.z = Math.sin((2 * Math.PI * nodes.clock) / IDLE.tailTime) * IDLE.tailRad;
     nodes.head.rotation.x = damp(nodes.head.rotation.x, pose.headPitch, 14, dt);
     nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
     nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);

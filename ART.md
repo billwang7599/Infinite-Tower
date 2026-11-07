@@ -260,6 +260,13 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   silhouette's steps get in-between pixels and textures keep theirs). What reads as HUD (your aim ring, the lock-on
   diamond, other fighters' chant words) is drawn sharp over it. In dev, `?pixel=1&outline=0&player3d=0` brings back
   the old look (sprite player, smooth render), and `&aa=0` turns the anti-aliasing off.
+  The enemies are lofted like the people below (`visuals/enemies/shape.ts`): a trunk, head or tail is a loft laid
+  along the body through cross-sections, so the boar is a wedge with a bristled shoulder, the wolf deep-chested with
+  a tucked waist, the lurker a squat toad-croc; limbs taper. Each keeps a fill of its own colour in shade
+  (`ENEMY_FILL`), and breathes, flicks its ears and swings its tail standing, on top of its poses, which stay the
+  telegraphs.
+  Arenas keep the fight's ring clear and put their depth outside it: low props near the wall (tufts, stones, caps),
+  taller trees from 4 m out, and a far layer of bigger, darker silhouettes that the fog greys.
   The people are built like this:
   - **One rig for everyone**: `SKELETON` (`skeleton.ts`) is a plain table of joints with Blender's names (`hips`,
     `spine`, `chest`, `neck`, `head`, `upper_arm.L`, `forearm.R`, `hand.L`, `thigh.R`, `shin.L`, `foot.R`...), each

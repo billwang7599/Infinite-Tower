@@ -1,7 +1,9 @@
 import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import { damp, Enemy, Health, STRIKES, type Strike } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
+import { loft } from "../../battle/person/loft.js";
 import { colorMaterial } from "../../materials.js";
+import { enemyMaterial } from "../shape.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const STRUCK_COLOR = new Color3(0.9, 0.7, 0.2);
@@ -13,6 +15,7 @@ interface DummyModel {
   root: TransformNode;
   model: TransformNode;
   materials: StandardMaterial[];
+  fills: Color3[];
   marks: Record<Strike, StandardMaterial>;
   clock: number;
 }
@@ -22,7 +25,7 @@ export const trainingDummyVisual = fighter<DummyModel>("enemy", {
     const { scene, sky } = ctx, enemy = world.require(e, Enemy);
     const materials: StandardMaterial[] = [];
     const mat = (name: string, hex: string) => {
-      const m = colorMaterial(scene, name, Color3.FromHexString(hex));
+      const m = enemyMaterial(scene, name, hex, 0);
       materials.push(m);
       return m;
     };
@@ -49,9 +52,18 @@ export const trainingDummyVisual = fighter<DummyModel>("enemy", {
     const bar = part(MeshBuilder.CreateCylinder("dummy-bar", { height: 1.1, diameter: 0.08, tessellation: 8 }, scene),
       wood, 0, 1.35, 0);
     bar.rotation.z = Math.PI / 2;
-    part(MeshBuilder.CreateCylinder("dummy-sack", { height: 0.75, diameterTop: 0.42, diameterBottom: 0.5,
-      tessellation: 10 }, scene), straw, 0, 1.05, 0);
-    part(MeshBuilder.CreateSphere("dummy-head", { diameter: 0.34, segments: 8 }, scene), straw, 0, 1.68, 0);
+    part(loft(scene, "dummy-sack", [
+      { y: -0.4, x: 0.2, z: 0.17 }, { y: -0.3, x: 0.25, z: 0.21 }, { y: 0, x: 0.21, z: 0.18 },
+      { y: 0.3, x: 0.27, z: 0.2 }, { y: 0.4, x: 0.2, z: 0.15 }, { y: 0.44, x: 0.08, z: 0.08 },
+    ]), straw, 0, 1.05, 0);
+    part(loft(scene, "dummy-head", [
+      { y: -0.17, x: 0.07, z: 0.07 }, { y: -0.12, x: 0.15, z: 0.14 }, { y: 0.04, x: 0.17, z: 0.16 },
+      { y: 0.16, x: 0.1, z: 0.1 }, { y: 0.19, x: 0.03, z: 0.03 },
+    ], 2), straw, 0, 1.68, 0);
+    for (const y of [0.78, 1.12]) {
+      part(MeshBuilder.CreateTorus("dummy-tie", { diameter: 0.44, thickness: 0.03, tessellation: 12 }, scene), rope,
+        0, y, 0);
+    }
     part(MeshBuilder.CreateTorus("dummy-rope", { diameter: 0.46, thickness: 0.04, tessellation: 12 }, scene), rope,
       0, 1.3, 0);
     part(MeshBuilder.CreateBox("dummy-light", { width: 0.08, height: 0.22, depth: 0.08 }, scene), marks.light,
@@ -60,7 +72,7 @@ export const trainingDummyVisual = fighter<DummyModel>("enemy", {
       0.5, 1.22, 0);
     part(MeshBuilder.CreateBox("dummy-stab", { width: 0.16, height: 0.16, depth: 0.04 }, scene), marks.stab,
       0, 1.05, 0.25);
-    return { root, model, materials, marks, clock: 0 };
+    return { root, model, materials, fills: materials.map((m) => m.emissiveColor.clone()), marks, clock: 0 };
   },
   dispose(model) {
     model.root.dispose();
@@ -75,6 +87,6 @@ export const trainingDummyVisual = fighter<DummyModel>("enemy", {
     for (const strike of STRIKES) {
       model.marks[strike].emissiveColor.copyFrom(enemy.struck.includes(strike) ? STRUCK_COLOR : UNLIT);
     }
-    for (const m of model.materials) m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : UNLIT);
+    model.materials.forEach((m, i) => m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : model.fills[i]!));
   },
 });

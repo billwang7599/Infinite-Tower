@@ -2,16 +2,17 @@ import {
   Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial,
 } from "@babylonjs/core";
 import type { EnemyDef, Entity, Vec3 } from "@infinite-tower/shared";
-import { colorMaterial } from "../../materials.js";
-import { buildArm, placeBetween, type Arm } from "../../battle/arm.js";
+import { buildArm, type Arm } from "../../battle/arm.js";
 import { buildBlade } from "../../battle/blade.js";
+import { loft } from "../../battle/person/loft.js";
 import type { ArenaScene } from "../../battle/scene.js";
+import { enemyMaterial, lengthwise, limb as limbMesh } from "../shape.js";
 import type { WeaponLook } from "../../battle/weapons.js";
 
 /** `bulk` widens the body, not its height or arms (they're the fight's reach). */
 export interface KoboldBuild { bulk: number; scales: string; cloth: string; plated: boolean }
 
-export const SWORDSMAN_BUILD: KoboldBuild = { bulk: 1, scales: "#56704a", cloth: "#6e2f2a", plated: false };
+export const SWORDSMAN_BUILD: KoboldBuild = { bulk: 1, scales: "#62804f", cloth: "#6e2f2a", plated: false };
 
 export interface KoboldModel {
   /** Under the body's node; turned to the kobold's facing. */
@@ -20,6 +21,7 @@ export interface KoboldModel {
   model: TransformNode;
   hips: TransformNode;
   chest: TransformNode;
+  torso: Mesh;
   head: TransformNode;
   tail: TransformNode;
   /** The sword is in swordArm's hand, along its +y. */
@@ -53,11 +55,11 @@ export function buildKobold(
   const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
-    const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.05, 0.05, 0.05));
+    const m = enemyMaterial(scene, name, hex);
     materials.push(m);
     return m;
   };
-  const scales = mat("kobold-scales", build.scales), ridge = mat("kobold-ridge", "#2e3b29");
+  const scales = mat("kobold-scales", build.scales), ridge = mat("kobold-ridge", "#3a4a33");
   const belly = mat("kobold-belly", "#a39a6a"), bone = mat("kobold-bone", "#d8cba4");
   const cloth = mat("kobold-cloth", build.cloth), leather = mat("kobold-leather", "#4a3424");
   const iron = mat("kobold-iron", "#6b6f75"), brass = mat("kobold-brass", "#b8913a");
@@ -86,13 +88,7 @@ export function buildKobold(
   };
   const limb = (
     name: string, under: TransformNode, material: StandardMaterial, from: Vec3, to: Vec3, dFrom: number, dTo: number,
-  ): Mesh => {
-    const height = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
-    const m = part(MeshBuilder.CreateCylinder(name, { height, diameterBottom: dFrom, diameterTop: dTo,
-      tessellation: 7 }, scene), under, material);
-    placeBetween(m, from, to);
-    return m;
-  };
+  ): Mesh => part(limbMesh(scene, name, from, to, dFrom, dTo), under, material);
   const spike = (under: TransformNode, material: StandardMaterial, at: Vec3, dir: Vec3, lengthM: number, d: number) => {
     const tip = v(at.x + dir.x * lengthM, at.y + dir.y * lengthM, at.z + dir.z * lengthM);
     return limb("k-spike", under, material, at, tip, d, 0);
@@ -106,10 +102,16 @@ export function buildKobold(
   const hips = node("k-hips", model, 0, 0.62, 0);
   const chest = node("k-chest", model, 0, 0.66, 0);
 
-  const torso = ball("k-torso", chest, scales, v(0, 0.26, 0.04), v(0.46 * b, 0.62, 0.4 * b));
-  torso.rotation.x = 0.3;
-  const gut = ball("k-belly", chest, belly, v(0, 0.2, 0.12), v(0.32 * b, 0.46, 0.24 * b));
-  gut.rotation.x = 0.3;
+  // Leaning into the fight: each section sits further ahead the higher it is.
+  const torso = part(loft(scene, "k-torso", [
+    { y: -0.06, x: 0.16 * b, z: 0.13 * b, dz: 0 }, { y: 0.1, x: 0.18 * b, z: 0.15 * b, dz: 0.02 },
+    { y: 0.3, x: 0.23 * b, z: 0.19 * b, dz: 0.06 }, { y: 0.46, x: 0.24 * b, z: 0.17 * b, dz: 0.09 },
+    { y: 0.56, x: 0.15 * b, z: 0.11 * b, dz: 0.11 },
+  ]), chest, scales);
+  part(loft(scene, "k-belly", [
+    { y: -0.02, x: 0.11 * b, z: 0.08 * b, dz: 0.06 }, { y: 0.2, x: 0.15 * b, z: 0.1 * b, dz: 0.1 * b },
+    { y: 0.4, x: 0.14 * b, z: 0.08 * b, dz: 0.15 * b },
+  ]), chest, belly);
   limb("k-strap", chest, leather, v(-0.2 * b, 0.06, 0.18 * b), v(0.2 * b, 0.48, 0.2), 0.05, 0.05);
   if (build.plated) {
     const plate = ball("k-plate", chest, iron, v(0, 0.3, 0.14), v(0.4 * b, 0.36, 0.22 * b));
@@ -124,12 +126,14 @@ export function buildKobold(
   }
 
   const head = node("k-head", chest, 0, 0.68, 0.26);
-  ball("k-skull", head, scales, v(0, 0, 0), v(0.34, 0.28, 0.38));
-  const snout = limb("k-snout", head, scales, v(0, -0.04, 0.1), v(0, -0.06, 0.42), 0.22, 0.12);
-  snout.scaling.z = 0.75;
-  const jaw = part(MeshBuilder.CreateBox("k-jaw", { width: 0.15, height: 0.05, depth: 0.28 }, scene), head, belly);
-  jaw.position.set(0, -0.13, 0.22);
-  jaw.rotation.x = 0.12;
+  part(lengthwise(scene, "k-skull", [
+    { z: -0.18, w: 0.13, h: 0.12, dy: 0.01 }, { z: -0.02, w: 0.17, h: 0.15, dy: 0.01 },
+    { z: 0.14, w: 0.15, h: 0.11, dy: -0.03 }, { z: 0.32, w: 0.1, h: 0.07, dy: -0.05 },
+    { z: 0.45, w: 0.06, h: 0.045, dy: -0.06 },
+  ]), head, scales);
+  part(lengthwise(scene, "k-jaw", [
+    { z: 0.04, w: 0.11, h: 0.04, dy: -0.11 }, { z: 0.36, w: 0.06, h: 0.025, dy: -0.12 },
+  ]), head, belly);
   for (const s of [-1, 1]) {
     for (const z of [0.26, 0.34]) spike(head, bone, v(s * 0.05, -0.09, z), v(0, -1, 0), 0.05, 0.025);
     ball("k-nostril", head, slit, v(s * 0.03, -0.02, 0.42), v(0.025, 0.02, 0.02));
@@ -157,11 +161,11 @@ export function buildKobold(
 
   const tail = node("k-tail", hips, 0, -0.02, -0.18 * b);
   const tailAt = [v(0, 0, 0), v(0, -0.1, -0.3), v(0, -0.3, -0.56), v(0, -0.5, -0.76)];
-  const tailD = [0.17 * b, 0.12, 0.07, 0];
-  for (let i = 0; i < 3; i++) {
-    limb("k-tail", tail, scales, tailAt[i]!, tailAt[i + 1]!, tailD[i]!, tailD[i + 1]!);
-    spike(tail, ridge, tailAt[i]!, v(0, 0.8, -0.6), 0.07, 0.05);
-  }
+  part(lengthwise(scene, "k-tail", [
+    { z: -0.8, w: 0.005, h: 0.005, dy: -0.52 }, { z: -0.56, w: 0.04, h: 0.04, dy: -0.3 },
+    { z: -0.3, w: 0.065, h: 0.065, dy: -0.1 }, { z: 0, w: 0.09 * b, h: 0.09 * b },
+  ]), tail, scales);
+  for (let i = 0; i < 3; i++) spike(tail, ridge, tailAt[i]!, v(0, 0.8, -0.6), 0.07, 0.05);
 
   // Digitigrade: thigh forward to the knee, shin back to a raised heel, then the long foot.
   const hip = (x: number): TransformNode => {
@@ -203,7 +207,7 @@ export function buildKobold(
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
-    root, model, hips, chest, head, tail, swordArm, offArm, twoHanded, legs, stars, materials, baseEmissive, gait: 0,
-    visualYaw: yaw,
+    root, model, hips, chest, torso, head, tail, swordArm, offArm, twoHanded, legs, stars, materials, baseEmissive,
+    gait: 0, visualYaw: yaw,
   };
 }

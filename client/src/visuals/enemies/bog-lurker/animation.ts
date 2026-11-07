@@ -3,8 +3,10 @@ import { Body, damp, dampFactor, Enemy, Health, SlamAttack, wrapAngle } from "@i
 import { fighter } from "../../battle/battle.js";
 import { buildLurker, disposeLurker, type LurkerModel } from "./model.js";
 import { lurkerPose } from "./pose.js";
+import { breathOf } from "../shape.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
+const IDLE = { breathTime: 3.2, breathScale: 0.035 };
 
 export const lurkerVisual = fighter<LurkerModel>("enemy", {
   spawn(ctx, world, e, node) {
@@ -36,6 +38,8 @@ export const lurkerVisual = fighter<LurkerModel>("enemy", {
     nodes.head.rotation.x = damp(nodes.head.rotation.x, pose.headPitch, 10, dt);
     nodes.jaw.rotation.x = damp(nodes.jaw.rotation.x, pose.jaw, 14, dt);
     nodes.tail.rotation.y = Math.sin(nodes.clock * 1.6) * 0.25;
+    const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
+    nodes.trunk.scaling.set(1 + breath, 1 + breath * 1.4, 1);
     const bob = Math.sin(nodes.clock * 1.3) * 0.03;
     nodes.model.position.x = Math.sin(nodes.clock * 60) * pose.tremble;
     nodes.model.position.y = damp(nodes.model.position.y, -pose.sink + bob, state === "slam" ? 30 : 6, dt);
