@@ -11,6 +11,7 @@ import type { Stun } from "./stun.js";
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (fight: Fight) => void {
+  let shown: Entity | undefined;
   return ({ world, duel, players, yieldAt }) => {
     const { outcome, afterFightMs } = ctx;
     const afterFight = afterFightMs !== null && resultShown(outcome);
@@ -40,21 +41,28 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.interaction = afterFight && inView(me[6].pos, facing, ctx.drops) !== null ? "openPile" : null;
     }
 
-    const enemy = world.first(Enemy, Health);
+    if (!duel) shown = shownFoe(world, ctx.lock, shown);
     const rival = duel ? players.findIndex((e) => !world.has(e, LocalPlayer)) : -1;
-    const foe = duel ? players[rival] : enemy?.[0];
+    const foe = duel ? players[rival] : shown;
     const foeHealth = foe === undefined ? undefined : world.require(foe, Health);
     patch.duel = duel;
     patch.spar = yieldAt > 0;
     patch.enemyAlive = foeHealth !== undefined && foeHealth.hp > foeHealth.floor;
     if (foeHealth) {
-      patch.enemyName = (duel ? ctx.who[rival]?.name : enemy?.[1].def.name) ?? "";
+      patch.enemyName = (duel ? ctx.who[rival]?.name : world.require(foe!, Enemy).def.name) ?? "";
       patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
       patch.enemyStatuses = iconsOf(world, foe!, hud.get().enemyStatuses);
     }
     hud.set(patch);
   };
 }
+
+const isFoe = (world: World, e: Entity | null | undefined): e is Entity =>
+  e != null && world.isAlive(e) && world.has(e, Enemy) && world.has(e, Health);
+
+// With no lock (every foe down), the bar stays on the one last shown.
+export const shownFoe = (world: World, lock: Entity | null, last: Entity | undefined): Entity | undefined =>
+  isFoe(world, lock) ? lock : isFoe(world, last) ? last : world.first(Enemy, Health)?.[0];
 
 /** 0..1, rounded to 0.1% so changes too small to see don't re-render the HUD. */
 const fraction = (value: number, max: number) => roundTo(value / max, 3);

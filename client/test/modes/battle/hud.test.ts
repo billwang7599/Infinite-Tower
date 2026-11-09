@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { applyStatus, type StatusOn } from "@infinite-tower/shared";
-import { statusIcons } from "../../../src/modes/battle/hud.js";
+import {
+  applyStatus, Enemy, Health, World, type EnemyData, type HealthData, type StatusOn,
+} from "@infinite-tower/shared";
+import { shownFoe, statusIcons } from "../../../src/modes/battle/hud.js";
 import { followStun, noStun } from "../../../src/modes/battle/stun.js";
 
 describe("statusIcons", () => {
@@ -53,5 +55,26 @@ describe("statusIcons", () => {
     assert.equal(statusIcons(on, first), first);
     on[0]!.left = 6;
     assert.notEqual(statusIcons(on, first), first);
+  });
+});
+
+describe("shownFoe", () => {
+  const world = new World();
+  const foe = () => {
+    const e = world.spawn();
+    world.add(e, Enemy, {} as EnemyData);
+    world.add(e, Health, {} as HealthData);
+    return e;
+  };
+  const [a, b, c] = [foe(), foe(), foe()];
+
+  test("the one you're locked onto, switching with the lock", () => {
+    assert.equal(shownFoe(world, b, a), b);
+    assert.equal(shownFoe(world, c, b), c);
+  });
+
+  test("with no lock, the one last shown stays, dead or not; with none shown yet, the first", () => {
+    assert.equal(shownFoe(world, null, c), c);
+    assert.equal(shownFoe(world, null, undefined), a);
   });
 });
