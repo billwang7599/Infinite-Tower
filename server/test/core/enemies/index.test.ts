@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CORE_STEPS, coreStats, damageTotal, ENEMY_IDS, essenceFactor, gripOf, grownStats, itemDef, ITEMS, maxHpOf, newCore,
-  physicalTakenFactor, STEP_NAMES, strikeDamage, UNIQUE_ITEMS, WEAPONS, type EnemyId, type ItemEffect, type ItemId,
+  appliedStrength, canWield, CORE_STEPS, coreStats, damageTotal, ENEMY_IDS, essenceFactor, gripOf, grownStats,
+  isWeapon, itemDef, ITEMS, maxHpOf, newCore, physicalTakenFactor, STEP_NAMES, strikeDamage, UNIQUE_ITEMS, WEAPONS,
+  type EnemyId, type ItemEffect, type ItemId, type WeaponId,
 } from "@infinite-tower/shared";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES, enemyAt, rollDrops, TREASURE, TREASURE_TIERS } from "../../../src/core/enemies/index.js";
@@ -34,6 +35,16 @@ describe("enemies' weapons", () => {
       assert.equal(ENEMIES[id].def.stats.strength, strength, id);
     }
     assert.ok(strength < PLAYER_STATS.strength, `${strength}`);
+  });
+
+  test("every enemy is strong enough for the weapon it holds", () => {
+    for (const id of ENEMY_IDS) {
+      const { stats, wielder } = ENEMIES[id].def;
+      const hands = { rightHand: null, leftHand: null, ...wielder?.hands };
+      for (const item of [wielder?.hands.rightHand, wielder?.hands.leftHand].filter((held) => isWeapon(held ?? null))) {
+        assert.ok(canWield(item as WeaponId, appliedStrength(hands, stats.strength)), `${id}: ${item}`);
+      }
+    }
   });
 
   test("every Kobold holds its weapon in one hand, its off hand emptied too; Bram holds his stick in both", () => {

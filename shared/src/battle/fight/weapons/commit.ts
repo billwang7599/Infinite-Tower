@@ -3,16 +3,16 @@ import { turnToward, type Vec2 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
 import type { Hand } from "../../../items/gear.js";
-import { feltHeft, isWeapon, weaponHandIn, WEAPONS } from "../../../weapons/weapons.js";
+import { heftShare, isWeapon, weaponHandIn, WEAPONS } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import type { FightEvent } from "../context.js";
-import { bladeLive, endChain, endSwing, strengthIn } from "./swing.js";
+import { bladeLive, endChain, endSwing } from "./swing.js";
 
 const { swinging } = HYBRID;
 
 function heftOf(world: World, e: Entity, hand: Hand): number {
   const item = world.require(e, Wielder).hands[hand];
-  return isWeapon(item) ? feltHeft(WEAPONS[item], strengthIn(world, e)) : 1;
+  return isWeapon(item) ? heftShare(WEAPONS[item]) : 1;
 }
 
 export const committed = (swing: SwingData): boolean => swing.step < (swing.whiffed ? swing.endAt : swing.liveUntil);

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, appliedStrength, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, feltHeft, gripOf, guardOf,
-  ITEM_IDS, itemDef, ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage,
-  rangedOf, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, weaponDamage, WEAPONS, wayShape, wayStepsAfter, type ItemId,
+  addItem, appliedStrength, BASE_STATS, BOW, drawCost, drawnShare, drawTime, heftShare, gripOf, guardOf, ITEM_IDS,
+  itemDef, ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf,
+  strengthDiscount, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, weaponDamage, WEAPONS, wayShape, wayStepsAfter, type ItemId,
   type Weapon,
 } from "@infinite-tower/shared";
 
@@ -66,16 +66,6 @@ describe("weapon kinds", () => {
     assert.equal(appliedStrength(oneHanded, BASE_STATS.strength), BASE_STATS.strength, "a one-handed wielder's");
   });
 
-  test("two-handed, a weapon feels as at TWO_HAND_STRENGTH_FACTOR times the strength: every blade lighter", () => {
-    const felt = (item: "old-stick" | "sword" | "longsword" | "greatsword", leftHand: ItemId | null) =>
-      feltHeft(WEAPONS[item], appliedStrength({ rightHand: item, leftHand }, BASE_STATS.strength));
-    for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
-      assert.equal(felt(item, null), feltHeft(WEAPONS[item], BASE_STATS.strength * TWO_HAND_STRENGTH_FACTOR), item);
-      assert.equal(felt(item, "skillbook"), feltHeft(WEAPONS[item], BASE_STATS.strength), item);
-      assert.ok(felt(item, null) < felt(item, "skillbook"), item);
-    }
-  });
-
   test("the guard is the grip's: a blade in both hands guards as one blade", () => {
     assert.deepEqual(guardOf({ rightHand: "sword", leftHand: null }), { kind: "one", guard: WEAPONS.sword });
     assert.deepEqual(guardOf({ rightHand: "sword", leftHand: "skillbook" }), { kind: "one", guard: WEAPONS.sword });
@@ -92,17 +82,17 @@ describe("weapon kinds", () => {
 
 describe("the bow's draw", () => {
   test("its damage grows with the draw, from the least share at once to the bow's own fully drawn", () => {
-    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), arrow = weaponDamage(TRAINING_BOW).stab;
+    const full = drawTime(BOW, TRAINING_BOW, "fullTime"), arrow = weaponDamage(TRAINING_BOW).stab;
     const stab = (drawnTime: number) => loosedDamage(BOW, TRAINING_BOW, drawnTime, BASE_STATS).stab;
     assert.equal(stab(0), physicalDamage(arrow * BOW.draw.minDamageShare, BASE_STATS));
     assert.equal(stab(full), physicalDamage(arrow, BASE_STATS));
     assert.equal(stab(full * 3), stab(full));
     assert.ok(stab(full / 2) > stab(0) && stab(full / 2) < arrow);
-    assert.equal(drawnShare(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), 0.5);
+    assert.equal(drawnShare(BOW, TRAINING_BOW, full / 2), 0.5);
   });
 
   test("an arrow is all stab", () => {
-    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime");
+    const full = drawTime(BOW, TRAINING_BOW, "fullTime");
     for (const drawnTime of [0, full / 2, full]) {
       const { slash, blunt, stab } = loosedDamage(BOW, TRAINING_BOW, drawnTime, BASE_STATS);
       assert.deepEqual({ slash, blunt }, { slash: 0, blunt: 0 });
@@ -111,13 +101,13 @@ describe("the bow's draw", () => {
   });
 
   test("the arrow leaves at the bow's power × (t² + 2t) / 3, t the share drawn, as Minecraft's bow", () => {
-    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), power = TRAINING_BOW.powerMps!;
+    const full = drawTime(BOW, TRAINING_BOW, "fullTime"), power = TRAINING_BOW.powerMps!;
     for (const t of [0, BOW.draw.minTime / BOW.draw.fullTime, 0.5, 0.8, 1]) {
-      const speed = loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full * t);
+      const speed = loosedSpeed(BOW, TRAINING_BOW, full * t);
       assert.ok(Math.abs(speed - (power * (t * t + 2 * t)) / 3) < 1e-9, `${t}: ${speed}`);
     }
-    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full * 3), power);
-    assert.equal(loosedSpeed(BOW, { ...TRAINING_BOW, powerMps: 2 * power }, AVERAGE_STAT, full), 2 * power);
+    assert.equal(loosedSpeed(BOW, TRAINING_BOW, full * 3), power);
+    assert.equal(loosedSpeed(BOW, { ...TRAINING_BOW, powerMps: 2 * power }, full), 2 * power);
   });
 
   test("every bow has a power", () => {
@@ -135,12 +125,14 @@ describe("the bow's draw", () => {
     assert.ok(BOW.nock.quiverTime < BOW.nock.bagTime);
   });
 
-  test("heft stretches its times and its cost, as it does a swing's", () => {
-    const heavy: Weapon = { ...TRAINING_BOW, heft: TRAINING_BOW.heft * 1.5 }, felt = feltHeft(heavy, AVERAGE_STAT);
-    assert.equal(drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), BOW.draw.fullTime);
+  test("heft stretches its times and its cost, as it does a swing's; strength over its minimum cuts the cost", () => {
+    const heavy: Weapon = { ...TRAINING_BOW, heft: TRAINING_BOW.heft * 1.5 }, felt = heftShare(heavy);
+    assert.equal(drawTime(BOW, TRAINING_BOW, "fullTime"), BOW.draw.fullTime);
     assert.ok(felt > 1);
-    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "fullTime"), BOW.draw.fullTime * felt);
-    assert.equal(drawTime(BOW, heavy, AVERAGE_STAT, "minTime"), BOW.draw.minTime * felt);
-    assert.equal(drawCost(BOW, heavy, AVERAGE_STAT), BOW.draw.cost * felt);
+    assert.equal(drawTime(BOW, heavy, "fullTime"), BOW.draw.fullTime * felt);
+    assert.equal(drawTime(BOW, heavy, "minTime"), BOW.draw.minTime * felt);
+    assert.equal(drawCost(BOW, heavy, heavy.minStrength), BOW.draw.cost * felt);
+    const over = heavy.minStrength + 10;
+    assert.equal(drawCost(BOW, heavy, over), BOW.draw.cost * felt * strengthDiscount(heavy, over));
   });
 });

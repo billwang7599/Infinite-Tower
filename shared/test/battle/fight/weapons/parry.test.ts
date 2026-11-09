@@ -27,7 +27,7 @@ const FACING_0 = { aimX: 0, aimZ: -1, locked: 0 };
 const liveAfter = (strike: Strike, blade: ItemId = "sword") => {
   const windup = strike === "stab" ? CHAIN.stabStartupTime
     : CHAIN.startupTime.opening + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
-  return wayStepsAfter(WEAPONS[blade as "sword"], windup, strike === "heavy", STATS.strength).liveAt;
+  return wayStepsAfter(WEAPONS[blade as "sword"], windup, strike === "heavy").liveAt;
 };
 
 const PRESS = 60;

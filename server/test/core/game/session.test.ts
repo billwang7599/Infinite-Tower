@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, packFor, Player,
-  REST_RANGE_TILES,
-  useSteps, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
-  type Skill,
+  AVERAGE_STAT, bagCounts, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, packFor,
+  Player, REST_RANGE_TILES, useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName,
+  type ItemId, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { Pile } from "../../../src/core/overworld/components.js";
 import { getRegion, WORLD } from "../../../src/core/world/index.js";
-import { HOLLOW, near, regenOver, startSession, tick } from "./helpers.js";
+import { HOLLOW, near, pileAt, regenOver, startSession, tick } from "./helpers.js";
 import { armed } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -289,16 +289,44 @@ describe("equipment", () => {
     assert.equal(saves.at(-1)?.bag.items[0]?.item, "sword");
   });
 
-  test("a weapon goes into a hand whatever the strength; the server answers with the gear as it is", () => {
-    const strength = 1;
-    const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
-    const equipment = { ...armed(), rightHand: null };
-    const bag = bagOf(["greatsword", 1, 0, 0]);
-    const { session, link } = startSession({ saved: { core, equipment, bag } });
-    assert.equal(session.stats.strength, strength);
-    session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
+  test("a weapon goes into a hand only with its minimum strength; the server answers with the gear as it is", () => {
+    const need = WEAPONS.greatsword.minStrength;
+    for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
+      const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
+      const equipment = { ...armed(), rightHand: null };
+      const bag = bagOf(["greatsword", 1, 0, 0]);
+      const { session, link } = startSession({ saved: { core, equipment, bag } });
+      assert.equal(session.stats.strength, strength);
+      session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
+      assert.equal(session.gear.equipment.rightHand, held, `${strength}`);
+      assert.deepEqual(link.last("gear")?.gear, session.gear);
+    }
+  });
+
+  test("strength dropping under a held weapon's minimum puts it in the bag, and the client is told", () => {
+    const need = WEAPONS.greatsword.minStrength, coreAt = (strength: number) =>
+      ({ steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] });
+    const equipment = { ...armed(), rightHand: "greatsword" } as const;
+    const { session, link } = startSession({ saved: { core: coreAt(need), equipment, bag: bagOf() } });
+    session.takeCore(coreAt(need + 1));
     assert.equal(session.gear.equipment.rightHand, "greatsword");
+    session.takeCore(coreAt(need - 1));
+    assert.equal(session.gear.equipment.rightHand, null);
+    assert.equal(session.bag.items[0]?.item, "greatsword");
     assert.deepEqual(link.last("gear")?.gear, session.gear);
+  });
+
+  test("with no room for it, it drops in a pile at their feet", () => {
+    const need = WEAPONS.greatsword.minStrength, coreAt = (strength: number) =>
+      ({ steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] });
+    const equipment = { ...armed(), rightHand: "greatsword" } as const;
+    const bag: Bag = { cols: 1, rows: 1, items: [{ item: "boar-meat", count: 1, x: 0, y: 0, turned: false }] };
+    const { session } = startSession({ saved: { core: coreAt(need), equipment, bag, pack: packFor(null) } });
+    session.takeCore(coreAt(need - 1));
+    assert.equal(session.gear.equipment.rightHand, null);
+    const pile = pileAt(session.overworld, session.overworld.playerPos(session.me));
+    assert.ok(pile !== null);
+    assert.deepEqual(bagCounts(session.overworld.world.require(pile, Pile).items), { greatsword: 1 });
   });
 
   test("arrows moved into a worn quiver are saved there", (t) => {

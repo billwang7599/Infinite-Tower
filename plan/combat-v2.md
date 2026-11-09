@@ -40,11 +40,17 @@ Swinging:
   and a hand switch never cuts a recovery short.
 - The body commits: you walk slowly while attacking, a live blade carries you forward, a whiff overextends you
   (carried further, a longer recovery), and a live blade's turn is capped (a drag for timing, never a spin).
-- Heft scales every time and stamina cost, felt through the wielder's strength (one rule for every weapon and guard).
-  Strength's part is small and capped (the user: "id say 20%-30%... i want it to most affect damage now"): a little
-  lighter the stronger, ever less, at most about 25% quicker, so timings stay readable at any core. A two-handed grip
-  only adds strength, with no speed bonus of its own. Any weapon at any strength, only
-  slower. A weapon's reach is the wielder's arm reach plus its length.
+- Heft alone sets every time: the shared chain table × the weapon's heft over the Basic Sword's, the same for any
+  wielder, player or enemy (the user: "every weapon's timing is hard coded. strength doesnt affect that, only
+  damage. this way, we don't have to worry about scaling the timing and stuff. since if things get too quick, they
+  lose uniqueness and its unbalanced"). Strength adds damage only; a two-handed grip adds strength, so damage, never
+  speed. A weapon's reach is the wielder's arm reach plus its length.
+- Each weapon has a minimum strength (the user: "lets just have a simple they cant wield it if they dont have
+  sufficient strenght"). Under it at your grip strength the server won't put it in a hand; the two-handed grip's
+  1.5× counts. If your strength later falls under it, it moves to the bag (a pile at your feet if there's no room),
+  and nothing goes into the other hand that would leave a lone blade under its minimum.
+- Stamina per strike is the table's cost × heft share, made cheaper by strength over the weapon's minimum (the user:
+  "like maybe any strength over the minimum is 1-2% cheaper? capped at 50%?"), never dearer than the base.
 - Better weapons keep their weight (the user: "higher tier weapons would be around the same weight wise, it would just
   have increase like sharpness or whatever"): a tier raises only quality, so damage, never speed.
 - A lone melee weapon is held in both hands, putting 1.5× the strength in, through the same math; anything in the
@@ -52,7 +58,7 @@ Swinging:
 - Weapon damage is typed: slash, stab and blunt from one rule by heft, split by the weapon's profile. A swing deals its
   slash and blunt, a stab only its stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The old
   stick does almost nothing. Hits were made more punishing by raising damage per heft, not by changing timings.
-- Enemies swing by the player's math: no preset timing tables. A swordsman's def keeps only pacing (cooldowns, chain
+- Enemies swing by the player's rule: times from heft, no preset timing tables. A swordsman's def keeps only pacing (cooldowns, chain
   lengths, chances); balance goes through its weapon and stats. Beasts keep their own attack timings.
 
 Defending:

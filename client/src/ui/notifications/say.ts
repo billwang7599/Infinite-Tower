@@ -1,7 +1,7 @@
 import {
-  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, twoHanded, type BlessingGod,
+  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, twoHanded, WEAPONS, type BlessingGod,
   type ChallengeNews, type CoinId, type CoreState, type Faith, type God, type ItemCounts, type ItemId,
-  type QuestNews, type ServerMsgOf, type TradeNews,
+  type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
 } from "@infinite-tower/shared";
 import { BLESSING_TEXT, GOD_NAMES } from "../hud/blessings.js";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
@@ -15,6 +15,7 @@ export type GameEvent =
   | { kind: "rested" }
   | { kind: "padBound"; already: boolean }
   | { kind: "itemUsed"; item: ItemId }
+  | { kind: "tooWeak"; item: WeaponId }
   | { kind: "noHands"; item: ItemId; displaced: ItemId }
   | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "given"; item: ItemId; count: number; left: number }
@@ -42,6 +43,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   rested:       () => ["You rest by the fire. HP and stamina are restored."],
   padBound:     ({ already }) => [already ? PAD_ALREADY : PAD_BOUND],
   itemUsed:     ({ item }) => [itemUsedLine(item)],
+  tooWeak:      ({ item }) => [tooWeakLine(item)],
   noHands:      noHandsLines,
   leftOnCloth:  ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`],
   given:        givenLines,
@@ -92,6 +94,13 @@ function challengeLines(news: ChallengeNews): string[] {
 function itemUsedLine(item: ItemId): string {
   const def = itemDef(item);
   return `You ${def.consumable?.verb.toLowerCase() ?? "use"} the ${def.name.toLowerCase()}.`;
+}
+
+function tooWeakLine(item: WeaponId): string {
+  const name = itemDef(item).name.toLowerCase();
+  const need = WEAPONS[item].minStrength;
+  return `You aren't strong enough to wield the ${name}: it needs ${need} strength. `
+    + "Alone in both hands, yours counts more.";
 }
 
 function noHandsLines({ item, displaced }: EventOf<"noHands">): string[] {

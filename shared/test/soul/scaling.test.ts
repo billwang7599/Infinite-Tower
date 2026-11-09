@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BASE_STATS, blockStaminaShare, CHAIN, CORE, CORE_STEPS, coreStats, damageTotal, essenceFactor, FELT_HEFT_FLOOR,
+  BASE_STATS, blockStaminaShare, CHAIN, CORE, CORE_STEPS, coreStats, damageTotal, essenceFactor,
   fillToFinish, grownStats, GUARDS, HYBRID, ITEM_IDS, itemDef, maxHpOf, newCore, physicalTakenFactor, pointsEarned,
-  realmOfSteps, staminaMaxOf, STEP_NAMES, strengthHeftFactor, strikeCost, strikeDamage, toSteps,
+  realmOfSteps, staminaMaxOf, STEP_NAMES, strikeCost, strikeDamage, toSteps,
   TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, windupTime, type ItemEffect, type Stats,
 } from "@infinite-tower/shared";
 
@@ -87,36 +87,20 @@ describe("stamina", () => {
   });
 });
 
-describe("strength quickens swings only so far", () => {
+describe("strength never quickens a swing; it only makes it cheaper, by half at most", () => {
   const whole = { ...newCore(), steps: CORE_STEPS };
   const allIn = coreStats({ ...whole, points: { strength: pointsEarned(whole) } }).strength;
   const strongest = allIn * TWO_HAND_STRENGTH_FACTOR;
 
-  test("everything in strength by Peak Tian swings 20-30% quicker than at 10, and no strength past 30%", () => {
-    const quicker = 1 - strengthHeftFactor(allIn);
-    assert.ok(quicker >= 0.2 && quicker <= 0.3, `${quicker}`);
-    assert.ok(FELT_HEFT_FLOOR >= 0.7);
-    assert.ok(strengthHeftFactor(1e12) > FELT_HEFT_FLOOR);
-  });
-
   for (const item of ["sword", "longsword", "greatsword"] as const) {
-    test(`at the strongest grip, a ${item}'s heavy still winds up slower than its light, past the floor`, () => {
+    test(`at the strongest grip, a ${item} costs at least half its base, a heavy winding up past its light`, () => {
+      const weapon = WEAPONS[item], base = HYBRID.light.cost * weapon.heft / SWORD.heft;
+      assert.ok(strikeCost(weapon, "light", strongest) >= base / 2 - 1e-9, item);
       const at = (strike: "light" | "heavy") =>
-        wayStepsAfter(WEAPONS[item], windupTime(strike, "opening"), strike === "heavy", strongest);
-      const light = at("light"), heavy = at("heavy");
-      assert.ok(light.liveAt >= toSteps(CHAIN.minWindupTime));
-      assert.ok(heavy.liveAt - light.liveAt >= toSteps(HYBRID.heavy.extraTime * FELT_HEFT_FLOOR) - 1, item);
-    });
-
-    test(`at the strongest grip, a ${item} is live and recovers at least the floor's share of its times`, () => {
-      for (const heavy of [false, true]) {
-        const steps = wayStepsAfter(WEAPONS[item], windupTime(heavy ? "heavy" : "light", "opening"), heavy, strongest);
-        const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
-        const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-        const heft = WEAPONS[item].heft / SWORD.heft;
-        assert.ok(steps.liveUntil - steps.liveAt >= toSteps(live * heft * FELT_HEFT_FLOOR), `${item} live`);
-        assert.ok(steps.endAt - steps.liveUntil >= toSteps(recover * heft * FELT_HEFT_FLOOR), `${item} recovery`);
-      }
+        wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy");
+      assert.ok(at("light").liveAt >= toSteps(CHAIN.minWindupTime));
+      assert.ok(at("heavy").liveAt - at("light").liveAt >= toSteps(HYBRID.heavy.extraTime) - 1, item);
     });
   }
 });
+

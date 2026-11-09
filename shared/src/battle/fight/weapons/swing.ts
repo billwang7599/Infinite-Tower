@@ -25,7 +25,7 @@ export function startWaySwing(
   const stats = world.require(e, FighterStats), wielder = world.require(e, Wielder), strength = strengthIn(world, e);
   wielder.swing = {
     attack: strike === "heavy" ? "heavy" : "light", way, dir, step: 0,
-    ...melee.steps(weapon, windupTime, strike === "heavy", strength),
+    ...melee.steps(weapon, windupTime, strike === "heavy"),
     damage: strikeDamage(weapon, strike, power, { ...stats, strength }),
     poiseDamage: HYBRID[strike].poiseDamage, whiffed: false,
     hand: weaponHandIn(wielder.hands) ?? "rightHand",

@@ -1,6 +1,6 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, dampFactor, Enemy, FighterStats, gripOf, guardOf, Health, itemDef, smoothstep, weaponItemIn,
+  Body, clamp, damp, dampFactor, Enemy, gripOf, guardOf, Health, itemDef, smoothstep, weaponItemIn,
   WEAPONS, Wielder, wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
@@ -80,8 +80,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const cut = wayCut(drawn?.way ?? "tb", true);
     const state = health.hp <= 0 ? "dead" : drawn && !swing ? "weapon" : enemy.state;
     const guard = guardOf(hands), up = !!guard && health.hp > 0 && blocking(world, e);
-    const strength = world.require(e, FighterStats).strength;
-    const raiseBy = guard ? (up ? poseDt : -poseDt) / guardShiftTime(guard.guard, strength) : 0;
+    const raiseBy = guard ? (up ? poseDt : -poseDt) / guardShiftTime(guard.guard) : 0;
     nodes.guardRaised = clamp(nodes.guardRaised + raiseBy, 0, 1);
     const guardShare = smoothstep(0, 1, nodes.guardRaised);
     const pose = koboldPose(state, t, k, cut, nodes.motion,
@@ -111,7 +110,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     else offHolding.copyFrom(UNTURNED);
     const gripped = health.hp > 0 && gripOf(hands) === "two";
     nodes.offOnGrip = nodes.offOnGrip === null ? +gripped : easeGrip(nodes.offOnGrip, gripped, poseDt,
-      guard ? guardShiftTime(guard.guard, strength) : GUARD_SHIFT.time);
+      guard ? guardShiftTime(guard.guard) : GUARD_SHIFT.time);
     reachKobold(nodes, nodes.handAt, offTarget, nodes.look, smoothstep(0, 1, nodes.offOnGrip) * (1 - guardShare));
     const live = health.hp > 0 ? swing : null;
     if (nodes.cue) showCue(nodes.cue, live);

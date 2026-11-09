@@ -5,7 +5,6 @@ import {
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
-import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { FULL, openRoom, setupWith } from "../../fixtures/fight.js";
 
@@ -17,7 +16,7 @@ const ONE_ATTACK: EnemyDef = {
   ...KOBOLD, walkSpeed: 0,
   attacks: { weapon: { ...KOBOLD.attacks.weapon!, minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 } },
 };
-const RAISE = toSteps(guardRaiseTime(WEAPONS.sword, PLAYER_STATS.strength));
+const RAISE = toSteps(guardRaiseTime(WEAPONS.sword));
 const SETUP: FightSetup = setupWith(ONE_ATTACK, { x: 0, y: 0.05, z: 2 }, { x: 0, y: 0.05, z: 0 });
 
 const ITS = (() => {

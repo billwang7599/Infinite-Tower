@@ -1,6 +1,7 @@
 import {
   addItem, bagCounts, bagWeight, fits, itemAt, moveItem, stackSizeIn, takeItems, type Bag, type BagItem,
 } from "./bag.js";
+import { unwieldableHand } from "../weapons/kinds.js";
 import { twoHanded } from "../weapons/weapons.js";
 import { itemDef, ITEMS, type ItemCounts, type ItemId, type WornOn } from "./items.js";
 
@@ -87,6 +88,23 @@ export function stow<G extends Stowed>(gear: G, item: ItemId, count: number): { 
   return { gear: out, left };
 }
 
+/**
+ * Takes out of the hands, one at a time, any weapon too heavy for its grip (after strength drops): into the bag, or
+ * `spilled` for a pile if there's no room.
+ */
+export function shedUnwieldable<G extends Stowed & { equipment: Equipment }>(
+  gear: G, strength: number,
+): { gear: G; spilled: ItemCounts } {
+  let out = gear;
+  const spilled: ItemCounts = {};
+  for (let hand = unwieldableHand(out.equipment, strength); hand; hand = unwieldableHand(out.equipment, strength)) {
+    const item = out.equipment[hand]!, put = stow({ ...out, equipment: { ...out.equipment, [hand]: null } }, item, 1);
+    out = put.gear;
+    if (put.left > 0) spilled[item] = (spilled[item] ?? 0) + put.left;
+  }
+  return { gear: out, spilled };
+}
+
 export function unstow<G extends Stowed>(gear: G, item: ItemId, count: number): G | null {
   if ((stowedCounts(gear)[item] ?? 0) < count) return null;
   let left = count, out = gear;
@@ -143,7 +161,8 @@ function freeOtherHand(gear: Gear, hand: Hand): Gear | null {
   return put.left === 0 ? put.gear : null;
 }
 
-export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gear | null {
+/** `strength` is the wearer's own: into a hand, every weapon held after must reach its minimum at its grip. */
+export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean, strength: number): Gear | null {
   const moving = stackIn(gear, from);
   if (!moving || to.in === "pile") return null;
   if (from.in !== "slot" && to.in === from.in) {
@@ -164,7 +183,8 @@ export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gea
       if (there && !fitsSlot(there, from.slot)) return null;
       worn = { ...gear, equipment: { ...gear.equipment, [to.slot]: moving.item, [from.slot]: there } };
     }
-    return isHand(to.slot) ? freeOtherHand(worn, to.slot) : worn;
+    const held = isHand(to.slot) ? freeOtherHand(worn, to.slot) : worn;
+    return held && (!isHand(to.slot) || unwieldableHand(held.equipment, strength) === null) ? held : null;
   }
   const target = gear[to.in];
   const onto = target.items[itemAt(target, to)];

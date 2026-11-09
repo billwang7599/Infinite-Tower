@@ -49,20 +49,22 @@ hits to kill each other at every step.
 
 ## Weapon attacks
 
-`CHAIN`, `MOMENTUM`, `HYBRID` in `shared/src/weapons/hybrid.ts`; `DAMAGE_PER_HEFT`, `DAMAGE_PROFILES`, `feltHeft` in
-`shared/src/weapons/weapons.ts`; each weapon's length and heft in its `weapon` in `ITEMS`.
+`CHAIN`, `MOMENTUM`, `HYBRID` in `shared/src/weapons/hybrid.ts`; `DAMAGE_PER_HEFT`, `DAMAGE_PROFILES`, `heftShare`,
+`STRENGTH_DISCOUNT` in `shared/src/weapons/weapons.ts`; each weapon's length, heft and `minStrength` in its `weapon`
+in `ITEMS`.
 
 - **Grip strength** = the wielder's strength × `TWO_HAND_STRENGTH_FACTOR` for a lone melee weapon held in both
   hands, else their own (`appliedStrength`, `shared/src/weapons/kinds.ts`). It's the strength in every weapon
   number below; the body's numbers (carry, pushback, walking) keep the wielder's own.
-- **Felt heft** = (heft / the Basic Sword's heft) × strength's factor, `FELT_HEFT_FLOOR` + (1 − `FELT_HEFT_FLOOR`) ×
-  10 / grip strength (`strengthHeftFactor`): 1 at 10, 0.87 at 20, 0.8 at 40, about 0.75 with every point in strength
-  at Peak Tian (25% quicker), never under the floor; over 1 for a weaker wielder. Every weapon time and stamina cost
-  goes × felt heft. A two-handed grip only adds strength, no speed of its own.
+- **Wielding**: a weapon goes into a hand only if every weapon held after reaches its `minStrength` at its grip
+  strength (`unwieldableHand`, checked in `moveGear`); when strength drops (points taken back, an inscription
+  removed) or a save loads, one under it goes into the bag, or a pile at their feet (`shedUnwieldable`).
+- **Heft share** = heft / the Basic Sword's heft (`heftShare`). Every weapon time and stamina cost goes × it; strength
+  changes no time.
 - **Weapon tiers** keep their heft and raise only `quality` (damage): a better sword hits harder, not quicker.
-- **Wind-up** = max(`CHAIN.minWindupTime`, base × felt heft), the base by how the swing follows the same hand's last
+- **Wind-up** = max(`CHAIN.minWindupTime`, base × heft share), the base by how the swing follows the same hand's last
   (opening, reverse, another line, perpendicular), a heavy's longer, a stab its own (`windupTime`, `wayStepsAfter`).
-  Live and recovery times go × felt heft too; a whiff adds `whiffRecoverTime` × felt heft.
+  Live and recovery times go × heft share too; a whiff adds `whiffRecoverTime` × heft share.
 - **Chaining**: a swing chains if it starts within `gapTime` of either hand's last; each hand keeps its own chain.
 - **Momentum** gains by chain kind up to `MOMENTUM.max`; a swing deals × min(`maxDamage`, 1 + `damagePerPoint` ×
   momentum); a stab × (1 + `stabBonusPerPoint` × momentum) and spends it.
@@ -70,8 +72,9 @@ hits to kill each other at every step.
   blunt shares and a stab fraction, each rounded. A weapon with its own `baseDamage` splits that instead.
 - **A strike** deals the slash and blunt (× the heavy's factor) or only the stab, × momentum, each type
   × physical damage at grip strength (Stats) and taken on its own (`strikeDamage`).
-- **Stamina** = the strike's `HYBRID` cost × felt heft (`strikeCost`). It never grows with the core while the bar
-  does, so stamina matters less as you grow, on purpose.
+- **Stamina** = the strike's `HYBRID` cost × heft share × the strength discount (`strikeCost`): 1 −
+  min(`STRENGTH_DISCOUNT.max`, `perPoint` × points of grip strength over `minStrength`), never over 1
+  (`strengthDiscount`). It never grows with the core while the bar does, so stamina matters less as you grow.
 - **Reach** = (arm reach + blade length) × the swing's or stab's reach factor, in an arc by the swing's line
   (`wayShape`).
 - **The body**: walking × `swinging.moveFactor` from press to recovery, carried at `lungeSpeed` while live, the live
@@ -82,7 +85,7 @@ hits to kill each other at every step.
 
 `BOW` and its functions in `shared/src/weapons/bow.ts`; a bow's `powerMps` and a quiver's `pack.holds` in `ITEMS`.
 
-- **Draw** costs `draw.cost` × felt heft; full after `draw.fullTime` × felt heft; a release before `draw.minTime`
+- **Draw** costs `draw.cost` × heft share × the strength discount; full after `draw.fullTime` × heft share; a release before `draw.minTime`
   looses then.
 - **Damage** = the bow's damage × (`minDamageShare` + (1 − `minDamageShare`) × share drawn) × physical damage
   (Stats).
@@ -114,12 +117,12 @@ reach and knockback are in the enemy's file (`server/src/core/enemies/<id>.ts`).
   takes the last stamina breaks the guard for `brokenTime`. Holding drains `holdStaminaPerSec`. An enemy pays the
   hit's poise.
 - **Against a wall**, chip × (1 + (`pinnedChipFactor` − 1) × the share of the slide the wall stops).
-- **Raise time** = max(0, `raiseTime` + `raiseTimePerHeft` × (felt heft − 1)) (`guardRaiseTime`).
+- **Raise time** = max(0, `raiseTime` + `raiseTimePerHeft` × (heft share − 1)) (`guardRaiseTime`).
 - **Perfect window** = `perfectTime` × blade length / `perfectAtLengthM` (`perfectBlockTime`), opened by a press not
   within `remashTime` of the last. Blocked perfectly, the attacker loses `perfectDrain` and recoils
   `perfectRecoilTime`.
 - **Feint**: block in a heavy's wind-up before `feint.cutoffTime`, for `feint.cost`; that hand recovers
-  `feint.recoverTime` × felt heft.
+  `feint.recoverTime` × heft share.
 
 ## Swing parries and counters
 

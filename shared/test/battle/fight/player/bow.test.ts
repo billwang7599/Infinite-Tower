@@ -11,8 +11,8 @@ import { ARENA, enemy, FULL_STAMINA, input, player, STATS, STATUE } from "../fix
 before(() => initPhysics());
 
 const BOW_ITEM = WEAPONS["training-bow"];
-const MIN_STEPS = toSteps(drawTime(BOW, BOW_ITEM, STATS.strength, "minTime"));
-const FULL_STEPS = toSteps(drawTime(BOW, BOW_ITEM, STATS.strength, "fullTime"));
+const MIN_STEPS = toSteps(drawTime(BOW, BOW_ITEM, "minTime"));
+const FULL_STEPS = toSteps(drawTime(BOW, BOW_ITEM, "fullTime"));
 const TARGET = { ...STATUE, maxHp: 10_000 };
 
 const QUIVER = "training-quiver";
@@ -185,7 +185,7 @@ describe("how fast the arrow leaves", () => {
     const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
     assert.ok(near(speedOf(FULL_STEPS), BOW_ITEM.powerMps!));
     assert.ok(near(speedOf(3 * FULL_STEPS), BOW_ITEM.powerMps!));
-    const quick = loosedSpeed(BOW, BOW_ITEM, STATS.strength, MIN_STEPS * FIXED_DT);
+    const quick = loosedSpeed(BOW, BOW_ITEM, MIN_STEPS * FIXED_DT);
     assert.ok(near(speedOf(1), quick));
     assert.ok(quick < BOW_ITEM.powerMps!);
   });

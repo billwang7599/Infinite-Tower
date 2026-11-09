@@ -1,6 +1,6 @@
 import { Color3, Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  AVERAGE_STAT, Body, damp, dampFactor, feltHeft, FighterStats, gripOf, guardOf, Health, itemDef, Player, smoothstep,
+  Body, damp, dampFactor, heftShare, gripOf, guardOf, Health, itemDef, Player, smoothstep,
   weaponHandIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Equipment, type Guard, type Hands,
   type ItemId, type Look, type PlayerData, type SwingData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
@@ -54,7 +54,6 @@ export interface PersonDrawing {
   offOnGrip: number | null;
   inView: ShownArms | null;
   drawnSwing: Swung | null;
-  strength: number;
 }
 
 export interface HeldArms { hand: Vector3; holding: Quaternion; offHand: Vector3; offHolding: Quaternion }
@@ -67,13 +66,13 @@ export interface ShownArms extends HeldArms {
 type Toward = Partial<Record<"holding" | "offHolding", Quaternion>>;
 
 export const GUARD_SHIFT = { time: 0.1, timePerHeft: 0.1 } as const;
-export const guardShiftTime = (guard: Guard, strength: number): number =>
-  GUARD_SHIFT.time + Math.max(0, feltHeft(guard, strength) - 1) * GUARD_SHIFT.timePerHeft;
+export const guardShiftTime = (guard: Guard): number =>
+  GUARD_SHIFT.time + Math.max(0, heftShare(guard) - 1) * GUARD_SHIFT.timePerHeft;
 
 export function shiftTimeOf(p: PersonDrawing): number {
   const shield = p.pose?.held?.block === "shield" && p.shield && itemDef(p.shield.item).shield;
   const guard = shield || (p.blade && WEAPONS[p.blade.weapon]);
-  return guard ? guardShiftTime(guard, p.strength) : GUARD_SHIFT.time;
+  return guard ? guardShiftTime(guard) : GUARD_SHIFT.time;
 }
 
 export const heldKey = (pose: PersonPose): string => pose.held ? `${pose.held.block ?? ""}:${pose.held.way ?? ""}` : "";
@@ -149,7 +148,7 @@ export const newPerson = (): PersonDrawing => ({
   look: null, equipment: null, shown: {}, build: null, model: null, blade: null, offBlade: null, shield: null,
   bladeSide: 1, held: null, yaw: 0, gait: 0, time: 0, deadTime: 0, sinceStep: 0,
   sinceLanding: LANDING.durationTime, hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() }, bow: restingBow(),
-  pose: null, offOnGrip: null, inView: null, drawnSwing: null, strength: AVERAGE_STAT,
+  pose: null, offOnGrip: null, inView: null, drawnSwing: null,
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -262,7 +261,6 @@ export function framePerson(
   const body = world.require(e, Body), health = world.require(e, Health), wielder = world.require(e, Wielder);
   const alive = health.hp > health.floor, weapon = weaponItemIn(wielder.hands);
   const side = handSide(wielder.hands, weapon);
-  p.strength = world.require(e, FighterStats).strength;
   const speed = Math.hypot(body.vel.x, body.vel.z);
   p.time += dt;
   p.sinceLanding = stance.grounded ? (p.sinceLanding ?? 0) + dt : null;

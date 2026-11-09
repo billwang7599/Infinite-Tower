@@ -84,7 +84,7 @@ describe("an enemy wielding a weapon", () => {
     }
   });
 
-  test("a lone greatsword winds up sooner and recovers sooner held in both hands, as a player's does", () => {
+  test("a lone greatsword winds up and recovers as fast held in both hands, as a player's does", () => {
     const firstSwing = (leftHand?: "skillbook") => {
       const def = { ...holding({ rightHand: "greatsword", ...(leftHand && { leftHand }) }), stats: STATS };
       const fight = newFight(def), e = fight.enemies[0]!;
@@ -96,7 +96,7 @@ describe("an enemy wielding a weapon", () => {
       return assert.fail("never swung");
     };
     const one = firstSwing("skillbook"), two = firstSwing();
-    assert.ok(two.liveAt < one.liveAt && two.endAt - two.liveUntil < one.endAt - one.liveUntil, `${two.liveAt}`);
+    assert.deepEqual([two.liveAt, two.liveUntil, two.endAt], [one.liveAt, one.liveUntil, one.endAt]);
   });
 
   test("reaches as far as its own arm plus the blade", () => {

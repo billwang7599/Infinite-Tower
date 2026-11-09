@@ -65,8 +65,7 @@ describe("the Kobold Shieldbearer", () => {
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     assert.equal(wielder.swing?.step, 1);
     const strike = strikeOf(wielder.swing!.attack, wielder.swing!.way);
-    const opening = wayStepsAfter(WEAPONS["kobold-blade"], windupTime(strike, "opening"), strike === "heavy",
-      SWORDSMAN.stats.strength);
+    const opening = wayStepsAfter(WEAPONS["kobold-blade"], windupTime(strike, "opening"), strike === "heavy");
     assert.equal(wielder.swing!.liveAt, opening.liveAt);
   });
 

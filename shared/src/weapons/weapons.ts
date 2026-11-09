@@ -1,4 +1,3 @@
-import { AVERAGE_STAT } from "../battle/stats.js";
 import type { Hand } from "../items/gear.js";
 import { ITEM_IDS, itemDef, ITEMS, type ItemId } from "../items/items.js";
 
@@ -32,6 +31,8 @@ export interface Weapon {
   /** The blade (m), or a bow's stave: a swing's reach and a guard's perfect window grow with it. */
   length: number;
   heft: number;
+  /** The grip strength (`appliedStrength`) it takes to hold it at all. */
+  minStrength: number;
   profile: DamageProfile;
   quality?: number;
   baseDamage?: number;
@@ -52,14 +53,16 @@ export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
 })) as WeaponItems;
 
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
+export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
-// However strong, a weapon never feels lighter than this share (all-in strength at Peak Tian reaches 0.75).
-export const FELT_HEFT_FLOOR = 0.74;
-export const strengthHeftFactor = (strength: number): number =>
-  FELT_HEFT_FLOOR + (1 - FELT_HEFT_FLOOR) * AVERAGE_STAT / strength;
-export const feltHeft = (weapon: Guard, strength: number): number =>
-  (weapon.heft / WEAPONS.sword.heft) * strengthHeftFactor(strength);
+/** Its heft over the Basic Sword's: every weapon time and cost goes × this, whoever holds it. */
+export const heftShare = (weapon: Guard): number => weapon.heft / WEAPONS.sword.heft;
+
+/** Each point of grip strength over a weapon's minimum takes this share off its stamina costs, up to the cap. */
+export const STRENGTH_DISCOUNT = { perPoint: 0.015, max: 0.5 } as const;
+export const strengthDiscount = (weapon: Pick<Weapon, "minStrength">, strength: number): number =>
+  1 - Math.min(STRENGTH_DISCOUNT.max, Math.max(0, strength - weapon.minStrength) * STRENGTH_DISCOUNT.perPoint);
 
 export type Guard = Pick<Weapon, "length" | "heft">;
 

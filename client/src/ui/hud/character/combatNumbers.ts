@@ -1,5 +1,5 @@
 import {
-  appliedStrength, blessingsOf, blockStaminaShare, coreStats, dodgeCost, drawCost, drawTime, feltHeft, FIXED_DT,
+  appliedStrength, blessingsOf, blockStaminaShare, coreStats, dodgeCost, drawCost, drawTime, FIXED_DT,
   gearBurden, gripOf, guardOf, guardRaiseTime, GUARDS, isWeapon, ITEMS, knockbackTakenFactor, loosedDamage, meleeOf,
   modsFrom, parryWindowTime, passivesOf, perfectBlockTime, rangedOf, scaleDamage, staminaRegenPerSec, STRIKES,
   strikeCost, strikeDamage, WEAPONS, windupTime, type Carried, type CoreState, type Damage, type Faith, type Grip,
@@ -17,7 +17,7 @@ export interface HeldNumbers {
   appliedStrength: number;
   weight: number;
   heft: number;
-  feltHeft: number;
+  minStrength: number;
   strikes: Record<Strike, StrikeNumbers> | null;
   parryTime: number | null;
   draw: { minTime: number; fullTime: number; stamina: number; damage: Damage } | null;
@@ -43,7 +43,7 @@ const HANDS: readonly Hand[] = ["rightHand", "leftHand"];
 function strikeNumbers(
   weapon: Weapon, moves: MeleeMoves, strike: Strike, stats: Stats, dealtFactor: number,
 ): StrikeNumbers {
-  const { strength } = stats, steps = moves.steps(weapon, windupTime(strike, "opening"), strike === "heavy", strength);
+  const { strength } = stats, steps = moves.steps(weapon, windupTime(strike, "opening"), strike === "heavy");
   return {
     windupTime: steps.liveAt * FIXED_DT, liveTime: (steps.liveUntil - steps.liveAt) * FIXED_DT,
     recoverTime: (steps.endAt - steps.liveUntil) * FIXED_DT, stamina: strikeCost(weapon, strike, strength),
@@ -53,16 +53,16 @@ function strikeNumbers(
 
 function heldNumbers(hand: Hand, item: WeaponId, grip: Grip, stats: Stats, dealtFactor: number): HeldNumbers {
   const weapon = WEAPONS[item], melee = meleeOf(weapon), ranged = rangedOf(weapon), { strength } = stats;
-  const fullTime = ranged ? drawTime(ranged, weapon, strength, "fullTime") : 0;
+  const fullTime = ranged ? drawTime(ranged, weapon, "fullTime") : 0;
   return {
     hand, item, grip, appliedStrength: strength, weight: ITEMS[item].weight, heft: weapon.heft,
-    feltHeft: feltHeft(weapon, strength),
+    minStrength: weapon.minStrength,
     strikes: melee && Object.fromEntries(
       STRIKES.map((strike) => [strike, strikeNumbers(weapon, melee, strike, stats, dealtFactor)]),
     ) as Record<Strike, StrikeNumbers>,
     parryTime: melee && parryWindowTime(weapon),
     draw: ranged && {
-      minTime: drawTime(ranged, weapon, strength, "minTime"), fullTime, stamina: drawCost(ranged, weapon, strength),
+      minTime: drawTime(ranged, weapon, "minTime"), fullTime, stamina: drawCost(ranged, weapon, strength),
       damage: scaleDamage(loosedDamage(ranged, weapon, fullTime, stats), dealtFactor),
     },
   };
@@ -78,7 +78,7 @@ export function combatNumbers(gear: Carried, core: CoreState, faith: Faith): Com
       return isWeapon(item) && grip ? [heldNumbers(hand, item, grip, applied, mods.damageDealtFactor)] : [];
     }),
     guard: guarded && grip && {
-      kind: guarded.kind, grip, ...GUARDS[guarded.kind], raiseTime: guardRaiseTime(guarded.guard, applied.strength),
+      kind: guarded.kind, grip, ...GUARDS[guarded.kind], raiseTime: guardRaiseTime(guarded.guard),
       perfectTime: perfectBlockTime(guarded.guard),
       arcDeg: (2 * Math.acos(GUARDS[guarded.kind].minDot) * 180) / Math.PI,
       blockStaminaShare: blockStaminaShare(GUARDS[guarded.kind], applied.strength),

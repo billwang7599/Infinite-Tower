@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
 import {
-  AVERAGE_STAT, BOW, drawTime, loosedSpeed, WEAPONS, type Hand, type ItemId, type PlayerAction,
+  BOW, drawTime, loosedSpeed, WEAPONS, type Hand, type ItemId, type PlayerAction,
 } from "@infinite-tower/shared";
 import {
   AIM_HUD, aimHud, aimLayout, meterSpan, onScreen, ringLights, wedgeOf,
@@ -43,7 +43,7 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
 
   test("with a blade in each hand it shows which one swings; otherwise no hand", () => {
     const hud = (rightHand: ItemId | null, leftHand: ItemId | null, active: Hand) =>
-      aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", true, null, AVERAGE_STAT, false,
+      aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", true, null, false,
         { rightHand, leftHand, active }).hand;
     assert.equal(hud("sword", "longsword", "leftHand"), "leftHand");
     assert.equal(hud("sword", "longsword", "rightHand"), "rightHand");
@@ -71,7 +71,7 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
 
   test("a dot at the centre while the camera is panned; none otherwise, once down or once the fight is decided", () => {
     const dot = (panned: boolean, hp = 10, fighting = true) =>
-      aimHud(playerDoing("none", 0, "tb"), hp, null, "tb", fighting, null, AVERAGE_STAT, panned).dot;
+      aimHud(playerDoing("none", 0, "tb"), hp, null, "tb", fighting, null, panned).dot;
     assert.equal(dot(true), true);
     assert.equal(dot(false), false);
     assert.equal(dot(true, 0), false);
@@ -105,11 +105,11 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
 });
 
 describe("the draw meter, in the ring's place while a bow is in hand", () => {
-  const BOW_ITEM = WEAPONS["training-bow"], STRENGTH = AVERAGE_STAT;
-  const FULL = drawTime(BOW, BOW_ITEM, STRENGTH, "fullTime"), MIN = drawTime(BOW, BOW_ITEM, STRENGTH, "minTime");
+  const BOW_ITEM = WEAPONS["training-bow"];
+  const FULL = drawTime(BOW, BOW_ITEM, "fullTime"), MIN = drawTime(BOW, BOW_ITEM, "minTime");
   const hud = (action: PlayerAction, t: number, hp = 10, fighting = true) =>
-    aimHud(playerDoing(action, t), hp, null, "tb", fighting, BOW_ITEM, STRENGTH);
-  const speedShare = (t: number) => loosedSpeed(BOW, BOW_ITEM, STRENGTH, t) / BOW_ITEM.powerMps!;
+    aimHud(playerDoing(action, t), hp, null, "tb", fighting, BOW_ITEM);
+  const speedShare = (t: number) => loosedSpeed(BOW, BOW_ITEM, t) / BOW_ITEM.powerMps!;
   const near = (got: number | undefined, want: number) => assert.ok(Math.abs((got ?? NaN) - want) < 1e-12, `${got}`);
 
   test("with a bow in hand it shows, and the ring doesn't", () => {
@@ -136,7 +136,7 @@ describe("the draw meter, in the ring's place while a bow is in hand", () => {
   });
 
   test("none with a sword in hand, once down, or once the fight is decided", () => {
-    assert.equal(aimHud(playerDoing("none", 0, "tb"), 10, null, "tb", true, WEAPONS.sword, STRENGTH).meter, null);
+    assert.equal(aimHud(playerDoing("none", 0, "tb"), 10, null, "tb", true, WEAPONS.sword).meter, null);
     assert.equal(hud("draw", 0.5, 0).meter, null);
     assert.equal(hud("draw", 0.5, 10, false).meter, null);
   });

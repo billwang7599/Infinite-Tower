@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  CHAIN, emptyBag, Enemy, feltHeft, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, packFor,
+  CHAIN, emptyBag, Enemy, heftShare, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, packFor,
   isSwing, parryWay, Player, Stamina, strikeOf, toSteps, WeaponAttack, Wielder, wayStepsAfter, windupTime,
   type EnemyDef, type Entity, type PlayerInputData, type Strike, type SwingDir, type Way, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, armed, enemy, FULL_HP, FULL_STAMINA, input, player, STATS, STATUE, swings, SWORDSMAN, SWORDSMAN_STRENGTH,
+  ARENA, armed, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE, swings, SWORDSMAN,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -70,7 +70,7 @@ describe("a swordsman", () => {
     assert.equal(recoil, HYBRID.counter.recoilTime);
     assert.ok(fight.steps >= toSteps(def.attacks.weapon!.firstDelay), `countered at ${fight.steps}, in its cooldown`);
     const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way);
-    const opening = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy", SWORDSMAN_STRENGTH);
+    const opening = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy");
     assert.equal(swing.liveAt, opening.liveAt, "wound up as a player's opening");
   });
 
@@ -104,7 +104,7 @@ describe("a swordsman", () => {
   });
 
   test("a feint leaves its blade recovering, by its felt heft: no parry until it's over, as a player's", () => {
-    const recover = toSteps(HYBRID.feint.recoverTime * feltHeft(WEAPONS.sword, SWORDSMAN_STRENGTH));
+    const recover = toSteps(HYBRID.feint.recoverTime * heftShare(WEAPONS.sword));
     const parriedAfter = (wait: number) => {
       const { fight, it } = play(kobold({ heavyShare: 1, heavyFeintShare: 1, parryChance: 1 }), 0);
       while (!fight.events.some((e) => e.type === "feint" && e.by === it)) fight.step([input({ locked: 0 })]);
@@ -147,7 +147,7 @@ describe("a swordsman", () => {
       reactedFor.events.push(...reactedFor.fight.events);
       at = reactedFor.fight.world.require(reactedFor.it, Enemy).stateTime;
     }
-    const raise = (blade: "sword" | "greatsword") => guardRaiseTime(WEAPONS[blade], SWORDSMAN_STRENGTH);
+    const raise = (blade: "sword" | "greatsword") => guardRaiseTime(WEAPONS[blade]);
     assert.ok(lands(holding("sword", at - raise("sword") + 2 * FIXED_DT)), "rising");
     assert.ok(blocks(holding("sword", at - raise("sword") - 2 * FIXED_DT)), "up");
     assert.ok(lands(holding("greatsword", at - raise("sword") - 2 * FIXED_DT)), "a greatsword's still rising");
@@ -209,7 +209,7 @@ describe("a swordsman swings as a player does", () => {
 
   test("its first swing winds up a player's opening, through the felt heft of its blade at its grip's strength", () => {
     const first = enemyChain("greatsword")[0]!, heavy = first.strike === "heavy";
-    const opening = wayStepsAfter(WEAPONS.greatsword, windupTime(first.strike, "opening"), heavy, SWORDSMAN_STRENGTH);
+    const opening = wayStepsAfter(WEAPONS.greatsword, windupTime(first.strike, "opening"), heavy);
     assert.deepEqual(first.steps, [opening.driveAt, opening.liveAt, opening.liveUntil, opening.endAt]);
   });
 });
@@ -235,7 +235,7 @@ describe("a swordsman stunned mid-chain", () => {
     const back = fight.steps;
     until(swingStarted);
     const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way);
-    const opening = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy", SWORDSMAN_STRENGTH).liveAt;
+    const opening = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy").liveAt;
     return { waited: fight.steps - back, liveAt: swing.liveAt, opening };
   }
 
@@ -252,7 +252,7 @@ describe("a swordsman stunned mid-chain", () => {
   });
 
   test("blocked perfectly, it recoils, waits its whole cooldown, then winds up afresh", () => {
-    const blockLead = toSteps(guardRaiseTime(WEAPONS.sword, STATS.strength)) + 2;
+    const blockLead = toSteps(guardRaiseTime(WEAPONS.sword)) + 2;
     checks(swingsAfterStun(() => {}, (fight, it) => {
       const swing = fight.world.require(it, Wielder).swing;
       return { block: fight.world.require(it, Enemy).state === "weaponWindup" && swing !== null
@@ -288,7 +288,7 @@ describe("a swordsman's parries", () => {
   });
 
   test("lets a swing by that it could only meet by winding up under the floor", () => {
-    const stick = wayStepsAfter(WEAPONS["old-stick"], CHAIN.startupTime.opening, false, STATS.strength);
+    const stick = wayStepsAfter(WEAPONS["old-stick"], CHAIN.startupTime.opening, false);
     assert.ok(stick.liveAt < toSteps(CHAIN.minWindupTime) + toSteps(HYBRID.parry.clashTime));
     const equipment = { ...armed(), rightHand: "old-stick" as const };
     const fight = new Fight({
@@ -323,7 +323,7 @@ describe("a swordsman's parries", () => {
     const oneHanded = { ...SWORDSMAN.wielder!, hands: { rightHand: "sword", leftHand: "skillbook" } } as const;
     const { fight, me, it } = play({ ...kobold({ firstDelay: 0, heavyShare: 1 }), wielder: oneHanded }, 0);
     const wielder = fight.world.require(it, Wielder);
-    const liveIn = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, STATS.strength).liveAt;
+    const liveIn = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveAt;
     let press: number | null = null, answer: SwingDir = "lr";
     const events: FightEvent[] = [];
     while (fight.steps < 600 && !events.some((e) => e.type === "parry")) {

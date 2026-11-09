@@ -2,8 +2,8 @@ import { AVERAGE_STAT, physicalDamage, statFactor, type Stats } from "../battle/
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
 import {
-  feltHeft, typedDamage, weaponDamage, type AttackKind, type AttackSteps, type Damage, type Guard, type HitShape,
-  type Weapon,
+  heftShare, strengthDiscount, typedDamage, weaponDamage, type AttackKind, type AttackSteps, type Damage, type Guard,
+  type HitShape, type Weapon,
 } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
@@ -103,8 +103,8 @@ export const perfectBlockTime = (weapon: Guard): number =>
 export const parryWindowTime = (weapon: Weapon): number =>
   HYBRID.parry.windowTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
-export const guardRaiseTime = (weapon: Guard, strength: number): number =>
-  Math.max(0, HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft);
+export const guardRaiseTime = (weapon: Guard): number =>
+  Math.max(0, HYBRID.block.raiseTime + (heftShare(weapon) - 1) * HYBRID.block.raiseTimePerHeft);
 
 export type ParryKind = "full" | "partial";
 
@@ -144,17 +144,18 @@ export function wayShape(way: Way, armReachM: number, weapon: Pick<Weapon, "leng
 
 const DRAW_SHARE = 0.6;
 
-export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean, strength: number): AttackSteps {
+export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean): AttackSteps {
   const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
   const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-  const heft = feltHeft(weapon, strength), finalWindup = Math.max(CHAIN.minWindupTime, windup * heft);
+  const heft = heftShare(weapon), finalWindup = Math.max(CHAIN.minWindupTime, windup * heft);
   const liveAt = toSteps(finalWindup), liveUntil = liveAt + toSteps(live * heft);
   const endAt = liveUntil + toSteps(recover * heft);
   return { driveAt: toSteps(finalWindup * DRAW_SHARE), liveAt, liveUntil, endAt };
 }
 
+/** `strength` is the grip strength: each point over the weapon's minimum makes it cheaper, never dearer. */
 export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): number =>
-  HYBRID[strike].cost * feltHeft(weapon, strength);
+  HYBRID[strike].cost * heftShare(weapon) * strengthDiscount(weapon, strength);
 
 export function strikeDamage(weapon: Weapon, strike: Strike, power: number, stats: Stats): Damage {
   const base = weaponDamage(weapon), factor = HYBRID[strike].damageFactor * power;

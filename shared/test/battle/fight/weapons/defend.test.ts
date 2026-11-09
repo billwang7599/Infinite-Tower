@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  appliedStrength, AVERAGE_STAT, blockStaminaShare, Body, CHAIN, damageTotal, emptyBag, packFor, FIXED_DT, GUARDS,
+  blockStaminaShare, Body, CHAIN, damageTotal, emptyBag, packFor, FIXED_DT, GUARDS,
   guardOf, guardRaiseTime, Health, HYBRID, knockbackTakenFactor, perfectBlockTime, Player, PLAYER, Stamina, strikeCost,
   strikeDamage, toSteps, TWO_HAND_STRENGTH_FACTOR, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Stats,
   type Weapon,
@@ -52,7 +52,7 @@ function landsAt(at: number, strike: "light" | "heavy" | "stab" = "light"): numb
 }
 const PRESS = 40;
 const SWORD = damageTotal(strikeDamage(WEAPONS.sword, "light", 1, STATS));
-const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon, STATS.strength));
+const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon));
 const RAISE = raiseSteps(WEAPONS.sword);
 const holdSteps = (raise: number) => raise + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;
 const HOLD_STEPS = holdSteps(RAISE);
@@ -195,7 +195,7 @@ describe("blocking by the blade", () => {
   const perfect = (events: FightEvent[]) => events.some((e) => e.type === "block" && e.perfect);
 
   test("the Basic Sword's guard comes up in the listed time at average strength, its perfect window as listed", () => {
-    assert.equal(guardRaiseTime(WEAPONS.sword, AVERAGE_STAT), HYBRID.block.raiseTime);
+    assert.equal(guardRaiseTime(WEAPONS.sword), HYBRID.block.raiseTime);
     close(perfectBlockTime(WEAPONS.sword), HYBRID.block.perfectTime, "window");
   });
 
@@ -211,17 +211,12 @@ describe("blocking by the blade", () => {
     assert.ok(hit(blockFrom("greatsword", hitAt - RAISE)), "a greatsword pressed in a sword's time");
   });
 
-  test("a stronger wielder raises a heavy blade quicker", () => {
-    const strong = guardRaiseTime(WEAPONS.greatsword, STATS.strength * 2);
-    assert.ok(strong < guardRaiseTime(WEAPONS.greatsword, STATS.strength) && strong > 0);
+  test("a heavier blade comes up slower, whoever holds it", () => {
+    assert.ok(guardRaiseTime(WEAPONS.greatsword) > guardRaiseTime(WEAPONS.sword));
   });
 
-  test("no guard comes up in less than no time, however light it feels, so none cuts into the perfect window", () => {
-    for (const strength of [AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
-      for (const weapon of ["old-stick", "sword"] as const) {
-        assert.ok(guardRaiseTime(WEAPONS[weapon], strength) >= 0, `${weapon} ${strength}`);
-      }
-    }
+  test("no guard comes up in less than no time, however light, so none cuts into the perfect window", () => {
+    for (const weapon of ["old-stick", "sword"] as const) assert.ok(guardRaiseTime(WEAPONS[weapon]) >= 0, weapon);
   });
 
   test("the perfect window grows with the blade's length", () => {
@@ -321,7 +316,7 @@ describe("the guard: a shield, one blade, two blades", () => {
   test("a stronger blocker spends less stamina, by its block share", () => {
     for (const strength of [STATS.strength * 2, STATS.strength / 2]) {
       const fight = withHands("sword", "skillbook", { strength });
-      const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword, strength)));
+      const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword)));
       assert.ok(blockedHit(fight, holdFrom(hitAt - hold)), `${strength}`);
       const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * hold * FIXED_DT;
       const want = SWORD * blockStaminaShare(GUARDS.one, strength);
@@ -329,18 +324,14 @@ describe("the guard: a shield, one blade, two blades", () => {
     }
   });
 
-  test("a two-handed guard comes up as a stronger wielder's would", () => {
-    const one = guardRaiseTime(WEAPONS.greatsword, STATS.strength);
-    const two = guardRaiseTime(WEAPONS.greatsword, appliedStrength({ rightHand: "greatsword", leftHand: null },
-      STATS.strength));
-    assert.ok(two < one, `${two} vs ${one}`);
+  test("a two-handed guard comes up no quicker: strength never changes a weapon's times", () => {
     const steps = (leftHand: ItemId | null) => {
       const fight = withHands("greatsword", leftHand), e = fight.players[1]!;
       let at = 0;
       for (; at < 60 && !blocking(fight.world, e); at++) play(fight, 1, () => ({}), () => ({ block: true }));
       return at;
     };
-    assert.ok(steps(null) < steps("skillbook"), `${steps(null)} vs ${steps("skillbook")}`);
+    assert.equal(steps(null), steps("skillbook"));
   });
 
   test("a stronger or steadier blocker is pushed less", () => {

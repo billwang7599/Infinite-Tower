@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import {
-  AVERAGE_STAT, DEFAULT_LOOK, FIXED_DT, SCREEN_DIR, SWING_DIRS, WAYS, WEAPONS, type Entity, type GuardKind,
+  DEFAULT_LOOK, FIXED_DT, SCREEN_DIR, SWING_DIRS, WAYS, WEAPONS, type Entity, type GuardKind,
   type PlayerAction, type SwingData, type SwingDir, type Vec3, type Way, type WeaponId,
 } from "@infinite-tower/shared";
 import { CAMERA_VIEWS, insideSelf } from "../../../src/modes/battle/camera.js";
@@ -440,7 +440,7 @@ describe("first person: the blade stays in front of your head", () => {
           };
           for (const from of WAYS) {
             for (const to of WAYS) {
-              guard(from, guardShiftTime(WEAPONS[weapon], AVERAGE_STAT));
+              guard(from, guardShiftTime(WEAPONS[weapon]));
               swing(to, `guard ${from}`);
               swing(from, `swing ${to}`);
               guard(to, FP_SWING.returnTime);
@@ -621,27 +621,21 @@ describe("first person: changing guard or blocking eases, the edge kept toward t
   const angleRad = (a: Vector3, b: Vector3) => Math.acos(Math.min(1, Vector3.Dot(a, b)));
   const CHANGE_TIME = 0.3;
 
-  test("the shift takes about a tenth of a second, longer for a heavier weapon or a weaker wielder", () => {
-    assert.equal(guardShiftTime(WEAPONS.sword, AVERAGE_STAT), GUARD_SHIFT.time);
-    assert.equal(guardShiftTime(WEAPONS["old-stick"], AVERAGE_STAT), GUARD_SHIFT.time);
-    const great = guardShiftTime(WEAPONS.greatsword, AVERAGE_STAT);
+  test("the shift takes about a tenth of a second, longer for a heavier weapon, whoever holds it", () => {
+    assert.equal(guardShiftTime(WEAPONS.sword), GUARD_SHIFT.time);
+    assert.equal(guardShiftTime(WEAPONS["old-stick"]), GUARD_SHIFT.time);
+    const great = guardShiftTime(WEAPONS.greatsword);
     assert.ok(great > GUARD_SHIFT.time + 0.03 && great < 2 * GUARD_SHIFT.time, `${great}`);
-    assert.ok(guardShiftTime(WEAPONS.sword, AVERAGE_STAT / 2) > GUARD_SHIFT.time);
-    assert.ok(guardShiftTime(WEAPONS.greatsword, AVERAGE_STAT / 2) > great);
   });
 
-  test("a drawn fighter's guard shifts by the heft it feels at its own strength", () => {
-    const holding = (strength: number): PersonDrawing =>
-      ({ ...newPerson(), blade: { weapon: "greatsword" } as HeldBlade, strength });
-    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
-      assert.equal(shiftTimeOf(holding(strength)), guardShiftTime(WEAPONS.greatsword, strength), `${strength}`);
-    }
-    assert.equal(newPerson().strength, AVERAGE_STAT);
+  test("a drawn fighter's guard shifts by its blade's heft", () => {
+    const holding: PersonDrawing = { ...newPerson(), blade: { weapon: "greatsword" } as HeldBlade };
+    assert.equal(shiftTimeOf(holding), guardShiftTime(WEAPONS.greatsword));
   });
 
   test("left to right, the blade swings over the top over the shift's time, its edge toward the foe all the way", () => {
     for (const [weapon, twoHanded] of [["sword", false], ["greatsword", true]] as const) {
-      const shiftTime = guardShiftTime(WEAPONS[weapon], AVERAGE_STAT);
+      const shiftTime = guardShiftTime(WEAPONS[weapon]);
       const frames = run(weapon, 240, CHANGE_TIME + 0.4,
         (t) => ({ action: "none", way: t < CHANGE_TIME ? "lr" : "rl", twoHanded }));
       const from = frames.filter((f) => f.t < CHANGE_TIME).at(-1)!, to = frames.at(-1)!;

@@ -1,4 +1,4 @@
-import { bagCounts, moveGear, NO_PILE, type ClientMsg, type DialogueOffer } from "@infinite-tower/shared";
+import { bagCounts, coreStats, moveGear, NO_PILE, type ClientMsg, type DialogueOffer } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
 import type { Battle } from "../modes/battle/battle.js";
@@ -97,7 +97,8 @@ export function createRequests(
       audio.play(bagSound(from, to));
       if (session.mode() === "battle" && !afterFight()) battle.ctx.gearMoves.push({ from, to, turned });
       if ((session.mode() !== "overworld" && !afterFight()) || !session.net()) return;
-      const moved = moveGear(ui.you.get().gear, from, to, turned);
+      const { gear, core } = ui.you.get();
+      const moved = core && moveGear(gear, from, to, turned, coreStats(core).strength);
       if (!moved) return;
       overworld.setGear(moved);
       send({ t: "moveItem", from, to, turned });

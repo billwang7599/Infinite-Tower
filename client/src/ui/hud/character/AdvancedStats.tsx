@@ -86,9 +86,9 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
       </Heading>
       <p className="text-bone/55">
         Strength <span className="text-bone tabular-nums">{amount(held.appliedStrength)}</span>
+        {" "}(needs <span className="text-bone tabular-nums">{amount(held.minStrength)}</span>)
         {" · "}weight <span className="text-bone tabular-nums">{amount(held.weight)}</span>
         {" · "}heft <span className="text-bone tabular-nums">{held.heft.toFixed(2)}</span>
-        , felt <span className="text-bone tabular-nums">{held.feltHeft.toFixed(2)}</span>
         {held.parryTime !== null && (
           <>{" · "}parry window <span className="text-bone tabular-nums">{seconds(held.parryTime)}</span></>
         )}

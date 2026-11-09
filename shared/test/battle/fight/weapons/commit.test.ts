@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, Body, CHAIN, Enemy, feltHeft, FIXED_DT, HYBRID, Player, PLAYER, strikeOf, toSteps, wayStepsAfter, WEAPONS,
+  ActiveHit, Body, CHAIN, Enemy, heftShare, FIXED_DT, HYBRID, Player, PLAYER, strikeOf, toSteps, wayStepsAfter, WEAPONS,
   Wielder, windupTime, type EnemyDef, type PlayerInputData, type Vec2, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, STATS, STATUE, swings, SWORDSMAN, SWORDSMAN_STRENGTH } from "../fixtures.js";
+import { ARENA, enemy, input, player, STATUE, swings, SWORDSMAN } from "../fixtures.js";
 
 before(() => initPhysics());
 
 const { lungeSpeed, moveFactor, liveTurnRadPerSec, whiffRecoverTime, whiffCarrySpeed } = HYBRID.swinging;
-const LIGHT = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, STATS.strength);
-const WHIFF_STEPS = toSteps(whiffRecoverTime * feltHeft(WEAPONS.sword, STATS.strength));
+const LIGHT = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false);
+const WHIFF_STEPS = toSteps(whiffRecoverTime * heftShare(WEAPONS.sword));
 const IN_REACH_M = 2, OUT_OF_REACH_M = 6;
 
 const near = (a: number, b: number, what: string, within = 1e-3) =>
@@ -106,8 +106,8 @@ describe("a swing's hold on the body: a swordsman, by the same rules", () => {
       }
       assert.equal(swing.whiffed, true);
       const strike = strikeOf(swing.attack, swing.way);
-      const steps = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy", SWORDSMAN_STRENGTH);
-      const whiff = toSteps(whiffRecoverTime * feltHeft(WEAPONS.sword, SWORDSMAN_STRENGTH));
+      const steps = wayStepsAfter(WEAPONS.sword, windupTime(strike, "opening"), strike === "heavy");
+      const whiff = toSteps(whiffRecoverTime * heftShare(WEAPONS.sword));
       assert.equal(swing.endAt, steps.endAt + whiff);
       for (let step = swing.liveUntil; step < swing.endAt; step++) {
         near(along(at(step).vel, swing.dir), whiffCarrySpeed, `overextended at ${step}`);

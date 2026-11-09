@@ -7,7 +7,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, armed, BOAR, bodyOf, castNow, enemy, flatDist, GUARDIAN, input, player, run, segment, skill, STATS,
+  ARENA, armed, BOAR, bodyOf, castNow, enemy, flatDist, GUARDIAN, input, player, run, segment, skill,
   STATUE, STILL_BITER, SWORDSMAN, swings,
 } from "./fixtures.js";
 
@@ -15,7 +15,7 @@ before(() => initPhysics());
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const IN_REACH_M = 2.4;
-const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening"), true, STATS.strength);
+const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening"), true);
 const SETTLE_TIME = SLOWEST.endAt * FIXED_DT + 1;
 
 const PERSON: EnemyDef = { ...STATUE, knockbackFactor: 1 };
@@ -188,7 +188,7 @@ describe("an enemy's block pushes it back, by the player's rule, and never stops
   });
 
   test("blocking a heavy, it slides back and swings while still sliding", () => {
-    const heavyLive = wayStepsAfter(WEAPONS.sword, windupTime("heavy", "opening"), true, STATS.strength).liveAt;
+    const heavyLive = wayStepsAfter(WEAPONS.sword, windupTime("heavy", "opening"), true).liveAt;
     const def: EnemyDef = {
       ...SWORDSMAN, knockbackFactor: 1,
       attacks: { weapon: swings({ triggerDist: 5, firstDelay: (heavyLive + 3) * FIXED_DT }) },

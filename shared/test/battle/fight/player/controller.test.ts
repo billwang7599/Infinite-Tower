@@ -14,7 +14,7 @@ type Script = (step: number) => PlayerInputData;
 
 const SWING_AT = 5;
 
-const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT).liveUntil;
+const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveUntil;
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
@@ -62,13 +62,13 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
         `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
       const spent = strikeCost(WEAPONS.sword, "light", AVERAGE_STAT) + dodgeCost("light")!;
-      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - spent,
+      assert.ok(Math.abs(staminas[LET_GO_AT - 1]! - (FULL_STAMINA - spent)) < 1e-9,
         `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });
 
   test("pressed in a light's wind-up it doesn't cancel it (the user: \"no\"): the blade still lands", () => {
-    const liveAt = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT).liveAt;
+    const liveAt = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveAt;
     for (const k of [1, liveAt - 1]) {
       const inReach = new Fight({
         arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })], enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 2.4 })],
