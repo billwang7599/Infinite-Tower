@@ -131,7 +131,8 @@ describe("Imbue", () => {
     }
   };
   const swordFight = () => new Fight({
-    arena: ARENA, players: [player(at(0, 0))], enemies: [enemy(STATUE, at(0, reachM)), enemy(STATUE, at(3, 3))],
+    arena: ARENA, players: [player(at(0, 0))],
+    enemies: [enemy({ ...STATUE, maxHp: 10_000 }, at(0, reachM)), enemy(STATUE, at(3, 3))],
   });
 
   test("the next sword hits also strike with its elements, for its hits", () => {

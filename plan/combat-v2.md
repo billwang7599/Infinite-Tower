@@ -40,25 +40,31 @@ Swinging:
   and a hand switch never cuts a recovery short.
 - The body commits: you walk slowly while attacking, a live blade carries you forward, a whiff overextends you
   (carried further, a longer recovery), and a live blade's turn is capped (a drag for timing, never a spin).
-- Heft alone sets every time: the shared chain table × the weapon's heft over the Basic Sword's, the same for any
-  wielder, player or enemy (the user: "every weapon's timing is hard coded. strength doesnt affect that, only
-  damage. this way, we don't have to worry about scaling the timing and stuff. since if things get too quick, they
-  lose uniqueness and its unbalanced"). Strength adds damage only; a two-handed grip adds strength, so damage, never
-  speed. A weapon's reach is the wielder's arm reach plus its length.
+- Each weapon is a table of its own stats, read as they are (the user: "do we need heft anymore? im thinking every
+  weapon has just now a table of stats to read from"): per strike (light, heavy, stab) its wind-up, live time,
+  recovery, stamina cost, typed damage and poise damage; then its whiff and feint recovery, guard raise time, parry
+  weight, length and minimum strength. A shield's table is its length and raise time; a bow's its draw times, draw
+  cost, arrow damage and power. The chain kinds stay shared, as multipliers on a swing's opening wind-up (reverse
+  quickest, perpendicular slowest); a stab's wind-up is its own in any chain. The floor comes last. Carry weight is
+  separate. A weapon's reach is the wielder's arm reach plus its length.
+- Strength over a weapon's minimum quickens every one of its times a little, up to a cap (the user: "and maybe
+  strength (over minimum required) slightly increases speed, but only up to 5-10%"), never past the wind-up floor;
+  the reason timing stays mostly fixed (the user: "if things get too quick, they lose uniqueness and its
+  unbalanced"). A shield has no minimum and is never quickened. Otherwise strength adds damage; a two-handed grip
+  adds strength, so a little speed only through that.
 - Each weapon has a minimum strength (the user: "lets just have a simple they cant wield it if they dont have
   sufficient strenght"). Under it at your grip strength the server won't put it in a hand; the two-handed grip's
   1.5× counts. If your strength later falls under it, it moves to the bag (a pile at your feet if there's no room),
   and nothing goes into the other hand that would leave a lone blade under its minimum.
-- Stamina per strike is the table's cost × heft share, made cheaper by strength over the weapon's minimum (the user:
+- Stamina per strike is the weapon's table cost, made cheaper by strength over the weapon's minimum (the user:
   "like maybe any strength over the minimum is 1-2% cheaper? capped at 50%?"), never dearer than the base.
 - Better weapons keep their weight (the user: "higher tier weapons would be around the same weight wise, it would just
-  have increase like sharpness or whatever"): a tier raises only quality, so damage, never speed.
+  have increase like sharpness or whatever"): a tier raises only quality, so damage, never its table.
 - A lone melee weapon is held in both hands, putting 1.5× the strength in, through the same math; anything in the
   other hand makes it one-handed. The Kobolds stay one-handed. No toggle.
-- Weapon damage is typed: slash, stab and blunt from one rule by heft, split by the weapon's profile. A swing deals its
-  slash and blunt, a stab only its stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The old
-  stick does almost nothing. Hits were made more punishing by raising damage per heft, not by changing timings.
-- Enemies swing by the player's rule: times from heft, no preset timing tables. A swordsman's def keeps only pacing (cooldowns, chain
+- Weapon damage is typed: slash, stab and blunt, each strike's its table's own. A swing deals slash and blunt, a stab
+  only stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The old stick does almost nothing.
+- Enemies swing by the player's rule, from their weapon's table and their strength. A swordsman's def keeps only pacing (cooldowns, chain
   lengths, chances); balance goes through its weapon and stats. Beasts keep their own attack timings.
 
 Defending:
@@ -70,8 +76,8 @@ Defending:
   reverse a full parry, near it a partial one), in a window wider than the perfect block's. Parries deflect, they
   don't stun; stabs neither parry nor are parried. Blades live at the same moment clash and both stagger. A heavier
   swing gets the better of a parry by weight.
-- Both scale with the blade: the perfect and parry windows grow with blade length, and raising the guard takes longer
-  the heavier the weapon feels. No close-range penalty for big weapons.
+- Both scale with the blade: the perfect and parry windows grow with blade length, and each guard raises in its own
+  table's time, a heavy blade's slowest. No close-range penalty for big weapons.
 - A shield blocks best (wider, less chip, less stamina), then one blade, then two. A shield is never swung. With a
   blade in each hand, Q switches which hand attacks.
 - Stamina is a player's only bar (no player poise). A blocked hit costs its damage in stamina; one that takes the last

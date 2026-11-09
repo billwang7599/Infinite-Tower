@@ -6,7 +6,7 @@ import {
   windupTime, type ChainKind, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeOf, rangedOf } from "../../../weapons/kinds.js";
-import { weaponHandIn, type Guard, type Weapon } from "../../../weapons/weapons.js";
+import { isMelee, weaponHandIn, type Guard, type MeleeWeapon, type Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -52,7 +52,7 @@ export function readSword(t: SwordTurn): void {
   if (blockPressed) {
     const rested = toSteps(player.sinceBlockPress) >= toSteps(HYBRID.block.remashTime);
     player.perfectBlockLeft = guard && !feinted && rested
-      ? guardRaiseTime(guard) + perfectBlockTime(guard) : 0;
+      ? guardRaiseTime(guard, strengthIn(t.world, t.e)) + perfectBlockTime(guard) : 0;
     player.sinceBlockPress = 0;
   } else player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
   if (wielder.comboTime > 0) {
@@ -67,8 +67,8 @@ export function readSword(t: SwordTurn): void {
   }
 }
 
-function strike(t: SwordTurn, strike: Strike): void {
-  const { world, e, player, input, wielder, weapon } = t;
+function strike(t: SwordTurn, strike: Strike, weapon: MeleeWeapon): void {
+  const { world, e, player, input, wielder } = t;
   const hand = weaponHandIn(wielder.hands)!, chain = wielder.chains[hand], last = wielder.swing;
   if (wielder.comboTime <= 0) endChain(wielder);
   if (last && last.hand !== hand) wielder.chains[last.hand].recoverSteps = last.endAt - last.step;
@@ -83,23 +83,24 @@ function strike(t: SwordTurn, strike: Strike): void {
     chain.combo = way;
     power = momentumDamage(chain.momentum);
   }
-  let windup = windupTime(strike, kind);
+  let windup = windupTime(weapon, strike, kind);
   const imbue = imbueOf(world, e)?.[1];
   if (imbue) windup /= shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
-  startWaySwing(world, e, weapon!, strike, way, windup, power, { x: input.aimX, z: input.aimZ });
+  startWaySwing(world, e, weapon, strike, way, windup, power, { x: input.aimX, z: input.aimZ });
   wielder.comboTime = wielder.swing!.endAt * FIXED_DT + CHAIN.gapTime;
 }
 
 export function attackOrBlock(t: SwordTurn): boolean {
   const { world, e, player, input, wielder, stamina, weapon } = t, ranged = rangedOf(weapon);
   if (ranged && drawBow(t, ranged)) return true;
-  const cost = meleeOf(weapon) && player.queued !== null
-    ? strikeCost(weapon!, player.queued, strengthIn(world, e)) * modsOf(world, e).attackCostFactor
+  const melee = isMelee(weapon) ? weapon : null;
+  const cost = melee && player.queued !== null
+    ? strikeCost(melee, player.queued, strengthIn(world, e)) * modsOf(world, e).attackCostFactor
     : 0;
-  if (t.free && meleeOf(weapon) && player.attackBuffer > 0 && player.queued !== null && canSwing(wielder)
+  if (t.free && melee && player.attackBuffer > 0 && player.queued !== null && canSwing(wielder)
     && canPayStamina(world, e, stamina, cost)) {
-    strike(t, player.queued);
+    strike(t, player.queued, melee);
     payStamina(world, e, stamina, cost);
     player.attackBuffer = 0;
     return true;

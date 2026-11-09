@@ -3,7 +3,7 @@ import { BOW, type RangedMoves } from "./bow.js";
 import { wayShape, wayStepsAfter, type GuardKind } from "./hybrid.js";
 import type { Hand } from "../items/gear.js";
 import {
-  canWield, isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type Weapon, type WeaponKind,
+  canWield, isMelee, isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type MeleeWeapon, type Weapon, type WeaponKind,
 } from "./weapons.js";
 
 export interface MeleeMoves {
@@ -32,9 +32,9 @@ export function rangedOf(weapon: Weapon | null): RangedMoves | null {
   return moves?.style === "ranged" ? moves : null;
 }
 
-export const meleeIn = (hands: Hands): Weapon | null => {
+export const meleeIn = (hands: Hands): MeleeWeapon | null => {
   const weapon = weaponIn(hands);
-  return meleeOf(weapon) ? weapon : null;
+  return isMelee(weapon) ? weapon : null;
 };
 
 export const dualWielding = ({ rightHand, leftHand }: Hands): boolean =>

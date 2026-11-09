@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   BASE_STATS, blockStaminaShare, CHAIN, CORE, CORE_STEPS, coreStats, damageTotal, essenceFactor,
-  fillToFinish, grownStats, GUARDS, HYBRID, ITEM_IDS, itemDef, maxHpOf, newCore, physicalTakenFactor, pointsEarned,
+  fillToFinish, grownStats, GUARDS, ITEM_IDS, itemDef, maxHpOf, newCore, physicalTakenFactor, pointsEarned,
   realmOfSteps, staminaMaxOf, STEP_NAMES, strikeCost, strikeDamage, toSteps,
   TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, windupTime, type ItemEffect, type Stats,
 } from "@infinite-tower/shared";
@@ -87,19 +87,24 @@ describe("stamina", () => {
   });
 });
 
-describe("strength never quickens a swing; it only makes it cheaper, by half at most", () => {
+describe("strength quickens a swing only a little, and makes it cheaper, by half at most", () => {
   const whole = { ...newCore(), steps: CORE_STEPS };
   const allIn = coreStats({ ...whole, points: { strength: pointsEarned(whole) } }).strength;
   const strongest = allIn * TWO_HAND_STRENGTH_FACTOR;
 
   for (const item of ["sword", "longsword", "greatsword"] as const) {
-    test(`at the strongest grip, a ${item} costs at least half its base, a heavy winding up past its light`, () => {
-      const weapon = WEAPONS[item], base = HYBRID.light.cost * weapon.heft / SWORD.heft;
+    test(`at the strongest grip, a ${item} costs at least half its base and is at most 8% quicker`, () => {
+      const weapon = WEAPONS[item], base = weapon.strikes.light.cost;
       assert.ok(strikeCost(weapon, "light", strongest) >= base / 2 - 1e-9, item);
-      const at = (strike: "light" | "heavy") =>
-        wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy");
-      assert.ok(at("light").liveAt >= toSteps(CHAIN.minWindupTime));
-      assert.ok(at("heavy").liveAt - at("light").liveAt >= toSteps(HYBRID.heavy.extraTime) - 1, item);
+      const at = (strike: "light" | "heavy", strength: number) =>
+        wayStepsAfter(weapon, strike, windupTime(weapon, strike, "opening"), strength);
+      for (const strike of ["light", "heavy"] as const) {
+        const slow = at(strike, weapon.minStrength), quick = at(strike, strongest);
+        assert.ok(quick.liveAt >= toSteps(CHAIN.minWindupTime));
+        assert.ok(quick.liveAt >= Math.floor(slow.liveAt * 0.92), `${item} ${strike}`);
+        assert.ok(quick.endAt >= Math.floor(slow.endAt * 0.92) - 1, `${item} ${strike}`);
+      }
+      assert.ok(at("heavy", strongest).liveAt > at("light", strongest).liveAt, item);
     });
   }
 });

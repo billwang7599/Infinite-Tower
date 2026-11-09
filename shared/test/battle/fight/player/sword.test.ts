@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, AVERAGE_STAT, CHAIN, damageTotal, DAMAGE_TYPES, emptyBag, heftShare, packFor, HYBRID, lastFeintStep,
+  FIXED_DT, AVERAGE_STAT, CHAIN, damageTotal, DAMAGE_TYPES, emptyBag, packFor, HYBRID, lastFeintStep,
   MOMENTUM, momentumDamage, Player, Stamina, STAT_POWERS, strikeCost, strikeDamage, toSteps,
-  TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, WEAPONS, Wielder, windupTime, type ChainKind, type Hand, type ItemId,
-  type PlayerInputData, type Strike, type SwingDir, type Weapon,
+  TWO_HAND_STRENGTH_FACTOR, wayStepsAfter, weaponTime, WEAPONS, Wielder, windupTime, type ChainKind, type Hand, type ItemId,
+  type MeleeWeapon, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -63,8 +63,8 @@ const chainOf = (fight: Fight, hand?: Hand) => {
   return wielder.chains[hand ?? wielder.hands.active];
 };
 const momentumOf = (fight: Fight, hand?: Hand) => chainOf(fight, hand).momentum;
-const steps = (kind: ChainKind, weapon: Weapon = SWORD) =>
-  wayStepsAfter(weapon, CHAIN.startupTime[kind], false);
+const steps = (kind: ChainKind, weapon: MeleeWeapon = SWORD) =>
+  wayStepsAfter(weapon, "light", windupTime(weapon, "light", kind), AVERAGE_STAT);
 
 describe("the sword's attacks", () => {
   test("go the aimed way, a stab straight ahead", () => {
@@ -126,7 +126,7 @@ describe("the sword's attacks", () => {
   test("a heavy goes live later than a light, for twice its damage and its own cost", () => {
     const light = chain(newFight(), [["light", "tb"]], 60), heavy = chain(newFight(), [["heavy", "tb"]], 90);
     assert.ok(heavy.lives[0]! > light.lives[0]!);
-    assert.equal(heavy.damage[0], light.damage[0]! * HYBRID.heavy.damageFactor);
+    assert.equal(heavy.damage[0], light.damage[0]! * 2);
     const fight = newFight(), stamina = fight.world.require(fight.players[0]!, Stamina), before = stamina.value;
     fight.step([input({ locked: 0, way: "tb", attack: "heavy" })]);
     assert.equal(stamina.value, before - strikeCost(SWORD, "heavy", AVERAGE_STAT));
@@ -140,7 +140,7 @@ describe("the sword's attacks", () => {
     }
   });
 
-  test("a greatsword swings as fast whatever its wielder's strength, the strong for less", () => {
+  test("a greatsword swings a little quicker for a stronger wielder, never past the cap, and for less", () => {
     const swingAs = (strength: number) => {
       const fight = new Fight({
         arena: { ...ARENA, radius: 40 },
@@ -157,11 +157,14 @@ describe("the sword's attacks", () => {
       fight.step([input({ locked: 0, way: "tb", attack: "light" })]);
       return { spent: before - stamina.value, liveAt: fight.world.require(me, Wielder).swing!.liveAt };
     };
-    const strong = swingAs(AVERAGE_STAT * 2), average = swingAs(AVERAGE_STAT);
-    for (const [spent, strength] of [[strong.spent, AVERAGE_STAT * 2], [average.spent, AVERAGE_STAT]] as const) {
-      assert.ok(Math.abs(spent - strikeCost(WEAPONS.greatsword, "light", strength)) < 1e-9, `${strength}`);
+    const great = WEAPONS.greatsword, strong = swingAs(AVERAGE_STAT * 4), average = swingAs(AVERAGE_STAT * 2);
+    for (const [spent, strength] of [[strong.spent, AVERAGE_STAT * 4], [average.spent, AVERAGE_STAT * 2]] as const) {
+      assert.ok(Math.abs(spent - strikeCost(great, "light", strength)) < 1e-9, `${strength}`);
+      const swung = strength === AVERAGE_STAT * 4 ? strong : average;
+      assert.equal(swung.liveAt, wayStepsAfter(great, "light", windupTime(great, "light", "opening"), strength).liveAt);
     }
-    assert.equal(strong.liveAt, average.liveAt);
+    assert.ok(strong.liveAt < average.liveAt);
+    assert.ok(strong.liveAt >= Math.floor(toSteps(great.strikes.light.windupTime) * 0.92));
     assert.ok(strong.spent < average.spent);
   });
 });
@@ -184,15 +187,17 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
     return { spent, liveAt: swing.liveAt, endAt: swing.endAt, damage: swing.damage };
   }
 
-  test("every melee blade, the Old Stick too, swings as fast in both hands and costs by the grip, never more", () => {
+  test("every melee blade, the Old Stick too, swings and costs by the grip in both hands, never slower or dearer", () => {
     const gripped = STATS.strength * TWO_HAND_STRENGTH_FACTOR;
     for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
       for (const strike of ["light", "heavy", "stab"] as const) {
         const weapon = WEAPONS[item], what = `${item} ${strike}`;
         const one = swingWith(item, "skillbook", strike), two = swingWith(item, null, strike);
-        const steps = wayStepsAfter(weapon, windupTime(strike, "opening"), strike === "heavy");
-        assert.deepEqual([two.liveAt, two.endAt], [steps.liveAt, steps.endAt], what);
-        assert.deepEqual([one.liveAt, one.endAt], [steps.liveAt, steps.endAt], what);
+        const steps = (strength: number) =>
+          wayStepsAfter(weapon, strike, windupTime(weapon, strike, "opening"), strength);
+        assert.deepEqual([two.liveAt, two.endAt], [steps(gripped).liveAt, steps(gripped).endAt], what);
+        assert.deepEqual([one.liveAt, one.endAt], [steps(STATS.strength).liveAt, steps(STATS.strength).endAt], what);
+        assert.ok(two.liveAt <= one.liveAt && two.endAt <= one.endAt, what);
         assert.ok(two.spent <= one.spent, what);
         assert.ok(Math.abs(two.spent - strikeCost(weapon, strike, gripped)) < 1e-9, `${what}: ${two.spent}`);
         assert.ok(Math.abs(one.spent - strikeCost(weapon, strike, STATS.strength)) < 1e-9, `${what}: ${one.spent}`);
@@ -238,9 +243,9 @@ describe("a feint", () => {
     assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
   });
 
-  test("leaves the blade recovering, by its heft: the guard held, no swing until it's over", () => {
+  test("leaves the blade recovering, by its table: the guard held, no swing until it's over", () => {
     const { fight, me, wielder } = blockAt("heavy", () => 1), feintAt = fight.steps;
-    const recover = toSteps(HYBRID.feint.recoverTime * heftShare(SWORD));
+    const recover = toSteps(weaponTime(SWORD, "feintRecoverTime", AVERAGE_STAT));
     let press: Strike = "light";
     while (wielder.swing === null && fight.steps < feintAt + 3 * recover) {
       assert.equal(fight.world.require(me, Player).action, "block");
@@ -296,7 +301,7 @@ describe("two blades: the switch-hand key picks the one that swings", () => {
     fight.step([input({ locked: 0, way: "lr", attack: "light" })]);
     return wielderOf(fight).swing?.damage ?? null;
   };
-  const lightOf = (weapon: Weapon) => strikeDamage(weapon, "light", 1, STATS);
+  const lightOf = (weapon: MeleeWeapon) => strikeDamage(weapon, "light", 1, STATS);
 
   test("the right hand swings first; a tap of the key swings the left's blade, another the right's", () => {
     const fight = holding("sword", "longsword");

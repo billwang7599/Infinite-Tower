@@ -1,6 +1,6 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import {
-  DAMAGE_TYPES, footprint, isWeapon, itemDef, MOVES, movesOf, twoHanded, weaponDamage, WEAPONS, type BagItem,
+  DAMAGE_TYPES, footprint, isMelee, isWeapon, itemDef, MOVES, movesOf, twoHanded, weaponDamage, WEAPONS, type BagItem,
   type Damage, type DamageType, type ItemDef, type ItemEffect, type ItemId, type RangedMoves, type Rarity,
   type WeaponId, type WeaponStyle, type WornOn,
 } from "@infinite-tower/shared";
@@ -73,7 +73,7 @@ function wornText({ wearable, pack }: ItemDef): string | null {
 }
 
 function wieldedText(item: WeaponId): string {
-  const { minStrength: need, powerMps } = WEAPONS[item], hands = twoHanded(item) ? "Takes both hands" : "In a hand";
+  const weapon = WEAPONS[item], need = weapon.minStrength, powerMps = isMelee(weapon) ? 0 : weapon.powerMps, hands = twoHanded(item) ? "Takes both hands" : "In a hand";
   const wielded = `${hands}: ${WIELDED[movesOf(WEAPONS[item]).style]}${powerMps ? ` Up to ${powerMps} m/s.` : ""}`;
   return need > 0 ? `${wielded} Needs ${need} strength.` : wielded;
 }

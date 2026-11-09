@@ -1,45 +1,47 @@
 import { toSteps } from "../../../core/time.js";
 import { stowedCounts, unstow } from "../../../items/gear.js";
 import { drawCost, drawTime, loosedDamage, loosedSpeed, type RangedMoves } from "../../../weapons/bow.js";
-import { weaponItemIn } from "../../../weapons/weapons.js";
+import { isMelee, weaponItemIn, type RangedWeapon } from "../../../weapons/weapons.js";
 import { Body, Projectile } from "../../components.js";
 import { FighterStats } from "../../stats.js";
 import { modsOf } from "../../statuses.js";
 import { aimOf } from "../aim.js";
 import { canPayStamina, payStamina } from "../combat.js";
 import { launchAt } from "../weapons/projectile.js";
+import { strengthIn } from "../weapons/swing.js";
 import { startAction } from "./controller.js";
 import type { SwordTurn } from "./sword.js";
 
-function loose(t: SwordTurn, bow: RangedMoves): void {
+function loose(t: SwordTurn, bow: RangedMoves, weapon: RangedWeapon): void {
   const { world, e, player } = t, drawnTime = player.actionTime, def = bow.projectile;
   const { dir, at, target } = aimOf(world, e), pos = world.require(e, Body).pos;
   startAction(world, e, player, "loose", dir.x, dir.z);
-  const gear = unstow(player.gear, bow.ammo, 1), weapon = weaponItemIn(t.wielder.hands);
-  if (!gear || !weapon) return;
+  const gear = unstow(player.gear, bow.ammo, 1), item = weaponItemIn(t.wielder.hands);
+  if (!gear || !item) return;
   player.gear = gear;
-  const stats = world.require(e, FighterStats), speed = loosedSpeed(bow, t.weapon!, drawnTime);
+  const stats = world.require(e, FighterStats), speed = loosedSpeed(weapon, drawnTime, strengthIn(world, e));
   const from = { x: pos.x + dir.x * def.releaseOutM, y: pos.y + def.releaseUpM, z: pos.z + dir.z * def.releaseOutM };
   const to = { x: at.x - from.x, y: at.y - from.y, z: at.z - from.z }, lineM = Math.hypot(to.x, to.y, to.z);
   const straight = lineM > 0 ? { x: to.x / lineM, y: to.y / lineM, z: to.z / lineM } : { x: dir.x, y: 0, z: dir.z };
   const vel = (target === null ? null : launchAt(def, from, at, speed))
     ?? { x: straight.x * speed, y: straight.y * speed, z: straight.z * speed };
   world.add(world.spawn(), Projectile, {
-    shooter: e, weapon, pos: from, vel, left: def.lifeTime, stuck: false,
-    damage: loosedDamage(bow, t.weapon!, drawnTime, stats),
+    shooter: e, weapon: item, pos: from, vel, left: def.lifeTime, stuck: false,
+    damage: loosedDamage(bow, weapon, drawnTime, { ...stats, strength: strengthIn(world, e) }),
   });
 }
 
 export function drawBow(t: SwordTurn, bow: RangedMoves): boolean {
-  const { world, e, player, input, stamina, weapon } = t, strength = world.require(e, FighterStats).strength;
-  if (!weapon) return false;
+  const { world, e, player, input, stamina } = t, weapon = t.weapon;
+  if (!weapon || isMelee(weapon)) return false;
+  const strength = strengthIn(world, e);
   if (player.action === "draw") {
     const held = input.attack === "light" || input.attackHeld;
-    const ready = toSteps(player.actionTime) >= toSteps(drawTime(bow, weapon, "minTime"));
-    if (!held && ready) loose(t, bow);
+    const ready = toSteps(player.actionTime) >= toSteps(drawTime(weapon, "minTime", strength));
+    if (!held && ready) loose(t, bow, weapon);
     return true;
   }
-  const cost = drawCost(bow, weapon, strength) * modsOf(world, e).attackCostFactor;
+  const cost = drawCost(weapon, strength) * modsOf(world, e).attackCostFactor;
   const armed = (stowedCounts(player.gear)[bow.ammo] ?? 0) > 0;
   if (!t.free || player.attackBuffer <= 0 || player.queued !== "light" || !armed
     || !canPayStamina(world, e, stamina, cost)) return false;

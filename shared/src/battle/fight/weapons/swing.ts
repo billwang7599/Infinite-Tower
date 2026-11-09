@@ -3,7 +3,7 @@ import type { Vec2 } from "../../../core/math.js";
 import type { Equipment, Hand } from "../../../items/gear.js";
 import { HYBRID, strikeDamage, strikeOf, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { appliedStrength, meleeOf } from "../../../weapons/kinds.js";
-import { weaponHandIn, weaponIn, type Weapon } from "../../../weapons/weapons.js";
+import { weaponHandIn, weaponIn, type MeleeWeapon } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
 import { addHit } from "../combat.js";
@@ -17,7 +17,7 @@ export const strengthIn = (world: World, e: Entity): number =>
   appliedStrength(world.require(e, Wielder).hands, world.require(e, FighterStats).strength);
 
 export function startWaySwing(
-  world: World, e: Entity, weapon: Weapon, strike: Strike, way: Way, windupTime: number, power: number, dir: Vec2,
+  world: World, e: Entity, weapon: MeleeWeapon, strike: Strike, way: Way, windupTime: number, power: number, dir: Vec2,
 ): void {
   const melee = meleeOf(weapon);
   world.remove(e, ActiveHit);
@@ -25,9 +25,9 @@ export function startWaySwing(
   const stats = world.require(e, FighterStats), wielder = world.require(e, Wielder), strength = strengthIn(world, e);
   wielder.swing = {
     attack: strike === "heavy" ? "heavy" : "light", way, dir, step: 0,
-    ...melee.steps(weapon, windupTime, strike === "heavy"),
+    ...melee.steps(weapon, strike, windupTime, strength),
     damage: strikeDamage(weapon, strike, power, { ...stats, strength }),
-    poiseDamage: HYBRID[strike].poiseDamage, whiffed: false,
+    poiseDamage: weapon.strikes[strike].poiseDamage, whiffed: false,
     hand: weaponHandIn(wielder.hands) ?? "rightHand",
   };
 }

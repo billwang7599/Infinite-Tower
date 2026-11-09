@@ -11,8 +11,8 @@ import { ARENA, enemy, FULL_STAMINA, input, player, STATS, STATUE } from "../fix
 before(() => initPhysics());
 
 const BOW_ITEM = WEAPONS["training-bow"];
-const MIN_STEPS = toSteps(drawTime(BOW, BOW_ITEM, "minTime"));
-const FULL_STEPS = toSteps(drawTime(BOW, BOW_ITEM, "fullTime"));
+const MIN_STEPS = toSteps(drawTime(BOW_ITEM, "minTime", STATS.strength));
+const FULL_STEPS = toSteps(drawTime(BOW_ITEM, "fullTime", STATS.strength));
 const TARGET = { ...STATUE, maxHp: 10_000 };
 
 const QUIVER = "training-quiver";
@@ -72,7 +72,7 @@ describe("drawing a bow", () => {
   test("costs its stamina as the draw starts", () => {
     const a = archer(5);
     play(a.fight, 1, drawn(10));
-    assert.equal(a.fight.world.require(a.me, Stamina).value, FULL_STAMINA - drawCost(BOW, BOW_ITEM, STATS.strength));
+    assert.equal(a.fight.world.require(a.me, Stamina).value, FULL_STAMINA - drawCost(BOW_ITEM, STATS.strength));
   });
 
   test("with no arrows it doesn't draw at all", () => {
@@ -183,11 +183,11 @@ describe("how fast the arrow leaves", () => {
 
   test("fully drawn, at the bow's power; less drawn, slower, by the draw", () => {
     const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
-    assert.ok(near(speedOf(FULL_STEPS), BOW_ITEM.powerMps!));
-    assert.ok(near(speedOf(3 * FULL_STEPS), BOW_ITEM.powerMps!));
-    const quick = loosedSpeed(BOW, BOW_ITEM, MIN_STEPS * FIXED_DT);
+    assert.ok(near(speedOf(FULL_STEPS), BOW_ITEM.powerMps));
+    assert.ok(near(speedOf(3 * FULL_STEPS), BOW_ITEM.powerMps));
+    const quick = loosedSpeed(BOW_ITEM, MIN_STEPS * FIXED_DT, STATS.strength);
     assert.ok(near(speedOf(1), quick));
-    assert.ok(quick < BOW_ITEM.powerMps!);
+    assert.ok(quick < BOW_ITEM.powerMps);
   });
 });
 
@@ -228,7 +228,7 @@ describe("where the arrow goes", () => {
   });
 
   test("unlocked, it drops below a far spot by at least gravity's fall over the flight, so you aim high", () => {
-    const a = archer(5, FAR), spot = { x: 0, y: 6, z: WALL_M }, power = BOW_ITEM.powerMps!;
+    const a = archer(5, FAR), spot = { x: 0, y: 6, z: WALL_M }, power = BOW_ITEM.powerMps;
     play(a.fight, FULL_STEPS + 90, drawn(FULL_STEPS, { aimAt: spot }));
     untouched(a);
     const at = stuckAt(a), fallM = (-BOW.projectile.gravityMps2 / 2) * ((WALL_M - 1) / power) ** 2;

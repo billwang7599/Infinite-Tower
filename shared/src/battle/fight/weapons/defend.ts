@@ -25,7 +25,7 @@ export function facingOf(world: World, e: Entity): Vec2 {
 function guardUp(world: World, e: Entity, raisingTime: number): boolean {
   const guard = guardOf(world.require(e, Wielder).hands)?.guard;
   if (!guard) return false;
-  return toSteps(raisingTime) >= toSteps(guardRaiseTime(guard));
+  return toSteps(raisingTime) >= toSteps(guardRaiseTime(guard, strengthIn(world, e)));
 }
 
 export function blocking(world: World, e: Entity): boolean {

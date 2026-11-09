@@ -52,7 +52,7 @@ function landsAt(at: number, strike: "light" | "heavy" | "stab" = "light"): numb
 }
 const PRESS = 40;
 const SWORD = damageTotal(strikeDamage(WEAPONS.sword, "light", 1, STATS));
-const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon));
+const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon, STATS.strength));
 const RAISE = raiseSteps(WEAPONS.sword);
 const holdSteps = (raise: number) => raise + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;
 const HOLD_STEPS = holdSteps(RAISE);
@@ -81,7 +81,7 @@ describe("the held block", () => {
     const events = play(fight, hitAt + 2, (s) => ({ attack: s === PRESS ? "heavy" : null }),
       holdFrom(hitAt - HOLD_STEPS));
     assert.ok(events.some((e) => e.type === "block" && !e.broken));
-    const heavy = SWORD * HYBRID.heavy.damageFactor, held = HYBRID.block.holdStaminaPerSec * HOLD_STEPS * FIXED_DT;
+    const heavy = SWORD * 2, held = HYBRID.block.holdStaminaPerSec * HOLD_STEPS * FIXED_DT;
     const spent = FULL_STAMINA - stamina(fight, 1) - held;
     assert.ok(Math.abs(spent - heavy * HYBRID.block.heavyStaminaFactor) < 0.5, `${spent}`);
     assert.equal(action(fight, 1), "block");
@@ -194,8 +194,8 @@ describe("blocking by the blade", () => {
   const hit = (events: FightEvent[]) => events.some((e) => e.type === "hit");
   const perfect = (events: FightEvent[]) => events.some((e) => e.type === "block" && e.perfect);
 
-  test("the Basic Sword's guard comes up in the listed time at average strength, its perfect window as listed", () => {
-    assert.equal(guardRaiseTime(WEAPONS.sword), HYBRID.block.raiseTime);
+  test("the Basic Sword's guard comes up in its table's time at its minimum, its perfect window as listed", () => {
+    assert.equal(guardRaiseTime(WEAPONS.sword, WEAPONS.sword.minStrength), WEAPONS.sword.raiseTime);
     close(perfectBlockTime(WEAPONS.sword), HYBRID.block.perfectTime, "window");
   });
 
@@ -212,11 +212,11 @@ describe("blocking by the blade", () => {
   });
 
   test("a heavier blade comes up slower, whoever holds it", () => {
-    assert.ok(guardRaiseTime(WEAPONS.greatsword) > guardRaiseTime(WEAPONS.sword));
+    assert.ok(guardRaiseTime(WEAPONS.greatsword, 40) > guardRaiseTime(WEAPONS.sword, 0));
   });
 
   test("no guard comes up in less than no time, however light, so none cuts into the perfect window", () => {
-    for (const weapon of ["old-stick", "sword"] as const) assert.ok(guardRaiseTime(WEAPONS[weapon]) >= 0, weapon);
+    for (const weapon of ["old-stick", "sword"] as const) assert.ok(guardRaiseTime(WEAPONS[weapon], 99) >= 0, weapon);
   });
 
   test("the perfect window grows with the blade's length", () => {
@@ -316,7 +316,7 @@ describe("the guard: a shield, one blade, two blades", () => {
   test("a stronger blocker spends less stamina, by its block share", () => {
     for (const strength of [STATS.strength * 2, STATS.strength / 2]) {
       const fight = withHands("sword", "skillbook", { strength });
-      const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword)));
+      const hold = holdSteps(toSteps(guardRaiseTime(WEAPONS.sword, strength)));
       assert.ok(blockedHit(fight, holdFrom(hitAt - hold)), `${strength}`);
       const spent = FULL_STAMINA - stamina(fight, 1) - HYBRID.block.holdStaminaPerSec * hold * FIXED_DT;
       const want = SWORD * blockStaminaShare(GUARDS.one, strength);

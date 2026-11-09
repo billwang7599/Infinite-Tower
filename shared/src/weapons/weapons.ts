@@ -1,4 +1,5 @@
 import type { Hand } from "../items/gear.js";
+import type { Strike } from "./hybrid.js";
 import { ITEM_IDS, itemDef, ITEMS, type ItemId } from "../items/items.js";
 
 export type AttackKind = "light" | "heavy";
@@ -15,37 +16,69 @@ export const typedDamage = (amount: (type: DamageType) => number): Damage =>
 export const scaleDamage = (damage: Damage, factor: number): Damage => typedDamage((type) => damage[type] * factor);
 export const damageTotal = (damage: Damage): number => damage.slash + damage.stab + damage.blunt;
 
-export const DAMAGE_PER_HEFT = 5;
+/** One strike's row of a melee weapon's table. Times in s. */
+export interface StrikeStats {
+  windupTime: number;
+  liveTime: number;
+  recoverTime: number;
+  /** Stamina, at the weapon's minimum strength. */
+  cost: number;
+  damage: Damage;
+  poiseDamage: number;
+}
 
-export const DAMAGE_PROFILES = {
-  sword: { slash: 0.9, blunt: 0.1, stab: 0.55 },
-  longsword: { slash: 0.9, blunt: 0.1, stab: 0.7 },
-  greatsword: { slash: 0.8, blunt: 0.2, stab: 0.4 },
-  stick: { slash: 0, blunt: 1, stab: 1 / 3 },
-  bow: { slash: 0, blunt: 0, stab: 1 },
-} as const satisfies Record<string, Damage>;
-export type DamageProfile = keyof typeof DAMAGE_PROFILES;
-
-export interface Weapon {
-  kind: WeaponKind;
+/** What blocks: a blade, a bow's stave or a shield. A guard with a minimum strength raises quicker above it. */
+export interface Guard {
   /** The blade (m), or a bow's stave: a swing's reach and a guard's perfect window grow with it. */
   length: number;
-  heft: number;
+  raiseTime: number;
+  minStrength?: number;
+}
+
+interface WeaponBase extends Guard {
   /** The grip strength (`appliedStrength`) it takes to hold it at all. */
   minStrength: number;
-  profile: DamageProfile;
+  /** Multiplies its damage only. */
   quality?: number;
-  baseDamage?: number;
-  /** A bow's: the arrow's speed fully drawn. */
-  powerMps?: number;
 }
 
+/** Each weapon is a table of its own stats (the user: "every weapon just now has a table of stats to read from"). */
+export interface MeleeWeapon extends WeaponBase {
+  kind: "sword";
+  strikes: Record<Strike, StrikeStats>;
+  whiffRecoverTime: number;
+  feintRecoverTime: number;
+  /** How hard its swing meets another in a parry. */
+  parryWeight: number;
+}
+
+export interface RangedWeapon extends WeaponBase {
+  kind: "bow";
+  /** `cost` is paid as the draw starts; a release before `minTime` looses once it's reached. */
+  draw: { minTime: number; fullTime: number; cost: number };
+  /** The arrow's, fully drawn. */
+  damage: Damage;
+  /** The arrow's speed fully drawn. */
+  powerMps: number;
+}
+
+export type Weapon = MeleeWeapon | RangedWeapon;
+
+export const isMelee = (weapon: Weapon | null): weapon is MeleeWeapon => weapon?.kind === "sword";
+
+const ofQuality = (weapon: Weapon, damage: Damage): Damage => scaleDamage(damage, weapon.quality ?? 1);
+
+/** What it's shown to hit for: a melee weapon's light swing and its stab, a bow's arrow. */
 export function weaponDamage(weapon: Weapon): Damage {
-  const base = weapon.baseDamage ?? DAMAGE_PER_HEFT * weapon.heft * (weapon.quality ?? 1);
-  return typedDamage((type) => Math.round(base * DAMAGE_PROFILES[weapon.profile][type]));
+  if (!isMelee(weapon)) return ofQuality(weapon, weapon.damage);
+  const { light, stab } = weapon.strikes;
+  return ofQuality(weapon, { slash: light.damage.slash, blunt: light.damage.blunt, stab: stab.damage.stab });
 }
 
-type WeaponItems = { [K in ItemId as (typeof ITEMS)[K] extends { weapon: Weapon } ? K : never]: Weapon };
+type WeaponItems = {
+  [K in ItemId as (typeof ITEMS)[K] extends { weapon: Weapon } ? K : never]:
+    (typeof ITEMS)[K] extends { weapon: infer W extends Weapon } ? W : never
+};
 export type WeaponId = keyof WeaponItems;
 export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
   const { weapon } = itemDef(id);
@@ -56,15 +89,18 @@ export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null
 export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
 const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
 export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
-/** Its heft over the Basic Sword's: every weapon time and cost goes × this, whoever holds it. */
-export const heftShare = (weapon: Guard): number => weapon.heft / WEAPONS.sword.heft;
 
 /** Each point of grip strength over a weapon's minimum takes this share off its stamina costs, up to the cap. */
 export const STRENGTH_DISCOUNT = { perPoint: 0.015, max: 0.5 } as const;
 export const strengthDiscount = (weapon: Pick<Weapon, "minStrength">, strength: number): number =>
   1 - Math.min(STRENGTH_DISCOUNT.max, Math.max(0, strength - weapon.minStrength) * STRENGTH_DISCOUNT.perPoint);
 
-export type Guard = Pick<Weapon, "length" | "heft">;
+/** Each point of grip strength over a weapon's minimum takes this share off all its times, up to the cap. */
+export const STRENGTH_QUICKENING = { perPoint: 0.005, max: 0.08 } as const;
+/** × every time of the weapon's; 1 for a guard with no minimum (a shield). */
+export const strengthTimeFactor = (guard: Pick<Guard, "minStrength">, strength: number): number =>
+  guard.minStrength === undefined ? 1
+    : 1 - Math.min(STRENGTH_QUICKENING.max, Math.max(0, strength - guard.minStrength) * STRENGTH_QUICKENING.perPoint);
 
 export type Hands = Record<Hand, ItemId | null> & { active?: Hand; oneHanded?: true };
 

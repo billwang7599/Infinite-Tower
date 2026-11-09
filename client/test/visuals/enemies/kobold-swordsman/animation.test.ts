@@ -245,7 +245,7 @@ describe("a kobold raises its guard while its block is up", () => {
     .flatMap((f, i) => i > 0 && f.time > from && f.time < to ? [Vector3.Distance(f.hand, frames[i - 1]!.hand)] : []));
 
   for (const kobold of kobolds) {
-    test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by heft, never jumping`, () => {
+    test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by its raise time, never jumping`, () => {
       const { frames, upAt } = run(kobold, STUN_AT), unguarded = run(kobold, STUN_AT, false).frames;
       const shiftTime = guardShiftTime(WEAPONS[kobold.weapon]);
       const at = (time: number) => handAtTime(frames, time), share = shareFrom(handAtTime(unguarded, upAt));

@@ -1,6 +1,6 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
-  Body, clamp, drawnPower, drawTime, dualWielding, Health, Player, rangedOf, SCREEN_DIR,
+  appliedStrength, Body, clamp, drawnPower, drawTime, dualWielding, FighterStats, Health, isMelee, Player, SCREEN_DIR,
   Skilled, weaponIn, Wielder, type Hand,
   type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon, type WielderData, type World,
 } from "@infinite-tower/shared";
@@ -49,23 +49,22 @@ export interface AimHud {
   ring: RingLights | null; crosshair: boolean; dot: boolean; meter: DrawMeter | null; hand: Hand | null;
 }
 
-function drawMeterOf(player: PlayerData, weapon: Weapon | null): DrawMeter | null {
-  const bow = rangedOf(weapon);
-  if (!bow || !weapon) return null;
+function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number): DrawMeter | null {
+  if (!weapon || isMelee(weapon)) return null;
   return {
-    share: player.action === "draw" ? drawnPower(bow, weapon, player.actionTime) : 0,
-    minShare: drawnPower(bow, weapon, drawTime(bow, weapon, "minTime")),
+    share: player.action === "draw" ? drawnPower(weapon, player.actionTime, strength) : 0,
+    minShare: drawnPower(weapon, drawTime(weapon, "minTime", strength), strength),
   };
 }
 
 export function aimHud(
   player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
-  weapon: Weapon | null = null, panned = false, hands: WielderData["hands"] | null = null,
+  weapon: Weapon | null = null, panned = false, hands: WielderData["hands"] | null = null, strength = 0,
 ): AimHud {
   if (hp <= 0 || !fighting) return { ring: null, crosshair: false, dot: false, meter: null, hand: null };
   return {
     ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action),
-    dot: panned, meter: drawMeterOf(player, weapon),
+    dot: panned, meter: drawMeterOf(player, weapon, strength),
     hand: hands && dualWielding(hands) ? hands.active : null,
   };
 }
@@ -137,7 +136,8 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   const fighting = ctx.battle.outcome.state === "fighting";
   const panned = ctx.battle.freeCamera === "pan";
   const { ring, crosshair, dot, meter, hand } = aimHud(
-    me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), panned, me[3].hands);
+    me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), panned, me[3].hands,
+    appliedStrength(me[3].hands, world.get(me[0], FighterStats)?.strength ?? 0));
   const layout = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
   const { ring: { x, y }, crosshair: centre, scale: s } = layout;
   g.strokeStyle = EDGE;

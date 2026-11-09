@@ -49,9 +49,10 @@ hits to kill each other at every step.
 
 ## Weapon attacks
 
-`CHAIN`, `MOMENTUM`, `HYBRID` in `shared/src/weapons/hybrid.ts`; `DAMAGE_PER_HEFT`, `DAMAGE_PROFILES`, `heftShare`,
-`STRENGTH_DISCOUNT` in `shared/src/weapons/weapons.ts`; each weapon's length, heft and `minStrength` in its `weapon`
-in `ITEMS`.
+`CHAIN`, `MOMENTUM`, `HYBRID` in `shared/src/weapons/hybrid.ts`; `STRENGTH_QUICKENING`, `STRENGTH_DISCOUNT` in
+`shared/src/weapons/weapons.ts`; every weapon's own table (per strike: wind-up, live, recovery, cost, typed damage,
+poise damage; then whiff and feint recovery, raise time, parry weight, length, `minStrength`) in
+`shared/src/weapons/tables.ts`.
 
 - **Grip strength** = the wielder's strength × `TWO_HAND_STRENGTH_FACTOR` for a lone melee weapon held in both
   hands, else their own (`appliedStrength`, `shared/src/weapons/kinds.ts`). It's the strength in every weapon
@@ -59,20 +60,20 @@ in `ITEMS`.
 - **Wielding**: a weapon goes into a hand only if every weapon held after reaches its `minStrength` at its grip
   strength (`unwieldableHand`, checked in `moveGear`); when strength drops (points taken back, an inscription
   removed) or a save loads, one under it goes into the bag, or a pile at their feet (`shedUnwieldable`).
-- **Heft share** = heft / the Basic Sword's heft (`heftShare`). Every weapon time and stamina cost goes × it; strength
-  changes no time.
-- **Weapon tiers** keep their heft and raise only `quality` (damage): a better sword hits harder, not quicker.
-- **Wind-up** = max(`CHAIN.minWindupTime`, base × heft share), the base by how the swing follows the same hand's last
-  (opening, reverse, another line, perpendicular), a heavy's longer, a stab its own (`windupTime`, `wayStepsAfter`).
-  Live and recovery times go × heft share too; a whiff adds `whiffRecoverTime` × heft share.
+- **Quickening** = 1 − min(`STRENGTH_QUICKENING.max`, `perPoint` × points of grip strength over `minStrength`), never
+  over 1 (`strengthTimeFactor`). Every time of a weapon's goes × it; a shield has no minimum and is never quickened.
+- **Weapon tiers** keep their table and raise only `quality` (damage): a better sword hits harder, not quicker.
+- **Wind-up** = max(`CHAIN.minWindupTime`, the strike's table wind-up × `CHAIN.windupShare` × quickening), the share
+  by how the swing follows the same hand's last (opening, reverse, another line, perpendicular); a stab's is its own
+  in any chain (`windupTime`, `wayStepsAfter`). Live and recovery are the strike's × quickening; a whiff adds the
+  weapon's `whiffRecoverTime` × quickening (`weaponTime`).
 - **Chaining**: a swing chains if it starts within `gapTime` of either hand's last; each hand keeps its own chain.
 - **Momentum** gains by chain kind up to `MOMENTUM.max`; a swing deals × min(`maxDamage`, 1 + `damagePerPoint` ×
   momentum); a stab × (1 + `stabBonusPerPoint` × momentum) and spends it.
-- **Weapon damage** (`weaponDamage`): swing = `DAMAGE_PER_HEFT` × heft × quality, split by the profile into slash and
-  blunt shares and a stab fraction, each rounded. A weapon with its own `baseDamage` splits that instead.
-- **A strike** deals the slash and blunt (× the heavy's factor) or only the stab, × momentum, each type
-  × physical damage at grip strength (Stats) and taken on its own (`strikeDamage`).
-- **Stamina** = the strike's `HYBRID` cost × heft share × the strength discount (`strikeCost`): 1 −
+- **A strike** deals its table's typed damage (a swing slash and blunt, a stab only stab) × quality × momentum, each
+  type × physical damage at grip strength (Stats) and taken on its own (`strikeDamage`); its poise damage is the
+  table's. A weapon's shown damage is its light's swing and its stab's stab (`weaponDamage`).
+- **Stamina** = the strike's table cost × the strength discount (`strikeCost`): 1 −
   min(`STRENGTH_DISCOUNT.max`, `perPoint` × points of grip strength over `minStrength`), never over 1
   (`strengthDiscount`). It never grows with the core while the bar does, so stamina matters less as you grow.
 - **Reach** = (arm reach + blade length) × the swing's or stab's reach factor, in an arc by the swing's line
@@ -83,10 +84,11 @@ in `ITEMS`.
 
 ## Bows (placeholder)
 
-`BOW` and its functions in `shared/src/weapons/bow.ts`; a bow's `powerMps` and a quiver's `pack.holds` in `ITEMS`.
+`BOW` and its functions in `shared/src/weapons/bow.ts`; a bow's table (draw times and cost, arrow damage, `powerMps`)
+in `shared/src/weapons/tables.ts`; a quiver's `pack.holds` in `ITEMS`.
 
-- **Draw** costs `draw.cost` × heft share × the strength discount; full after `draw.fullTime` × heft share; a release before `draw.minTime`
-  looses then.
+- **Draw** costs the bow's `draw.cost` × the strength discount; full after `draw.fullTime` × quickening; a release
+  before `draw.minTime` × quickening looses then.
 - **Damage** = the bow's damage × (`minDamageShare` + (1 − `minDamageShare`) × share drawn) × physical damage
   (Stats).
 - **Speed** = `powerMps` × (t² + 2t) / 3, t the share drawn (Minecraft's draw curve).
@@ -117,12 +119,12 @@ reach and knockback are in the enemy's file (`server/src/core/enemies/<id>.ts`).
   takes the last stamina breaks the guard for `brokenTime`. Holding drains `holdStaminaPerSec`. An enemy pays the
   hit's poise.
 - **Against a wall**, chip × (1 + (`pinnedChipFactor` − 1) × the share of the slide the wall stops).
-- **Raise time** = max(0, `raiseTime` + `raiseTimePerHeft` × (heft share − 1)) (`guardRaiseTime`).
+- **Raise time** = the guard's own `raiseTime` × quickening (`guardRaiseTime`).
 - **Perfect window** = `perfectTime` × blade length / `perfectAtLengthM` (`perfectBlockTime`), opened by a press not
   within `remashTime` of the last. Blocked perfectly, the attacker loses `perfectDrain` and recoils
   `perfectRecoilTime`.
 - **Feint**: block in a heavy's wind-up before `feint.cutoffTime`, for `feint.cost`; that hand recovers
-  `feint.recoverTime` × heft share.
+  its weapon's `feintRecoverTime` × quickening.
 
 ## Swing parries and counters
 
@@ -131,7 +133,7 @@ reach and knockback are in the enemy's file (`server/src/core/enemies/<id>.ts`).
 - **Angle**: the exact reverse way is a full parry, near it a partial one (`parryKind`); stabs never parry.
 - **Window** = `windowTime` × blade length / `perfectAtLengthM` (`parryWindowTime`); blades live within `clashTime`
   of each other clash, staggering both `clashStaggerTime`.
-- **Weight** = heft × √(grip strength / 10) × `heavyWeightFactor` for a heavy (`swingWeight`).
+- **Weight** = the blade's `parryWeight` × √(grip strength / 10) × `heavyWeightFactor` for a heavy (`swingWeight`).
 - **Recoil** = max(`minRecoilTime`, base × clamp(parrier's weight / parried's, `minRatio`, `maxRatio`))
   (`parryRecoilTime`); parried or perfect-blocked by a swordsman that counters, `counter.recoilTime`.
 - **A counter** winds up as an opening swing with the swordsman's blade and waits for its cooldown.

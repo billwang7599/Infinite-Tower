@@ -20,7 +20,7 @@ const GUARD_NAME: Record<Grip, string> = {
   shield: "Shield", one: "One blade", two: "One blade, both hands", dual: "Two blades",
 };
 const CELL = "py-px pl-3 text-right tabular-nums";
-const STRIKE_COLUMNS = ["Wind-up", "Live", "Recovery", "Stamina"];
+const STRIKE_COLUMNS = ["Wind-up", "Live", "Recovery", "Stamina", "Poise"];
 
 function guardRows(guard: GuardNumbers | null): Row[] {
   if (!guard) return [["Guard", "None"]];
@@ -88,7 +88,8 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
         Strength <span className="text-bone tabular-nums">{amount(held.appliedStrength)}</span>
         {" "}(needs <span className="text-bone tabular-nums">{amount(held.minStrength)}</span>)
         {" · "}weight <span className="text-bone tabular-nums">{amount(held.weight)}</span>
-        {" · "}heft <span className="text-bone tabular-nums">{held.heft.toFixed(2)}</span>
+        {" · "}<span className="text-bone tabular-nums">{percent(held.quicker)}</span> quicker
+        {" · "}<span className="text-bone tabular-nums">{percent(held.cheaper)}</span> cheaper
         {held.parryTime !== null && (
           <>{" · "}parry window <span className="text-bone tabular-nums">{seconds(held.parryTime)}</span></>
         )}
@@ -111,7 +112,7 @@ function HeldWeapon({ held }: { held: HeldNumbers }) {
                   <td className="py-px text-bone/55">{STRIKE_NAME[strike]}</td>
                   {[
                     seconds(s.windupTime), seconds(s.liveTime), seconds(s.recoverTime), amount(s.stamina),
-                    ...DAMAGE_TYPES.map((type) => (s.damage[type] > 0 ? amount(s.damage[type]) : "–")),
+                    amount(s.poiseDamage), ...DAMAGE_TYPES.map((type) => (s.damage[type] > 0 ? amount(s.damage[type]) : "–")),
                   ].map((value, i) => <td key={i} className={`${CELL} text-bone`}>{value}</td>)}
                 </tr>
               );

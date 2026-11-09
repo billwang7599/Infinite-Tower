@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, emptyBag, packFor, Health, HYBRID, parryKind, parryRecoilTime, parryWay, parryWindowTime, perfectBlockTime,
-  Player, SWING_DIRS, swingWeight, toSteps, WEAPONS, Wielder, wayStepsAfter, type ItemId, type PlayerInputData,
+  emptyBag, packFor, Health, HYBRID, parryKind, parryRecoilTime, parryWay, parryWindowTime, perfectBlockTime,
+  Player, SWING_DIRS, swingWeight, toSteps, WEAPONS, Wielder, wayStepsAfter, windupTime, type ItemId, type PlayerInputData,
   type Strike, type Way,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -25,9 +25,8 @@ const pvp = (blade: ItemId = "sword") => new Fight({
 const FACING_0 = { aimX: 0, aimZ: -1, locked: 0 };
 
 const liveAfter = (strike: Strike, blade: ItemId = "sword") => {
-  const windup = strike === "stab" ? CHAIN.stabStartupTime
-    : CHAIN.startupTime.opening + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
-  return wayStepsAfter(WEAPONS[blade as "sword"], windup, strike === "heavy").liveAt;
+  const weapon = WEAPONS[blade as "sword"];
+  return wayStepsAfter(weapon, strike, windupTime(weapon, strike, "opening"), STATS.strength).liveAt;
 };
 
 const PRESS = 60;
@@ -186,9 +185,10 @@ describe("a swing parried by a swing", () => {
 });
 
 describe("the weight of a swing", () => {
-  test("is the blade's heft, by the square root of strength over 10, twice for a heavy", () => {
-    close(swingWeight(WEAPONS.sword, STATS.strength, false), WEAPONS.sword.heft, "sword");
-    close(swingWeight(WEAPONS.greatsword, 40, true), WEAPONS.greatsword.heft * 2 * HYBRID.parry.heavyWeightFactor,
+  test("is the blade's parry weight, by the square root of strength over 10, twice for a heavy", () => {
+    close(swingWeight(WEAPONS.sword, STATS.strength, false), WEAPONS.sword.parryWeight, "sword");
+    close(swingWeight(WEAPONS.greatsword, 40, true),
+      WEAPONS.greatsword.parryWeight * 2 * HYBRID.parry.heavyWeightFactor,
       "greatsword heavy at 40");
   });
 

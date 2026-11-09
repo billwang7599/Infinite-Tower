@@ -628,7 +628,7 @@ describe("first person: changing guard or blocking eases, the edge kept toward t
     assert.ok(great > GUARD_SHIFT.time + 0.03 && great < 2 * GUARD_SHIFT.time, `${great}`);
   });
 
-  test("a drawn fighter's guard shifts by its blade's heft", () => {
+  test("a drawn fighter's guard shifts by its blade's raise time", () => {
     const holding: PersonDrawing = { ...newPerson(), blade: { weapon: "greatsword" } as HeldBlade };
     assert.equal(shiftTimeOf(holding), guardShiftTime(WEAPONS.greatsword));
   });
