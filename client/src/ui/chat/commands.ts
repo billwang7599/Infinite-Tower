@@ -1,9 +1,9 @@
 import {
-  ENEMY_IDS, GODS, ITEM_IDS, ITEMS, MAX_GIVE_COUNT, type Cheat, type EnemyId, type God, type ItemId,
+  ENEMY_IDS, GODS, ITEM_IDS, ITEMS, MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT, type Cheat, type EnemyId, type God, type ItemId,
 } from "@infinite-tower/shared";
 import { GOD_NAMES } from "../hud/blessings.js";
 import {
-  DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS, whyNot, type AdminAct, type CheatPlace, type DaySpeed,
+  DAY_SPEEDS, DAY_TIMES, FOE_COUNTS, GIVE_COUNTS, whyNot, type AdminAct, type CheatPlace, type DaySpeed,
 } from "../screens/admin/admin.js";
 
 export interface CommandContext extends CheatPlace {
@@ -49,11 +49,13 @@ export interface Suggestions {
 
 const ON_OFF: Arg = { name: "on or off", options: [{ value: "on" }, { value: "off" }], optional: true };
 const ITEM: Arg = { name: "item", options: ITEM_IDS.map((id) => ({ value: id, detail: ITEMS[id].name })) };
-const COUNT: Arg = {
-  name: "count", options: GIVE_COUNTS.map((n) => ({ value: String(n) })), optional: true,
-  valid: (word) => /^\d+$/.test(word) && Number(word) >= 1 && Number(word) <= MAX_GIVE_COUNT,
-  invalid: `Count must be 1 to ${MAX_GIVE_COUNT}`,
-};
+const countArg = (name: string, options: readonly number[], max: number): Arg => ({
+  name, options: options.map((n) => ({ value: String(n) })), optional: true,
+  valid: (word) => /^\d+$/.test(word) && Number(word) >= 1 && Number(word) <= max,
+  invalid: `${name[0]!.toUpperCase()}${name.slice(1)} must be 1 to ${max}`,
+});
+const COUNT = countArg("count", GIVE_COUNTS, MAX_GIVE_COUNT);
+const FOES = countArg("foes", FOE_COUNTS, MAX_ENCOUNTER_FOES);
 const ENEMY: Arg = { name: "enemy", options: ENEMY_IDS.map((id) => ({ value: id })) };
 const GOD: Arg = { name: "god", options: GODS.map((god) => ({ value: god })) };
 const CORE_WAY: Arg = { name: "up or down", options: [{ value: "up" }, { value: "down" }] };
@@ -91,8 +93,10 @@ export const COMMANDS: readonly Command[] = [
     run: () => cheat({ kind: "kill" }, "Killing the enemies."),
   },
   {
-    name: "encounter", aliases: ["fight"], args: [ENEMY], about: "fight an enemy (overworld)",
-    run: ([enemy]) => cheat({ kind: "encounter", enemy: enemy as EnemyId }, `Fighting ${enemy}.`),
+    name: "encounter", aliases: ["fight"], args: [ENEMY, FOES], about: "fight one or more of an enemy (overworld)",
+    run: ([enemy, count]) => count
+      ? cheat({ kind: "encounter", enemy: enemy as EnemyId, count: Number(count) }, `Fighting ${count} × ${enemy}.`)
+      : cheat({ kind: "encounter", enemy: enemy as EnemyId }, `Fighting ${enemy}.`),
   },
   {
     name: "core", args: [CORE_WAY], about: "move your core a step",

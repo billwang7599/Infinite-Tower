@@ -6,7 +6,9 @@ import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
-import { act, DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS, loadCheats, outletOf, saveCheats, whyNot } from "./admin.js";
+import {
+  act, DAY_SPEEDS, DAY_TIMES, FOE_COUNTS, GIVE_COUNTS, loadCheats, outletOf, saveCheats, whyNot,
+} from "./admin.js";
 
 const CHIP =
   "cursor-pointer rounded-sm border border-bone/20 px-2 py-0.5 enabled:hover:border-bone/50 "
@@ -26,6 +28,7 @@ export function AdminPanel() {
   const keepInventory = useStore(admin, (s) => s.keepInventory);
   const speed = useStore(admin, (s) => s.daySpeed);
   const [count, setCount] = useState(() => loadCheats(localStorage).giveCount);
+  const [foes, setFoes] = useState<number>(1);
 
   useAction(input, ["adminPanel", "closeAdmin"], (action, repeat) => {
     if (repeat) return false;
@@ -87,9 +90,16 @@ export function AdminPanel() {
           Kill enemy
         </button>
         <span className="basis-full" />
+        <span className="self-center text-bone/60">Foes</span>
+        {FOE_COUNTS.map((n) => (
+          <button key={n} type="button" {...NO_FOCUS} className={n === foes ? CHIP_ON : CHIP} onClick={() => setFoes(n)}>
+            {n}
+          </button>
+        ))}
+        <span className="basis-full" />
         {ENEMY_IDS.map((enemy) => (
           <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={off("encounter")}
-            onClick={() => { admin.set({ open: false }); cheat({ kind: "encounter", enemy }); }}>
+            onClick={() => { admin.set({ open: false }); cheat({ kind: "encounter", enemy, count: foes }); }}>
             {enemy}
           </button>
         ))}

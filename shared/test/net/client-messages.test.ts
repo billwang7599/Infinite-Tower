@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CAMERA_SENSITIVITY, DEFAULT_LOOK, FLICK_SENSITIVITY, HIDDEN_STATS, MAX_GIVE_COUNT, MAX_INPUTS_PER_MESSAGE,
+  CAMERA_SENSITIVITY, DEFAULT_LOOK, FLICK_SENSITIVITY, HIDDEN_STATS, MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT, MAX_INPUTS_PER_MESSAGE,
   MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
 } from "@infinite-tower/shared";
 import {
@@ -378,6 +378,10 @@ describe("parseClientMsg", () => {
     assert.equal(cheat({ kind: "godmode" }), null);
     assert.equal(cheat({ kind: "encounter", enemy: "dragon" }), null);
     assert.equal(cheat({ kind: "encounter" }), null);
+    assert.equal(cheat({ kind: "encounter", enemy: "wild-boar", count: 0 }), null);
+    assert.equal(cheat({ kind: "encounter", enemy: "wild-boar", count: 1.5 }), null);
+    assert.equal(cheat({ kind: "encounter", enemy: "wild-boar", count: MAX_ENCOUNTER_FOES + 1 }), null);
+    assert.notEqual(cheat({ kind: "encounter", enemy: "wild-boar", count: MAX_ENCOUNTER_FOES }), null);
     assert.equal(cheat({ kind: "invulnerable", on: "yes" }), null);
     assert.equal(cheat({ kind: "keepInventory" }), null);
     assert.equal(cheat({ kind: "give", item: "gold", count: 1 }), null);

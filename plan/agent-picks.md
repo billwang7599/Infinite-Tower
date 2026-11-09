@@ -153,4 +153,6 @@ Decided by the user since (the agent's picks within them):
 - Key bindings: a new default key a player already uses stays theirs, and the new action is left unbound.
 - The admin panel's buttons: Complete current quest (to speedrun) and Reset my save (replay the start without wiping
   the database), and the other cheats.
+- The encounter cheat's foe count (`/encounter <enemy> [foes]`, the panel's Foes row, `encounter(enemy, count)`): 1 to
+  `MAX_ENCOUNTER_FOES` (8), all of one kind, spread on an arc as far out as a lone foe's start.
 - The HUD's custom pointer and the "Inscribed" look's details (the user picked the style).

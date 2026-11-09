@@ -1,6 +1,6 @@
 /**
  * Dev handles for the browser console and browser tests (in dev, or with `?debug`). The fighters are in
- * `battle.fight.world` while a fight is on; `encounter()` fights a wild boar, or the enemy named (dev servers only).
+ * `battle.fight.world` while a fight is on; `encounter()` fights a wild boar, or `count` of the enemy named (dev servers only).
  */
 import * as shared from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
@@ -19,7 +19,7 @@ interface DebugHandles {
   audio: Audio;
   mode: () => Mode | null;
   setDayClock: (change: shared.DayChange) => void;
-  encounter: (enemy?: shared.EnemyId) => void;
+  encounter: (enemy?: shared.EnemyId, count?: number) => void;
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {

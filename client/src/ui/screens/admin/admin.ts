@@ -13,6 +13,7 @@ export const DAY_SPEEDS = [1, 10, 60, 600] as const;
 export type DaySpeed = (typeof DAY_SPEEDS)[number];
 
 export const GIVE_COUNTS = [1, 5, 20] as const;
+export const FOE_COUNTS = [1, 2, 3, 5, 8] as const;
 
 export const CHEATS_KEY = "infinite-tower:cheats";
 const CHEATS_VERSION = 1;
