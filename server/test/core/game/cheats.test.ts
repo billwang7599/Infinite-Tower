@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, bagCounts, CLOSE_CODES, coreAtStep, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, packFor, Player,
-  Stamina, type ItemCounts, type ItemId,
+  addItem, bagCounts, CLOSE_CODES, coreAtStep, emptyBag, ENEMY_IDS, FIXED_DT, Health, IDLE_INPUT, MAX_ENCOUNTER_FOES,
+  newCore, packFor, Player, Stamina, type ItemCounts, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { QUESTS } from "../../../src/core/content/quests.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
@@ -91,6 +92,18 @@ describe("encounter", () => {
     for (const e of fight.enemies) fight.world.require(e, Health).hp = 0;
     standStill(session, FIXED_DT);
     assert.ok(session.afterFight);
+  });
+
+  test("the most foes of the biggest kind all start apart from each other, inside the arena", () => {
+    const biggest = ENEMY_IDS.reduce((a, b) => (ENEMIES[b].def.radius > ENEMIES[a].def.radius ? b : a));
+    const { session, link } = startSession({ cheats: true });
+    session.cheat({ kind: "encounter", enemy: biggest, count: MAX_ENCOUNTER_FOES });
+    const { enemies, arena } = link.last("encounter").setup;
+    const radius = ENEMIES[biggest].def.radius;
+    for (const [i, a] of enemies.entries()) {
+      assert.ok(Math.hypot(a.at.x, a.at.z) < arena.radius - radius, `foe ${i} inside the wall`);
+      for (const b of enemies.slice(i + 1)) assert.ok(Math.hypot(a.at.x - b.at.x, a.at.z - b.at.z) > 2 * radius);
+    }
   });
 
   test("does nothing mid-battle, or before the player is in the world", () => {

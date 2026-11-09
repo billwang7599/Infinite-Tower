@@ -155,4 +155,7 @@ Decided by the user since (the agent's picks within them):
   the database), and the other cheats.
 - The encounter cheat's foe count (`/encounter <enemy> [foes]`, the panel's Foes row, `encounter(enemy, count)`): 1 to
   `MAX_ENCOUNTER_FOES` (8), all of one kind, spread on an arc as far out as a lone foe's start.
+- Allies' bodies: two overlapping allies each move half the overlap apart across the floor (no speed passed on; one
+  held by the wall leaves the rest to the other), four rounds a step; bodies keep their existing sizes; a dodging,
+  staggered or dead player passes through allies too.
 - The HUD's custom pointer and the "Inscribed" look's details (the user picked the style).

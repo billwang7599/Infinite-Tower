@@ -107,7 +107,10 @@ Hits and pushback:
   the fight.
 - A dodge never cancels an attack: a dodge or attack pressed during one waits and starts when it lets go.
 - Fighters are moved by code, not forces: an enemy shoves a player, a player can't push an enemy, and a dodging,
-  staggered or dead player passes through enemies.
+  staggered or dead player passes through everyone. Allies (foe and foe, player and player) can't overlap and shove
+  each other apart (the user: "they can knock each other back, block each other, etc. but they don't friendly fire").
+- Open: whether a swing sweeping through an ally is stopped by its body or shoves it (today it passes through,
+  harmless), and whether foes should route around each other instead of jostling.
 
 Reading the other side:
 

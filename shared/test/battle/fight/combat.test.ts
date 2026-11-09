@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  damageTotal, emptyBag, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER, strikeDamage, wayShape, WEAPONS,
-  Wielder, type Strike, type SwingDir,
+  damageTotal, emptyBag, emptyEquipment, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER, strikeDamage,
+  toSteps, wayShape, WEAPONS, Wielder, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, armed, BITER, duel, enemy, input, player, run, STATS, STATUE, swingTime } from "./fixtures.js";
+import {
+  ARENA, armed, BITER, duel, enemy, FULL_HP, input, player, run, STATS, STATUE, STILL_BITER, swingTime,
+} from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -131,5 +133,31 @@ describe("nothing pauses the fight for a hit (the user: \"nothing should ever pa
       const ended = hit.ticks.findIndex((t, i) => i > 0 && t.swingStep === null), upTo = ended < 0 ? undefined : ended;
       assert.deepEqual(hit.ticks.slice(0, upTo), missed.ticks.slice(0, upTo), `${hand} ${strike}`);
     }
+  });
+});
+
+describe("no friendly fire in a fight with several on a side", () => {
+  test("a foe's bite that sweeps over another foe hurts only the player", () => {
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })],
+      enemies: [enemy(STILL_BITER, { x: 0, y: 0.05, z: 2 }), enemy(STATUE, { x: 1.3, y: 0.05, z: 0.6 })],
+    });
+    run(fight, 2);
+    assert.ok(fight.world.require(fight.players[0]!, Health).hp < FULL_HP, "the bite landed");
+    assert.equal(fight.world.require(fight.enemies[1]!, Health).hp, STATUE.maxHp);
+  });
+
+  test("a player's swing at an ally in reach doesn't hurt them", () => {
+    const fight = new Fight({
+      arena: ARENA,
+      players: [player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: shape("lr").range + PLAYER.radius - 0.3 }, {
+        gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: emptyEquipment() },
+      })],
+      enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
+    });
+    for (let step = 0; step < 12 + toSteps(swingTime()); step++) {
+      fight.step([input({ locked: 0, way: "lr", attack: step === 12 ? "light" : null }), input({})]);
+    }
+    assert.equal(fight.world.require(fight.players[1]!, Health).hp, FULL_HP);
   });
 });
