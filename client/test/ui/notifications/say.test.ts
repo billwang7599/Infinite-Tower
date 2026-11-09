@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { coreName, itemDef, MAX_CHAT_CHARS, newCore, type QuestNews } from "@infinite-tower/shared";
+import { coreName, itemDef, MAX_CHAT_CHARS, newCore, WEAPONS, type QuestNews } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 import { say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
@@ -73,6 +73,14 @@ describe("say", () => {
     const to = new Notifications();
     say(to, { kind: "itemUsed", item: "boar-meat" });
     assert.deepEqual(notices(to), [`You eat the ${itemDef("boar-meat").name.toLowerCase()}.`]);
+  });
+
+  test("a weapon too heavy to wield is a notice naming it and the strength it needs", () => {
+    const to = new Notifications();
+    say(to, { kind: "tooWeak", item: "greatsword" });
+    const [line = ""] = notices(to);
+    assert.ok(line.includes(itemDef("greatsword").name.toLowerCase()), line);
+    assert.ok(line.includes(`${WEAPONS.greatsword.minStrength} strength`), line);
   });
 
   test("a bow with no room to put the other hand's away is a notice naming both, or the bow alone", () => {

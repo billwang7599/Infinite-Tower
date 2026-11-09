@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, BASE_STATS, CHAIN, chainKind, DAMAGE_TYPES, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay,
-  physicalDamage, strengthHeftFactor, strikeCost, strikeDamage, STRIKES, SWING_DIRS, toSteps, wayShape, wayStepsAfter,
+  BASE_STATS, CHAIN, chainKind, DAMAGE_TYPES, heftShare, HYBRID, MOMENTUM, momentumDamage, mirrorWay,
+  physicalDamage, strengthDiscount, strikeCost, strikeDamage, STRIKES, SWING_DIRS, toSteps, wayShape, wayStepsAfter,
   weaponDamage, WEAPONS, WAYS, windupTime, type ChainKind, type Weapon,
 } from "@infinite-tower/shared";
 
 const KINDS: readonly ChainKind[] = ["opening", "reverse", "perpendicular", "other"];
+const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
 
 describe("the sword's ways", () => {
   test("no straight upward swing: rising cuts are only the diagonals", () => {
@@ -55,69 +56,72 @@ describe("the sword's ways", () => {
     }
   });
 
-  test("the Basic Sword at strength 10 winds up its chain's times as they are, none flattened to the floor", () => {
+  test("the Basic Sword winds up its chain's times as they are, none flattened to the floor", () => {
     const floor = toSteps(CHAIN.minWindupTime), liveAts = new Set<number>();
     for (const kind of KINDS) {
-      const liveAt = wayStepsAfter(WEAPONS.sword, windupTime("light", kind), false, AVERAGE_STAT).liveAt;
+      const liveAt = wayStepsAfter(WEAPONS.sword, windupTime("light", kind), false).liveAt;
       assert.equal(liveAt, toSteps(CHAIN.startupTime[kind]), kind);
       assert.ok(liveAt >= floor, kind);
       liveAts.add(liveAt);
     }
     assert.equal(liveAts.size, KINDS.length);
-    const stab = wayStepsAfter(WEAPONS.sword, windupTime("stab", "opening"), false, AVERAGE_STAT);
+    const stab = wayStepsAfter(WEAPONS.sword, windupTime("stab", "opening"), false);
     assert.equal(stab.liveAt, toSteps(CHAIN.stabStartupTime));
-    const light = wayStepsAfter(WEAPONS.sword, windupTime("light", "opening"), false, AVERAGE_STAT);
+    const light = wayStepsAfter(WEAPONS.sword, windupTime("light", "opening"), false);
     assert.equal(light.liveUntil - light.liveAt, toSteps(CHAIN.activeTime));
     assert.equal(light.endAt - light.liveUntil, toSteps(CHAIN.recoverTime));
   });
 
-  test("the Basic Sword's times and costs go × strength's factor, wind-ups floored", () => {
-    for (const strength of [AVERAGE_STAT, AVERAGE_STAT / 4, AVERAGE_STAT * 4]) {
-      const factor = strengthHeftFactor(strength);
+  test("every weapon's times are the table's × its heft share, wind-ups floored", () => {
+    for (const [id, weapon] of Object.entries(WEAPONS)) {
+      const share = heftShare(weapon);
       for (const strike of STRIKES) {
         const heavy = strike === "heavy", live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
         const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
         for (const kind of KINDS) {
-          const what = `${strength} ${strike} ${kind}`, windup = windupTime(strike, kind);
-          const steps = wayStepsAfter(WEAPONS.sword, windup, heavy, strength);
-          assert.equal(steps.liveAt, toSteps(Math.max(CHAIN.minWindupTime, windup * factor)), what);
-          assert.equal(steps.liveUntil - steps.liveAt, toSteps(live * factor), what);
-          assert.equal(steps.endAt - steps.liveUntil, toSteps(recover * factor), what);
+          const what = `${id} ${strike} ${kind}`, windup = windupTime(strike, kind);
+          const steps = wayStepsAfter(weapon, windup, heavy);
+          assert.equal(steps.liveAt, toSteps(Math.max(CHAIN.minWindupTime, windup * share)), what);
+          assert.equal(steps.liveUntil - steps.liveAt, toSteps(live * share), what);
+          assert.equal(steps.endAt - steps.liveUntil, toSteps(recover * share), what);
         }
-        assert.equal(strikeCost(WEAPONS.sword, strike, strength), HYBRID[strike].cost * factor, `${strength}`);
       }
     }
   });
 
-  test("a weapon felt under 1 winds up at the floor and is live, recovers and costs less by its felt heft", () => {
-    const stick = WEAPONS["old-stick"], felt = feltHeft(stick, AVERAGE_STAT);
-    assert.ok(felt < 1);
+  test("a strike costs the table's × heft share at the weapon's minimum strength, less for each point over", () => {
+    for (const [id, weapon] of Object.entries(WEAPONS)) {
+      for (const strike of STRIKES) {
+        const base = HYBRID[strike].cost * heftShare(weapon);
+        close(strikeCost(weapon, strike, weapon.minStrength), base, `${id} ${strike}`);
+        const over = weapon.minStrength + 10;
+        close(strikeCost(weapon, strike, over), base * strengthDiscount(weapon, over), `${id} ${strike}`);
+        assert.ok(strikeCost(weapon, strike, weapon.minStrength + 10) < base, `${id} ${strike}`);
+        close(strikeCost(weapon, strike, 1e6), base / 2, `${id} ${strike}`);
+      }
+    }
+  });
+
+  test("the Old Stick winds up at the floor and is live, recovers and costs less by its heft share", () => {
+    const stick = WEAPONS["old-stick"], share = heftShare(stick);
+    assert.ok(share < 1);
     for (const strike of STRIKES) {
-      const heavy = strike === "heavy", live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
-      const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-      for (const kind of KINDS) {
-        const what = `${strike} ${kind}`, windup = windupTime(strike, kind);
-        const steps = wayStepsAfter(stick, windup, heavy, AVERAGE_STAT);
-        assert.equal(steps.liveAt, toSteps(Math.max(CHAIN.minWindupTime, windup * felt)), what);
-        assert.equal(steps.liveUntil - steps.liveAt, toSteps(live * felt), what);
-        assert.equal(steps.endAt - steps.liveUntil, toSteps(recover * felt), what);
-      }
-      assert.ok(strikeCost(stick, strike, AVERAGE_STAT) < HYBRID[strike].cost, strike);
-      assert.equal(strikeCost(stick, strike, AVERAGE_STAT), HYBRID[strike].cost * felt, strike);
+      const heavy = strike === "heavy";
+      const steps = wayStepsAfter(stick, windupTime(strike, "opening"), heavy);
+      assert.equal(steps.liveAt, toSteps(CHAIN.minWindupTime), strike);
+      assert.ok(strikeCost(stick, strike, stick.minStrength) < HYBRID[strike].cost, strike);
     }
   });
 
-  test("no wind-up is ever quicker than the floor, whatever the weapon, strength or swiftness", () => {
+  test("no wind-up is ever quicker than the floor, whatever the weapon or swiftness", () => {
     const floor = toSteps(CHAIN.minWindupTime);
     for (const [id, weapon] of Object.entries(WEAPONS)) {
-      for (const strength of [1, AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
-        for (const strike of STRIKES) {
-          for (const kind of KINDS) {
-            for (const swift of [1, 3]) {
-              const steps = wayStepsAfter(weapon, windupTime(strike, kind) / swift, strike === "heavy", strength);
-              assert.ok(steps.liveAt >= floor, `${id} ${strength} ${strike} ${kind} ${swift}`);
-              assert.ok(steps.driveAt < steps.liveAt, `${id} ${strength} ${strike} ${kind} ${swift}`);
-            }
+      for (const strike of STRIKES) {
+        for (const kind of KINDS) {
+          for (const swift of [1, 3]) {
+            const steps = wayStepsAfter(weapon, windupTime(strike, kind) / swift, strike === "heavy");
+            assert.ok(steps.liveAt >= floor, `${id} ${strike} ${kind} ${swift}`);
+            assert.ok(steps.driveAt < steps.liveAt, `${id} ${strike} ${kind} ${swift}`);
           }
         }
       }
@@ -126,35 +130,25 @@ describe("the sword's ways", () => {
 
   test("a light weapon winds up quicker than the Basic Sword, down to the floor", () => {
     const stick = WEAPONS["old-stick"], liveAt = (weapon: Weapon, kind: ChainKind) =>
-      wayStepsAfter(weapon, windupTime("light", kind), false, AVERAGE_STAT).liveAt;
+      wayStepsAfter(weapon, windupTime("light", kind), false).liveAt;
     assert.ok(liveAt(stick, "opening") < liveAt(WEAPONS.sword, "opening"));
     assert.equal(liveAt(stick, "reverse"), toSteps(CHAIN.minWindupTime));
   });
 
   test("a heavy weapon stretches every part of a swing; a heavy's blade is live longer", () => {
-    const sword = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT);
-    const great = wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false, AVERAGE_STAT);
+    const sword = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false);
+    const great = wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false);
     assert.ok(great.liveAt > sword.liveAt && great.endAt > sword.endAt);
-    const heavy = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, true, AVERAGE_STAT);
+    const heavy = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, true);
     assert.ok(heavy.liveUntil - heavy.liveAt >= sword.liveUntil - sword.liveAt);
-    assert.equal(strikeCost(WEAPONS.greatsword, "heavy", AVERAGE_STAT),
-      HYBRID.heavy.cost * feltHeft(WEAPONS.greatsword, AVERAGE_STAT));
-    assert.equal(strikeCost(WEAPONS.sword, "light", AVERAGE_STAT), HYBRID.light.cost);
+    assert.equal(strikeCost(WEAPONS.sword, "light", WEAPONS.sword.minStrength), HYBRID.light.cost);
   });
 
-  test("a stronger wielder swings no later and for less stamina; a weaker one no sooner and for more", () => {
+  test("more grip strength over the minimum never costs more", () => {
     for (const weapon of ["greatsword", "sword", "old-stick"] as const) {
-      const steps = (strength: number) => wayStepsAfter(WEAPONS[weapon], CHAIN.startupTime.opening, false, strength);
-      const weak = steps(AVERAGE_STAT / 4), average = steps(AVERAGE_STAT), strong = steps(AVERAGE_STAT * 4);
-      assert.ok(weak.endAt >= average.endAt && average.endAt >= strong.endAt, weapon);
-      if (weapon !== "old-stick") assert.ok(weak.endAt > strong.endAt, weapon);
       const cost = (strength: number) => strikeCost(WEAPONS[weapon], "light", strength);
-      assert.ok(cost(AVERAGE_STAT / 4) > cost(AVERAGE_STAT) && cost(AVERAGE_STAT) > cost(AVERAGE_STAT * 4), weapon);
-    }
-    const great = (strength: number) => wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false, strength);
-    for (const part of ["liveAt", "liveUntil", "endAt"] as const) {
-      assert.ok(great(AVERAGE_STAT / 2)[part] > great(AVERAGE_STAT)[part], part);
-      assert.ok(great(AVERAGE_STAT)[part] > great(AVERAGE_STAT * 2)[part], part);
+      const min = WEAPONS[weapon].minStrength;
+      assert.ok(cost(min) > cost(min + 5) && cost(min + 5) > cost(min + 20), weapon);
     }
   });
 
@@ -167,8 +161,6 @@ describe("the sword's ways", () => {
 });
 
 describe("a strike's damage, by type", () => {
-  const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
-
   test("a swing deals the weapon's slash and blunt, each its own; a stab only its stab", () => {
     for (const weapon of Object.values(WEAPONS)) {
       const base = weaponDamage(weapon);

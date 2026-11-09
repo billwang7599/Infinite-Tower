@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   BASE_BAG, BASE_STATS, bagCounts, bagProblems, coreStats, emptyBag, emptyEquipment, ITEMS, maxHpOf, newCore, packFor,
-  staminaMaxOf, stowedCounts, type Bag, type BagItem, type ItemId,
+  staminaMaxOf, stowedCounts, WEAPONS, type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
 import {
   fullVitals, keptSave, newPlayer, PLAYER_STATS, STARTER_BACKPACK,
@@ -69,6 +69,24 @@ describe("loading a save", () => {
     const room = cellsOf(BASE_BAG) + cellsOf(ITEMS[STARTER_BACKPACK].pack);
     assert.deepEqual(stowedCounts(save), { "boar-meat": room * meat });
     assert.deepEqual(spilled, { "boar-meat": (cells - room) * meat });
+  });
+
+  test("a weapon held under its minimum strength at its grip is put in the bag, or spilled", () => {
+    const equipment = { ...emptyEquipment(), rightHand: "greatsword", leftHand: "skillbook" } as const;
+    assert.ok(PLAYER_STATS.strength < WEAPONS.greatsword.minStrength);
+    const packed = { equipment: { ...equipment, back: STARTER_BACKPACK }, pack: packFor(STARTER_BACKPACK) };
+    const roomy = keptSave(stored(emptyBag(), packed));
+    assert.equal(roomy.save.equipment.rightHand, null);
+    assert.equal(roomy.save.equipment.leftHand, "skillbook");
+    assert.deepEqual(stowedCounts(roomy.save), { greatsword: 1 });
+    assert.deepEqual(roomy.spilled, {});
+    const meat = ITEMS["boar-meat"].stackSize, full = Array.from({ length: cellsOf(BASE_BAG) }, (_, i) =>
+      stack("boar-meat", i % BASE_BAG.cols, Math.floor(i / BASE_BAG.cols), meat));
+    const cramped = keptSave(stored({ ...emptyBag(), items: full }, { equipment }));
+    assert.equal(cramped.save.equipment.rightHand, null);
+    assert.deepEqual(cramped.spilled, { greatsword: 1 });
+    const alone = keptSave(stored(emptyBag(), { equipment: { ...equipment, leftHand: null } }));
+    assert.equal(alone.save.equipment.rightHand, "greatsword", "alone it takes both hands, enough for it");
   });
 
   test("a backpack already on stays, and none is given to a save with the base bag", () => {

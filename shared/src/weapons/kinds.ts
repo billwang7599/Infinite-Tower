@@ -1,8 +1,9 @@
 import { itemDef } from "../items/items.js";
 import { BOW, type RangedMoves } from "./bow.js";
 import { wayShape, wayStepsAfter, type GuardKind } from "./hybrid.js";
+import type { Hand } from "../items/gear.js";
 import {
-  isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type Weapon, type WeaponKind,
+  canWield, isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type Weapon, type WeaponKind,
 } from "./weapons.js";
 
 export interface MeleeMoves {
@@ -56,6 +57,16 @@ export const TWO_HAND_STRENGTH_FACTOR = 1.5;
 
 export const appliedStrength = (hands: Hands, strength: number): number =>
   gripOf(hands) === "two" ? strength * TWO_HAND_STRENGTH_FACTOR : strength;
+
+/** The first hand holding a weapon too heavy for its grip's strength, or null when both are wieldable. */
+export function unwieldableHand(hands: Hands, strength: number): Hand | null {
+  const grip = appliedStrength(hands, strength);
+  return HAND_ORDER.find((hand) => {
+    const item = hands[hand];
+    return isWeapon(item) && !canWield(item, grip);
+  }) ?? null;
+}
+const HAND_ORDER: readonly Hand[] = ["rightHand", "leftHand"];
 
 export function guardOf(hands: Hands): { kind: GuardKind; guard: Guard } | null {
   const grip = gripOf(hands), guard = shieldIn(hands) ?? weaponIn(hands);

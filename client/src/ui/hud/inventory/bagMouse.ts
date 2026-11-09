@@ -4,8 +4,8 @@
  * says what to ask the server for.
  */
 import {
-  displacedBy, footprint, itemDef, moveGear, moveItem, stackIn, type BagItem, type Cell, type Gear, type GearMove,
-  type GridSpot, type ItemId, type Spot, type UseSpot,
+  displacedBy, footprint, itemDef, moveGear, moveItem, stackIn, unwieldableHand, type BagItem, type Cell, type Gear,
+  type GearMove, type GridSpot, type ItemId, type Spot, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 
 /** How far a press on an item moves before it's a drag rather than a click. */
@@ -103,32 +103,40 @@ export function pointerDown(m: BagMouse, gear: Gear, p: Pointer): BagMouse {
  * (clicking the selected one again, or empty space).
  */
 export function pointerUp(
-  m: BagMouse, gear: Gear, p: Pointer, nowMs: number,
-): { mouse: BagMouse; move: GearMove | null; noHands: NoHands | null } {
+  m: BagMouse, gear: Gear, p: Pointer, nowMs: number, strength: number,
+): { mouse: BagMouse; move: GearMove | null; tooWeak: WeaponId | null; noHands: NoHands | null } {
   const at = { ...m, pointer: p, press: null, drag: null };
   if (m.drag) {
     const to = landing({ ...m, pointer: p }, gear);
-    const fits = !!to && canDrop({ ...m, pointer: p }, gear) && !isWhereItWas(m.drag, to, gear);
+    const fits = !!to && canDrop({ ...m, pointer: p }, gear, strength) && !isWhereItWas(m.drag, to, gear);
     const move = fits ? { from: m.drag.from, to: to!, turned: m.drag.turned } : null;
-    const after = move ? moveGear(gear, move.from, move.to, move.turned) ?? gear : gear;
+    const after = move ? moveGear(gear, move.from, move.to, move.turned, strength) ?? gear : gear;
     return {
       mouse: point({ ...at, selected: move?.to ?? m.drag.from }, after, p, nowMs), move,
-      noHands: !move && to ? noHandsFor(gear, m.drag, to) : null,
+      tooWeak: !move && to ? tooWeakFor(gear, m.drag, to, strength) : null,
+      noHands: !move && to ? noHandsFor(gear, m.drag, to, strength) : null,
     };
   }
   const clicked = m.press && (same(m.press.stack, m.selected) ? null : m.press.stack);
   const mouse = point({ ...at, selected: m.press ? clicked : m.selected }, gear, p, nowMs);
-  return { mouse, move: null, noHands: null };
+  return { mouse, move: null, tooWeak: null, noHands: null };
 }
 
 export interface NoHands { item: ItemId; displaced: ItemId }
 
-function noHandsFor(gear: Gear, drag: Drag, to: Spot): NoHands | null {
+/** The weapon a move into a hand was refused for: what would be held too heavy for its grip's strength. */
+function tooWeakFor(gear: Gear, drag: Drag, to: Spot, strength: number): WeaponId | null {
+  const anyStrength = moveGear(gear, drag.from, to, drag.turned, Infinity);
+  const hand = anyStrength && unwieldableHand(anyStrength.equipment, strength);
+  return hand ? anyStrength.equipment[hand] as WeaponId : null;
+}
+
+function noHandsFor(gear: Gear, drag: Drag, to: Spot, strength: number): NoHands | null {
   if (to.in !== "slot" || (to.slot !== "rightHand" && to.slot !== "leftHand")) return null;
   const other = to.slot === "rightHand" ? "leftHand" : "rightHand";
   const displaced = displacedBy(gear.equipment, drag.item, to.slot);
   const freed = { ...gear, equipment: { ...gear.equipment, [other]: null } };
-  return displaced && moveGear(freed, drag.from, to, drag.turned) ? { item: drag.item, displaced } : null;
+  return displaced && moveGear(freed, drag.from, to, drag.turned, strength) ? { item: drag.item, displaced } : null;
 }
 
 /** Where the dragged item would land: its top-left kept inside the grid under it, or the slot. null over neither. */
@@ -150,10 +158,10 @@ const isWhereItWas = (drag: Drag, to: Spot, gear: Gear) =>
   same(drag.from, to) && (to.in === "slot" || stackAt(gear, drag.from)?.turned === drag.turned);
 
 /** Whether the dragged item can go down where it would land. */
-export function canDrop(m: BagMouse, gear: Gear): boolean {
+export function canDrop(m: BagMouse, gear: Gear, strength: number): boolean {
   const to = landing(m, gear);
   if (!m.drag || !to) return false;
-  return isWhereItWas(m.drag, to, gear) || moveGear(gear, m.drag.from, to, m.drag.turned) !== null;
+  return isWhereItWas(m.drag, to, gear) || moveGear(gear, m.drag.from, to, m.drag.turned, strength) !== null;
 }
 
 /** Drop the drag (and a press) without moving anything: the item stays where it was. */

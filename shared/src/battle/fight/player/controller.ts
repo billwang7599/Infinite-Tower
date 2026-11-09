@@ -273,13 +273,13 @@ function moveByAction({ world, e, dt, player, input, wielder, stamina, stats, mo
   }
 }
 
-function moveGearInBag({ player, input, wielder }: Turn): void {
+function moveGearInBag({ player, input, wielder, stats }: Turn): void {
   const move = input.gear;
   if (!move || player.last.gear !== null || player.action !== "bag" || !carried(move.from) || !carried(move.to)) {
     return;
   }
   const gear = { ...player.gear, cloth: emptyCloth(), pile: NO_PILE };
-  const moved = moveGear(gear, move.from, move.to, move.turned);
+  const moved = moveGear(gear, move.from, move.to, move.turned, stats.strength);
   if (moved) {
     player.gear = { bag: moved.bag, pack: moved.pack, quiver: moved.quiver, equipment: moved.equipment };
     wielder.hands = handsOf(moved.equipment, wielder.hands.active);

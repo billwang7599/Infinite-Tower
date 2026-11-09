@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, FELT_HEFT_FLOOR, feltHeft, ITEMS, strengthHeftFactor,
-  WEAPON_KINDS, weaponDamage, weaponIn, weaponItemIn, WEAPONS, type Damage, type Weapon,
+  canWield, coreStats, DAMAGE_PER_HEFT, DAMAGE_PROFILES, DAMAGE_TYPES, heftShare, ITEMS, newCore, STRENGTH_DISCOUNT,
+  strengthDiscount, WEAPON_KINDS, weaponDamage, weaponIn, weaponItemIn, WEAPONS, type Damage, type Weapon,
 } from "@infinite-tower/shared";
 
 const swingOf = (damage: Damage) => damage.slash + damage.blunt;
@@ -25,9 +25,12 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Kobolds' blades are ours: the Kobold blade a Basic Sword, the Kobold greatsword a greatsword", () => {
+  test("the Kobolds' blades are ours: the Kobold blade a Basic Sword, the greatsword ours but lighter to hold", () => {
     assert.deepEqual(WEAPONS["kobold-blade"], WEAPONS.sword);
-    assert.deepEqual(WEAPONS["kobold-greatsword"], WEAPONS.greatsword);
+    const { minStrength, ...kobold } = WEAPONS["kobold-greatsword"];
+    const { minStrength: ours, ...great } = WEAPONS.greatsword;
+    assert.deepEqual(kobold, great);
+    assert.ok(minStrength < ours);
   });
 
   test("every weapon is a worn-in-hand item of a known kind", () => {
@@ -37,43 +40,44 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Basic Sword is the measure: felt 1 at average strength, by strength's factor otherwise", () => {
-    assert.equal(feltHeft(WEAPONS.sword, AVERAGE_STAT), 1);
-    for (const strength of [AVERAGE_STAT / 4, AVERAGE_STAT * 4]) {
-      assert.equal(feltHeft(WEAPONS.sword, strength), strengthHeftFactor(strength));
+  test("the Basic Sword is the measure: every weapon's share is its heft over the Basic Sword's", () => {
+    assert.equal(heftShare(WEAPONS.sword), 1);
+    for (const guard of [...Object.values(WEAPONS), ITEMS["wooden-shield"].shield]) {
+      assert.ok(Math.abs(heftShare(guard) - guard.heft / WEAPONS.sword.heft) < 1e-12, `${guard.heft}`);
     }
   });
 
-  test("strength lightens a weapon a little, ever less, never under the floor; weakness makes it heavier", () => {
-    let last = Infinity;
-    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, 20, 40, 80, 1000, 1e9]) {
-      const factor = strengthHeftFactor(strength);
-      assert.ok(factor < last && factor > FELT_HEFT_FLOOR, `${strength}: ${factor}`);
-      last = factor;
+  test("the shield and the bow weigh as the Basic Sword; the Old Stick is lighter", () => {
+    assert.equal(heftShare(ITEMS["wooden-shield"].shield), 1);
+    assert.equal(heftShare(WEAPONS["training-bow"]), 1);
+    assert.ok(heftShare(WEAPONS["old-stick"]) < 1);
+  });
+
+  test("strength over a weapon's minimum takes 1.5% a point off its costs, at most half, never adding any", () => {
+    const sword = WEAPONS.sword, at = (over: number) => strengthDiscount(sword, sword.minStrength + over);
+    assert.equal(STRENGTH_DISCOUNT.perPoint, 0.015);
+    assert.equal(STRENGTH_DISCOUNT.max, 0.5);
+    assert.equal(at(0), 1);
+    assert.equal(at(-3), 1);
+    assert.ok(Math.abs(at(4) - 0.94) < 1e-12, `${at(4)}`);
+    assert.ok(Math.abs(at(20) - 0.7) < 1e-12, `${at(20)}`);
+    assert.equal(at(1000), 0.5);
+    assert.ok(Math.abs(strengthDiscount({ minStrength: 6 }, 10) - 0.94) < 1e-12);
+  });
+
+  test("a weapon can be wielded from its minimum strength up, not below", () => {
+    for (const [id, weapon] of Object.entries(WEAPONS)) {
+      assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength), true, id);
+      if (weapon.minStrength > 0) assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength - 1), false, id);
     }
-    assert.ok(strengthHeftFactor(AVERAGE_STAT / 2) > 1);
-    assert.ok(strengthHeftFactor(1e9) - FELT_HEFT_FLOOR < 1e-6);
+    assert.ok(WEAPONS.greatsword.minStrength > WEAPONS.longsword.minStrength);
+    assert.ok(WEAPONS.longsword.minStrength > WEAPONS.sword.minStrength);
+    assert.ok(WEAPONS.sword.minStrength > WEAPONS["old-stick"].minStrength);
   });
 
-  test("one rule for every weapon and guard: heft over the Basic Sword's, × strength's factor", () => {
-    const guards = [...Object.values(WEAPONS), ITEMS["wooden-shield"].shield];
-    for (const guard of guards) {
-      for (const strength of [1, AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2, 1000]) {
-        const want = (guard.heft / WEAPONS.sword.heft) * strengthHeftFactor(strength);
-        assert.ok(Math.abs(feltHeft(guard, strength) - want) < 1e-9, `${guard.heft} ${strength}`);
-      }
-    }
-  });
-
-  test("the shield and the bow weigh on the swords' scale, as the Basic Sword", () => {
-    assert.equal(feltHeft(ITEMS["wooden-shield"].shield, AVERAGE_STAT), 1);
-    assert.equal(feltHeft(WEAPONS["training-bow"], AVERAGE_STAT), 1);
-  });
-
-  test("strength scales a light weapon too: the Old Stick feels under 1, lighter still to the strong", () => {
-    const stick = WEAPONS["old-stick"], felt = (strength: number) => feltHeft(stick, strength);
-    assert.ok(felt(AVERAGE_STAT) < 1);
-    assert.ok(felt(AVERAGE_STAT / 2) > felt(AVERAGE_STAT) && felt(AVERAGE_STAT) > felt(AVERAGE_STAT * 2));
+  test("a new player can wield the Old Stick and the Basic Sword in one hand", () => {
+    const strength = coreStats(newCore()).strength;
+    assert.ok(canWield("old-stick", strength) && canWield("sword", strength), `${strength}`);
   });
 });
 

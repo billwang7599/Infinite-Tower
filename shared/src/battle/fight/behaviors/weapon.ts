@@ -6,12 +6,12 @@ import {
   CHAIN, chainKind, HYBRID, isSwing, lastFeintStep, parryWay, WAYS, windupTime, type Strike, type SwingDir, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeIn } from "../../../weapons/kinds.js";
-import { feltHeft, type Weapon } from "../../../weapons/weapons.js";
+import { heftShare, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
 import { FighterStats, type Stats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { canSwing, carrySpeed, committed, feint as feintSwing, steer } from "../weapons/commit.js";
-import { startWaySwing, strengthIn } from "../weapons/swing.js";
+import { startWaySwing } from "../weapons/swing.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
 
@@ -57,7 +57,7 @@ function parry(
   const liveIn = theirs.liveAt - PARRY_LEAD_STEPS;
   if (!isSwing(theirs.way) || liveIn < toSteps(CHAIN.minWindupTime)) return false;
   attack.swingsLeft = 0;
-  const heft = feltHeft(weapon, strengthIn(world, e));
+  const heft = heftShare(weapon);
   windUp(world, e, enemy, attack, weapon, false, { way: parryWay(theirs.way), windupTime: liveIn * FIXED_DT / heft });
   return true;
 }

@@ -18,7 +18,7 @@ function loose(t: SwordTurn, bow: RangedMoves): void {
   const gear = unstow(player.gear, bow.ammo, 1), weapon = weaponItemIn(t.wielder.hands);
   if (!gear || !weapon) return;
   player.gear = gear;
-  const stats = world.require(e, FighterStats), speed = loosedSpeed(bow, t.weapon!, stats.strength, drawnTime);
+  const stats = world.require(e, FighterStats), speed = loosedSpeed(bow, t.weapon!, drawnTime);
   const from = { x: pos.x + dir.x * def.releaseOutM, y: pos.y + def.releaseUpM, z: pos.z + dir.z * def.releaseOutM };
   const to = { x: at.x - from.x, y: at.y - from.y, z: at.z - from.z }, lineM = Math.hypot(to.x, to.y, to.z);
   const straight = lineM > 0 ? { x: to.x / lineM, y: to.y / lineM, z: to.z / lineM } : { x: dir.x, y: 0, z: dir.z };
@@ -35,7 +35,7 @@ export function drawBow(t: SwordTurn, bow: RangedMoves): boolean {
   if (!weapon) return false;
   if (player.action === "draw") {
     const held = input.attack === "light" || input.attackHeld;
-    const ready = toSteps(player.actionTime) >= toSteps(drawTime(bow, weapon, strength, "minTime"));
+    const ready = toSteps(player.actionTime) >= toSteps(drawTime(bow, weapon, "minTime"));
     if (!held && ready) loose(t, bow);
     return true;
   }

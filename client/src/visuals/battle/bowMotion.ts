@@ -1,5 +1,5 @@
 import {
-  damp, drawnShare, FighterStats, Player, rangedOf, weaponIn, Wielder, type Entity, type World,
+  damp, drawnShare, Player, rangedOf, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
 
 export interface BowDraw { drawn: number; nocked: boolean; loosedTime: number | null }
@@ -9,7 +9,7 @@ export function bowDrawOf(world: World, e: Entity): BowDraw | null {
   if (!bow || !weapon) return null;
   const loosedTime = player?.action === "loose" ? player.actionTime : null;
   if (player?.action !== "draw") return { drawn: 0, nocked: false, loosedTime };
-  const drawn = drawnShare(bow, weapon, world.require(e, FighterStats).strength, player.actionTime);
+  const drawn = drawnShare(bow, weapon, player.actionTime);
   return { drawn, nocked: true, loosedTime: null };
 }
 

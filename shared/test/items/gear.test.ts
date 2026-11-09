@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BASE_BAG, bagWeight, BASE_STATS, carriedCounts, carryLimit, CLOTH, displacedBy, emptyBag, emptyCloth, emptyEquipment,
-  fitsSlot, gearBurden, gearWeight, heldIn, ITEM_IDS, itemDef, ITEMS, moveGear, NO_PILE, packFor, SLOTS, stow,
-  stowedCounts, twoHanded, unstow, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Slot,
+  AVERAGE_STAT, BASE_BAG, bagWeight, BASE_STATS, carriedCounts, carryLimit, CLOTH, displacedBy, emptyBag, emptyCloth,
+  emptyEquipment, fitsSlot, gearBurden, gearWeight, heldIn, ITEM_IDS, itemDef, ITEMS, moveGear as moveGearWith, NO_PILE,
+  packFor, shedUnwieldable, SLOTS, stow, stowedCounts, twoHanded, TWO_HAND_STRENGTH_FACTOR, unstow, WEAPONS, type Bag,
+  type BagItem, type Equipment, type Gear, type ItemId, type Slot, type Spot,
 } from "@infinite-tower/shared";
 import { armed } from "../battle/fight/fixtures.js";
 
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
 const grid = (cols: number, rows: number, ...items: BagItem[]): Bag => ({ cols, rows, items });
+const moveGear = (g: Gear, from: Spot, to: Spot, turned: boolean) => moveGearWith(g, from, to, turned, AVERAGE_STAT);
 const NOTHING: Equipment = emptyEquipment();
 
 /** Deep-frozen, so a function that changes its input throws. */
@@ -120,6 +122,37 @@ describe("moveGear", () => {
     assert.deepEqual(on.bag.items, []);
   });
 
+  test("a weapon goes into a hand only with its minimum strength in the grip", () => {
+    const need = WEAPONS.greatsword.minStrength, book = { ...NOTHING, leftHand: "skillbook" } as const;
+    const equip = (equipment: Equipment, strength: number) => moveGearWith(
+      gear({ bag: grid(6, 4, stack("greatsword", 0, 0)), equipment }),
+      { in: "bag", x: 0, y: 0 }, { in: "slot", slot: "rightHand" }, false, strength);
+    assert.equal(equip(book, need - 1), null);
+    assert.equal(equip(book, need)?.equipment.rightHand, "greatsword");
+    // Alone it's held in both hands, the grip TWO_HAND_STRENGTH_FACTOR × the strength.
+    const alone = Math.ceil(need / TWO_HAND_STRENGTH_FACTOR);
+    assert.ok(alone < need);
+    assert.equal(equip(NOTHING, alone)?.equipment.rightHand, "greatsword");
+    assert.equal(equip(NOTHING, alone - 1), null);
+  });
+
+  test("nothing goes into the other hand if it would leave a lone blade's grip under its minimum", () => {
+    const need = WEAPONS.greatsword.minStrength, strength = Math.ceil(need / TWO_HAND_STRENGTH_FACTOR);
+    assert.ok(strength < need);
+    for (const item of ["skillbook", "wooden-shield", "sword"] as const) {
+      const g = gear({ bag: grid(6, 4, stack(item, 0, 0)), equipment: { ...NOTHING, rightHand: "greatsword" } });
+      const to = { in: "slot", slot: "leftHand" } as const;
+      assert.equal(moveGearWith(g, { in: "bag", x: 0, y: 0 }, to, false, strength), null, item);
+      assert.equal(moveGearWith(g, { in: "bag", x: 0, y: 0 }, to, false, need)?.equipment.leftHand, item, item);
+    }
+  });
+
+  test("a hand is always free to let go: taking a weapon out of a hand is never refused for strength", () => {
+    const g = gear({ bag: grid(6, 4), equipment: { ...NOTHING, rightHand: "greatsword", leftHand: "skillbook" } });
+    const off = moveGearWith(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 0, y: 0 }, false, 1);
+    assert.equal(off?.equipment.rightHand, null);
+  });
+
   test("a hand-to-hand move swaps what the hands hold", () => {
     const moved = moveGear(gear(), { in: "slot", slot: "rightHand" }, { in: "slot", slot: "leftHand" }, false)!;
     assert.deepEqual(moved.equipment, { ...NOTHING, rightHand: "skillbook", leftHand: "sword" });
@@ -151,6 +184,36 @@ describe("moveGear", () => {
     const g = gear({ bag: bag(stack("boar-hide", 0, 0)) });
     assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 1, y: 1 }, false), null);
     assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 5, y: 2 }, false), null);
+  });
+});
+
+describe("a weapon grown too heavy leaves the hand", () => {
+  test("wieldable gear is left as it is", () => {
+    const g = gear({ equipment: { ...NOTHING, rightHand: "greatsword" } });
+    assert.deepEqual(shedUnwieldable(g, WEAPONS.greatsword.minStrength), { gear: g, spilled: {} });
+  });
+
+  test("a weapon under its minimum at its grip goes into the bag", () => {
+    const need = WEAPONS.longsword.minStrength;
+    const g = gear({ bag: grid(6, 4), equipment: { ...NOTHING, rightHand: "longsword", leftHand: "skillbook" } });
+    const { gear: after, spilled } = shedUnwieldable(g, need - 1);
+    assert.deepEqual(spilled, {});
+    assert.equal(after.equipment.rightHand, null);
+    assert.equal(after.equipment.leftHand, "skillbook");
+    assert.deepEqual(stowedCounts(after), { longsword: 1 });
+  });
+
+  test("with no room it spills, for a pile at their feet", () => {
+    const g = gear({ bag: grid(1, 1), equipment: { ...NOTHING, rightHand: "longsword", leftHand: "skillbook" } });
+    const { gear: after, spilled } = shedUnwieldable(g, WEAPONS.longsword.minStrength - 1);
+    assert.equal(after.equipment.rightHand, null);
+    assert.deepEqual(spilled, { longsword: 1 });
+  });
+
+  test("only what's too heavy goes: the blade left alone takes both hands, and may stay", () => {
+    const g = gear({ bag: grid(6, 4), equipment: { ...NOTHING, rightHand: "sword", leftHand: "greatsword" } });
+    const { gear: after } = shedUnwieldable(g, WEAPONS.sword.minStrength);
+    assert.deepEqual([after.equipment.rightHand, after.equipment.leftHand], ["sword", null]);
   });
 });
 

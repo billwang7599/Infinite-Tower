@@ -247,7 +247,7 @@ describe("a kobold raises its guard while its block is up", () => {
   for (const kobold of kobolds) {
     test(`${kobold.weapon}: up only once its block is, eased over its guard's shift by heft, never jumping`, () => {
       const { frames, upAt } = run(kobold, STUN_AT), unguarded = run(kobold, STUN_AT, false).frames;
-      const shiftTime = guardShiftTime(WEAPONS[kobold.weapon], BASE_STATS.strength);
+      const shiftTime = guardShiftTime(WEAPONS[kobold.weapon]);
       const at = (time: number) => handAtTime(frames, time), share = shareFrom(handAtTime(unguarded, upAt));
       assert.ok(upAt > BLOCK_REACT_TIME - FIXED_DT && upAt < STUN_AT - 0.5, `up at ${upAt} s`);
       assert.ok(Vector3.Distance(at(upAt), handAtTime(unguarded, upAt)) < 0.01, "on guard until its block is up");
@@ -270,8 +270,8 @@ describe("a kobold raises its guard while its block is up", () => {
     assert.ok(halfway(kobolds[1]) > halfway(kobolds[0]) + 0.01);
   });
 
-  test("a weaker kobold's guard rises slower, its blade felt heavier", () => {
-    assert.ok(halfway(kobolds[0], BASE_STATS.strength / 5) > halfway(kobolds[0]) + 0.01);
+  test("a weaker kobold's guard rises as fast: strength never changes a weapon's times", () => {
+    assert.ok(Math.abs(halfway(kobolds[0], BASE_STATS.strength / 5) - halfway(kobolds[0])) < 0.01);
   });
 });
 

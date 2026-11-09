@@ -50,10 +50,9 @@ export function readSword(t: SwordTurn): void {
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   player.sinceBlockPress += dt;
   if (blockPressed) {
-    const strength = strengthIn(t.world, t.e);
     const rested = toSteps(player.sinceBlockPress) >= toSteps(HYBRID.block.remashTime);
     player.perfectBlockLeft = guard && !feinted && rested
-      ? guardRaiseTime(guard, strength) + perfectBlockTime(guard) : 0;
+      ? guardRaiseTime(guard) + perfectBlockTime(guard) : 0;
     player.sinceBlockPress = 0;
   } else player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
   if (wielder.comboTime > 0) {

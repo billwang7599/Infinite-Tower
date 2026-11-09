@@ -3,13 +3,13 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  addFaith, blessingsOf, chunkData, chunkKey, chunksNear, CHUNK_SEND_TILES, CLOSE_CODES, coreStats, distXZ,
-  emptyCloth, farChunks, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
-  hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo,
-  skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden,
-  type Character, type ChunkData, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear,
-  type God, type InscriptionId, type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook,
-  type Spot, type StepInput, type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
+  addFaith, blessingsOf, chunkData, chunkKey, chunksNear, CHUNK_SEND_TILES, CLOSE_CODES, coreStats, distXZ, emptyCloth,
+  farChunks, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn, hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf,
+  moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo, shedUnwieldable, skillOf, Stamina, staminaMaxOf,
+  startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden, type Character, type ChunkData, type Cheat,
+  type CoinId, type CoreState, type Entity, type Faith, type Gear, type God, type InscriptionId, type ItemId,
+  type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type UseSpot,
+  type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
@@ -300,7 +300,7 @@ export class GameSession {
     this.followPile();
     const onCloth = from.in === "cloth" || to.in === "cloth";
     const refused = this.using || (inArena && onCloth);
-    const moved = refused ? null : moveGear(this.gear, from, to, turned);
+    const moved = refused ? null : moveGear(this.gear, from, to, turned, this.stats.strength);
     if (moved) {
       this.gear = moved;
       if (from.in === "pile" && this.pileOpen !== null) this.overworld.setPileItems(this.pileOpen, moved.pile);
@@ -366,6 +366,20 @@ export class GameSession {
     this.core = core;
     this.vitals = grownVitals(this.vitals, before, this.stats);
     this.link.send({ t: "core", core, vitals: this.vitals, brokeThrough });
+    // In a fight the fight holds the gear; strength only drops there by dying, which drops it all anyway.
+    if (this.stats.strength < before.strength && this.battle === null) this.shedUnwieldable();
+  }
+
+  /** A weapon grown too heavy for its grip leaves the hand: into the bag, or a pile at their feet. */
+  private shedUnwieldable(): void {
+    const { gear, spilled } = shedUnwieldable(this.gear, this.stats.strength);
+    if (gear === this.gear) return;
+    this.gear = gear;
+    if (Object.keys(spilled).length > 0 && this.inWorld) {
+      this.overworld.dropPile(this.overworld.playerPos(this.me), spilled);
+    }
+    this.link.send({ t: "gear", gear: this.gear });
+    this.saveSoon();
   }
 
   // In the arena after a win the fight follows, so its HUD shows it.

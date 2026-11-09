@@ -102,14 +102,18 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
   physics, not sculpting.
 - One sword system: light, heavy, stab, a held block with a perfect block, a swing parry, a dodge. No kick. A swing's
   way comes from a mouse flick (seven ways, no upward swing); locked on, attacks go where you face.
-- A weapon is data: its heft scales every time and cost. Strength mostly adds damage; it quickens swings at most
-  about 25% (the user: "id say 20%-30%. so making a strenght build still makes sense i think. i want it to most affect
-  damage now"). Any weapon at any strength, only slower. A lone blade is held in both hands, putting in 1.5× the
-  strength, with no speed bonus of its own. A better weapon keeps its weight and only hits harder (the user: "higher
-  tier weapons would be around the same weight wise").
-- A swing's stamina never costs more as you grow, so stamina matters less the stronger you are, on purpose (the user:
-  "the more we level, the less we worry about trivial things like sword swings").
-- No preset timing tables: enemies swing by the player's math; balance goes through weapons, stats and pacing.
+- A weapon is data: its heft alone sets every time, the same for any wielder; strength adds only damage (the user:
+  "every weapon's timing is hard coded. strength doesnt affect that, only damage... if things get too quick, they lose
+  uniqueness and its unbalanced"). A better weapon keeps its weight and only hits harder (the user: "higher tier
+  weapons would be around the same weight wise").
+- Each weapon has a minimum strength: under it you can't equip it (the user: "they cant wield it if they dont have
+  sufficient strenght"), and one that falls under it leaves the hand. A lone blade is held in both hands, putting in
+  1.5× the strength, which counts toward the minimum.
+- Strength over a weapon's minimum makes its swings cheaper, capped, never dearer, so stamina matters less the
+  stronger you are, on purpose (the user: "the more we level, the less we worry about trivial things like sword
+  swings").
+- Enemies swing by the same rule as players (times from heft, no preset timing tables); balance goes through
+  weapons, stats and pacing.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's
   attack; a swordsman's counter after a parry or perfect block can be met.

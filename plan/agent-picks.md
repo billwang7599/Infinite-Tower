@@ -9,7 +9,7 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 - Every stat starts at the average, 10; the stat formulas and the core's fill curve, essence per monster
   (`shared/src/battle/stats.ts`, `CORE`, each enemy's essence item).
 - Scaling (the user: "just make sure things scale properly"; numbers in `CORE`, `STAT_POWERS`, `MOD_CAPS`,
-  `FELT_HEFT_FLOOR`; tested by formula, not hand-played):
+  `STRENGTH_DISCOUNT`; tested by formula, not hand-played):
   - The step curve in kills: step n takes `killGrowth` (1.3) ^ (n − 1) times the first step's kills of its own
     realm's foes: the first 5 boars or 2.5 Kobolds, Peak Tian's last about 197 boars; about 836 boar-kills in all.
   - A foe grown into a higher realm drops `realmEssenceFactor` (2) ^ realm of its essence, so the fill grows × 2
@@ -27,11 +27,18 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 
 Decided by the user since (the agent's picks within them):
 
-- Strength quickens swings 20-30% at most, mostly adding damage: `FELT_HEFT_FLOOR` 0.74 (the agent's), so 0.74 +
-  0.26 × 10 / grip strength, about 0.75 (25% quicker) with every point in strength at Peak Tian.
+- Weapon timings from heft only, strength damage only; minimum strength gates wielding (the user's). The agent's
+  picks within it:
+  - Minimums (grip strength): Old Stick 0, Basic Sword and Kobold blade 8, longsword 12, greatsword 15, Kobold
+    greatsword 8 (the Kobolds, at 8, hold theirs one-handed; a new player at 10 lifts the greatsword only alone in
+    both hands), training bow 0. The Basic Sword at 8 keeps the bot fights' balance: a minimum of 5 made a masher's
+    swings 7.5% cheaper, enough to beat the bog lurker and the grey wolf.
+  - The discount: 1.5% a point of grip strength over the minimum (`STRENGTH_DISCOUNT.perPoint`), capped at 50% off.
+  - Nothing goes into the other hand that would leave a lone blade's grip under its minimum.
+  - Strength falling under a held weapon's minimum (points taken back, an inscription removed, an old save) moves it
+    to the bag, or a pile at their feet if there's no room. Not mid-fight: there strength only drops by dying.
 - No two-handed speed bonus: the grip only adds 1.5× strength.
-- Stamina matters less as you grow, on purpose: a swing's cost never grows while the bar does (the Basic Sword's
-  swings per bar 7.7 at the start, 32 at a whole core).
+- Stamina matters less as you grow, on purpose: a swing's cost never grows while the bar does.
 - The core: a whole core takes no more essence and fill carries over; essence is an item (a 2 s Absorb, refused only
   by a whole core); a breakthrough counts at once, mid-fight too; points are placed free, outside fights, and taken
   back only by a campfire; death can cost a step across a realm; toughness doesn't shorten the counterplay's openings;

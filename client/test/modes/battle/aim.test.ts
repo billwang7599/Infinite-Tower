@@ -66,7 +66,7 @@ describe("aiming where the crosshair is (the screen's centre)", () => {
 
 describe("an arrow loosed at the crosshair", () => {
   before(() => initPhysics());
-  const FULL_STEPS = toSteps(drawTime(BOW, WEAPONS["training-bow"], BASE_STATS.strength, "fullTime"));
+  const FULL_STEPS = toSteps(drawTime(BOW, WEAPONS["training-bow"], "fullTime"));
   const STATUE: EnemyDef = {
     id: "wild-boar", name: "Statue", maxHp: 100, stats: BASE_STATS, radius: 0.85, walkSpeed: 0, turnRate: 0,
     poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},

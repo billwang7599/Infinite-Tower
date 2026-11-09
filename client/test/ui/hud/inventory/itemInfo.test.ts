@@ -40,7 +40,8 @@ describe("itemInfo (the tooltip)", () => {
   });
 
   test("the sword and the skillbook say what holding them lets you do", () => {
-    assert.equal(itemInfo(stack("sword")).effect, "In a hand: light and heavy attacks, and a guard.");
+    assert.equal(itemInfo(stack("sword")).effect,
+      `In a hand: light and heavy attacks, and a guard. Needs ${WEAPONS.sword.minStrength} strength.`);
     assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
   });
 
@@ -72,10 +73,9 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("boar-meat")).damage, null);
   });
 
-  test("no weapon asks for strength: any can be wielded, only heavier to the weak", () => {
-    for (const item of ["sword", "greatsword"] as const) {
-      assert.ok(!itemInfo(stack(item)).effect?.includes("strength"), item);
-    }
+  test("a weapon that needs strength says how much", () => {
+    assert.ok(itemInfo(stack("greatsword")).effect?.endsWith(`Needs ${WEAPONS.greatsword.minStrength} strength.`));
+    assert.ok(!itemInfo(stack("old-stick")).effect?.includes("strength"));
   });
 
   test("gives its rarity", () => {

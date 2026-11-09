@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CLOTH, emptyCloth, emptyEquipment, ITEMS, NO_PILE, packFor, type BagItem, type Equipment, type Gear, type ItemId,
-  type Slot, type Spot,
+  AVERAGE_STAT, CLOTH, emptyCloth, emptyEquipment, ITEMS, NO_PILE, packFor, TWO_HAND_STRENGTH_FACTOR, WEAPONS,
+  type BagItem, type Equipment, type Gear, type ItemId, type Slot, type Spot,
 } from "@infinite-tower/shared";
 import {
   canDrop, cancel, DRAG_START_PX, doubleClick, hoveredStack, itemToUse, keepUp, landing, NO_MOUSE, pointerDown,
@@ -11,6 +11,7 @@ import {
 } from "../../../../src/ui/hud/inventory/bagMouse.js";
 import { armed } from "../../../fixtures/armed.js";
 
+const STRENGTH = AVERAGE_STAT;
 const NOTHING_WORN: Equipment = emptyEquipment();
 const bag = (cols: number, rows: number, ...items: BagItem[]): Gear =>
   ({
@@ -42,7 +43,7 @@ function dragFrom(x: number, y: number, g: Gear = BAG, m: BagMouse = NO_MOUSE): 
 }
 /** Press and let go without moving: a click. */
 const click = (m: BagMouse, x: number, y: number, g: Gear = BAG) =>
-  pointerUp(pointerDown(m, g, over(x, y, 0, 0, g)), g, over(x, y, 0, 0, g), 0).mouse;
+  pointerUp(pointerDown(m, g, over(x, y, 0, 0, g)), g, over(x, y, 0, 0, g), 0, STRENGTH).mouse;
 
 describe("hover", () => {
   test("the stack under the pointer is hovered, whichever of its cells it's on", () => {
@@ -118,7 +119,7 @@ describe("select", () => {
     const pressed = pointerDown(NO_MOUSE, BAG, over(0, 0));
     const wobbled = pointerMove(pressed, BAG, over(0, 0, DRAG_START_PX - 1, 0), 0);
     assert.equal(wobbled.drag, null);
-    assert.deepEqual(pointerUp(wobbled, BAG, over(0, 0, DRAG_START_PX - 1, 0), 0).mouse.selected, at(0, 0));
+    assert.deepEqual(pointerUp(wobbled, BAG, over(0, 0, DRAG_START_PX - 1, 0), 0, STRENGTH).mouse.selected, at(0, 0));
   });
 
   test("selected, hovered and dragged are kept apart", () => {
@@ -157,19 +158,19 @@ describe("drag", () => {
   test("off the grid it has nowhere to land, so it doesn't fit", () => {
     const m = pointerMove(dragFrom(0, 0), BAG, over(-2, 1), 0);
     assert.equal(landing(m, BAG), null);
-    assert.equal(canDrop(m, BAG), false);
+    assert.equal(canDrop(m, BAG, STRENGTH), false);
   });
 
   test("fits on free cells and where it came from; not over another item", () => {
     const tusk = dragFrom(5, 0);
-    assert.equal(canDrop(pointerMove(tusk, BAG, over(0, 2), 0), BAG), true);
-    assert.equal(canDrop(pointerMove(tusk, BAG, over(5, 0), 0), BAG), true);
-    assert.equal(canDrop(pointerMove(tusk, BAG, over(3, 0), 0), BAG), false);
+    assert.equal(canDrop(pointerMove(tusk, BAG, over(0, 2), 0), BAG, STRENGTH), true);
+    assert.equal(canDrop(pointerMove(tusk, BAG, over(5, 0), 0), BAG, STRENGTH), true);
+    assert.equal(canDrop(pointerMove(tusk, BAG, over(3, 0), 0), BAG, STRENGTH), false);
   });
 
   test("dropped on free cells: a move for the server, and the moved stack stays selected", () => {
     const m = pointerMove(dragFrom(5, 0), BAG, over(0, 2), 0);
-    const { mouse, move } = pointerUp(m, BAG, over(0, 2), 0);
+    const { mouse, move } = pointerUp(m, BAG, over(0, 2), 0, STRENGTH);
     assert.deepEqual(move, { from: at(5, 0), to: at(0, 2), turned: false });
     assert.equal(mouse.drag, null);
     assert.deepEqual(mouse.selected, at(0, 2));
@@ -177,7 +178,7 @@ describe("drag", () => {
 
   test("dropped over another item: no move, it snaps back and stays selected", () => {
     const m = pointerMove(dragFrom(5, 0), BAG, over(3, 0), 0);
-    const { mouse, move } = pointerUp(m, BAG, over(3, 0), 0);
+    const { mouse, move } = pointerUp(m, BAG, over(3, 0), 0, STRENGTH);
     assert.equal(move, null);
     assert.equal(mouse.drag, null);
     assert.deepEqual(mouse.selected, at(5, 0));
@@ -185,13 +186,13 @@ describe("drag", () => {
 
   test("dropped off the grid: no move, it snaps back", () => {
     const m = pointerMove(dragFrom(0, 0), BAG, over(9, 9), 0);
-    const { mouse, move } = pointerUp(m, BAG, over(9, 9), 0);
+    const { mouse, move } = pointerUp(m, BAG, over(9, 9), 0, STRENGTH);
     assert.equal(move, null);
     assert.equal(mouse.drag, null);
   });
 
   test("dropped where it came from: nothing to send", () => {
-    const { mouse, move } = pointerUp(pointerMove(dragFrom(0, 0), BAG, over(0, 0), 0), BAG, over(0, 0), 0);
+    const { mouse, move } = pointerUp(pointerMove(dragFrom(0, 0), BAG, over(0, 0), 0), BAG, over(0, 0), 0, STRENGTH);
     assert.equal(move, null);
     assert.deepEqual(mouse.selected, at(0, 0));
   });
@@ -199,15 +200,15 @@ describe("drag", () => {
   test("onto a stack of the same item that has room: a move (the server tops it up)", () => {
     const two = bag(6, 4, stack("boar-meat", 0, 0, 3), stack("boar-meat", 1, 0, 1));
     const m = pointerMove(dragFrom(1, 0, two), two, over(0, 0, 0, 0, two), 0);
-    assert.equal(canDrop(m, two), true);
-    const { move } = pointerUp(m, two, over(0, 0, 0, 0, two), 0);
+    assert.equal(canDrop(m, two, STRENGTH), true);
+    const { move } = pointerUp(m, two, over(0, 0, 0, 0, two), 0, STRENGTH);
     assert.deepEqual(move, { from: at(1, 0), to: at(0, 0), turned: false });
   });
 
   test("onto a full stack: it doesn't fit", () => {
     const full = ITEMS["boar-meat"].stackSize;
     const two = bag(6, 4, stack("boar-meat", 0, 0, full), stack("boar-meat", 1, 0, 1));
-    assert.equal(canDrop(pointerMove(dragFrom(1, 0, two), two, over(0, 0, 0, 0, two), 0), two), false);
+    assert.equal(canDrop(pointerMove(dragFrom(1, 0, two), two, over(0, 0, 0, 0, two), 0), two, STRENGTH), false);
   });
 
   test("cancelling (settings opened over the bag) drops the drag; the item stays where it was", () => {
@@ -230,8 +231,8 @@ describe("turn", () => {
     // The tusk held by its lower cell, pointing at 1,3: standing it covers 1,2-1,3; lying it covers 0,3-1,3.
     const m = pointerMove(dragFrom(5, 1), BAG, over(1, 3), 0);
     const blocked = bag(6, 4, ...BAG.bag.items, stack("boar-meat", 0, 3));
-    assert.equal(canDrop(m, blocked), true);
-    assert.equal(canDrop(turnKey(m, blocked).mouse, blocked), false);
+    assert.equal(canDrop(m, blocked, STRENGTH), true);
+    assert.equal(canDrop(turnKey(m, blocked).mouse, blocked, STRENGTH), false);
   });
 
   test("R with nothing dragged turns the selected item in place, if it fits turned", () => {
@@ -329,7 +330,7 @@ describe("the cloth and the equipment", () => {
   test("dragged from the bag onto the cloth: a move there, kept inside the cloth", () => {
     const m = pointerMove(fromBag(5, 1, BAG), BAG, overSpot(onCloth(3, CLOTH.rows - 1)), 0);
     assert.deepEqual(landing(m, BAG), onCloth(3, CLOTH.rows - 2));
-    const { mouse, move } = pointerUp(m, BAG, overSpot(onCloth(3, CLOTH.rows - 1)), 0);
+    const { mouse, move } = pointerUp(m, BAG, overSpot(onCloth(3, CLOTH.rows - 1)), 0, STRENGTH);
     assert.deepEqual(move, { from: at(5, 0), to: onCloth(3, CLOTH.rows - 2), turned: false });
     assert.deepEqual(mouse.selected, onCloth(3, CLOTH.rows - 2));
   });
@@ -337,9 +338,33 @@ describe("the cloth and the equipment", () => {
   test("the sword dragged onto an empty hand: a move into that slot", () => {
     const m = pointerMove(fromBag(0, 1, SWORD_BAG), SWORD_BAG, overSpot(slot("leftHand")), 0);
     assert.deepEqual(landing(m, SWORD_BAG), slot("leftHand"));
-    assert.equal(canDrop(m, SWORD_BAG), true);
-    assert.deepEqual(pointerUp(m, SWORD_BAG, overSpot(slot("leftHand")), 0).move,
+    assert.equal(canDrop(m, SWORD_BAG, STRENGTH), true);
+    assert.deepEqual(pointerUp(m, SWORD_BAG, overSpot(slot("leftHand")), 0, STRENGTH).move,
       { from: at(0, 0), to: slot("leftHand"), turned: false });
+  });
+
+  test("a weapon too heavy for the strength: no move onto a hand, and it says which", () => {
+    const g = bag(6, 4, stack("greatsword", 0, 0));
+    const m = pointerMove(fromBag(0, 1, g), g, overSpot(slot("rightHand")), 0);
+    // Alone in the hands it's held in both, at TWO_HAND_STRENGTH_FACTOR × the strength.
+    const need = Math.ceil(WEAPONS.greatsword.minStrength / TWO_HAND_STRENGTH_FACTOR);
+    assert.equal(canDrop(m, g, need - 1), false);
+    const weak = pointerUp(m, g, overSpot(slot("rightHand")), 0, need - 1);
+    assert.equal(weak.move, null);
+    assert.equal(weak.tooWeak, "greatsword");
+    const strong = pointerUp(m, g, overSpot(slot("rightHand")), 0, need);
+    assert.equal(strong.tooWeak, null);
+    assert.deepEqual(strong.move, { from: at(0, 0), to: slot("rightHand"), turned: false });
+  });
+
+  test("something into the other hand that would leave a lone blade too heavy: no move, and it names the blade", () => {
+    const need = Math.ceil(WEAPONS.greatsword.minStrength / TWO_HAND_STRENGTH_FACTOR);
+    const g: Gear = { ...bag(6, 4, stack("skillbook", 0, 0)), equipment: { ...NOTHING_WORN, rightHand: "greatsword" } };
+    const m = pointerMove(fromBag(0, 0, g), g, overSpot(slot("leftHand")), 0);
+    const up = pointerUp(m, g, overSpot(slot("leftHand")), 0, need);
+    assert.equal(up.move, null);
+    assert.equal(up.tooWeak, "greatsword");
+    assert.equal(pointerUp(m, g, overSpot(slot("leftHand")), 0, WEAPONS.greatsword.minStrength).tooWeak, null);
   });
 
   test("a bow onto a hand with no room in the bag for what the other holds: no move, and it says what", () => {
@@ -349,35 +374,35 @@ describe("the cloth and the equipment", () => {
       equipment: { ...NOTHING_WORN, leftHand: "skillbook" },
     };
     const m = pointerMove(fromBag(0, 0, full), full, overSpot(slot("rightHand")), 0);
-    assert.equal(canDrop(m, full), false);
-    const refused = pointerUp(m, full, overSpot(slot("rightHand")), 0);
+    assert.equal(canDrop(m, full, STRENGTH), false);
+    const refused = pointerUp(m, full, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.equal(refused.move, null);
     assert.deepEqual(refused.noHands, { item: "training-bow", displaced: "skillbook" });
     const roomy: Gear = { ...full, bag: { ...full.bag, cols: 3, rows: 4 } };
     const moved = pointerUp(pointerMove(fromBag(0, 0, roomy), roomy, overSpot(slot("rightHand")), 0), roomy,
-      overSpot(slot("rightHand")), 0);
+      overSpot(slot("rightHand")), 0, STRENGTH);
     assert.deepEqual([moved.move?.to, moved.noHands], [slot("rightHand"), null]);
   });
 
   test("a hand already full from the bag isn't a matter of hands", () => {
     const g: Gear = { ...bag(3, 2, stack("training-bow", 0, 0, 1, true)), equipment: armed() };
     const m = pointerMove(fromBag(0, 0, g), g, overSpot(slot("rightHand")), 0);
-    assert.equal(pointerUp(m, g, overSpot(slot("rightHand")), 0).noHands, null);
+    assert.equal(pointerUp(m, g, overSpot(slot("rightHand")), 0, STRENGTH).noHands, null);
   });
 
   test("not onto a slot that doesn't take it, nor meat into a hand", () => {
     const sword = pointerMove(fromBag(0, 1, SWORD_BAG), SWORD_BAG, overSpot(slot("head")), 0);
-    assert.equal(canDrop(sword, SWORD_BAG), false);
+    assert.equal(canDrop(sword, SWORD_BAG, STRENGTH), false);
     const meat = pointerMove(fromBag(2, 0, SWORD_BAG), SWORD_BAG, overSpot(slot("rightHand")), 0);
-    assert.equal(canDrop(meat, SWORD_BAG), false);
-    assert.equal(pointerUp(meat, SWORD_BAG, overSpot(slot("rightHand")), 0).move, null);
+    assert.equal(canDrop(meat, SWORD_BAG, STRENGTH), false);
+    assert.equal(pointerUp(meat, SWORD_BAG, overSpot(slot("rightHand")), 0, STRENGTH).move, null);
   });
 
   test("a slot's item is hovered and selected by its slot, and dragged held by its first cell", () => {
     const g: Gear = { ...BAG, equipment: armed() };
     assert.equal(hoveredStack(pointerMove(NO_MOUSE, g, overSpot(slot("rightHand")), 0), g)?.item, "sword");
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0);
+      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.deepEqual(clicked.mouse.selected, slot("rightHand"));
     assert.equal(selectedStack(clicked.mouse, g)?.item, "sword");
     const press = pointerDown(NO_MOUSE, g, overSpot(slot("rightHand")));
@@ -390,9 +415,9 @@ describe("the cloth and the equipment", () => {
     const press = pointerDown(NO_MOUSE, g, overSpot(slot("rightHand")));
     const dragging = pointerMove(press, g, overSpot(slot("rightHand"), FAR), 0);
     assert.deepEqual(
-      pointerUp(pointerMove(dragging, g, over(3, 0, 0, 0, g), 0), g, over(3, 0, 0, 0, g), 0).move,
+      pointerUp(pointerMove(dragging, g, over(3, 0, 0, 0, g), 0), g, over(3, 0, 0, 0, g), 0, STRENGTH).move,
       { from: slot("rightHand"), to: at(3, 0), turned: false });
-    assert.deepEqual(pointerUp(dragging, g, overSpot(slot("leftHand")), 0).move,
+    assert.deepEqual(pointerUp(dragging, g, overSpot(slot("leftHand")), 0, STRENGTH).move,
       { from: slot("rightHand"), to: slot("leftHand"), turned: false });
   });
 
@@ -400,21 +425,21 @@ describe("the cloth and the equipment", () => {
     const g: Gear = { ...BAG, equipment: armed() };
     assert.equal(turnInPlace(g, slot("rightHand")), null);
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0);
+      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.equal(itemToUse(clicked.mouse, g, false), null);
   });
 
   test("meat on the cloth can be eaten from there", () => {
     const g: Gear = { ...BAG, cloth: { ...emptyCloth(), items: [stack("boar-meat", 0, 0)] } };
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, g, overSpot(onCloth(0, 0))), g, overSpot(onCloth(0, 0)), 0);
+      pointerUp(pointerDown(NO_MOUSE, g, overSpot(onCloth(0, 0))), g, overSpot(onCloth(0, 0)), 0, STRENGTH);
     assert.deepEqual(itemToUse(clicked.mouse, g, false), onCloth(0, 0));
   });
 
   test("a selected hand that's emptied (by the server's answer) is let go", () => {
     const g: Gear = { ...BAG, equipment: armed() };
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0);
+      pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.equal(keepUp(clicked.mouse, { ...g, equipment: NOTHING_WORN }).selected, null);
   });
 });
@@ -429,17 +454,17 @@ describe("the backpack", () => {
 
   test("dragged from its grid into the bag, and from the bag into it: moves between the two", () => {
     const out = pointerMove(fromPack(1, 1), WORN, over(1, 2), 0);
-    assert.deepEqual(pointerUp(out, WORN, over(1, 2), 0).move,
+    assert.deepEqual(pointerUp(out, WORN, over(1, 2), 0, STRENGTH).move,
       { from: inPack(1, 1), to: at(1, 2), turned: false });
     const into = pointerMove(dragFrom(5, 1, WORN), WORN, overSpot(inPack(3, 3)), 0);
     assert.deepEqual(landing(into, WORN), inPack(3, 2));
-    assert.deepEqual(pointerUp(into, WORN, overSpot(inPack(3, 3)), 0).move,
+    assert.deepEqual(pointerUp(into, WORN, overSpot(inPack(3, 3)), 0, STRENGTH).move,
       { from: at(5, 0), to: inPack(3, 2), turned: false });
   });
 
   test("what's in it is used from there", () => {
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, WORN, overSpot(inPack(1, 1))), WORN, overSpot(inPack(1, 1)), 0);
+      pointerUp(pointerDown(NO_MOUSE, WORN, overSpot(inPack(1, 1))), WORN, overSpot(inPack(1, 1)), 0, STRENGTH);
     assert.deepEqual(itemToUse(clicked.mouse, WORN, false), inPack(1, 1));
   });
 
@@ -447,7 +472,7 @@ describe("the backpack", () => {
     const press = pointerDown(NO_MOUSE, WORN, overSpot(slot("back")));
     const dragging = pointerMove(press, WORN, overSpot(slot("back"), FAR), 0);
     const onto = pointerMove(dragging, WORN, over(1, 3), 0);
-    assert.equal(canDrop(onto, WORN), false);
+    assert.equal(canDrop(onto, WORN, STRENGTH), false);
   });
 });
 
@@ -460,23 +485,23 @@ describe("an open pile", () => {
 
   test("its items are dragged into the bag: a move from the pile", () => {
     const m = pointerMove(fromPile(0, 1), PILED, over(2, 1, 0, 0, PILED), 0);
-    assert.equal(canDrop(m, PILED), true);
-    const { move } = pointerUp(m, PILED, over(2, 1, 0, 0, PILED), 0);
+    assert.equal(canDrop(m, PILED, STRENGTH), true);
+    const { move } = pointerUp(m, PILED, over(2, 1, 0, 0, PILED), 0, STRENGTH);
     assert.deepEqual(move, { from: onPile(0, 0), to: at(2, 0), turned: false });
   });
 
   test("nothing is dropped onto it, from the bag or moved about on it", () => {
     const g: Gear = { ...PILED, bag: { ...PILED.bag, items: [stack("boar-hide", 0, 0)] } };
     const fromBag = pointerMove(dragFrom(0, 0, g), g, overSpot(onPile(2, 0)), 0);
-    assert.equal(canDrop(fromBag, g), false);
-    assert.equal(pointerUp(fromBag, g, overSpot(onPile(2, 0)), 0).move, null);
+    assert.equal(canDrop(fromBag, g, STRENGTH), false);
+    assert.equal(pointerUp(fromBag, g, overSpot(onPile(2, 0)), 0, STRENGTH).move, null);
     const within = pointerMove(fromPile(1, 0), PILED, overSpot(onPile(3, 1)), 0);
-    assert.equal(canDrop(within, PILED), false);
+    assert.equal(canDrop(within, PILED, STRENGTH), false);
   });
 
   test("its meat isn't eaten from it: it's taken into the bag first", () => {
     const clicked =
-      pointerUp(pointerDown(NO_MOUSE, PILED, overSpot(onPile(1, 0))), PILED, overSpot(onPile(1, 0)), 0);
+      pointerUp(pointerDown(NO_MOUSE, PILED, overSpot(onPile(1, 0))), PILED, overSpot(onPile(1, 0)), 0, STRENGTH);
     assert.equal(selectedStack(clicked.mouse, PILED)?.item, "boar-meat");
     assert.equal(itemToUse(clicked.mouse, PILED, false), null);
   });

@@ -1,7 +1,8 @@
 import {
   BASE_BAG, blankSkillbook, coreStats, displacedBy, emptyBag, emptyEquipment, fitsSlot, ITEMS, keptCore, keptFaith,
-  maxHpOf, newCore, packFor, SLOTS, staminaMaxOf, stow, validateSkill, WORDS, type Bag, type BagItem, type Equipment,
-  type ItemCounts, type ItemId, type Skill, type Skillbook, type Slot, type Stats, type Vitals, type Word,
+  maxHpOf, newCore, packFor, shedUnwieldable, SLOTS, staminaMaxOf, stow, validateSkill, WORDS, type Bag, type BagItem,
+  type Equipment, type ItemCounts, type ItemId, type Skill, type Skillbook, type Slot, type Stats, type Vitals,
+  type Word,
 } from "@infinite-tower/shared";
 import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { keptStory, newStory } from "../game/story.js";
@@ -31,12 +32,18 @@ const isItem = (item: string): item is ItemId => Object.hasOwn(ITEMS, item);
  */
 export function keptSave(stored: StoredSave): { save: PlayerSave; spilled: ItemCounts } {
   const knownWords = stored.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word));
-  const { bag, pack, quiver, equipment, spilled } = refitted(stored, wearable(stored.equipment));
+  const core = keptCore(stored.core), refit = refitted(stored, wearable(stored.equipment));
+  // Held under its minimum strength (a save from before the minimums): into the bag, or spilled.
+  const shed = shedUnwieldable(refit, coreStats(core).strength), { bag, pack, quiver, equipment } = shed.gear;
+  const spilled = { ...refit.spilled };
+  for (const [item, count] of Object.entries(shed.spilled) as [ItemId, number][]) {
+    spilled[item] = (spilled[item] ?? 0) + count;
+  }
   const save = {
     ...stored, knownWords, bag, pack, quiver, equipment,
     skillbook: readable(stored.skillbook, new Set(knownWords)),
     story: keptStory(stored.story),
-    core: keptCore(stored.core),
+    core,
     shopsBought: stored.shopsBought.filter((shop): shop is ShopId => Object.hasOwn(SHOPS, shop)),
     faith: keptFaith(stored.faith),
   };

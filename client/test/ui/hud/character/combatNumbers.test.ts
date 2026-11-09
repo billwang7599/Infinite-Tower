@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ActiveHit, addItem, BASE_STATS, BLESSING_FAITH, blockStaminaShare, blessingsOf, Body, BOW, BURDEN, carryLimit,
-  coreStats, copyInput, DAMAGE_TYPES, drawCost, drawTime, emptyBag, emptyEquipment, feltHeft, FIXED_DT, gearBurden,
+  coreStats, copyInput, DAMAGE_TYPES, drawCost, drawTime, emptyBag, emptyEquipment, FIXED_DT, gearBurden,
   GUARDS, guardOf, guardRaiseTime, Health, HYBRID, IDLE_INPUT, ITEMS, loosedDamage, maxHpOf, newCore, packFor,
   parryWindowTime, perfectBlockTime, Stamina, staminaMaxOf, STAT_POWERS, STATUS_DEFS, STRIKES, TWO_HAND_STRENGTH_FACTOR,
   WEAPONS, Wielder, type Carried, type CoreState, type Damage, type EnemyDef, type Equipment, type Faith, type Grip,
@@ -85,7 +85,7 @@ describe("the advanced stats' weapon numbers", () => {
     });
   }
 
-  test("a lone weapon is held in both hands: its numbers are a stronger wielder's, and say so", () => {
+  test("a lone weapon is held in both hands: hits as a stronger wielder's, costs no more, as fast, says so", () => {
     const core = newCore(), strength = coreStats(core).strength;
     const [two] = combatNumbers(holding({ rightHand: "greatsword" }), core, {}).held;
     const [one] = combatNumbers(holding({ rightHand: "greatsword", leftHand: "skillbook" }), core, {}).held;
@@ -93,8 +93,12 @@ describe("the advanced stats' weapon numbers", () => {
     assert.equal(one!.grip, "one");
     close(two!.appliedStrength, strength * TWO_HAND_STRENGTH_FACTOR);
     close(one!.appliedStrength, strength);
-    close(two!.feltHeft, feltHeft(WEAPONS.greatsword, strength * TWO_HAND_STRENGTH_FACTOR));
-    assert.ok(two!.strikes!.light.windupTime < one!.strikes!.light.windupTime);
+    assert.equal(two!.minStrength, WEAPONS.greatsword.minStrength);
+    close(two!.strikes!.light.windupTime, one!.strikes!.light.windupTime);
+    assert.ok(two!.strikes!.light.stamina <= one!.strikes!.light.stamina);
+    const [sword] = combatNumbers(holding({ rightHand: "sword" }), core, {}).held;
+    const [swordOne] = combatNumbers(holding({ rightHand: "sword", leftHand: "skillbook" }), core, {}).held;
+    assert.ok(sword!.strikes!.light.stamina < swordOne!.strikes!.light.stamina);
     for (const strike of STRIKES) {
       for (const type of DAMAGE_TYPES) {
         close(two!.strikes![strike].damage[type],
@@ -136,9 +140,9 @@ describe("the advanced stats' weapon numbers", () => {
     assert.equal(bow!.parryTime, null);
     const { "training-bow": stave } = WEAPONS;
     assert.deepEqual(bow!.draw, {
-      minTime: drawTime(BOW, stave, strength, "minTime"), fullTime: drawTime(BOW, stave, strength, "fullTime"),
+      minTime: drawTime(BOW, stave, "minTime"), fullTime: drawTime(BOW, stave, "fullTime"),
       stamina: drawCost(BOW, stave, strength),
-      damage: loosedDamage(BOW, stave, drawTime(BOW, stave, strength, "fullTime"), coreStats(core)),
+      damage: loosedDamage(BOW, stave, drawTime(BOW, stave, "fullTime"), coreStats(core)),
     });
     assert.deepEqual(combatNumbers(holding({ leftHand: "skillbook" }), core, {}).held, []);
   });
@@ -201,16 +205,16 @@ const pushedGuarding = (hands: Partial<Equipment>) => pushedBlocking(holding(han
 
 describe("the advanced stats' guard, as the fight blocks", () => {
   test("a shield over a blade, else the blade in play: its kind, raise time and perfect window", () => {
-    const core = newCore(), strength = coreStats(core).strength;
+    const core = newCore();
     const guard = (hands: Partial<Equipment>) => combatNumbers(holding(hands), core, {}).guard;
     for (const [grip, hands] of GUARDED) assert.equal(guard(hands)!.grip, grip);
     assert.equal(guard({ leftHand: "wooden-shield" })!.kind, "shield");
     const shield = guardOf({ rightHand: "sword", leftHand: "wooden-shield" })!.guard;
     const shielded = guard({ rightHand: "sword", leftHand: "wooden-shield" })!;
-    close(shielded.raiseTime, guardRaiseTime(shield, strength));
+    close(shielded.raiseTime, guardRaiseTime(shield));
     close(shielded.perfectTime, perfectBlockTime(shield));
     const great = guard({ rightHand: "greatsword", leftHand: "skillbook" })!;
-    close(great.raiseTime, guardRaiseTime(WEAPONS.greatsword, strength));
+    close(great.raiseTime, guardRaiseTime(WEAPONS.greatsword));
     close(great.perfectTime, perfectBlockTime(WEAPONS.greatsword));
     assert.equal(guard({ leftHand: "skillbook" }), null);
   });

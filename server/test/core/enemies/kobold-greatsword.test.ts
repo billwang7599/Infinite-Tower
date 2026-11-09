@@ -21,8 +21,8 @@ describe("the Kobold Greatsword", () => {
     assert.equal(wielder?.armReachM, koboldWielder?.armReachM);
   });
 
-  test("its heavy blade swings slower: a player's wind-ups, stretched by the greatsword's felt heft", () => {
-    const fight = fightWith(GREATSWORD, 1), e = fight.enemies[0]!, { strength } = GREATSWORD.stats;
+  test("its heavy blade swings slower: a player's wind-ups, stretched by the greatsword's heft", () => {
+    const fight = fightWith(GREATSWORD, 1), e = fight.enemies[0]!;
     const kinds = Object.keys(CHAIN.startupTime) as ChainKind[];
     let seen = 0;
     for (let i = 0; i < 30 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
@@ -31,7 +31,7 @@ describe("the Kobold Greatsword", () => {
       if (swing?.step !== 1) continue;
       const strike = strikeOf(swing.attack, swing.way), heavy = strike === "heavy";
       const liveAt = (blade: "kobold-greatsword" | "kobold-blade", kind: ChainKind) =>
-        wayStepsAfter(WEAPONS[blade], windupTime(strike, kind), heavy, strength).liveAt;
+        wayStepsAfter(WEAPONS[blade], windupTime(strike, kind), heavy).liveAt;
       const kind = kinds.find((k) => liveAt("kobold-greatsword", k) === swing.liveAt);
       assert.ok(kind, `live at ${swing.liveAt}`);
       assert.ok(swing.liveAt > liveAt("kobold-blade", kind));
