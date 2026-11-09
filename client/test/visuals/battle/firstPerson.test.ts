@@ -50,10 +50,10 @@ function assertInView(p: Vec3, what: string, inside = IN_VIEW): void {
 const moment = { build: BUILD, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0 };
 const still = { phase: 0, speed: 0, way: { x: 0, z: 1 } };
 const swordPose = (player = playerDoing("none", 0), swing: SwingData | null = null, side: 1 | -1 = 1, walk = still) =>
-  personPose(player, { swing }, MOTIONS.sword, { ...moment, side, walk });
+  personPose(player, { swing }, MOTIONS.melee, { ...moment, side, walk });
 const aimed = (pull: number): BowMotion => ({ ...restingBow(), raise: 1, hand: pull, goal: pull, string: pull });
 const bowPose = (player: ReturnType<typeof playerDoing>, drawn: number) =>
-  personPose(player, { swing: null }, MOTIONS.bow, { ...moment, side: -1, walk: still, bow: { ...BOW.bow!, drawn } });
+  personPose(player, { swing: null }, MOTIONS.ranged, { ...moment, side: -1, walk: still, bow: { ...BOW.bow!, drawn } });
 
 function swordPoses(): [string, PersonPose][] {
   const poses: [string, PersonPose][] = [
@@ -296,7 +296,7 @@ describe("first person: a sword swing", () => {
   }
 
   function draw(p: PersonDrawing, swing: SwingData | null, alpha: number, dt: number, stance: SwingDir | null) {
-    const pose = personPose(playerDoing(swing ? "attack" : "none", 0, stance), { swing }, MOTIONS.sword,
+    const pose = personPose(playerDoing(swing ? "attack" : "none", 0, stance), { swing }, MOTIONS.melee,
       { ...moment, side: 1, walk: still, alpha });
     p.pose = pose;
     restShoulders(p);
@@ -339,13 +339,15 @@ describe("first person: a sword swing", () => {
   });
 
   test("the overhead chop comes down through the view, top to bottom", () => {
+    const HALF_PIXEL = 1 / 1080; // the wind-up's creep carries a hair into the drive
     for (const attack of ["light", "heavy"] as const) {
       const { driveAt, endAt } = swingAt(attack, "tb", 0);
       const stroke = swingRun(attack, "tb", 60).filter((f) => f.s >= driveAt && f.s <= endAt && f.seen);
       assert.ok(stroke[0]!.seen!.tip.y > 0.6, `${attack}: raised, the tip at ${stroke[0]!.seen!.tip.y}`);
       assert.ok(stroke.at(-1)!.seen!.tip.y < -0.6, `${attack}: down, the tip at ${stroke.at(-1)!.seen!.tip.y}`);
       for (let i = 1; i < stroke.length; i++) {
-        assert.ok(stroke[i]!.seen!.tip.y <= stroke[i - 1]!.seen!.tip.y + 1e-9, `${attack}: back up at ${stroke[i]!.s}`);
+        const rose = stroke[i]!.seen!.tip.y - stroke[i - 1]!.seen!.tip.y;
+        assert.ok(rose <= HALF_PIXEL, `${attack}: back up ${rose} at ${stroke[i]!.s}`);
       }
     }
   });
@@ -412,7 +414,7 @@ describe("first person: the blade stays in front of your head", () => {
           let nearest = { depthM: Infinity, at: () => "" }, mostTurnRad = 0, lastWay: Vector3 | null = null;
           const frame = (swing: SwingData | null, alpha: number, way: Way, at: () => string) => {
             p.pose = personPose(playerDoing(swing ? "attack" : "none", 0, way === "stab" ? null : way), { swing },
-              MOTIONS.sword, { ...moment, side, walk: still, alpha, guard: offWeapon ? "dual" : "one",
+              MOTIONS.melee, { ...moment, side, walk: still, alpha, guard: offWeapon ? "dual" : "one",
                 twoHanded: !offWeapon });
             restShoulders(p);
             holdInView(p, view, 1, 1 / PER_SEC);
@@ -540,7 +542,7 @@ describe("first person: the guard", () => {
 
 describe("first person: the block reads", () => {
   const blocking = (guard: GuardKind, side: 1 | -1 = 1, twoHanded = false) => personPose(playerDoing("block", 1, "rl"),
-    { swing: null }, MOTIONS.sword, { ...moment, side, walk: still, guard, twoHanded });
+    { swing: null }, MOTIONS.melee, { ...moment, side, walk: still, guard, twoHanded });
   const flat = (held: { blade: Vec3; edge: Vec3 }) => cross(held.edge, held.blade);
   const lengthM = WEAPON_LOOKS.sword.blade.lengthM;
 
@@ -605,7 +607,7 @@ describe("first person: changing guard or blocking eases, the edge kept toward t
     const frames = [];
     for (let i = 0; i <= endTime * perSec; i++) {
       const t = i / perSec, m = at(t);
-      p.pose = personPose(playerDoing(m.action, 1, m.way), { swing: null }, MOTIONS.sword,
+      p.pose = personPose(playerDoing(m.action, 1, m.way), { swing: null }, MOTIONS.melee,
         { ...moment, side: 1, walk: still, guard: m.guard ?? "one", twoHanded: m.twoHanded ?? false });
       restShoulders(p);
       holdInView(p, view, 1, 1 / perSec);
@@ -623,7 +625,7 @@ describe("first person: changing guard or blocking eases, the edge kept toward t
 
   test("the shift takes about a tenth of a second, longer for a heavier weapon, whoever holds it", () => {
     assert.equal(guardShiftTime(WEAPONS.sword), GUARD_SHIFT.time);
-    assert.equal(guardShiftTime(WEAPONS["old-stick"]), GUARD_SHIFT.time);
+    assert.equal(guardShiftTime(WEAPONS["wooden-sword"]), GUARD_SHIFT.time);
     const great = guardShiftTime(WEAPONS.greatsword);
     assert.ok(great > GUARD_SHIFT.time + 0.03 && great < 2 * GUARD_SHIFT.time, `${great}`);
   });

@@ -5,7 +5,7 @@ import {
   type AttackKind, type EnemyDef, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
+import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE, swingTime } from "../fixtures.js";
 
 await initPhysics();
 
@@ -127,7 +127,7 @@ describe("Imbue", () => {
   const swings = (fight: Fight, count: number) => {
     for (let i = 0; i < count; i++) {
       const attack: AttackKind = i % 2 === 0 ? "light" : "heavy";
-      run(fight, 0.9, (step) => input({ attack: step === 0 ? attack : null }));
+      run(fight, swingTime(attack), (step) => input({ attack: step === 0 ? attack : null }));
     }
   };
   const swordFight = () => new Fight({

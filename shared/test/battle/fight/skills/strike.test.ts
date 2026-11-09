@@ -8,6 +8,7 @@ import {
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
   ARENA, BITER, castNow, enemy, FULL_HP, IDLE, input, player, run, segment, skill, STATS, STATUE, STILL_BITER,
+  swingTime,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -282,7 +283,7 @@ describe("Self", () => {
       if (status) applyStatus(myStatuses(fight).on, status, 5);
       fight.world.require(fight.players[0]!, Health).hp = 50;
       fight.step([input({ attack: "light" })]);
-      run(fight, 0.6);
+      run(fight, swingTime());
       return {
         dealt: STATUE.maxHp - fight.world.require(fight.enemies[0]!, Health).hp,
         healed: fight.world.require(fight.players[0]!, Health).hp - 50,

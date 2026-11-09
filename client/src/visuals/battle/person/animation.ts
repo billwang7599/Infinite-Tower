@@ -13,7 +13,7 @@ import { pullString } from "../bow.js";
 import { bowDrawOf, moveBow, restingBow, type BowMotion } from "../bowMotion.js";
 import { heldSwing, swingHeld, type Swung } from "../impact.js";
 import type { ArenaScene } from "../scene.js";
-import { MOTIONS, WEAPON_LOOKS, type WeaponLook } from "../weapons.js";
+import { motionOf, WEAPON_LOOKS, type WeaponLook } from "../weapons.js";
 import { SHAPES, shownGear, wearOf, type ShownGear } from "./body.js";
 import { ROUNDNESS, type Section } from "./loft.js";
 import {
@@ -293,7 +293,7 @@ export function framePerson(
   const { alpha } = ctx.battle.blend, stop = ctx.hitStops.get(e);
   const live = wielder.swing && { swing: wielder.swing, step: drawnStep(wielder.swing, alpha) };
   const drawn = p.drawnSwing = heldSwing(stop, live, p.drawnSwing);
-  const pose = personPose(stance, { swing: drawn?.swing ?? null }, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
+  const pose = personPose(stance, { swing: drawn?.swing ?? null }, motionOf(weapon), {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
     stagger, deadTime: p.deadTime, time: p.time,
     walk: { phase: p.gait, speed, way },

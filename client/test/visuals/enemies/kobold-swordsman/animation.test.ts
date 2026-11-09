@@ -44,7 +44,7 @@ function deepest(
   const lofts: Loft[] = [torsoSections(build.bulk), bellySections(build.bulk)].map((sections) => ({
     node: m.chest, sections, roundness: ROUNDNESS,
   }));
-  const motion = MOTIONS.sword, held = motion.held(wayCut("tb", true));
+  const motion = MOTIONS.melee, held = motion.held(wayCut("tb", true));
   let worst = { depthM: 0, where: "" };
   const check = (
     what: string, state: EnemyState, t: number, k: number, swing: SwingData | null, gaitM = 0, guarded = 0,
@@ -112,7 +112,7 @@ describe("the kobolds' arms go round their bodies", () => {
       const look = WEAPON_LOOKS[weapon], cut = wayCut("tb", true);
       const m = buildKobold(ctx, 1, new TransformNode("kobold", scene), { radius: 0.5 } as never, 0, look,
         ARM_REACH_M, build);
-      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.sword, null, MOTIONS.sword.held(cut), false,
+      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.melee, null, MOTIONS.melee.held(cut), false,
         { kind: "one", raised: 1 });
       const hand = m.swordArm.hand;
       hand.rotationQuaternion = holdingOf(p.blade, p.edge, new Quaternion());
@@ -287,7 +287,7 @@ describe("the Kobold Shieldbearer's shield", () => {
       (sections) => ({ node: m.chest, sections, roundness: ROUNDNESS }));
     const cut = wayCut("tb", true);
     for (const raised of [0, 0.5, 1]) {
-      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.sword, null, MOTIONS.sword.held(cut), false,
+      const p = koboldPose("approach", 0.5, 0.5, cut, MOTIONS.melee, null, MOTIONS.melee.held(cut), false,
         { kind: "shield", raised });
       m.chest.rotation.set(p.bend, p.twist, 0);
       m.swordArm.hand.rotationQuaternion = holdingOf(p.blade, p.edge, new Quaternion());

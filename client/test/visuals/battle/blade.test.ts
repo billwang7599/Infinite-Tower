@@ -36,7 +36,7 @@ describe("a blade's pixel art", () => {
     }
   });
 
-  test("a stick has none", () => assert.equal(bladeArt(WEAPON_LOOKS["old-stick"]), null));
+  test("a wooden sword has none", () => assert.equal(bladeArt(WEAPON_LOOKS["wooden-sword"]), null));
 });
 
 describe("a 3D blade", () => {

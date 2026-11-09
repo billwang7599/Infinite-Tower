@@ -86,7 +86,7 @@ export function firstPersonArms(arms: Arms, side: 1 | -1): Arms {
 const axes = [new Vector3(), new Vector3(), new Vector3()] as const, basis = new Matrix();
 
 export function guardInView(way: SwingDir, side: 1 | -1): { hand: Vec3; blade: Vec3; edge: Vec3 } {
-  const held = MOTIONS.sword.held(wayCut(way, true)), at = FP_GUARD.hand[side === 1 ? way : mirrorWay(way) as SwingDir];
+  const held = MOTIONS.melee.held(wayCut(way, true)), at = FP_GUARD.hand[side === 1 ? way : mirrorWay(way) as SwingDir];
   const toModel = (v: Vec3) => fromCamera(v.x, v.y, v.z);
   const hand = spot({ ...at, depthM: FP_GUARD.depthM }, side);
   return { hand, blade: toModel(held.blade), edge: toModel(held.edge!) };

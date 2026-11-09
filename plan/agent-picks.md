@@ -16,7 +16,7 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
     more at each realm and farming a realm lower takes twice the kills.
   - Stat effects as powers of stat / 10: damage 1 (was √), HP and the stamina bar 0.5 (were linear), defense 0.5 (was
     50 / (40 + defense)), toughness and stamina recovery 0.5 (were linear), walking and carry ¼ (as before), a block's
-    stamina 0.5 (was 10 / strength). Equal stats take the same hits at every step (about 10 Basic Sword lights on a
+    stamina 0.5 (was 10 / strength). Equal stats take the same hits at every step (about 10 shortsword lights on a
     Kobold Swordsman, 6 on another player); against the same foe each step is at least 15% more damage × HP held.
   - HP regen is a share of the most HP (0.5% a second at health regen 10), so it keeps pace with √ HP.
   - Enemies are grown by core steps per area (`enemySteps`, a spawn may set its own): the Waking Hollow, the Grass
@@ -28,10 +28,9 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 Decided by the user since (the agent's picks within them):
 
 - Minimum strength gates wielding (the user's). The agent's picks within it:
-  - Minimums (grip strength): Old Stick 0, Basic Sword and Kobold blade 8, longsword 12, greatsword 15, Kobold
+  - Minimums (grip strength): Wooden sword 0, Iron shortsword and Kobold blade 8, longsword 12, greatsword 15, Kobold
     greatsword 8 (the Kobolds, at 8, hold theirs one-handed; a new player at 10 lifts the greatsword only alone in
-    both hands), training bow 0. The Basic Sword at 8 keeps the bot fights' balance: a minimum of 5 made a masher's
-    swings 7.5% cheaper, enough to beat the bog lurker and the grey wolf.
+    both hands), training bow 0.
   - The discount: 1.5% a point of grip strength over the minimum (`STRENGTH_DISCOUNT.perPoint`), capped at 50% off.
   - Nothing goes into the other hand that would leave a lone blade's grip under its minimum.
   - Strength falling under a held weapon's minimum (points taken back, an inscription removed, an old save) moves it
@@ -43,17 +42,32 @@ Decided by the user since (the agent's picks within them):
     applied to each strike's own opening wind-up, the heavy's too (so a chained heavy is a share of the heavy's, where
     it was the light's plus a fixed extra).
   - Each heavy deals twice its light's damage, as the old rule did.
-  - Basic Sword: the measure, set so a new player (grip 10, 1% quickened) swings it on the same steps as before
-    tables, which the bot fights need (one step quicker made the grey wolf's swing-only test win).
-  - Old Stick: quick, cheap and feeble, opening above the floor (a reverse still meets it); a third of the sword's
-    damage or less, about half its cost.
+  - Shortsword (was the Basic Sword): the measure, set so a new player (grip 10, 1% quickened) swung it on the same
+    steps as before tables (before the slower wind-ups below).
   - Longsword: a little slower and dearer than the sword, the better stabber, longer reach.
   - Greatsword: slowest to start and recover, longest reach, the most poise damage; the Kobold greatsword is the same
-    table at the Kobolds' minimum.
-  - Parry weight carries the old heft numbers (stick 1, sword 3, longsword 3.6, greatsword 4.9); raise times carry the
+    table at the Kobolds' minimum. Buffed with classes (below).
+  - Parry weight carries the old heft numbers (sword 3, longsword 3.6, greatsword 4.9); raise times carry the
     old heft-derived ones; the wooden shield raises as the sword does and is never quickened (it has no minimum).
   - Training bow: the old draw (0.25 s least, 1 s full, 8 stamina, 20 stab), now quickened above its minimum of 0.
   - The guard-shift animation is slower for a guard slower to raise than the sword's (`GUARD_SHIFT`).
+- Weapon classes, each a label and a base table (the user's). The agent's picks within it:
+  - A weapon overrides its class's table by spreading it and replacing fields (`{ ...base, minStrength: 0 }`), the
+    strikes whole; no merge helper.
+  - The Basic Sword is shown as the Iron shortsword (its id stays `sword`); the Kobold blade is the shortsword base.
+  - Wooden sword: the shortsword's times, costs, poise, reach and parry weight; all blunt, light 3, heavy 6, stab 2
+    (the old starter weapon's, so the chicken and Bram's yard play as before); minimum 0, weight 1.5, drawn as the
+    sword in plain wood. With its minimum 0 a new player swings it a little quicker and cheaper than the shortsword.
+    Bram spars with it and holds a small wooden sword in his overworld sprite.
+  - Greatsword: light 28 slash + 6 blunt, heavy twice that, so about twice the shortsword's a hit, about 20% more
+    damage a second; stab and poise unchanged (its heavy breaks a Kobold Swordsman's poise in two).
+  - A saved `old-stick`, in hand or in a grid, loads as a Wooden sword, laid out again in the grids (it's bigger).
+  - Bram's yard lines say a wooden sword; the tooltip's class goes before the rarity ("Shortsword · Common").
+- Slower wind-ups (the user: "nerf all wind up speed"). The agent's pick, to change after playtesting: every
+  strike's table wind-up is 1.2× what the class tables first had (shortsword light 0.566 → 0.679 s), players and
+  enemies alike; live, recovery and the bow's draw unchanged.
+- The greatsword costs more stamina (the user's). The agent's pick, to change after playtesting: light 28 → 38, heavy
+  44 → 60, stab 26 → 35 (about +35%), about 1.4× the shortsword's stamina per damage.
 - No two-handed speed bonus: the grip only adds 1.5× strength.
 - Stamina matters less as you grow, on purpose: a swing's cost never grows while the bar does.
 - The core: a whole core takes no more essence and fill carries over; essence is an item (a 2 s Absorb, refused only

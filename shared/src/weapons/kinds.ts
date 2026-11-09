@@ -3,7 +3,7 @@ import { BOW, type RangedMoves } from "./bow.js";
 import { wayShape, wayStepsAfter, type GuardKind } from "./hybrid.js";
 import type { Hand } from "../items/gear.js";
 import {
-  canWield, isMelee, isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type MeleeWeapon, type Weapon, type WeaponKind,
+  canWield, isMelee, isWeapon, WEAPONS, weaponHandIn, weaponIn, type Guard, type Hands, type MeleeWeapon, type Weapon, type WeaponClass,
 } from "./weapons.js";
 
 export interface MeleeMoves {
@@ -15,12 +15,13 @@ export interface MeleeMoves {
 export type WeaponMoves = MeleeMoves | RangedMoves;
 export type WeaponStyle = WeaponMoves["style"];
 
-export const MOVES: Record<WeaponKind, WeaponMoves> = {
-  sword: { style: "melee", shape: wayShape, steps: wayStepsAfter },
-  bow: BOW,
+const SWORD: MeleeMoves = { style: "melee", shape: wayShape, steps: wayStepsAfter };
+
+export const MOVES: Record<WeaponClass, WeaponMoves> = {
+  shortsword: SWORD, longsword: SWORD, greatsword: SWORD, bow: BOW,
 };
 
-export const movesOf = (weapon: Weapon): WeaponMoves => MOVES[weapon.kind];
+export const movesOf = (weapon: Weapon): WeaponMoves => MOVES[weapon.class];
 
 export function meleeOf(weapon: Weapon | null): MeleeMoves | null {
   const moves = weapon && movesOf(weapon);

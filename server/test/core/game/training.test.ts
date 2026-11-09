@@ -69,14 +69,14 @@ describe("the training yard", () => {
     assert.equal(isSolid(WORLD.layout, stop.at.x, stop.at.z), false);
   });
 
-  test("Bram hands over the old stick once, on the first talk, and sets up the dummy", () => {
+  test("Bram hands over the Wooden sword once, on the first talk, and sets up the dummy", () => {
     const { session, link } = fresh({ story: onStep("bram") });
     const said = talkTo(session, link, "bram");
     assert.equal(said.offer?.kind, "train");
-    assert.deepEqual(carried(session), { "old-stick": 1 });
+    assert.deepEqual(carried(session), { "wooden-sword": 1 });
     assert.equal(session.story.quests[QUEST]?.step, "dummy");
     talkTo(session, link, "bram");
-    assert.deepEqual(carried(session), { "old-stick": 1 });
+    assert.deepEqual(carried(session), { "wooden-sword": 1 });
   });
 
   test("taking the quest from Bram himself counts as talking to him", () => {
@@ -85,7 +85,7 @@ describe("the training yard", () => {
     assert.equal(offeredQuest(said.offer), QUEST);
     session.acceptQuest(QUEST);
     assert.equal(session.story.quests[QUEST]?.step, "dummy");
-    assert.deepEqual(carried(session), { "old-stick": 1 });
+    assert.deepEqual(carried(session), { "wooden-sword": 1 });
   });
 
   test("the dummy fight is a spar nobody can join; beating it moves on, costing nothing", () => {
@@ -132,7 +132,7 @@ describe("the training yard", () => {
   });
 
   test("losing the spar loses nothing: no death, no drops, the same HP, and Bram will go again", () => {
-    const equipment = { ...emptyEquipment(), rightHand: "old-stick" as const };
+    const equipment = { ...emptyEquipment(), rightHand: "wooden-sword" as const };
     const { session, link } = fresh({ story: onStep("spar"), equipment });
     const said = talkTo(session, link, "bram");
     assert.equal(said.offer?.kind, "train");
@@ -172,9 +172,9 @@ describe("the training yard", () => {
     assert.equal(session.battle, null);
   });
 
-  test("the smith buys the old stick for a few copper", () => {
-    assert.ok(SHOPS.smith.buys.includes("old-stick"));
-    const copper = Math.floor(ITEM_VALUES["old-stick"]! * SELL_SHARE);
+  test("the smith buys the Wooden sword for a few copper", () => {
+    assert.ok(SHOPS.smith.buys.includes("wooden-sword"));
+    const copper = Math.floor(ITEM_VALUES["wooden-sword"]! * SELL_SHARE);
     assert.ok(copper >= 1 && copper < 10, `${copper}`);
   });
 });

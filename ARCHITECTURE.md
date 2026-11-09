@@ -158,7 +158,7 @@ new migrations as it starts.
 `npm test` runs every `*.test.ts` under each workspace's `test/` with Node's test runner; no framework, database or
 browser. Each `test/` mirrors its `src/` and has its own tsconfig, checked by typecheck. Server core is tested
 through its ports with fakes (`server/test/fixtures/`), the HTTP API with `app.inject()`, and the fight headless with
-enemies whose numbers the tests own, including bot fights that play whole fights by seed. Pure logic on the client
+enemies whose numbers the tests own; they check mechanics, never who wins a fight. Pure logic on the client
 (poses, sound cues, actions, notifications) and the art lab's editor is tested without a browser. CI runs typecheck,
 test and build on every PR into `main`.
 
@@ -193,7 +193,7 @@ shared/src/
   battle/          fight components, stats, statuses, inputs, netcode numbers
     fight/         the shared arena fight ("@infinite-tower/shared/fight"): systems, player, weapons,
                    behaviors, skills, physics, outcome, save / load / hash
-  weapons/         weapon kinds, damage, the sword's rules (hybrid.ts), bows
+  weapons/         weapon classes and their tables, damage, the sword's rules (hybrid.ts), bows
   skills/          the grammar, costs and effects
   soul/            the core, inscriptions, blessings
   items/           item kinds, the bag and gear, burden, using items, coins
@@ -242,8 +242,9 @@ check that ids are real and places reachable.
 - **A quest or lore entry.** An entry in its giver's `quests`, its id in `QUEST_ORDER`, and the giver's lines for it;
   lore is a row in `LORE`, revealed by a step's reward.
 - **An item, weapon or wearable.** An item in `ITEMS` with its components (`consumable`, `wearable`, `weapon`,
-  `pack`), and its bag picture in `client/src/gfx/items/`; a weapon also its row in `WEAPON_LOOKS`. A new weapon kind
-  is a `MOVES` and a `MOTIONS` row.
+  `pack`), and its bag picture in `client/src/gfx/items/`; a weapon also its row in `WEAPON_LOOKS` and a class,
+  its stats that class's table with its own fields over it. A new class is a table in `CLASS_TABLES` and a `MOVES` row
+  (a new way of fighting, a `MOTIONS` row too).
 - **A visual or effect.** A row in `VISUALS` (or `EFFECTS` for a fight event), its pose a tested Babylon-free function.
 - **Something kept between connections.** A `PlayerSave` field, `newPlayer()`, `keptSave`, the session's load and
   save, a column in `schema.ts` (then `npm run db:generate`, AGENTS.md) and the store's row mapping.

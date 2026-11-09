@@ -64,10 +64,10 @@ describe("itemInfo (the tooltip)", () => {
   });
 
   test("a weapon gives its damage by type, Slash · Stab · Blunt, leaving out a type it doesn't deal", () => {
-    const sword = weaponDamage(WEAPONS.sword), stick = weaponDamage(WEAPONS["old-stick"]);
+    const sword = weaponDamage(WEAPONS.sword), wood = weaponDamage(WEAPONS["wooden-sword"]);
     assert.equal(itemInfo(stack("sword")).damage, `Slash ${sword.slash} · Stab ${sword.stab} · Blunt ${sword.blunt}`);
-    assert.equal(stick.slash, 0);
-    assert.equal(itemInfo(stack("old-stick")).damage, `Stab ${stick.stab} · Blunt ${stick.blunt}`);
+    assert.equal(wood.slash + wood.stab, 0);
+    assert.equal(itemInfo(stack("wooden-sword")).damage, `Blunt ${wood.blunt}`);
     assert.equal(itemInfo(stack("training-bow")).damage, `Stab ${weaponDamage(WEAPONS["training-bow"]).stab}`);
     assert.equal(itemInfo(stack("wooden-shield")).damage, null);
     assert.equal(itemInfo(stack("boar-meat")).damage, null);
@@ -75,12 +75,19 @@ describe("itemInfo (the tooltip)", () => {
 
   test("a weapon that needs strength says how much", () => {
     assert.ok(itemInfo(stack("greatsword")).effect?.endsWith(`Needs ${WEAPONS.greatsword.minStrength} strength.`));
-    assert.ok(!itemInfo(stack("old-stick")).effect?.includes("strength"));
+    assert.ok(!itemInfo(stack("wooden-sword")).effect?.includes("strength"));
   });
 
-  test("gives its rarity", () => {
+  test("gives its rarity, after a weapon's class", () => {
     assert.equal(itemInfo(stack("wolf-fang")).rarity, "common");
     assert.equal(itemInfo(stack("bog-pearl")).rarity, "rare");
+    assert.equal(itemInfo(stack("bog-pearl")).rarityLine, "Rare");
+    assert.equal(itemInfo(stack("sword")).rarityLine, "Shortsword · Common");
+    assert.equal(itemInfo(stack("wooden-sword")).rarityLine, "Shortsword · Common");
+    assert.equal(itemInfo(stack("kobold-greatsword")).rarityLine, "Greatsword · Uncommon");
+    assert.equal(itemInfo(stack("longsword")).rarityLine, "Longsword · Uncommon");
+    assert.equal(itemInfo(stack("training-bow")).rarityLine, "Bow · Common");
+    assert.equal(itemInfo(stack("wooden-shield")).rarityLine, "Common");
   });
 
   test("a backpack says where it's worn and how big a grid it brings; a cosmetic that it's looks only", () => {

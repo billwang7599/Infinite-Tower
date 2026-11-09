@@ -2,7 +2,7 @@ import type { CarvePrice, ItemId, Rarity } from "@infinite-tower/shared";
 
 /** In copper. */
 export const ITEM_VALUES: Partial<Record<ItemId, number>> = {
-  "old-stick": 5, "boar-meat": 6, "boar-hide": 25, "boar-tusk": 40, "wolf-pelt": 30, "wolf-fang": 15,
+  "wooden-sword": 5, "boar-meat": 6, "boar-hide": 25, "boar-tusk": 40, "wolf-pelt": 30, "wolf-fang": 15,
   "lurker-scale": 20, "bog-pearl": 250, bread: 4, "health-potion": 60, "stamina-tonic": 40,
   sword: 300, longsword: 900, greatsword: 1500, "wooden-shield": 250,
 };
@@ -24,7 +24,7 @@ export const SHOPS: Record<ShopId, Shop> = {
   smith: {
     name: "Forge", sells: ["sword", "longsword", "greatsword", "wooden-shield"],
     buys: [
-      "boar-hide", "boar-tusk", "wolf-pelt", "wolf-fang", "lurker-scale", "bog-pearl", "old-stick", "sword",
+      "boar-hide", "boar-tusk", "wolf-pelt", "wolf-fang", "lurker-scale", "bog-pearl", "wooden-sword", "sword",
       "longsword", "greatsword", "wooden-shield",
     ],
   },

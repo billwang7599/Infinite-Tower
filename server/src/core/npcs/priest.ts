@@ -19,7 +19,7 @@ export const PRIEST: Npc = {
         {
           when: { done: "bram-yard" },
           lines: [
-            "Bram's put a stick in your hands, I see. Good. It's a start.",
+            "Bram's put a wooden sword in your hands, I see. Good. It's a start.",
             "Out past the gate, every beast you put down feeds the light in you. Aurel's light, we say: the dawn "
               + "in every soul.",
             "Some of my order think your kind was sent to feed this world, and that some of you will be spent "

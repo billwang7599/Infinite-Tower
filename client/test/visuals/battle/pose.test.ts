@@ -77,7 +77,7 @@ describe("the player's sprite", () => {
 
 describe("the player's blade", () => {
   const blade = (player: PlayerData, swing: SwingData | null = null, alive = true) =>
-    playerBlade(player, holding(swing), alive, MOTIONS.sword);
+    playerBlade(player, holding(swing), alive, MOTIONS.melee);
   const aimed = (way: SwingDir | null) => blade(playerDoing("none", 1, way));
 
   test("aimed, it's held out on the side the swing comes from, unaimed at rest, eased there", () => {

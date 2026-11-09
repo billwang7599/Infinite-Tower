@@ -1,7 +1,7 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
   Body, clamp, damp, dampFactor, Enemy, gripOf, guardOf, Health, itemDef, smoothstep, weaponItemIn,
-  WEAPONS, Wielder, wrapAngle, type Vec3,
+  Wielder, wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { poseArm } from "../../battle/arm.js";
@@ -16,7 +16,7 @@ import { easeGrip } from "../../battle/person/pose.js";
 import type { ArenaScene } from "../../battle/scene.js";
 import { buildSlash, placeSlash, type Slash } from "../../battle/slash.js";
 import {
-  MOTIONS, strokeOf, WEAPON_LOOKS, wayCut, type WeaponLook, type WeaponMotion,
+  motionOf, strokeOf, WEAPON_LOOKS, wayCut, type WeaponLook, type WeaponMotion,
 } from "../../battle/weapons.js";
 import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
@@ -51,7 +51,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     // Empty-handed, its hand still moves like a sword's.
     return {
       ...model, ctx, clock: 0, blade: new Quaternion(), handAt: null,
-      motion: MOTIONS[held ? WEAPONS[held].kind : "sword"], look,
+      motion: motionOf(held), look,
       cue: look ? cueBlade(ctx.scene, model.swordArm.hand, look) : null, offOnGrip: null,
       slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx), drawnSwing: null, guardRaised: 0,
       shield: shield ? holdShield(ctx, model.offArm.hand, shield) : null,

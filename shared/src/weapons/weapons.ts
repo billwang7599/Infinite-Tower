@@ -4,8 +4,9 @@ import { ITEM_IDS, itemDef, ITEMS, type ItemId } from "../items/items.js";
 
 export type AttackKind = "light" | "heavy";
 
-export const WEAPON_KINDS = ["sword", "bow"] as const;
-export type WeaponKind = (typeof WEAPON_KINDS)[number];
+export const WEAPON_CLASSES = ["shortsword", "longsword", "greatsword", "bow"] as const;
+export type WeaponClass = (typeof WEAPON_CLASSES)[number];
+export type MeleeClass = Exclude<WeaponClass, "bow">;
 
 export const DAMAGE_TYPES = ["slash", "stab", "blunt"] as const;
 export type DamageType = (typeof DAMAGE_TYPES)[number];
@@ -44,7 +45,7 @@ interface WeaponBase extends Guard {
 
 /** Each weapon is a table of its own stats (the user: "every weapon just now has a table of stats to read from"). */
 export interface MeleeWeapon extends WeaponBase {
-  kind: "sword";
+  class: MeleeClass;
   strikes: Record<Strike, StrikeStats>;
   whiffRecoverTime: number;
   feintRecoverTime: number;
@@ -53,7 +54,7 @@ export interface MeleeWeapon extends WeaponBase {
 }
 
 export interface RangedWeapon extends WeaponBase {
-  kind: "bow";
+  class: "bow";
   /** `cost` is paid as the draw starts; a release before `minTime` looses once it's reached. */
   draw: { minTime: number; fullTime: number; cost: number };
   /** The arrow's, fully drawn. */
@@ -64,7 +65,7 @@ export interface RangedWeapon extends WeaponBase {
 
 export type Weapon = MeleeWeapon | RangedWeapon;
 
-export const isMelee = (weapon: Weapon | null): weapon is MeleeWeapon => weapon?.kind === "sword";
+export const isMelee = (weapon: Weapon | null): weapon is MeleeWeapon => weapon !== null && weapon.class !== "bow";
 
 const ofQuality = (weapon: Weapon, damage: Damage): Damage => scaleDamage(damage, weapon.quality ?? 1);
 
@@ -87,8 +88,8 @@ export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
 
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
 export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;
-const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(["bow"]);
-export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].kind);
+const TWO_HANDED: ReadonlySet<WeaponClass> = new Set(["bow"]);
+export const twoHanded = (item: ItemId | null): boolean => isWeapon(item) && TWO_HANDED.has(WEAPONS[item].class);
 
 /** Each point of grip strength over a weapon's minimum takes this share off its stamina costs, up to the cap. */
 export const STRENGTH_DISCOUNT = { perPoint: 0.015, max: 0.5 } as const;

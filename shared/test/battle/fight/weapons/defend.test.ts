@@ -216,7 +216,7 @@ describe("blocking by the blade", () => {
   });
 
   test("no guard comes up in less than no time, however light, so none cuts into the perfect window", () => {
-    for (const weapon of ["old-stick", "sword"] as const) assert.ok(guardRaiseTime(WEAPONS[weapon], 99) >= 0, weapon);
+    for (const weapon of ["wooden-sword", "sword"] as const) assert.ok(guardRaiseTime(WEAPONS[weapon], 99) >= 0, weapon);
   });
 
   test("the perfect window grows with the blade's length", () => {

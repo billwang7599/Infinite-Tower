@@ -187,9 +187,9 @@ describe("a lone blade is held in both hands, its strength counting TWO_HAND_STR
     return { spent, liveAt: swing.liveAt, endAt: swing.endAt, damage: swing.damage };
   }
 
-  test("every melee blade, the Old Stick too, swings and costs by the grip in both hands, never slower or dearer", () => {
+  test("every melee blade, the Wooden sword too, swings and costs by the grip in both hands, never slower or dearer", () => {
     const gripped = STATS.strength * TWO_HAND_STRENGTH_FACTOR;
-    for (const item of ["old-stick", "sword", "longsword", "greatsword"] as const) {
+    for (const item of ["wooden-sword", "sword", "longsword", "greatsword"] as const) {
       for (const strike of ["light", "heavy", "stab"] as const) {
         const weapon = WEAPONS[item], what = `${item} ${strike}`;
         const one = swingWith(item, "skillbook", strike), two = swingWith(item, null, strike);

@@ -13,7 +13,7 @@ export const BRAM: Npc = {
           task: { kind: "talk", to: "bram" },
           text: "Find Bram in the training yard.",
           hint: "Aldric said old Bram keeps a yard off the castle courtyard, through the gap in its north-west wall.",
-          reward: { items: { "old-stick": 1 } },
+          reward: { items: { "wooden-sword": 1 } },
         },
         {
           id: "dummy",
@@ -41,10 +41,10 @@ export const BRAM: Npc = {
           when: { quest: QUEST, step: "bram" },
           lines: [
             "Aldric sent you? He sends them all. Come in, come in, mind the post.",
-            "Empty-handed, like every one of you off that stone. Here: an old stick. It's no blade, but it swings "
-              + "like one, and it's yours to keep.",
-            "It's in your bag now. Open it, {general.inventory}, and drag the stick into one of your hands. No "
-              + "stick in hand, no swing.",
+            "Empty-handed, like every one of you off that stone. Here: a wooden sword. It won't cut, but it swings "
+              + "like the real thing, and it's yours to keep.",
+            "It's in your bag now. Open it, {general.inventory}, and drag the sword into one of your hands. No "
+              + "sword in hand, no swing.",
             "Then show me on the dummies, all three. A light swing, a heavy one and a stab, and each goes down. "
               + "Tell me when you're ready.",
           ],
@@ -53,7 +53,7 @@ export const BRAM: Npc = {
         {
           when: { quest: QUEST, step: "dummy" },
           lines: [
-            "The dummies are waiting. Stick in hand first: open your bag, {general.inventory}, and drag it into a "
+            "The dummies are waiting. Sword in hand first: open your bag, {general.inventory}, and drag it into a "
               + "hand. They won't hit back, and none falls until it's had a light swing, a heavy one and a stab. "
               + "Ready?",
           ],

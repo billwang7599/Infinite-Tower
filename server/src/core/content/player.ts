@@ -25,6 +25,8 @@ export const newPlayer = (): PlayerSave => ({
 });
 
 const isItem = (item: string): item is ItemId => Object.hasOwn(ITEMS, item);
+const RENAMED: Readonly<Record<string, ItemId>> = { "old-stick": "wooden-sword" };
+const renamedTo = (item: string): ItemId | null => (Object.hasOwn(RENAMED, item) ? RENAMED[item]! : null);
 
 /**
  * What of a stored save still fits the game: words, items, quests and shops it no longer has are dropped. `spilled`:
@@ -57,6 +59,11 @@ const area = (s: BagItem) => ITEMS[s.item].cols * ITEMS[s.item].rows;
 // A bag of another size is from before the backpack, so it gets the starter one. Biggest first packs tightest.
 function refitted(saved: Pick<StoredSave, "bag" | "pack" | "quiver">, worn: Equipment) {
   const known = (grid: Bag) => grid.items.filter((s) => isItem(s.item));
+  // Its size may differ, so a renamed item is laid out again rather than kept where it lay.
+  const renamed = (grid: Bag) => grid.items.flatMap((s) => {
+    const item = renamedTo(s.item);
+    return item ? [{ ...s, item }] : [];
+  });
   const oldBag = !sameSize(saved.bag, BASE_BAG);
   const equipment = { ...worn, back: worn.back ?? (oldBag ? STARTER_BACKPACK : null) };
   // A save from before bows took both hands: the left hand's goes into the bag.
@@ -66,7 +73,8 @@ function refitted(saved: Pick<StoredSave, "bag" | "pack" | "quiver">, worn: Equi
   const old = { bag: oldBag, pack: !sameSize(saved.pack, grids.pack), quiver: !sameSize(saved.quiver, grids.quiver) };
   const kept = (grid: keyof typeof grids) => ({ ...grids[grid], items: old[grid] ? [] : known(saved[grid]) });
   let stowed = { bag: kept("bag"), pack: kept("pack"), quiver: kept("quiver") };
-  const moved = (["bag", "pack", "quiver"] as const).flatMap((grid) => (old[grid] ? known(saved[grid]) : []));
+  const moved = (["bag", "pack", "quiver"] as const)
+    .flatMap((grid) => [...(old[grid] ? known(saved[grid]) : []), ...renamed(saved[grid])]);
   if (loose) moved.push({ item: loose, count: 1, x: 0, y: 0, turned: false });
   const spilled: ItemCounts = {};
   for (const s of moved.sort((a, b) => area(b) - area(a))) {
@@ -87,7 +95,7 @@ function readable(saved: unknown, known: ReadonlySet<Word>): Skillbook {
 
 function wearable(saved: Partial<Record<Slot, string | null>>): Equipment {
   const keep = (slot: Slot) => {
-    const item = saved[slot];
+    const stored = saved[slot], item = stored && (renamedTo(stored) ?? stored);
     return item && isItem(item) && fitsSlot(item, slot) ? item : null;
   };
   return Object.fromEntries(SLOTS.map((slot) => [slot, keep(slot)])) as Equipment;

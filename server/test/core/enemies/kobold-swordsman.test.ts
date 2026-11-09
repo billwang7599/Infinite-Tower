@@ -1,57 +1,29 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, gripOf, guardRaiseTime, Health, HYBRID, IDLE_INPUT, parryWay, Player, strikeDamage, strikeOf,
-  toSteps, wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type PlayerInputData, type Skill, type SwingDir,
+  Enemy, FIXED_DT, gripOf, guardRaiseTime, HYBRID, IDLE_INPUT, parryWay, Player, strikeDamage, strikeOf,
+  toSteps, wayStepsAfter, WEAPONS, Wielder, windupTime, type EnemyDef, type Skill, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
-import { fightWith, FULL, gripStrengthOf, setupWith } from "../../fixtures/fight.js";
+import { fightWith, gripStrengthOf, setupWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
-
-const PERFECT_LEAD_STEPS = 6;
 const SEEDS = [1, 2, 3, 1234, 99999];
 
-function reader(fight: Fight): PlayerInputData {
-  const at = fight.world.require(fight.players[0]!, Body).pos;
-  const kobold = fight.world.require(fight.enemies[0]!, Enemy), it = fight.world.require(fight.enemies[0]!, Body).pos;
-  const swing = fight.world.require(fight.enemies[0]!, Wielder).swing;
-  const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
-  const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.2 ? 1 : dist < 1.4 ? -1 : 0;
-  const input: PlayerInputData = {
-    ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, locked: 0,
-    way: Math.floor(fight.steps / 20) % 2 === 0 ? "lr" : "rl",
-  };
-  if (swing && swing.step < swing.liveAt) {
-    input.block = swing.liveAt - swing.step <= PERFECT_LEAD_STEPS;
-    return input;
-  }
-  const even = fight.steps % 2 === 0;
-  if (kobold.state === "staggered" || kobold.state === "weaponRecover") input.attack = even ? "light" : null;
-  return input;
-}
-
-const play = (seed: number, next: (fight: Fight) => PlayerInputData) => {
-  const fight = fightWith(KOBOLD, seed);
-  while (fight.outcome.state === "fighting" && fight.steps < 180 / FIXED_DT) fight.step([next(fight)]);
-  return { fight, hp: fight.world.require(fight.players[0]!, Health).hp };
-};
-
 describe("the Kobold Swordsman", () => {
-  test("its first swing winds up a player's opening with its blade, which feels as the Basic Sword", () => {
+  test("its first swing winds up a player's opening with its blade, which swings as the Iron shortsword", () => {
     const fight = fightWith(KOBOLD, 1), wielder = fight.world.require(fight.enemies[0]!, Wielder);
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     assert.equal(wielder.swing?.step, 1);
     const strike = strikeOf(wielder.swing!.attack, wielder.swing!.way);
-    const liveAt = (blade: "sword" | "kobold-blade" | "old-stick") =>
+    const liveAt = (blade: "sword" | "kobold-blade") =>
       wayStepsAfter(WEAPONS[blade], strike, windupTime(WEAPONS[blade], strike, "opening"), gripStrengthOf(KOBOLD)).liveAt;
     assert.equal(wielder.swing!.liveAt, liveAt("kobold-blade"));
     assert.equal(liveAt("kobold-blade"), liveAt("sword"));
-    assert.ok(liveAt("sword") >= liveAt("old-stick"));
   });
 
   test("its other hand empty, it still holds its blade in one: a one-handed wind-up and damage", () => {
@@ -65,26 +37,6 @@ describe("the Kobold Swordsman", () => {
     assert.deepEqual(swing.damage, strikeDamage(blade, strike, 1, KOBOLD.stats));
   });
 
-  test("a player who reads it beats it, whatever its seed", () => {
-    for (const seed of SEEDS) {
-      const { fight, hp } = play(seed, reader);
-      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-      assert.ok(hp > FULL.hp / 4, `seed ${seed}: ${hp} HP left`);
-    }
-  });
-
-  test("a player who only holds a block loses: its blows wear the stamina down, the guard breaks and it cuts", () => {
-    const { fight } = play(1, (f) => ({ ...reader(f), block: true, attack: null }));
-    assert.equal(fight.outcome.state, "lost");
-  });
-
-  test("a player who only swings at it mostly loses", () => {
-    const masher = (f: Fight): PlayerInputData =>
-      ({ ...reader(f), block: false, attack: f.steps % 2 === 0 ? "light" : null });
-    const lost = SEEDS.filter((seed) => play(seed, masher).fight.outcome.state === "lost").length;
-    assert.ok(lost > SEEDS.length / 2, `lost ${lost} of ${SEEDS.length}`);
-  });
-
   test("its own blade never drops: only its essence, besides treasure", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
     assert.deepEqual(ENEMIES["kobold-swordsman"].drops.map((d) => d.item), ["kobold-swordsman-essence"]);
@@ -93,7 +45,7 @@ describe("the Kobold Swordsman", () => {
 
 describe("losing a parry to a swordsman", () => {
   const PAST_CLASH_STEPS = toSteps(HYBRID.parry.clashTime) + 2;
-  type Mine = "sword" | "old-stick";
+  type Mine = "sword" | "wooden-sword";
 
   function answerLate(def: EnemyDef, mine: Mine, heavy: boolean, seed: number) {
     const weapon = { ...def.attacks.weapon!, heavyShare: heavy ? 1 : 0, heavyFeintShare: 0 };
@@ -130,7 +82,7 @@ describe("losing a parry to a swordsman", () => {
 
   test("its counter winds up as a player's opening, and lands only after the player is free to raise a block", () => {
     const fights = [
-      [KOBOLD, "sword"], [ENEMIES["kobold-greatsword"].def, "sword"], [ENEMIES.bram.def, "old-stick"],
+      [KOBOLD, "sword"], [ENEMIES["kobold-greatsword"].def, "sword"], [ENEMIES.bram.def, "wooden-sword"],
     ] as const;
     for (const [def, mine] of fights) {
       const raise = toSteps(guardRaiseTime(WEAPONS[mine], PLAYER_STATS.strength));

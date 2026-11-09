@@ -1,6 +1,6 @@
 import {
-  clamp, FIXED_DT, isSwing, mirrorWay, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
-  type WeaponKind,
+  clamp, FIXED_DT, isSwing, mirrorWay, movesOf, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
+  type WeaponStyle,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
 import { SWORD } from "../../gfx/look/sword.js";
@@ -151,10 +151,12 @@ export interface WeaponMotion {
 const BOW_REST: BladePose = { blade: norm({ x: 0.2, y: 0.8, z: 0.55 }), handZ: 0.1 };
 const BOW_GUARD: BladePose = { blade: norm({ x: -0.85, y: 0.45, z: 0.25 }), handZ: REST_BLADE.handZ };
 
-export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
-  sword: { rest: REST_BLADE, trail: trailOf, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
-  bow: { rest: BOW_REST, trail: () => null, held: () => BOW_GUARD, windup: () => BOW_GUARD, stroke: () => BOW_GUARD },
+export const MOTIONS: Record<WeaponStyle, WeaponMotion> = {
+  melee: { rest: REST_BLADE, trail: trailOf, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
+  ranged: { rest: BOW_REST, trail: () => null, held: () => BOW_GUARD, windup: () => BOW_GUARD, stroke: () => BOW_GUARD },
 };
+
+export const motionOf = (item: WeaponId | null): WeaponMotion => MOTIONS[item ? movesOf(WEAPONS[item]).style : "melee"];
 
 /**
  * `blade`: from the guard up, or a bow's stave, tip to tip; `art`: painted on its faces, else plain `color`; `gripM`:
@@ -172,7 +174,7 @@ export interface BowLook { braceM: number; drawM: number; string: string }
 const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
-  "old-stick": { blade: { lengthM: lengthOf("old-stick"), widthM: 0.07, color: "#7a5a3a" }, art: null },
+  "wooden-sword": { blade: { lengthM: 1, widthM: 0.1, color: "#9b7a52" }, art: null },
   sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD },
   "kobold-blade": { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD },
   longsword: { blade: { lengthM: lengthOf("longsword"), widthM: 0.105, color: "#c9d1d8" }, art: SWORD },

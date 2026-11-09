@@ -1,6 +1,6 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Enemy, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
+  Body, clamp, damp, Enemy, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, Wielder, type Entity,
   type PlayerData, type Vec2, type World,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
@@ -18,7 +18,7 @@ import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
 import { lookOf } from "./skillLooks.js";
 import { buildSlash, placeSlash, type Slash } from "./slash.js";
-import { MOTIONS, WEAPON_LOOKS } from "./weapons.js";
+import { motionOf, WEAPON_LOOKS } from "./weapons.js";
 
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
@@ -121,7 +121,7 @@ function dispose(sprite: PlayerSprite): void {
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player: Stance): void {
   const { ctx } = sprite, health = world.require(e, Health), { swing, hands } = world.require(e, Wielder);
-  const weapon = weaponItemIn(hands), motion = weapon && MOTIONS[WEAPONS[weapon].kind];
+  const weapon = weaponItemIn(hands), motion = weapon && motionOf(weapon);
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const stagger = { left: health.hitstun, of: sprite.staggerTime };
   const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
@@ -159,7 +159,7 @@ function drawSprite(
   const { ctx } = sprite;
   const body = world.require(e, Body), health = world.require(e, Health);
   const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponItemIn(hands);
-  const motion = weapon && MOTIONS[WEAPONS[weapon].kind];
+  const motion = weapon && motionOf(weapon);
   const p = sprite.node.position, vel = body.vel;
   const alive = health.hp > health.floor;
 

@@ -58,7 +58,7 @@ export const BUTCHER: Npc = {
           when: { quest: QUEST, step: "chickens" },
           lines: [
             "Three birds. Go in through the gate this side and walk the long grass: sooner or later one bursts out "
-              + "at you. Stick in hand, mind. They peck.",
+              + "at you. Sword in hand, mind. They peck.",
           ],
         },
         {

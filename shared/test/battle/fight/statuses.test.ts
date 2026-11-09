@@ -5,7 +5,7 @@ import {
   type StatusOn, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, enemy, FULL_HP, IDLE, input, player, run, STATUE } from "./fixtures.js";
+import { ARENA, BITER, enemy, FULL_HP, IDLE, input, player, run, STATUE, swingTime } from "./fixtures.js";
 
 await initPhysics();
 
@@ -67,7 +67,7 @@ describe("statuses in a fight", () => {
       const before = stamina.value;
       fight.step([input({ attack: "light" })]);
       const spent = before - stamina.value;
-      run(fight, 0.6);
+      run(fight, swingTime());
       return { spent, dealt: STATUE.maxHp - fight.world.require(fight.enemies[0]!, Health).hp };
     };
     const plain = swing(undefined), timed = swing(10), permanent = swing(null);

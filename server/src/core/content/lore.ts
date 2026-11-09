@@ -4,8 +4,8 @@ export const LORE = {
   "soft-as-dough": {
     title: "Soft as dough",
     text: "Avatars come through Highmere's door with empty hands and bodies that have never held a blade. Bram has "
-      + "kept the castle's yard since before the crown thought to pay him for it, putting a stick in each pair of "
-      + "hands and knocking the worst habits out of them. He says the crown wants its avatars armed and grateful, "
+      + "kept the castle's yard since before the crown thought to pay him for it, putting a wooden sword in each pair "
+      + "of hands and knocking the worst habits out of them. He says the crown wants its avatars armed and grateful, "
       + "and that he only cares about the first part.",
   },
   "long-grass": {

@@ -3,22 +3,24 @@ import { describe, test } from "node:test";
 import {
   addItem, appliedStrength, BASE_STATS, BOW, drawCost, drawnShare, drawTime, gripOf, guardOf, ITEM_IDS,
   itemDef, ITEMS, loosedDamage, loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf,
-  strengthDiscount, strengthTimeFactor, TWO_HAND_STRENGTH_FACTOR, WEAPON_KINDS, weaponDamage, WEAPONS, wayShape, wayStepsAfter, type ItemId,
+  strengthDiscount, strengthTimeFactor, TWO_HAND_STRENGTH_FACTOR, WEAPON_CLASSES, weaponDamage, WEAPONS, wayShape, wayStepsAfter, type ItemId,
   type RangedWeapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
 
-describe("weapon kinds", () => {
-  test("every kind says how it fights: the sword swings with the Hybrid's shapes and timings, the bow shoots", () => {
-    assert.deepEqual(Object.keys(MOVES).sort(), [...WEAPON_KINDS].sort());
-    assert.deepEqual(MOVES.sword, { style: "melee", shape: wayShape, steps: wayStepsAfter });
+describe("weapon classes", () => {
+  test("every class says how it fights: every sword swings with the Hybrid's shapes and timings, the bow shoots", () => {
+    assert.deepEqual(Object.keys(MOVES).sort(), [...WEAPON_CLASSES].sort());
+    for (const cls of ["shortsword", "longsword", "greatsword"] as const) {
+      assert.deepEqual(MOVES[cls], { style: "melee", shape: wayShape, steps: wayStepsAfter }, cls);
+    }
     assert.equal(MOVES.bow.style, "ranged");
     assert.equal(MOVES.bow, BOW);
   });
 
   test("melee and ranged are told apart from the weapon, and nothing in hand is neither", () => {
-    assert.equal(meleeOf(WEAPONS.sword), MOVES.sword);
+    assert.equal(meleeOf(WEAPONS.sword), MOVES.shortsword);
     assert.equal(rangedOf(WEAPONS.sword), null);
     assert.equal(rangedOf(TRAINING_BOW), BOW);
     assert.equal(meleeOf(TRAINING_BOW), null);
@@ -72,7 +74,7 @@ describe("weapon kinds", () => {
   });
 
   test("the training bow is a bow; its ammo is an item that stacks in the bag and is worn nowhere", () => {
-    assert.equal(TRAINING_BOW.kind, "bow");
+    assert.equal(TRAINING_BOW.class, "bow");
     const ammo = ITEMS[BOW.ammo];
     assert.ok(ammo.stackSize > 1 && ammo.cols === 1 && ammo.rows === 1);
     assert.equal("wearable" in ammo, false);
@@ -115,7 +117,7 @@ describe("the bow's draw", () => {
   test("every bow has a power", () => {
     for (const id of ITEM_IDS) {
       const { weapon } = itemDef(id);
-      if (weapon?.kind === "bow") assert.ok(weapon.powerMps > 0, id);
+      if (weapon?.class === "bow") assert.ok(weapon.powerMps > 0, id);
     }
   });
 

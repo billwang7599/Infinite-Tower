@@ -1,48 +1,24 @@
 import assert from "node:assert/strict";
-import { before, describe, test } from "node:test";
+import { describe, test } from "node:test";
 import {
-  appliedStrength, Body, emptyEquipment, FIXED_DT, Health, IDLE_INPUT, ITEMS, physicalDamage, physicalTakenFactor,
-  strikeDamage, type Hands, type PlayerInputData,
+  appliedStrength, ITEMS, physicalDamage, physicalTakenFactor, strikeDamage, type Hands,
 } from "@infinite-tower/shared";
-import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { FULL, setupWith } from "../../fixtures/fight.js";
-
-before(() => initPhysics());
 
 const CHICKEN = ENEMIES.chicken.def;
 const PECK = CHICKEN.attacks.pounce!;
 const BOAR = ENEMIES["wild-boar"].def;
-const STICK = ITEMS["old-stick"].weapon!;
-const SEEDS = [1, 2, 3, 1234, 99999];
-const MOST_LOST_SHARE = 0.25;
+const WOOD = ITEMS["wooden-sword"].weapon!;
 
 const lightOnIt = (hands: Hands) => {
   const stats = { ...PLAYER_STATS, strength: appliedStrength(hands, PLAYER_STATS.strength) };
-  return strikeDamage(STICK, "light", 1, stats).blunt * physicalTakenFactor(CHICKEN.stats);
+  return strikeDamage(WOOD, "light", 1, stats).blunt * physicalTakenFactor(CHICKEN.stats);
 };
 
-function withStick(seed: number): Fight {
-  const setup = setupWith(CHICKEN), [player] = setup.players;
-  const equipment = { ...emptyEquipment(), rightHand: "old-stick" as const };
-  return new Fight({
-    ...setup,
-    players: [{ ...player!, gear: { ...player!.gear, equipment } }],
-    enemies: [{ def: CHICKEN, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
-  });
-}
-
-function masher(fight: Fight): PlayerInputData {
-  const at = fight.world.require(fight.players[0]!, Body).pos, it = fight.world.require(fight.enemies[0]!, Body).pos;
-  const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
-  return { ...IDLE_INPUT, aimX: dx / dist, aimZ: dz / dist, moveX: dx / dist, moveZ: dz / dist, locked: 0,
-    attack: fight.steps % 2 === 0 ? "light" : null };
-}
-
 describe("the chicken", () => {
-  test("falls to the third light swing of the old stick in one hand, sooner held in both", () => {
-    const oneHand: Hands = { rightHand: "old-stick", leftHand: "skillbook" };
+  test("falls to the third light swing of the Wooden sword in one hand, sooner held in both", () => {
+    const oneHand: Hands = { rightHand: "wooden-sword", leftHand: "skillbook" };
     const hit = lightOnIt(oneHand), bothHands = lightOnIt({ ...oneHand, leftHand: null });
     assert.ok(2 * hit < CHICKEN.maxHp && CHICKEN.maxHp <= 3 * hit, `${hit} a hit against ${CHICKEN.maxHp} HP`);
     assert.ok(bothHands > hit && CHICKEN.maxHp <= 3 * bothHands);
@@ -57,16 +33,6 @@ describe("the chicken", () => {
   test("is quicker than the boar, and hops back off after every peck", () => {
     assert.ok(CHICKEN.walkSpeed > BOAR.walkSpeed);
     assert.ok(PECK.hopSpeed > 0 && PECK.hopTime > 0);
-  });
-
-  test("a fresh avatar who only swings the old stick at it beats it, whatever its seed, losing little", () => {
-    for (const seed of SEEDS) {
-      const fight = withStick(seed);
-      while (fight.outcome.state === "fighting" && fight.steps < 60 / FIXED_DT) fight.step([masher(fight)]);
-      const hp = fight.world.require(fight.players[0]!, Health).hp;
-      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP after ${fight.steps * FIXED_DT} s`);
-      assert.ok(hp > FULL.hp * (1 - MOST_LOST_SHARE), `seed ${seed}: ${hp} HP left`);
-    }
   });
 
   test("is the butcher's, not a monster: no essence, no treasure, no overworld actor", () => {

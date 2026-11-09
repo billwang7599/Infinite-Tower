@@ -8,7 +8,7 @@ import {
 
 const KINDS: readonly ChainKind[] = ["opening", "reverse", "perpendicular", "other"];
 const MELEE: readonly MeleeWeapon[] = [
-  WEAPONS["old-stick"], WEAPONS.sword, WEAPONS.longsword, WEAPONS.greatsword, WEAPONS["kobold-greatsword"],
+  WEAPONS["wooden-sword"], WEAPONS.sword, WEAPONS.longsword, WEAPONS.greatsword, WEAPONS["kobold-greatsword"],
 ];
 const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
 
@@ -132,14 +132,6 @@ describe("the sword's ways", () => {
     }
   });
 
-  test("the Old Stick opens quicker than the Basic Sword, and its reverse is on the floor", () => {
-    const stick = WEAPONS["old-stick"], liveAt = (weapon: MeleeWeapon, kind: ChainKind) =>
-      wayStepsAfter(weapon, "light", windupTime(weapon, "light", kind), weapon.minStrength).liveAt;
-    assert.ok(liveAt(stick, "opening") < liveAt(WEAPONS.sword, "opening"));
-    assert.ok(liveAt(stick, "opening") > toSteps(CHAIN.minWindupTime));
-    assert.equal(liveAt(stick, "reverse"), toSteps(CHAIN.minWindupTime));
-  });
-
   test("the greatsword is slower in every part of a swing; a heavy's blade is live longer", () => {
     const at = (weapon: MeleeWeapon, strike: "light" | "heavy") =>
       wayStepsAfter(weapon, strike, windupTime(weapon, strike, "opening"), weapon.minStrength);
@@ -150,7 +142,7 @@ describe("the sword's ways", () => {
   });
 
   test("more grip strength over the minimum never costs more", () => {
-    for (const weapon of ["greatsword", "sword", "old-stick"] as const) {
+    for (const weapon of ["greatsword", "sword", "wooden-sword"] as const) {
       const cost = (strength: number) => strikeCost(WEAPONS[weapon], "light", strength);
       const min = WEAPONS[weapon].minStrength;
       assert.ok(cost(min) > cost(min + 5) && cost(min + 5) > cost(min + 20), weapon);

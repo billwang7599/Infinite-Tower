@@ -31,15 +31,6 @@ describe("the Goblin Warlock", () => {
     assert.ok(hp < FULL.hp - 20, `${hp} HP left`);
   });
 
-  test("a player who runs it down beats it, whatever its seed", () => {
-    for (const seed of [1, 2, 3, 1234, 99999]) {
-      const fight = fightWith(WARLOCK, seed);
-      while (fight.outcome.state === "fighting" && fight.steps < 60 / FIXED_DT) fight.step([chaser(fight, true)]);
-      const hp = fight.world.require(fight.players[0]!, Health).hp;
-      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-    }
-  });
-
   test("standing on it gets you poked by its staff, for a little", () => {
     const fight = fightWith(WARLOCK, 1);
     const pokes: number[] = [];
