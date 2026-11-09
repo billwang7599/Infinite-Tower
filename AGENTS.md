@@ -120,6 +120,8 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
 - Balance is judged by playtesting, not by bot fights (the user: "i dont think that really factors in any skill +
   weapon differences"); tests check mechanics, never who wins.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
+- Every fighter in a battle has a body others can't pass through; allies shove each other, and there's no friendly
+  fire either way.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's
   attack; a swordsman's counter after a parry or perfect block can be met.
 - Blocking is the safe defence, the swing parry the risky one; both scale with the blade. Only heavies can be feinted.

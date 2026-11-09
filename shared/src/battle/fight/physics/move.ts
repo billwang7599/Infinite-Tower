@@ -1,8 +1,8 @@
 /**
  * The physics step: gravity, then every body moves by its velocity, stopped by the floor and the wall. Bodies follow
  * the fight's rule rather than masses: an enemy shoves a player along, a player never pushes an enemy (though one
- * pinned against the wall holds it back). Dodging, knocked back or dead, a player passes through enemies, and
- * anyone through a dead enemy; enemies pass through each other, and players through players.
+ * pinned against the wall holds it back). Allies (enemy and enemy, player and player) shove each other apart evenly.
+ * Dodging, knocked back or dead, a player passes through everyone, and anyone through a dead enemy.
  */
 import type { System } from "../../../core/ecs.js";
 import type { Vec3 } from "../../../core/math.js";
@@ -16,8 +16,10 @@ import type { ArenaPhysics, Contact } from "./arena-physics.js";
 const TOUCH_MARGIN = 0.02;
 /** Overlaps up to this deep (m) are left alone: what's left of a player pushed out exactly, give or take rounding. */
 const OVERLAP_SLOP = 0.001;
+/** Rounds of shoving allies apart each step, so one pushed into a third is pushed out of it too. */
+const SHOVE_PASSES = 4;
 
-const solidToEnemies = (player: PlayerData, health: HealthData): boolean =>
+const solid = (player: PlayerData, health: HealthData): boolean =>
   health.hp > 0 && player.action !== "dodge" && health.hitstun <= 0;
 
 export function moveSystem(physics: ArenaPhysics): System {
@@ -33,9 +35,15 @@ export function moveSystem(physics: ArenaPhysics): System {
     }
 
     // ...then players.
+    const players: BodyData[] = [];
     for (const [, player, body, health] of world.query(Player, Body, Health)) {
-      if (mover.movePlayer(player, body, health, enemies, dt)) mover.holdBack(body, enemies);
+      if (!mover.movePlayer(player, body, health, enemies, dt)) continue;
+      mover.holdBack(body, enemies);
+      players.push(body);
     }
+    // Last, so what a player held back is pushed out of its neighbours too.
+    mover.shoveApart(enemies);
+    mover.shoveApart(players);
     physics.step();
   };
 }
@@ -58,10 +66,10 @@ function bodyMover(physics: ArenaPhysics) {
     travel,
     /**
      * Moves a player. Touching an enemy, they go no faster toward it than it comes at them (so a shove carries them
-     * along), and are then pushed out of any overlap that's left. Returns whether they're solid to enemies.
+     * along), and are then pushed out of any overlap that's left. Returns whether they have a body to bump.
      */
     movePlayer(player: PlayerData, body: BodyData, health: HealthData, enemies: BodyData[], dt: number): boolean {
-      if (!solidToEnemies(player, health)) {
+      if (!solid(player, health)) {
         travel(body, dt);
         return false;
       }
@@ -75,6 +83,26 @@ function bodyMover(physics: ArenaPhysics) {
         if (touch && touch.distance < 0) pushOut(body, touch);
       }
       return true;
+    },
+    /**
+     * Allies overlapping each take half the way out (one held by the wall, the other takes the rest), so one walking
+     * into another pushes it along at half its pace.
+     */
+    shoveApart(bodies: BodyData[]): void {
+      for (let pass = 0; pass < SHOVE_PASSES; pass++) {
+        for (let i = 0; i < bodies.length; i++) {
+          for (let j = i + 1; j < bodies.length; j++) {
+            const a = bodies[i]!, b = bodies[j]!;
+            const touch = physics.contact(a.collider, a.pos, b.collider);
+            const across = touch && Math.hypot(touch.x, touch.z);
+            if (!touch || !across || touch.distance > -OVERLAP_SLOP) continue;
+            const x = (touch.x / across) * -touch.distance, z = (touch.z / across) * -touch.distance;
+            const movedA = moveBody(a, { x: x / 2, y: 0, z: z / 2 });
+            const movedB = moveBody(b, { x: movedA.x - x, y: 0, z: movedA.z - z });
+            moveBody(a, { x: x - movedA.x + movedB.x, y: 0, z: z - movedA.z + movedB.z });
+          }
+        }
+      }
     },
     /** Pinned against the wall, the player holds the enemy back instead. */
     holdBack(body: BodyData, enemies: BodyData[]): void {

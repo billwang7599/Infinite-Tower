@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Health, Player, PLAYER } from "@infinite-tower/shared";
+import { Health, Player, PLAYER, type Vec3 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, bodyOf, duel, flatDist, flatRadius, input, player, RAM, run, STATUE,
+  ARENA, BITER, bodyOf, duel, enemy, flatDist, flatRadius, input, player, RAM, run, STATUE,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -156,4 +156,110 @@ describe("bumping into enemies", () => {
       assert.ok(bodyOf(fight, me).pos.z > 1.6, `slid past the boar's middle (z ${bodyOf(fight, me).pos.z})`);
     });
   }
+});
+
+describe("every fighter has a body: allies can't overlap and shove each other", () => {
+  const FOE_TOUCH = 2 * STATUE.radius;
+  const ALLY_TOUCH = 2 * PLAYER.radius;
+  const FAR_FOE = enemy(STATUE, { x: 0, y: 0.05, z: -6 });
+
+  test("two foes spawned inside each other are pushed apart evenly, to where they touch", () => {
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: -5 })],
+      enemies: [enemy(STATUE, { x: -0.5, y: 0.05, z: 3 }), enemy(STATUE, { x: 0.5, y: 0.05, z: 3 })],
+    });
+    run(fight, 0.5);
+    const [a, b] = fight.enemies.map((e) => bodyOf(fight, e).pos) as [Vec3, Vec3];
+    assert.ok(flatDist(a, b) > FOE_TOUCH - SKIN, `apart (${flatDist(a, b)})`);
+    assert.ok(Math.abs(a.x + b.x) < 0.01, `each moved as far (${a.x}, ${b.x})`);
+  });
+
+  test("a foe rushing into another shoves it along, and never ends up inside it", () => {
+    const rusher = { ...RAM, attacks: { lunge: { ...RAM.attacks.lunge!, triggerDist: 6 } } };
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: -2 })],
+      enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 1 }), enemy(rusher, { x: 0, y: 0.05, z: 1 + FOE_TOUCH + 0.1 })],
+    });
+    const [standing, rushing] = fight.enemies as [number, number];
+    let closest = Infinity;
+    for (let step = 0; step < 40; step++) {
+      fight.step([input({})]);
+      closest = Math.min(closest, flatDist(bodyOf(fight, standing).pos, bodyOf(fight, rushing).pos));
+    }
+    assert.ok(bodyOf(fight, standing).pos.z < 0.7, `shoved toward the player (z ${bodyOf(fight, standing).pos.z})`);
+    assert.ok(closest > FOE_TOUCH - SKIN, `never inside it (closest ${closest})`);
+  });
+
+  test("a fast pack crowding a player against the wall never overlaps", () => {
+    const chaser = { ...BITER, walkSpeed: 6 };
+    const wallZ = -(ARENA.radius - PLAYER.radius - 0.02);
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: wallZ })],
+      enemies: [-1.5, 0, 1.5].flatMap((x) => [4, 6].map((ahead) => enemy(chaser, { x, y: 0.05, z: wallZ + ahead }))),
+    });
+    let closest = Infinity;
+    for (let step = 0; step < 180; step++) {
+      fight.step([input({})]);
+      const pos = fight.enemies.map((e) => bodyOf(fight, e).pos);
+      for (let i = 0; i < pos.length; i++) {
+        for (let j = i + 1; j < pos.length; j++) closest = Math.min(closest, flatDist(pos[i]!, pos[j]!));
+      }
+    }
+    assert.ok(closest > FOE_TOUCH - SKIN, `no two foes overlap (closest ${closest})`);
+  });
+
+  test("a pack of foes closing in on the player never overlaps", () => {
+    const chaser = { ...BITER, walkSpeed: 3 };
+    const at = (i: number) => ({ x: (i - 2) * 1.9, y: 0.05, z: 5 });
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })],
+      enemies: [0, 1, 2, 3, 4].map((i) => enemy(chaser, at(i))),
+    });
+    let closest = Infinity;
+    for (let step = 0; step < 150; step++) {
+      fight.step([input({})]);
+      const pos = fight.enemies.map((e) => bodyOf(fight, e).pos);
+      for (let i = 0; i < pos.length; i++) {
+        for (let j = i + 1; j < pos.length; j++) closest = Math.min(closest, flatDist(pos[i]!, pos[j]!));
+      }
+    }
+    assert.ok(closest > FOE_TOUCH - SKIN, `no two foes overlap (closest ${closest})`);
+  });
+
+  test("a dead foe is no obstacle to the others", () => {
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: -5 })],
+      enemies: [enemy(STATUE, { x: -0.5, y: 0.05, z: 3 }), enemy(STATUE, { x: 0.5, y: 0.05, z: 3 })],
+    });
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    run(fight, 0.5);
+    assert.ok(Math.abs(bodyOf(fight, fight.enemies[1]!).pos.x - 0.5) < 0.01, "the live one stayed put");
+  });
+
+  test("two players spawned inside each other are pushed apart", () => {
+    const fight = new Fight({
+      arena: ARENA, enemies: [FAR_FOE],
+      players: [player({ x: -0.1, y: 0.05, z: 0 }), player({ x: 0.1, y: 0.05, z: 0 })],
+    });
+    for (let step = 0; step < 30; step++) fight.step([input({}), input({})]);
+    const [a, b] = fight.players.map((e) => bodyOf(fight, e).pos) as [Vec3, Vec3];
+    assert.ok(flatDist(a, b) > ALLY_TOUCH - SKIN, `apart (${flatDist(a, b)})`);
+  });
+
+  test("a player walking into an ally shoves them along, and never ends up inside them", () => {
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: ALLY_TOUCH + 0.1 })],
+      enemies: [FAR_FOE],
+    });
+    const [me, ally] = fight.players as [number, number];
+    for (let step = 0; step < 10; step++) fight.step([input({}), input({})]);
+    const start = bodyOf(fight, ally).pos.z;
+    let closest = Infinity;
+    for (let step = 0; step < 60; step++) {
+      fight.step([input({ moveZ: 1 }), input({})]);
+      closest = Math.min(closest, flatDist(bodyOf(fight, me).pos, bodyOf(fight, ally).pos));
+    }
+    assert.ok(bodyOf(fight, ally).pos.z > start + 0.5, `shoved (from z ${start} to ${bodyOf(fight, ally).pos.z})`);
+    assert.ok(closest > ALLY_TOUCH - SKIN, `never inside them (closest ${closest})`);
+  });
 });
