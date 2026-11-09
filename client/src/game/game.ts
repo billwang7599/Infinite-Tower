@@ -173,7 +173,8 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
         battle, overworld, ui, settings, audio, mode: () => mode, setDayClock: drawing.setDayClock,
-        encounter: (enemy: EnemyId = "wild-boar") => net?.send({ t: "cheat", cheat: { kind: "encounter", enemy } }),
+        encounter: (enemy: EnemyId = "wild-boar", count = 1) =>
+          net?.send({ t: "cheat", cheat: { kind: "encounter", enemy, count } }),
       });
     },
     leave() {

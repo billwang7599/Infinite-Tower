@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
   bagCounts, blessingsOf, Body, carriedCounts, coreAfterDeath, emptyEquipment, Enemy, packFor, PlayerInput, roundTo,
-  type CoreLoss, type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
+  type CoreLoss, type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vec3, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type Fight, type FightSetup, type PlayerResult,
@@ -53,11 +53,19 @@ export const AFTER_FIGHT_MS = 5 * 60 * 1000;
 /** Between a fallen enemy's body and its drops, so the body doesn't hide them. */
 export const DROP_GAP_M = 0.5;
 
+const FOE_ARC_GAP_RAD = 0.4;
+
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
 export const foeOf = (id: EnemyId, rng: () => number, steps = 0): EnemySetup =>
   ({ def: enemyAt(id, steps), at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(rng) });
+
+/** Several foes stand on an arc through ENEMY_START, as far from the middle as it. */
+function foeStart(i: number, count: number): Vec3 {
+  const angle = (i - (count - 1) / 2) * FOE_ARC_GAP_RAD, r = Math.hypot(ENEMY_START.x, ENEMY_START.z);
+  return { x: roundTo(Math.sin(angle) * r, 2), y: ENEMY_START.y, z: roundTo(Math.cos(angle) * r, 2) };
+}
 
 export const regionHere = (session: GameSession): Region =>
   regionOf(session.overworld.map, session.overworld.playerPos(session.me));
@@ -75,13 +83,15 @@ export function startFight(
 
 /** Held in the arena of the spawn it came from; tall grass has no spawn, so the region's. */
 export function startBattle(
-  session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
+  session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined, count = 1,
 ): void {
   const { overworld } = session, region = regionHere(session);
   const setup: FightSetup = {
     arena: getArena(spawn?.arenaId ?? region.arenaId),
     players: [{ ...fighterOf(session), at: PLAYER_START }],
-    enemies: [foeOf(enemyId, overworld.rng, spawn?.steps ?? region.enemySteps)],
+    enemies: Array.from({ length: count }, (_, i) => ({
+      ...foeOf(enemyId, overworld.rng, spawn?.steps ?? region.enemySteps), at: foeStart(i, count),
+    })),
   };
   const drops = newDrops(overworld.playerPos(session.me));
   startFight([session], setup, seatOf, { source, drops }, {

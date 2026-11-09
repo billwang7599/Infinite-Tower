@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, MAX_GIVE_COUNT } from "@infinite-tower/shared";
+import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT } from "@infinite-tower/shared";
 import { COMMANDS, parseCommand, suggest, type CommandContext } from "../../../src/ui/chat/commands.js";
 import { DAY_SPEEDS, DAY_TIMES } from "../../../src/ui/screens/admin/admin.js";
 
@@ -37,6 +37,15 @@ describe("commands: what each runs", () => {
     assert.match(errorOf(`/give ${ITEM} lots`), /Count must be/);
     assert.equal(errorOf("/give"), "Usage: /give <item> [count]");
     assert.equal(errorOf(`/give ${ITEM} 1 2`), "Usage: /give <item> [count]");
+  });
+
+  test("/encounter <enemy> [foes] brings that many, one unless counted", () => {
+    const enemy = ENEMY_IDS[0]!;
+    assert.deepEqual(actOf(`/encounter ${enemy} 3`), { cheat: { kind: "encounter", enemy, count: 3 } });
+    assert.deepEqual(actOf(`/fight ${enemy} ${MAX_ENCOUNTER_FOES}`),
+      { cheat: { kind: "encounter", enemy, count: MAX_ENCOUNTER_FOES } });
+    assert.match(errorOf(`/encounter ${enemy} 0`), /^Foes must be 1 to \d+: 0$/);
+    assert.match(errorOf(`/encounter ${enemy} ${MAX_ENCOUNTER_FOES + 1}`), /Foes must be/);
   });
 
   test("an unknown command is refused", () => {

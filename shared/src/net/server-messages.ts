@@ -58,6 +58,7 @@ export interface ChatLine {
 export const MAX_CHAT_CHARS = 500;
 
 export const MAX_GIVE_COUNT = 100;
+export const MAX_ENCOUNTER_FOES = 8;
 
 /** `busy`: `who` (null: you) is in another challenge already. */
 export type ChallengeNews =

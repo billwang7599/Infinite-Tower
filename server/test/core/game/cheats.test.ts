@@ -78,6 +78,21 @@ describe("encounter", () => {
     assert.equal(link.last("encounter").setup.enemies[0]?.def.id, "kobold-swordsman");
   });
 
+  test("brings as many foes as asked for, each on its own spot, and is won only when all are down", () => {
+    const { session, link } = startSession({ cheats: true });
+    session.cheat({ kind: "encounter", enemy: "kobold-swordsman", count: 3 });
+    const { enemies } = link.last("encounter").setup;
+    assert.deepEqual(enemies.map((e) => e.def.id), ["kobold-swordsman", "kobold-swordsman", "kobold-swordsman"]);
+    assert.equal(new Set(enemies.map((e) => `${e.at.x},${e.at.z}`)).size, 3);
+    const fight = fightOf(session);
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    standStill(session, FIXED_DT);
+    assert.equal(session.afterFight, null);
+    for (const e of fight.enemies) fight.world.require(e, Health).hp = 0;
+    standStill(session, FIXED_DT);
+    assert.ok(session.afterFight);
+  });
+
   test("does nothing mid-battle, or before the player is in the world", () => {
     const inFight = startSession({ cheats: true });
     fightBoar(inFight.session);

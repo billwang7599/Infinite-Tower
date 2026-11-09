@@ -2,6 +2,7 @@ import { coreAtStep, distXZ, Health, Player, Stamina, stow, type Cheat, type Cor
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../content/player.js";
 import { QUESTS } from "../content/quests.js";
+import { startBattle } from "./battle.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn } from "./story.js";
 
@@ -15,7 +16,7 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
         const at = session.overworld.playerPos(session.me);
         const spawn = session.overworld.map.spawns.filter((s) => s.enemy === cheat.enemy)
           .sort((a, b) => distXZ(a.at, at) - distXZ(b.at, at))[0];
-        session.overworld.startEncounter(session.me, null, cheat.enemy, spawn);
+        if (session.overworld.enterFight(session.me)) startBattle(session, null, cheat.enemy, spawn, cheat.count);
       }
       return;
     case "kill":

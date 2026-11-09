@@ -15,7 +15,7 @@ import { GODS } from "../soul/blessings.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { CAMERA_SENSITIVITY, FLICK_SENSITIVITY, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
-import { MAX_GIVE_COUNT } from "./server-messages.js";
+import { MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT } from "./server-messages.js";
 import { ruledText } from "./text-schema.js";
 
 /** Two walk keys at once make a move √2 long; a little over, for the wire's rounding. */
@@ -191,7 +191,10 @@ const StatPointMsg = z.object({ t: z.literal("statPoint"), stat: z.enum(SHOWN_ST
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
 const CheatSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("encounter"), enemy: z.enum(ENEMY_IDS) }),
+  z.object({
+    kind: z.literal("encounter"), enemy: z.enum(ENEMY_IDS),
+    count: z.number().int().min(1).max(MAX_ENCOUNTER_FOES).optional(),
+  }),
   z.object({ kind: z.literal("invulnerable"), on: z.boolean() }),
   z.object({ kind: z.literal("keepInventory"), on: z.boolean() }),
   z.object({
