@@ -1,15 +1,16 @@
 import {
-  damp, drawnShare, Player, rangedOf, weaponIn, Wielder, type Entity, type World,
+  appliedStrength, damp, drawnShare, FighterStats, isMelee, Player, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
 
 export interface BowDraw { drawn: number; nocked: boolean; loosedTime: number | null }
 
 export function bowDrawOf(world: World, e: Entity): BowDraw | null {
-  const player = world.get(e, Player), weapon = weaponIn(world.require(e, Wielder).hands), bow = rangedOf(weapon);
-  if (!bow || !weapon) return null;
+  const player = world.get(e, Player), hands = world.require(e, Wielder).hands, weapon = weaponIn(hands);
+  if (!weapon || isMelee(weapon)) return null;
   const loosedTime = player?.action === "loose" ? player.actionTime : null;
   if (player?.action !== "draw") return { drawn: 0, nocked: false, loosedTime };
-  const drawn = drawnShare(bow, weapon, player.actionTime);
+  const strength = appliedStrength(hands, world.get(e, FighterStats)?.strength ?? 0);
+  const drawn = drawnShare(weapon, player.actionTime, strength);
   return { drawn, nocked: true, loosedTime: null };
 }
 

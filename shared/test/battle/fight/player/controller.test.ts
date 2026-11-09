@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, packFor, Player, Stamina, strikeCost, wayStepsAfter, WEAPONS,
+  AVERAGE_STAT, dodgeCost, emptyBag, packFor, Player, Stamina, strikeCost, wayStepsAfter, WEAPONS, windupTime,
   type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -14,7 +14,7 @@ type Script = (step: number) => PlayerInputData;
 
 const SWING_AT = 5;
 
-const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveUntil;
+const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, "light", windupTime(WEAPONS.sword, "light", "opening"), AVERAGE_STAT).liveUntil;
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
@@ -68,7 +68,7 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
   });
 
   test("pressed in a light's wind-up it doesn't cancel it (the user: \"no\"): the blade still lands", () => {
-    const liveAt = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveAt;
+    const liveAt = wayStepsAfter(WEAPONS.sword, "light", windupTime(WEAPONS.sword, "light", "opening"), AVERAGE_STAT).liveAt;
     for (const k of [1, liveAt - 1]) {
       const inReach = new Fight({
         arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })], enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 2.4 })],

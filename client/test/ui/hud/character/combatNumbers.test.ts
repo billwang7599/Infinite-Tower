@@ -140,9 +140,9 @@ describe("the advanced stats' weapon numbers", () => {
     assert.equal(bow!.parryTime, null);
     const { "training-bow": stave } = WEAPONS;
     assert.deepEqual(bow!.draw, {
-      minTime: drawTime(BOW, stave, "minTime"), fullTime: drawTime(BOW, stave, "fullTime"),
-      stamina: drawCost(BOW, stave, strength),
-      damage: loosedDamage(BOW, stave, drawTime(BOW, stave, "fullTime"), coreStats(core)),
+      minTime: drawTime(stave, "minTime", strength), fullTime: drawTime(stave, "fullTime", strength),
+      stamina: drawCost(stave, strength),
+      damage: loosedDamage(BOW, stave, drawTime(stave, "fullTime", strength), coreStats(core)),
     });
     assert.deepEqual(combatNumbers(holding({ leftHand: "skillbook" }), core, {}).held, []);
   });
@@ -211,10 +211,10 @@ describe("the advanced stats' guard, as the fight blocks", () => {
     assert.equal(guard({ leftHand: "wooden-shield" })!.kind, "shield");
     const shield = guardOf({ rightHand: "sword", leftHand: "wooden-shield" })!.guard;
     const shielded = guard({ rightHand: "sword", leftHand: "wooden-shield" })!;
-    close(shielded.raiseTime, guardRaiseTime(shield));
+    close(shielded.raiseTime, guardRaiseTime(shield, coreStats(core).strength));
     close(shielded.perfectTime, perfectBlockTime(shield));
     const great = guard({ rightHand: "greatsword", leftHand: "skillbook" })!;
-    close(great.raiseTime, guardRaiseTime(WEAPONS.greatsword));
+    close(great.raiseTime, guardRaiseTime(WEAPONS.greatsword, coreStats(core).strength));
     close(great.perfectTime, perfectBlockTime(WEAPONS.greatsword));
     assert.equal(guard({ leftHand: "skillbook" }), null);
   });

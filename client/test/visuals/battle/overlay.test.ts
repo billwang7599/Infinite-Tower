@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
 import {
-  BOW, drawTime, loosedSpeed, WEAPONS, type Hand, type ItemId, type PlayerAction,
+  drawTime, loosedSpeed, WEAPONS, type Hand, type ItemId, type PlayerAction,
 } from "@infinite-tower/shared";
 import {
   AIM_HUD, aimHud, aimLayout, meterSpan, onScreen, ringLights, wedgeOf,
@@ -106,10 +106,10 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
 
 describe("the draw meter, in the ring's place while a bow is in hand", () => {
   const BOW_ITEM = WEAPONS["training-bow"];
-  const FULL = drawTime(BOW, BOW_ITEM, "fullTime"), MIN = drawTime(BOW, BOW_ITEM, "minTime");
+  const FULL = drawTime(BOW_ITEM, "fullTime", 0), MIN = drawTime(BOW_ITEM, "minTime", 0);
   const hud = (action: PlayerAction, t: number, hp = 10, fighting = true) =>
     aimHud(playerDoing(action, t), hp, null, "tb", fighting, BOW_ITEM);
-  const speedShare = (t: number) => loosedSpeed(BOW, BOW_ITEM, t) / BOW_ITEM.powerMps!;
+  const speedShare = (t: number) => loosedSpeed(BOW_ITEM, t, 0) / BOW_ITEM.powerMps;
   const near = (got: number | undefined, want: number) => assert.ok(Math.abs((got ?? NaN) - want) < 1e-12, `${got}`);
 
   test("with a bow in hand it shows, and the ring doesn't", () => {

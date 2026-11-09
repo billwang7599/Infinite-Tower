@@ -3,7 +3,7 @@ import { toSteps } from "../../../core/time.js";
 import {
   HYBRID, parryKind, parryRecoilTime, parryWindowTime, swingWeight, type ParryKind,
 } from "../../../weapons/hybrid.js";
-import { weaponIn } from "../../../weapons/weapons.js";
+import { meleeIn } from "../../../weapons/kinds.js";
 import { Body, Enemy, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
 import { enter } from "../behaviors/common.js";
 import { faces, stagger } from "../combat.js";
@@ -15,10 +15,10 @@ const baseTime = (kind: ParryKind) => kind === "full" ? HYBRID.parry.fullRecoilT
 
 function weightOf(world: World, e: Entity): number {
   const wielder = world.require(e, Wielder);
-  return swingWeight(weaponIn(wielder.hands)!, strengthIn(world, e), wielder.swing?.attack === "heavy");
+  return swingWeight(meleeIn(wielder.hands)!, strengthIn(world, e), wielder.swing?.attack === "heavy");
 }
 
-const windowSteps = (world: World, e: Entity) => toSteps(parryWindowTime(weaponIn(world.require(e, Wielder).hands)!));
+const windowSteps = (world: World, e: Entity) => toSteps(parryWindowTime(meleeIn(world.require(e, Wielder).hands)!));
 
 function recoil(world: World, e: Entity, time: number): void {
   endChain(world.require(e, Wielder));

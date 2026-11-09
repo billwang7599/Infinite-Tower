@@ -1,6 +1,6 @@
 import { Color3, Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, heftShare, gripOf, guardOf, Health, itemDef, Player, smoothstep,
+  Body, damp, dampFactor, gripOf, guardOf, Health, itemDef, Player, smoothstep,
   weaponHandIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Equipment, type Guard, type Hands,
   type ItemId, type Look, type PlayerData, type SwingData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
@@ -65,9 +65,10 @@ export interface ShownArms extends HeldArms {
 // Each turn's target as last turned toward, its sign the way round, so that way holds as the target moves.
 type Toward = Partial<Record<"holding" | "offHolding", Quaternion>>;
 
-export const GUARD_SHIFT = { time: 0.1, timePerHeft: 0.1 } as const;
+// A guard slower to raise than the Basic Sword's shifts slower, by this much a second of its raise.
+export const GUARD_SHIFT = { time: 0.1, swordRaiseTime: 0.1, perRaiseTime: 0.45 } as const;
 export const guardShiftTime = (guard: Guard): number =>
-  GUARD_SHIFT.time + Math.max(0, heftShare(guard) - 1) * GUARD_SHIFT.timePerHeft;
+  GUARD_SHIFT.time + Math.max(0, guard.raiseTime - GUARD_SHIFT.swordRaiseTime) * GUARD_SHIFT.perRaiseTime;
 
 export function shiftTimeOf(p: PersonDrawing): number {
   const shield = p.pose?.held?.block === "shield" && p.shield && itemDef(p.shield.item).shield;

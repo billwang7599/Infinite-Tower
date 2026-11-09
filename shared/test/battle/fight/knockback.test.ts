@@ -8,14 +8,14 @@ import {
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
   ARENA, armed, BOAR, bodyOf, castNow, enemy, flatDist, GUARDIAN, input, player, run, segment, skill,
-  STATUE, STILL_BITER, SWORDSMAN, swings,
+  STATS, STATUE, STILL_BITER, SWORDSMAN, swings,
 } from "./fixtures.js";
 
 before(() => initPhysics());
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const IN_REACH_M = 2.4;
-const SLOWEST = wayStepsAfter(WEAPONS.greatsword, windupTime("heavy", "opening"), true);
+const SLOWEST = wayStepsAfter(WEAPONS.greatsword, "heavy", windupTime(WEAPONS.greatsword, "heavy", "opening"), 0);
 const SETTLE_TIME = SLOWEST.endAt * FIXED_DT + 1;
 
 const PERSON: EnemyDef = { ...STATUE, knockbackFactor: 1 };
@@ -64,7 +64,7 @@ describe("a hit that lands does damage only (the user: \"Hits do damage only\")"
   });
 
   test("an enemy staggers only when its poise breaks, never from one hit", () => {
-    const poise = HYBRID.heavy.poiseDamage + 1;
+    const poise = WEAPONS.sword.strikes.heavy.poiseDamage + 1;
     const fight = fightAt({ ...PERSON, poise, poiseRegen: 0 }, at(0, IN_REACH_M));
     const statesThrough = (strike: Strike) => {
       const states = new Set<string>();
@@ -93,7 +93,7 @@ describe("a hit that lands does damage only (the user: \"Hits do damage only\")"
     let hits = 0;
     run(fight, 3, (step) => {
       hits += fight.events.filter((e) => e.type === "hit").length;
-      const attackHeld = step < toSteps(BOW.draw.fullTime) + 5;
+      const attackHeld = step < toSteps(WEAPONS["training-bow"].draw.fullTime) + 5;
       return input({ locked: 0, attack: step === 0 ? "light" : null, attackHeld });
     });
     assert.equal(hits, 1);
@@ -188,7 +188,8 @@ describe("an enemy's block pushes it back, by the player's rule, and never stops
   });
 
   test("blocking a heavy, it slides back and swings while still sliding", () => {
-    const heavyLive = wayStepsAfter(WEAPONS.sword, windupTime("heavy", "opening"), true).liveAt;
+    const heavyLive = wayStepsAfter(WEAPONS.sword, "heavy", windupTime(WEAPONS.sword, "heavy", "opening"), STATS.strength)
+      .liveAt;
     const def: EnemyDef = {
       ...SWORDSMAN, knockbackFactor: 1,
       attacks: { weapon: swings({ triggerDist: 5, firstDelay: (heavyLive + 3) * FIXED_DT }) },

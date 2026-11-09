@@ -5,7 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { fightWith } from "../../fixtures/fight.js";
+import { fightWith, gripStrengthOf } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -21,17 +21,17 @@ describe("the Kobold Greatsword", () => {
     assert.equal(wielder?.armReachM, koboldWielder?.armReachM);
   });
 
-  test("its heavy blade swings slower: a player's wind-ups, stretched by the greatsword's heft", () => {
+  test("its heavy blade swings slower: a player's wind-ups, by the greatsword's table", () => {
     const fight = fightWith(GREATSWORD, 1), e = fight.enemies[0]!;
-    const kinds = Object.keys(CHAIN.startupTime) as ChainKind[];
+    const kinds = Object.keys(CHAIN.windupShare) as ChainKind[];
     let seen = 0;
     for (let i = 0; i < 30 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
       fight.step([IDLE_INPUT]);
       const swing = fight.world.require(e, Wielder).swing;
       if (swing?.step !== 1) continue;
-      const strike = strikeOf(swing.attack, swing.way), heavy = strike === "heavy";
+      const strike = strikeOf(swing.attack, swing.way);
       const liveAt = (blade: "kobold-greatsword" | "kobold-blade", kind: ChainKind) =>
-        wayStepsAfter(WEAPONS[blade], windupTime(strike, kind), heavy).liveAt;
+        wayStepsAfter(WEAPONS[blade], strike, windupTime(WEAPONS[blade], strike, kind), gripStrengthOf(GREATSWORD)).liveAt;
       const kind = kinds.find((k) => liveAt("kobold-greatsword", k) === swing.liveAt);
       assert.ok(kind, `live at ${swing.liveAt}`);
       assert.ok(swing.liveAt > liveAt("kobold-blade", kind));

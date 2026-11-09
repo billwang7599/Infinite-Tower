@@ -1,5 +1,6 @@
 /** What each item is and does. Who drops what is in each enemy's server file (server/src/core/enemies/). */
 import type { InscriptionId } from "../soul/inscriptions.js";
+import { BASIC_SWORD, GREATSWORD, LONGSWORD, OLD_STICK, TRAINING_BOW, WOODEN_SHIELD } from "../weapons/tables.js";
 import type { Guard, Weapon } from "../weapons/weapons.js";
 
 export type WornOn = "hand" | "cap" | "head" | "body" | "legs" | "boots" | "belt" | "back" | "hip" | "finger" | "wrist";
@@ -120,47 +121,47 @@ export const ITEMS = {
     name: "Old stick", rarity: "common",
     description: "A length of ash, worn smooth by old hands. It's no blade, but it swings like one.",
     cols: 1, rows: 2, stackSize: 1, weight: 1, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1, heft: 0.385, minStrength: 0, profile: "stick", baseDamage: 3 },
+    weapon: OLD_STICK,
   },
   sword: {
     name: "Basic Sword", rarity: "common",
     description: "A plain straight blade. Quick to swing, and it guards as well as any.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.1, heft: 3, minStrength: 8, profile: "sword" },
+    weapon: BASIC_SWORD,
   },
   "kobold-blade": {
     name: "Kobold blade", rarity: "uncommon",
     description: "A notched blade, heavier at the tip. Kobolds don't let go of theirs.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.1, heft: 3, minStrength: 8, profile: "sword" },
+    weapon: BASIC_SWORD,
   },
   longsword: {
     name: "Longsword", rarity: "uncommon", description: "A longer, heavier blade. Slower to swing, and it hits harder.",
     cols: 1, rows: 3, stackSize: 1, weight: 4.5, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.4, heft: 3.57, minStrength: 12, profile: "longsword" },
+    weapon: LONGSWORD,
   },
   greatsword: {
     name: "Greatsword", rarity: "uncommon",
     description: "Taller than a kobold. Slow to swing, but it lands like a door.", cols: 1, rows: 4, stackSize: 1,
     weight: 8, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.9, heft: 4.86, minStrength: 15, profile: "greatsword" },
+    weapon: GREATSWORD,
   },
   "kobold-greatsword": {
     name: "Kobold greatsword", rarity: "uncommon",
     description: "A slab of iron with a handle. Kobolds don't let go of theirs either.",
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
-    weapon: { kind: "sword", length: 1.9, heft: 4.86, minStrength: 8, profile: "greatsword" },
+    weapon: { ...GREATSWORD, minStrength: 8 },
   },
   "wooden-shield": {
     name: "Wooden shield", rarity: "common",
     description: "Oak boards in an iron rim. It takes a blow better than any blade, but it cuts nothing.", cols: 2,
-    rows: 2, stackSize: 1, weight: 4, wearable: { on: "hand" }, shield: { length: 1.1, heft: 3 },
+    rows: 2, stackSize: 1, weight: 4, wearable: { on: "hand" }, shield: WOODEN_SHIELD,
   },
   "training-bow": {
     name: "Training bow", rarity: "common",
     description: "A plain ash bow strung for the butts, light to draw. It's no use without arrows.", cols: 1, rows: 3,
     stackSize: 1, weight: 1, wearable: { on: "hand" },
-    weapon: { kind: "bow", length: 1.2, heft: 3, minStrength: 0, powerMps: 60, profile: "bow", baseDamage: 20 },
+    weapon: TRAINING_BOW,
   },
   "training-quiver": {
     name: "Training quiver", rarity: "common",

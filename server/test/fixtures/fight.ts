@@ -4,7 +4,7 @@
  * back for a number of server ticks.
  */
 import {
-  blankSkillbook, emptyBag, emptyEquipment, IDLE_INPUT, newCore, packFor, sameInput, type EnemyDef, type Equipment,
+  appliedStrength, blankSkillbook, emptyBag, emptyEquipment, IDLE_INPUT, newCore, packFor, sameInput, type EnemyDef, type Equipment,
   type PlayerInputData, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -18,6 +18,10 @@ import { FakeLink } from "./fakes.js";
 export const armed = (): Equipment => ({ ...emptyEquipment(), rightHand: "sword", leftHand: "skillbook" });
 
 export const FULL = fullVitals(PLAYER_STATS);
+
+/** An enemy's grip strength with the hands it's given. */
+export const gripStrengthOf = (def: EnemyDef): number =>
+  appliedStrength({ rightHand: null, leftHand: null, ...def.wielder?.hands }, def.stats.strength);
 
 /** The wild boar, rooted to the spot and harmless. */
 const STATUE: EnemyDef = { ...ENEMIES["wild-boar"].def, walkSpeed: 0, turnRate: 0, attacks: {} };

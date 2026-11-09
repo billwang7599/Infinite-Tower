@@ -27,8 +27,7 @@ new mechanic. Most were tried by tests and a headless browser only, not hand-pla
 
 Decided by the user since (the agent's picks within them):
 
-- Weapon timings from heft only, strength damage only; minimum strength gates wielding (the user's). The agent's
-  picks within it:
+- Minimum strength gates wielding (the user's). The agent's picks within it:
   - Minimums (grip strength): Old Stick 0, Basic Sword and Kobold blade 8, longsword 12, greatsword 15, Kobold
     greatsword 8 (the Kobolds, at 8, hold theirs one-handed; a new player at 10 lifts the greatsword only alone in
     both hands), training bow 0. The Basic Sword at 8 keeps the bot fights' balance: a minimum of 5 made a masher's
@@ -37,6 +36,24 @@ Decided by the user since (the agent's picks within them):
   - Nothing goes into the other hand that would leave a lone blade's grip under its minimum.
   - Strength falling under a held weapon's minimum (points taken back, an inscription removed, an old save) moves it
     to the bag, or a pile at their feet if there's no room. Not mid-fight: there strength only drops by dying.
+- Heft replaced by a table of stats per weapon; strength over the minimum quickens (the user's). The agent's picks
+  within it (the numbers live in `shared/src/weapons/tables.ts`):
+  - Quickening: 0.5% a point of grip strength over the minimum (`STRENGTH_QUICKENING`), capped at 8% (16 points).
+  - Chain shares equal to the old table's ratios (reverse 0.40/0.56, other 0.48/0.56, perpendicular 0.60/0.56),
+    applied to each strike's own opening wind-up, the heavy's too (so a chained heavy is a share of the heavy's, where
+    it was the light's plus a fixed extra).
+  - Each heavy deals twice its light's damage, as the old rule did.
+  - Basic Sword: the measure, set so a new player (grip 10, 1% quickened) swings it on the same steps as before
+    tables, which the bot fights need (one step quicker made the grey wolf's swing-only test win).
+  - Old Stick: quick, cheap and feeble, opening above the floor (a reverse still meets it); a third of the sword's
+    damage or less, about half its cost.
+  - Longsword: a little slower and dearer than the sword, the better stabber, longer reach.
+  - Greatsword: slowest to start and recover, longest reach, the most poise damage; the Kobold greatsword is the same
+    table at the Kobolds' minimum.
+  - Parry weight carries the old heft numbers (stick 1, sword 3, longsword 3.6, greatsword 4.9); raise times carry the
+    old heft-derived ones; the wooden shield raises as the sword does and is never quickened (it has no minimum).
+  - Training bow: the old draw (0.25 s least, 1 s full, 8 stamina, 20 stab), now quickened above its minimum of 0.
+  - The guard-shift animation is slower for a guard slower to raise than the sword's (`GUARD_SHIFT`).
 - No two-handed speed bonus: the grip only adds 1.5× strength.
 - Stamina matters less as you grow, on purpose: a swing's cost never grows while the bar does.
 - The core: a whole core takes no more essence and fill carries over; essence is an item (a 2 s Absorb, refused only

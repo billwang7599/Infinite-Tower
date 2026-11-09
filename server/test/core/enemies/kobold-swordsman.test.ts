@@ -6,7 +6,8 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { fightWith, FULL, setupWith } from "../../fixtures/fight.js";
+import { PLAYER_STATS } from "../../../src/core/content/player.js";
+import { fightWith, FULL, gripStrengthOf, setupWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -47,7 +48,7 @@ describe("the Kobold Swordsman", () => {
     assert.equal(wielder.swing?.step, 1);
     const strike = strikeOf(wielder.swing!.attack, wielder.swing!.way);
     const liveAt = (blade: "sword" | "kobold-blade" | "old-stick") =>
-      wayStepsAfter(WEAPONS[blade], windupTime(strike, "opening"), strike === "heavy").liveAt;
+      wayStepsAfter(WEAPONS[blade], strike, windupTime(WEAPONS[blade], strike, "opening"), gripStrengthOf(KOBOLD)).liveAt;
     assert.equal(wielder.swing!.liveAt, liveAt("kobold-blade"));
     assert.equal(liveAt("kobold-blade"), liveAt("sword"));
     assert.ok(liveAt("sword") >= liveAt("old-stick"));
@@ -59,7 +60,7 @@ describe("the Kobold Swordsman", () => {
     assert.equal(gripOf(wielder.hands), "one");
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     const swing = wielder.swing!, strike = strikeOf(swing.attack, swing.way), blade = WEAPONS["kobold-blade"];
-    const opening = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy");
+    const opening = wayStepsAfter(blade, strike, windupTime(blade, strike, "opening"), gripStrengthOf(KOBOLD));
     assert.equal(swing.liveAt, opening.liveAt);
     assert.deepEqual(swing.damage, strikeDamage(blade, strike, 1, KOBOLD.stats));
   });
@@ -99,10 +100,11 @@ describe("losing a parry to a swordsman", () => {
     const setup = setupWith({ ...def, attacks: { weapon } }), gear = setup.players[0]!.gear;
     gear.equipment = { ...gear.equipment, rightHand: mine };
     const fight = new Fight({ ...setup, enemies: [{ ...setup.enemies[0]!, seed }] });
-    const opening = wayStepsAfter(WEAPONS[mine], windupTime("light", "opening"), false).liveAt;
+    const opening = wayStepsAfter(WEAPONS[mine], "light", windupTime(WEAPONS[mine], "light", "opening"),
+      PLAYER_STATS.strength).liveAt;
     const me = fight.players[0]!, it = fight.enemies[0]!;
     const wielder = fight.world.require(it, Wielder), player = fight.world.require(me, Player);
-    const blade = WEAPONS[def.wielder!.hands.rightHand as keyof typeof WEAPONS];
+    const blade = WEAPONS[def.wielder!.hands.rightHand as "sword"];
     let press = -1, way: SwingDir = "lr", parried = -1, free = -1, counter = -1, counterLiveAt = -1, expected = -1;
     const after: FightEvent[] = [];
     while (fight.steps < 30 / FIXED_DT && (counter < 0 || fight.steps < counter + 30)) {
@@ -120,7 +122,7 @@ describe("losing a parry to a swordsman", () => {
         counter = fight.steps + swing.liveAt;
         counterLiveAt = swing.liveAt;
         const strike = strikeOf(swing.attack, swing.way);
-        expected = wayStepsAfter(blade, windupTime(strike, "opening"), strike === "heavy").liveAt;
+        expected = wayStepsAfter(blade, strike, windupTime(blade, strike, "opening"), gripStrengthOf(def)).liveAt;
       }
     }
     return { parried, free, counter, counterLiveAt, expected, after, me, it };
@@ -131,7 +133,7 @@ describe("losing a parry to a swordsman", () => {
       [KOBOLD, "sword"], [ENEMIES["kobold-greatsword"].def, "sword"], [ENEMIES.bram.def, "old-stick"],
     ] as const;
     for (const [def, mine] of fights) {
-      const raise = toSteps(guardRaiseTime(WEAPONS[mine]));
+      const raise = toSteps(guardRaiseTime(WEAPONS[mine], PLAYER_STATS.strength));
       for (const [heavy, seed] of SEEDS.flatMap((seed) => [[false, seed], [true, seed]] as const)) {
         const r = answerLate(def, mine, heavy, seed), name = `${def.id}${heavy ? " heavy" : ""} seed ${seed}`;
         assert.ok(r.parried >= 0 && r.free >= 0 && r.counter >= 0, `${name}: ${JSON.stringify(r)}`);

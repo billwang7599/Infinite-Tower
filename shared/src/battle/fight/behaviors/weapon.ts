@@ -6,12 +6,12 @@ import {
   CHAIN, chainKind, HYBRID, isSwing, lastFeintStep, parryWay, WAYS, windupTime, type Strike, type SwingDir, type Way,
 } from "../../../weapons/hybrid.js";
 import { meleeIn } from "../../../weapons/kinds.js";
-import { heftShare, type Weapon } from "../../../weapons/weapons.js";
+import { strengthTimeFactor, type MeleeWeapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
 import { FighterStats, type Stats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { canSwing, carrySpeed, committed, feint as feintSwing, steer } from "../weapons/commit.js";
-import { startWaySwing } from "../weapons/swing.js";
+import { startWaySwing, strengthIn } from "../weapons/swing.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
 
@@ -31,7 +31,7 @@ function pickWay(enemy: EnemyData, last: Way): Way {
 }
 
 function windUp(
-  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, chained: boolean,
+  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: MeleeWeapon, chained: boolean,
   parrying: { way: SwingDir; windupTime: number } | null = null,
 ): void {
   const last = attack.way, way = parrying?.way ?? pickWay(enemy, last);
@@ -39,7 +39,7 @@ function windUp(
   attack.way = way;
   attack.feint = strike === "heavy" && roll(enemy) < attack.def.heavyFeintShare;
   const kind = chained && isSwing(way) ? chainKind(last, way) : "opening";
-  startWaySwing(world, e, weapon, strike, way, parrying?.windupTime ?? windupTime(strike, kind), 1, facing(enemy));
+  startWaySwing(world, e, weapon, strike, way, parrying?.windupTime ?? windupTime(weapon, strike, kind), 1, facing(enemy));
   // Not `enter`: that would end the swing.
   const liveAt = world.require(e, Wielder).swing!.liveAt;
   Object.assign(enemy, { state: "weaponWindup", stateTime: 0, duration: liveAt * FIXED_DT });
@@ -52,13 +52,14 @@ function swingStarts(world: World, enemy: EnemyData, target: Entity): boolean {
 }
 
 function parry(
-  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, theirs: SwingData,
+  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: MeleeWeapon, theirs: SwingData,
 ): boolean {
   const liveIn = theirs.liveAt - PARRY_LEAD_STEPS;
   if (!isSwing(theirs.way) || liveIn < toSteps(CHAIN.minWindupTime)) return false;
   attack.swingsLeft = 0;
-  const heft = heftShare(weapon);
-  windUp(world, e, enemy, attack, weapon, false, { way: parryWay(theirs.way), windupTime: liveIn * FIXED_DT / heft });
+  // Unquickened, so its blade goes live at `liveIn` once its strength has quickened it.
+  const quick = strengthTimeFactor(weapon, strengthIn(world, e));
+  windUp(world, e, enemy, attack, weapon, false, { way: parryWay(theirs.way), windupTime: liveIn * FIXED_DT / quick });
   return true;
 }
 

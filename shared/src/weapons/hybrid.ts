@@ -2,8 +2,8 @@ import { AVERAGE_STAT, physicalDamage, statFactor, type Stats } from "../battle/
 import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
 import {
-  heftShare, strengthDiscount, typedDamage, weaponDamage, type AttackKind, type AttackSteps, type Damage, type Guard,
-  type HitShape, type Weapon,
+  scaleDamage, strengthDiscount, strengthTimeFactor, typedDamage, type AttackKind, type AttackSteps, type Damage,
+  type Guard, type HitShape, type MeleeWeapon, type Weapon,
 } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
@@ -50,12 +50,12 @@ export function chainKind(last: Way | null, next: SwingDir): ChainKind {
 }
 
 export const CHAIN = {
-  startupTime: { opening: 0.56, reverse: 0.4, other: 0.48, perpendicular: 0.6 } satisfies Record<ChainKind, number>,
-  stabStartupTime: 0.45,
-  // Applied after heft and swiftness: no attack is ever quicker to read than this.
+  /** × a swing's opening wind-up from its weapon's table, by how it follows the last. */
+  windupShare: {
+    opening: 1, reverse: 0.4 / 0.56, other: 0.48 / 0.56, perpendicular: 0.6 / 0.56,
+  } satisfies Record<ChainKind, number>,
+  // Applied after strength and swiftness: no attack is ever quicker to read than this.
   minWindupTime: 0.4,
-  activeTime: 0.13,
-  recoverTime: 0.1,
   gapTime: 0.25,
 } as const;
 
@@ -71,17 +71,15 @@ export const momentumDamage = (momentum: number): number =>
   Math.min(MOMENTUM.maxDamage, 1 + momentum * MOMENTUM.damagePerPoint);
 
 export const HYBRID = {
-  light: { cost: 13, damageFactor: 1, poiseDamage: 12, knockbackSpeed: 4 },
-  heavy: {
-    extraTime: 0.36, activeTime: 0.15, recoverTime: 0.26, cost: 21, damageFactor: 2, poiseDamage: 24, knockbackSpeed: 8,
-  },
-  stab: { cost: 16, damageFactor: 1, poiseDamage: 18, knockbackSpeed: 6 },
+  light: { knockbackSpeed: 4 },
+  heavy: { knockbackSpeed: 8 },
+  stab: { knockbackSpeed: 6 },
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
-    perfectRecoilTime: 0.4, raiseTime: 0.1, raiseTimePerHeft: 0.22, pinnedChipFactor: 2,
+    perfectRecoilTime: 0.4, pinnedChipFactor: 2,
   },
-  feint: { cutoffTime: 0.15, cost: 10, recoverTime: 0.38 },
+  feint: { cutoffTime: 0.15, cost: 10 },
   parry: {
     windowTime: 0.3, fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05,
     clashStaggerTime: 0.3, minRatio: 0.5, maxRatio: 2, heavyWeightFactor: 2,
@@ -89,13 +87,12 @@ export const HYBRID = {
   // Just short enough that a guard raised once free is up before an enemy's counter lands.
   counter: { recoilTime: 0.25 },
   // Speeds in m/s.
-  swinging: { lungeSpeed: 4, moveFactor: 0.25, liveTurnRadPerSec: 3, whiffRecoverTime: 0.2, whiffCarrySpeed: 1.5 },
+  swinging: { lungeSpeed: 4, moveFactor: 0.25, liveTurnRadPerSec: 3, whiffCarrySpeed: 1.5 },
 } as const;
 
-export function windupTime(strike: Strike, kind: ChainKind): number {
-  if (strike === "stab") return CHAIN.stabStartupTime;
-  return CHAIN.startupTime[kind] + (strike === "heavy" ? HYBRID.heavy.extraTime : 0);
-}
+/** Before strength and swiftness: the weapon's opening wind-up for the strike, × its chain's share for a swing. */
+export const windupTime = (weapon: MeleeWeapon, strike: Strike, kind: ChainKind): number =>
+  weapon.strikes[strike].windupTime * (strike === "stab" ? 1 : CHAIN.windupShare[kind]);
 
 export const perfectBlockTime = (weapon: Guard): number =>
   HYBRID.block.perfectTime * weapon.length / HYBRID.block.perfectAtLengthM;
@@ -103,8 +100,9 @@ export const perfectBlockTime = (weapon: Guard): number =>
 export const parryWindowTime = (weapon: Weapon): number =>
   HYBRID.parry.windowTime * weapon.length / HYBRID.block.perfectAtLengthM;
 
-export const guardRaiseTime = (weapon: Guard): number =>
-  Math.max(0, HYBRID.block.raiseTime + (heftShare(weapon) - 1) * HYBRID.block.raiseTimePerHeft);
+/** `strength` is the grip strength: a weapon raises quicker above its minimum, a shield never. */
+export const guardRaiseTime = (guard: Guard, strength: number): number =>
+  guard.raiseTime * strengthTimeFactor(guard, strength);
 
 export type ParryKind = "full" | "partial";
 
@@ -121,8 +119,8 @@ export function parryWay(seen: SwingDir): SwingDir {
   return SWING_DIRS.reduce((best, way) => (meets(way) > meets(best) ? way : best));
 }
 
-export const swingWeight = (weapon: Weapon, strength: number, heavy: boolean): number =>
-  weapon.heft * Math.sqrt(strength / AVERAGE_STAT) * (heavy ? HYBRID.parry.heavyWeightFactor : 1);
+export const swingWeight = (weapon: MeleeWeapon, strength: number, heavy: boolean): number =>
+  weapon.parryWeight * Math.sqrt(strength / AVERAGE_STAT) * (heavy ? HYBRID.parry.heavyWeightFactor : 1);
 
 export const parryRecoilTime = (baseTime: number, weightRatio: number): number => Math.max(
   HYBRID.parry.minRecoilTime, baseTime * clamp(weightRatio, HYBRID.parry.minRatio, HYBRID.parry.maxRatio));
@@ -144,23 +142,29 @@ export function wayShape(way: Way, armReachM: number, weapon: Pick<Weapon, "leng
 
 const DRAW_SHARE = 0.6;
 
-export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean): AttackSteps {
-  const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
-  const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-  const heft = heftShare(weapon), finalWindup = Math.max(CHAIN.minWindupTime, windup * heft);
-  const liveAt = toSteps(finalWindup), liveUntil = liveAt + toSteps(live * heft);
-  const endAt = liveUntil + toSteps(recover * heft);
+/**
+ * `windup` from `windupTime` (or swiftness after); `strength` the grip strength, whose points over the weapon's
+ * minimum quicken every part a little. The floor comes last.
+ */
+export function wayStepsAfter(weapon: MeleeWeapon, strike: Strike, windup: number, strength: number): AttackSteps {
+  const { liveTime, recoverTime } = weapon.strikes[strike], quick = strengthTimeFactor(weapon, strength);
+  const finalWindup = Math.max(CHAIN.minWindupTime, windup * quick);
+  const liveAt = toSteps(finalWindup), liveUntil = liveAt + toSteps(liveTime * quick);
+  const endAt = liveUntil + toSteps(recoverTime * quick);
   return { driveAt: toSteps(finalWindup * DRAW_SHARE), liveAt, liveUntil, endAt };
 }
 
-/** `strength` is the grip strength: each point over the weapon's minimum makes it cheaper, never dearer. */
-export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): number =>
-  HYBRID[strike].cost * heftShare(weapon) * strengthDiscount(weapon, strength);
+/** A weapon's other times (whiff and feint recovery), quickened as its swings are. */
+export const weaponTime = (weapon: MeleeWeapon, time: "whiffRecoverTime" | "feintRecoverTime", strength: number) =>
+  weapon[time] * strengthTimeFactor(weapon, strength);
 
-export function strikeDamage(weapon: Weapon, strike: Strike, power: number, stats: Stats): Damage {
-  const base = weaponDamage(weapon), factor = HYBRID[strike].damageFactor * power;
-  return typedDamage((type) =>
-    ((type === "stab") === (strike === "stab") ? physicalDamage(base[type] * factor, stats) : 0));
+/** `strength` is the grip strength: each point over the weapon's minimum makes it cheaper, never dearer. */
+export const strikeCost = (weapon: MeleeWeapon, strike: Strike, strength: number): number =>
+  weapon.strikes[strike].cost * strengthDiscount(weapon, strength);
+
+export function strikeDamage(weapon: MeleeWeapon, strike: Strike, power: number, stats: Stats): Damage {
+  const base = scaleDamage(weapon.strikes[strike].damage, (weapon.quality ?? 1) * power);
+  return typedDamage((type) => (base[type] > 0 ? physicalDamage(base[type], stats) : 0));
 }
 
 export type GuardKind = "shield" | "one" | "dual";

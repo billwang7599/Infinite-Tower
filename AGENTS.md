@@ -102,17 +102,18 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
   physics, not sculpting.
 - One sword system: light, heavy, stab, a held block with a perfect block, a swing parry, a dodge. No kick. A swing's
   way comes from a mouse flick (seven ways, no upward swing); locked on, attacks go where you face.
-- A weapon is data: its heft alone sets every time, the same for any wielder; strength adds only damage (the user:
-  "every weapon's timing is hard coded. strength doesnt affect that, only damage... if things get too quick, they lose
-  uniqueness and its unbalanced"). A better weapon keeps its weight and only hits harder (the user: "higher tier
-  weapons would be around the same weight wise").
+- Each weapon is a table of its own stats (the user: "every weapon just now has a table of stats to read from");
+  strength over its minimum quickens it a little, up to a cap (the user: "maybe strength (over minimum required)
+  slightly increases speed, but only up to 5-10%"), and cheapens it; otherwise strength adds damage, so weapons keep
+  their character (the user: "if things get too quick, they lose uniqueness and its unbalanced"). A better weapon
+  keeps its table and only hits harder (the user: "higher tier weapons would be around the same weight wise").
 - Each weapon has a minimum strength: under it you can't equip it (the user: "they cant wield it if they dont have
   sufficient strenght"), and one that falls under it leaves the hand. A lone blade is held in both hands, putting in
   1.5× the strength, which counts toward the minimum.
 - Strength over a weapon's minimum makes its swings cheaper, capped, never dearer, so stamina matters less the
   stronger you are, on purpose (the user: "the more we level, the less we worry about trivial things like sword
   swings").
-- Enemies swing by the same rule as players (times from heft, no preset timing tables); balance goes through
+- Enemies swing by the same rule as players, from their weapon's table and their strength; balance goes through
   weapons, stats and pacing.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's

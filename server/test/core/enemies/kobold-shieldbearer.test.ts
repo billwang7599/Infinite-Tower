@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { blocking, initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { fightWith, FULL } from "../../fixtures/fight.js";
+import { fightWith, FULL, gripStrengthOf } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -65,7 +65,8 @@ describe("the Kobold Shieldbearer", () => {
     for (let i = 0; i < 10 / FIXED_DT && wielder.swing?.step !== 1; i++) fight.step([IDLE_INPUT]);
     assert.equal(wielder.swing?.step, 1);
     const strike = strikeOf(wielder.swing!.attack, wielder.swing!.way);
-    const opening = wayStepsAfter(WEAPONS["kobold-blade"], windupTime(strike, "opening"), strike === "heavy");
+    const blade = WEAPONS["kobold-blade"];
+    const opening = wayStepsAfter(blade, strike, windupTime(blade, strike, "opening"), gripStrengthOf(SHIELDBEARER));
     assert.equal(wielder.swing!.liveAt, opening.liveAt);
   });
 

@@ -2,7 +2,9 @@ import { physicalDamage, type Stats } from "../battle/stats.js";
 import { clamp, type Vec3 } from "../core/math.js";
 import { bagCounts, type Bag } from "../items/bag.js";
 import type { AmmoId } from "../items/items.js";
-import { heftShare, strengthDiscount, typedDamage, weaponDamage, type Damage, type Weapon } from "./weapons.js";
+import {
+  strengthDiscount, strengthTimeFactor, typedDamage, weaponDamage, type Damage, type RangedWeapon,
+} from "./weapons.js";
 
 /** Lengths in m, speeds in m/s, times in s. `release*M`: where it leaves the bow, from the shooter's center. */
 export interface ProjectileDef {
@@ -21,10 +23,8 @@ export interface ProjectileDef {
 export interface RangedMoves {
   style: "ranged";
   ammo: AmmoId;
-  /** `cost` is paid as the draw starts; a release before `minTime` looses once it's reached. */
-  draw: {
-    cost: number; minTime: number; fullTime: number; minDamageShare: number; moveFactor: number;
-  };
+  /** Its times and cost are each bow's own (`RangedWeapon.draw`). */
+  draw: { minDamageShare: number; moveFactor: number };
   /** After a loose, before the next draw can start: by where the next arrow comes from. */
   nock: { quiverTime: number; bagTime: number };
   projectile: ProjectileDef;
@@ -34,7 +34,7 @@ export interface RangedMoves {
 export const BOW = {
   style: "ranged",
   ammo: "arrow",
-  draw: { cost: 8, minTime: 0.25, fullTime: 1, minDamageShare: 0.3, moveFactor: 0.5 },
+  draw: { minDamageShare: 0.3, moveFactor: 0.5 },
   nock: { quiverTime: 0.3, bagTime: 0.8 },
   projectile: {
     gravityMps2: -20, dragPerSec: 0.2, lifeTime: 3, stuckTime: 2, radiusM: 0.05, poiseDamage: 10, knockbackShare: 0.07,
@@ -42,30 +42,30 @@ export const BOW = {
   },
 } as const satisfies RangedMoves;
 
-/** Heft stretches the draw as it does a swing; strength never does. */
-export const drawTime = (moves: RangedMoves, weapon: Weapon, time: "minTime" | "fullTime"): number =>
-  moves.draw[time] * heftShare(weapon);
+/** The bow's own, quickened a little by strength over its minimum as a swing is. */
+export const drawTime = (weapon: RangedWeapon, time: "minTime" | "fullTime", strength: number): number =>
+  weapon.draw[time] * strengthTimeFactor(weapon, strength);
 
-export const drawCost = (moves: RangedMoves, weapon: Weapon, strength: number): number =>
-  moves.draw.cost * heftShare(weapon) * strengthDiscount(weapon, strength);
+export const drawCost = (weapon: RangedWeapon, strength: number): number =>
+  weapon.draw.cost * strengthDiscount(weapon, strength);
 
 /** 0 just begun, 1 fully drawn. */
-export const drawnShare = (moves: RangedMoves, weapon: Weapon, drawnTime: number): number =>
-  clamp(drawnTime / drawTime(moves, weapon, "fullTime"), 0, 1);
+export const drawnShare = (weapon: RangedWeapon, drawnTime: number, strength: number): number =>
+  clamp(drawnTime / drawTime(weapon, "fullTime", strength), 0, 1);
 
-export function loosedDamage(moves: RangedMoves, weapon: Weapon, drawnTime: number, stats: Stats): Damage {
-  const share = drawnShare(moves, weapon, drawnTime), least = moves.draw.minDamageShare;
+export function loosedDamage(moves: RangedMoves, weapon: RangedWeapon, drawnTime: number, stats: Stats): Damage {
+  const share = drawnShare(weapon, drawnTime, stats.strength), least = moves.draw.minDamageShare;
   const arrow = weaponDamage(weapon);
   return typedDamage((type) => physicalDamage(arrow[type] * (least + (1 - least) * share), stats));
 }
 
-export function drawnPower(moves: RangedMoves, weapon: Weapon, drawnTime: number): number {
-  const share = drawnShare(moves, weapon, drawnTime);
+export function drawnPower(weapon: RangedWeapon, drawnTime: number, strength: number): number {
+  const share = drawnShare(weapon, drawnTime, strength);
   return (share * share + 2 * share) / 3;
 }
 
-export function loosedSpeed(moves: RangedMoves, weapon: Weapon, drawnTime: number): number {
-  return (weapon.powerMps ?? 0) * drawnPower(moves, weapon, drawnTime);
+export function loosedSpeed(weapon: RangedWeapon, drawnTime: number, strength: number): number {
+  return weapon.powerMps * drawnPower(weapon, drawnTime, strength);
 }
 
 export function flightAfter(def: ProjectileDef, pos: Vec3, vel: Vec3, time: number): { pos: Vec3; vel: Vec3 } {

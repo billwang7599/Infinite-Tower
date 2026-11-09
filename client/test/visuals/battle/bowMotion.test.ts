@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { BOW } from "@infinite-tower/shared";
+import { BOW, WEAPONS } from "@infinite-tower/shared";
 import {
   BOW_MOTION, moveBow, restingBow, shownPull, type BowDraw, type BowMotion,
 } from "../../../src/visuals/battle/bowMotion.js";
 
 const FRAME_TIME = 1 / 60;
-const { fullTime, minTime } = BOW.draw, { quiverTime } = BOW.nock;
+const { fullTime, minTime } = WEAPONS["training-bow"].draw, { quiverTime } = BOW.nock;
 const drawing = (t: number): BowDraw => ({ drawn: Math.min(1, t / fullTime), nocked: true, loosedTime: null });
 const loosing = (t: number): BowDraw => ({ drawn: 0, nocked: false, loosedTime: t });
 const carrying: BowDraw = { drawn: 0, nocked: false, loosedTime: null };
