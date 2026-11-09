@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { BLESSINGS, Health, STATUS_DEFS, Statuses, timeLeft, type Vec3 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type PlayerSetup } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, run, STATUE } from "./fixtures.js";
+import { ARENA, enemy, input, player, run, STATUE, swingTime } from "./fixtures.js";
 
 await initPhysics();
 
@@ -11,7 +11,7 @@ const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 function swingAtStatue(over: Partial<PlayerSetup> = {}): Fight {
   const fight = new Fight({ arena: ARENA, players: [player(at(0, 0), over)], enemies: [enemy(STATUE, at(0, 1.4))] });
   fight.step([input({ attack: "light" })]);
-  run(fight, 0.6);
+  run(fight, swingTime());
   return fight;
 }
 

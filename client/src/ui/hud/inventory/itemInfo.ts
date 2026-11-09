@@ -2,7 +2,7 @@
 import {
   DAMAGE_TYPES, footprint, isMelee, isWeapon, itemDef, MOVES, movesOf, twoHanded, weaponDamage, WEAPONS, type BagItem,
   type Damage, type DamageType, type ItemDef, type ItemEffect, type ItemId, type RangedMoves, type Rarity,
-  type WeaponId, type WeaponStyle, type WornOn,
+  type WeaponClass, type WeaponId, type WeaponStyle, type WornOn,
 } from "@infinite-tower/shared";
 
 const WIELDED: Record<WeaponStyle, string> = {
@@ -37,12 +37,18 @@ export const RARITY_EDGE: Record<Rarity, string> = {
   epic: "border-rarity-epic/70", legendary: "border-rarity-legendary/80", unique: "border-rarity-unique/80",
 };
 
+const CLASS_NAME: Record<WeaponClass, string> = {
+  shortsword: "Shortsword", longsword: "Longsword", greatsword: "Greatsword", bow: "Bow",
+};
+
 const SIGIL = "A sigil: Ysolde Thatcher of the Collegium, in the Market Ward, can carve it into your core.";
 
 interface ItemInfo {
   /** With the count, for a stack of more than one. */
   name: string;
   rarity: Rarity;
+  /** A weapon's class before its rarity: "Shortsword · Common". */
+  rarityLine: string;
   /** Cells across × down, as it lies. */
   size: string;
   weight: string;
@@ -86,6 +92,8 @@ export function itemInfo(stack: BagItem): ItemInfo {
   return {
     name: many ? `${def.name} ×${stack.count}` : def.name,
     rarity: def.rarity,
+    rarityLine: isWeapon(stack.item) ? `${CLASS_NAME[WEAPONS[stack.item].class]} · ${RARITY_NAME[def.rarity]}`
+      : RARITY_NAME[def.rarity],
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`

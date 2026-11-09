@@ -189,11 +189,12 @@ function tusk(px: Pixels): void {
   pen.shade(both(shape, rect(0, 29, 15, 31)), SHADOW, "root");
 }
 
-const blade = (half: number, gripRows: number) => (px: Pixels): void => {
+const blade = (half: number, gripRows: number, metalInk: ItemMaterial = "steel", hiltInk: ItemMaterial = "brass") =>
+(px: Pixels): void => {
   const pommelY = px.height - 2.5, gripTo = px.height - 5, gripFrom = gripTo - gripRows + 1, edge = gripFrom - 4;
   const metal = new Pen(px, 0);
   const steel: Mask = (x, y) => y >= 1 && y <= edge && Math.abs(x + 0.5 - 8) <= Math.min(half, y / 2);
-  metal.fill(steel, ink("steel", BASE));
+  metal.fill(steel, ink(metalInk, BASE));
   metal.shade(rect(9 - half, 1, 7, edge), LIGHT);
   metal.shade(both(steel, rect(9, 1, 7 + half, edge)), SHADOW);
   metal.shade(both(steel, rect(8, 8, 8, edge - 2)), DEEP);
@@ -201,29 +202,18 @@ const blade = (half: number, gripRows: number) => (px: Pixels): void => {
 
   const hilt = new Pen(px, 1);
   const guard = union(rect(1, edge, 14, edge + 3), rect(0, edge + 1, 15, edge + 2));
-  hilt.fill(guard, ink("brass", BASE));
+  hilt.fill(guard, ink(hiltInk, BASE));
   hilt.shade(rect(1, edge + 1, 14, edge + 1), LIGHT);
   hilt.shade(rect(1, edge + 2, 14, edge + 2), SHADOW);
   hilt.fill(rect(6, gripFrom, 9, gripTo), ink("leather", BASE));
   hilt.shade(both(rect(7, gripFrom + 1, 8, gripTo - 1), (_x, y) => y % 2 === 0), LIGHT);
   const pommel = ellipse(8, pommelY, 3, 2.6);
-  hilt.fill(pommel, ink("brass", BASE));
+  hilt.fill(pommel, ink(hiltInk, BASE));
   hilt.shade(litEdge(pommel, 2), LIGHT);
   hilt.shade(darkEdge(pommel, 2), SHADOW);
 };
 
-function oldStick(px: Pixels): void {
-  const pen = new Pen(px, 0);
-  const shaft = union(bar([7, 1.5], [9, 17], 1.5), bar([9, 17], [8, 30], 1.8));
-  pen.fill(shaft, ink("root", BASE));
-  pen.shade((x, y) => shaft(x, y) && !shaft(x - 1, y), LIGHT);
-  pen.shade((x, y) => shaft(x, y) && !shaft(x + 1, y), SHADOW);
-  pen.shade(both(shaft, union(rect(0, 8, 15, 8), rect(0, 14, 15, 14))), DEEP);
-  pen.fill(both(shaft, rect(0, 21, 15, 27)), ink("leather", BASE));
-  pen.shade(both(shaft, both(rect(0, 21, 15, 27), (_x, y) => y % 2 === 0)), SHADOW, "leather");
-}
-
-const sword = blade(3, 7), longsword = blade(3, 10), greatsword = blade(4, 12);
+const sword = blade(3, 7), woodenSword = blade(3, 7, "crust", "root"), longsword = blade(3, 10), greatsword = blade(4, 12);
 
 // The string is on layer 2, left out of the outline.
 function trainingBow(px: Pixels): void {
@@ -480,7 +470,7 @@ function shield(px: Pixels): void {
 }
 
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
-  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "wooden-sword": woodenSword, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
   "kobold-shieldbearer-essence": essence("brass"),

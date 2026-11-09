@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 import { drawItem } from "../../../gfx/items/items.js";
 import { hoveredStack, landing, selectedStack, type BagMouse } from "./bagMouse.js";
 import { CELL, GRID_FRAME_PX, SCALE } from "./grid.js";
-import { itemInfo, RARITY_EDGE, RARITY_NAME, RARITY_TEXT } from "./itemInfo.js";
+import { itemInfo, RARITY_EDGE, RARITY_TEXT } from "./itemInfo.js";
 
 interface GridProps {
   name: GridName;
@@ -161,7 +161,7 @@ export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cel
           {info.name}
         </div>
         <div id="bag-tooltip-rarity" className={`text-[11px] opacity-80 ${RARITY_TEXT[info.rarity]}`}>
-          {RARITY_NAME[info.rarity]}
+          {info.rarityLine}
         </div>
       </div>
       <div className="text-bone/65 tabular-nums">Size {info.size}</div>

@@ -47,7 +47,7 @@ describe("enemies' weapons", () => {
     }
   });
 
-  test("every Kobold holds its weapon in one hand, its off hand emptied too; Bram holds his stick in both", () => {
+  test("every Kobold holds its weapon in one hand, its off hand emptied too; Bram holds his wooden sword in both", () => {
     const grip = (id: EnemyId) => gripOf({ rightHand: null, ...ENEMIES[id].def.wielder!.hands, leftHand: null });
     for (const id of ["kobold-swordsman", "kobold-greatsword", "kobold-shieldbearer"] as const) {
       assert.equal(grip(id), "one", id);

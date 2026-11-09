@@ -20,7 +20,7 @@ export const BRAM: Enemy = {
         blockReactTime: 0.35, perfectBlockChance: 0.1, parryChance: 0,
       },
     },
-    wielder: { hands: { rightHand: "old-stick" }, armReachM: PLAYER.armReachM },
+    wielder: { hands: { rightHand: "wooden-sword" }, armReachM: PLAYER.armReachM },
   },
   drops: [],
   treasure: {},

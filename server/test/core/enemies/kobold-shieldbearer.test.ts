@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { blocking, initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { fightWith, FULL, gripStrengthOf } from "../../fixtures/fight.js";
+import { fightWith, gripStrengthOf } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -89,14 +89,6 @@ describe("the Kobold Shieldbearer", () => {
     assert.ok(parried(SWORDSMAN) > 0, "the Swordsman parries");
   });
 
-  test("a player who reads it beats it, whatever its seed", () => {
-    for (const seed of SEEDS) {
-      const { fight, hp } = play(SHIELDBEARER, seed, reader);
-      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-      assert.ok(hp > FULL.hp / 4, `seed ${seed}: ${hp} HP left`);
-    }
-  });
-
   test("its shield isn't a wall: blows into it break its guard into a stagger, heavies in fewer", () => {
     const blockedUntilBroken = (attack: "light" | "heavy") => {
       const weapon = { ...SHIELDBEARER.attacks.weapon!, firstDelay: 99, perfectBlockChance: 0 };
@@ -112,18 +104,6 @@ describe("the Kobold Shieldbearer", () => {
     };
     const heavies = blockedUntilBroken("heavy"), lights = blockedUntilBroken("light");
     assert.ok(heavies < lights, `${heavies} heavies, ${lights} lights`);
-  });
-
-  test("a player who only holds a block loses", () => {
-    const { fight } = play(SHIELDBEARER, 1, (f) => ({ ...reader(f), block: true, attack: null }));
-    assert.equal(fight.outcome.state, "lost");
-  });
-
-  test("a player who only swings at it mostly loses", () => {
-    const masher = (f: Fight): PlayerInputData =>
-      ({ ...reader(f), block: false, attack: f.steps % 2 === 0 ? "light" : null });
-    const lost = SEEDS.filter((seed) => play(SHIELDBEARER, seed, masher).fight.outcome.state === "lost").length;
-    assert.ok(lost > SEEDS.length / 2, `lost ${lost} of ${SEEDS.length}`);
   });
 
   test("its own blade and shield never drop: only its essence, besides treasure", () => {

@@ -28,7 +28,7 @@ const EASE_STEPS = Math.ceil(KEY_EASE_TIME / FIXED_DT);
 type Extra = Parameters<typeof personPose>[3];
 const pose = (
   player = playerDoing("none", 0), swing: SwingData | null = null, extra: Partial<Extra> = {},
-): PersonPose => personPose(player, { swing }, MOTIONS.sword, {
+): PersonPose => personPose(player, { swing }, MOTIONS.melee, {
   build: BUILD, side: 1, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
   walk: { phase: 0, speed: 0, way: AHEAD }, ...extra,
 });
@@ -405,7 +405,7 @@ describe("the 3D player's other actions", () => {
 describe("the 3D player's bow", () => {
   const BOW = WEAPON_LOOKS["training-bow"].bow!;
   const bowPose = (player: ReturnType<typeof playerDoing>, drawn = 0, side: 1 | -1 = 1): PersonPose =>
-    personPose(player, { swing: null }, MOTIONS.bow, {
+    personPose(player, { swing: null }, MOTIONS.ranged, {
       build: BUILD, side, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
       walk: { phase: 0, speed: 0, way: AHEAD }, bow: { ...BOW, drawn },
     });
@@ -462,7 +462,7 @@ describe("the 3D player's bow", () => {
     const carried = bowPose(playerDoing("none", 1)), left = bowPose(playerDoing("none", 1), 0, -1);
     assert.ok(carried.blade.x > 0 && carried.blade.z > 0 && carried.blade.y > 0.7, "upright, leaning out and ahead");
     assert.ok(left.blade.x < 0 && left.hand.x < 0, "in the left hand, leaning out to the left");
-    assert.notDeepEqual(MOTIONS.bow.rest.blade, MOTIONS.sword.rest.blade);
+    assert.notDeepEqual(MOTIONS.ranged.rest.blade, MOTIONS.melee.rest.blade);
     assert.ok(carried.hand.y < BUILD.waistY, "down by the hip");
     assert.ok(carried.hand.x > BUILD.shoulderM, "out at the side");
     assert.ok(bowPose(playerDoing("block", 1)).blade.x < -0.5);

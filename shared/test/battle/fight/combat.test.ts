@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   damageTotal, emptyBag, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER, strikeDamage, wayShape, WEAPONS,
-  Wielder, type ItemId, type Strike, type SwingDir,
+  Wielder, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, armed, BITER, duel, enemy, input, player, run, STATS, STATUE } from "./fixtures.js";
+import { ARENA, armed, BITER, duel, enemy, input, player, run, STATS, STATUE, swingTime } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -104,7 +104,7 @@ describe("damage types", () => {
 
 describe("nothing pauses the fight for a hit (the user: \"nothing should ever pause the whole fight\")", () => {
   type Clock = { action: string; actionTime: number; swingStep: number | null; enemyTime: number };
-  const clocks = (hand: ItemId, strike: Strike, dist: number): { ticks: Clock[]; landed: boolean } => {
+  const clocks = (hand: "sword" | "greatsword", strike: Strike, dist: number): { ticks: Clock[]; landed: boolean } => {
     const gear = { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: hand } };
     const fight = new Fight({
       arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { gear })],
@@ -112,7 +112,7 @@ describe("nothing pauses the fight for a hit (the user: \"nothing should ever pa
     });
     const me = fight.players[0]!, it = fight.enemies[0]!, ticks: Clock[] = [];
     let landed = false;
-    run(fight, 2, (step) => {
+    run(fight, swingTime(strike, WEAPONS[hand]), (step) => {
       landed ||= fight.events.some((e) => e.type === "hit" && e.target === it);
       const p = fight.world.require(me, Player), swing = fight.world.require(me, Wielder).swing;
       ticks.push({

@@ -155,7 +155,7 @@ function cases(swingEvery: number): Case[] {
 function place(joints: Joints, build: PersonBuild, side: 1 | -1, c: Case): void {
   const swing = c.swing ?? null, player = swing ? playerDoing("attack", swing.step * FIXED_DT) : c.player;
   const held = c.weapon && WEAPON_LOOKS[c.weapon], alive = c.extra?.alive ?? true;
-  const p = personPose(player, { swing }, MOTIONS[held?.bow ? "bow" : "sword"], {
+  const p = personPose(player, { swing }, MOTIONS[held?.bow ? "ranged" : "melee"], {
     build, side, alive, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 },
     deadTime: 0, time: 0, walk: { phase: 0, speed: 0, way: { x: 0, z: 1 } }, ...c.extra,
   });

@@ -3,9 +3,9 @@ import {
   appliedStrength, FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy,
   packFor, Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Projectile, Sidestep,
   SkillAttack, Skilled, SkillObject, SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS,
-  WeaponAttack, Wielder, type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData,
-  type Segment, type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3,
-  type WeaponAttackDef,
+  WeaponAttack, WEAPONS, Wielder, wayStepsAfter, windupTime, type ArenaDef, type MeleeWeapon, type Strike,
+  type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment, type Skill,
+  type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -116,6 +116,11 @@ export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =
     gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: armed() }, book: blankSkillbook(),
     ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
+
+/** Seconds from pressing an opening swing in the armed hand until it has recovered, plus a few steps' slack. */
+export const swingTime = (attack: Strike = "light", weapon: MeleeWeapon = WEAPONS.sword): number =>
+  (wayStepsAfter(weapon, attack, windupTime(weapon, attack, "opening"), appliedStrength(armed(), STATS.strength))
+    .endAt + 2) * FIXED_DT;
 
 /** One player against one enemy, both standing on the ground. */
 export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Math.PI): Fight {

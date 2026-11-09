@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  canWield, coreStats, DAMAGE_TYPES, ITEMS, newCore, STRENGTH_DISCOUNT, STRENGTH_QUICKENING, strengthDiscount,
-  strengthTimeFactor, STRIKES, WEAPON_KINDS, weaponDamage, weaponIn, weaponItemIn, WEAPONS, type Damage,
-  type MeleeWeapon,
+  canWield, CLASS_TABLES, coreStats, DAMAGE_TYPES, damageTotal, ITEMS, newCore, STRENGTH_DISCOUNT, STRENGTH_QUICKENING,
+  strengthDiscount, strengthTimeFactor, STRIKES, WEAPON_CLASSES, weaponDamage, weaponIn, weaponItemIn, WEAPONS,
+  type Damage, type MeleeWeapon, type Strike,
 } from "@infinite-tower/shared";
 
 const swingOf = (damage: Damage) => damage.slash + damage.blunt;
 const SWORDS = ["sword", "kobold-blade", "longsword", "greatsword", "kobold-greatsword"] as const;
-const MELEE = ["old-stick", ...SWORDS] as const;
+const MELEE = ["wooden-sword", ...SWORDS] as const;
 const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
 
 describe("the arsenal", () => {
@@ -35,7 +35,7 @@ describe("the arsenal", () => {
     }
   });
 
-  test("the Kobolds' blades are ours: the Kobold blade a Basic Sword, the greatsword ours but lighter to hold", () => {
+  test("the Kobolds' blades are ours: the Kobold blade the shortsword, the greatsword ours but lighter to hold", () => {
     assert.deepEqual(WEAPONS["kobold-blade"], WEAPONS.sword);
     const { minStrength, ...kobold } = WEAPONS["kobold-greatsword"];
     const { minStrength: ours, ...great } = WEAPONS.greatsword;
@@ -43,10 +43,37 @@ describe("the arsenal", () => {
     assert.ok(minStrength < ours);
   });
 
-  test("every weapon is a worn-in-hand item of a known kind", () => {
+  test("every weapon is a worn-in-hand item of a known class", () => {
     for (const [id, weapon] of Object.entries(WEAPONS)) {
       assert.equal(ITEMS[id as keyof typeof WEAPONS].wearable.on, "hand", id);
-      assert.ok(WEAPON_KINDS.includes(weapon.kind), id);
+      assert.ok(WEAPON_CLASSES.includes(weapon.class), id);
+    }
+    assert.deepEqual([...WEAPON_CLASSES].sort(), ["bow", "greatsword", "longsword", "shortsword"]);
+    assert.equal(WEAPONS["wooden-sword"].class, "shortsword");
+    assert.equal(WEAPONS["kobold-blade"].class, "shortsword");
+    assert.equal(WEAPONS["kobold-greatsword"].class, "greatsword");
+  });
+
+  test("each class is a base table, its own class's; the plain weapons are their class's base as it is", () => {
+    for (const cls of WEAPON_CLASSES) assert.equal(CLASS_TABLES[cls].class, cls);
+    assert.deepEqual(WEAPONS.sword, CLASS_TABLES.shortsword);
+    assert.deepEqual(WEAPONS.longsword, CLASS_TABLES.longsword);
+    assert.deepEqual(WEAPONS.greatsword, CLASS_TABLES.greatsword);
+    assert.deepEqual(WEAPONS["training-bow"], CLASS_TABLES.bow);
+  });
+
+  test("the Wooden sword is the shortsword with no edge: its times, costs, poise and reach, a fraction of its damage", () => {
+    const wood = WEAPONS["wooden-sword"], base = CLASS_TABLES.shortsword;
+    assert.equal(wood.minStrength, 0);
+    assert.equal(wood.length, base.length);
+    assert.equal(ITEMS["wooden-sword"].rarity, "common");
+    assert.ok(ITEMS["wooden-sword"].weight < ITEMS.sword.weight);
+    for (const strike of STRIKES) {
+      const w = wood.strikes[strike], b = base.strikes[strike];
+      assert.deepEqual([w.windupTime, w.liveTime, w.recoverTime, w.cost, w.poiseDamage],
+        [b.windupTime, b.liveTime, b.recoverTime, b.cost, b.poiseDamage], strike);
+      assert.deepEqual({ slash: w.damage.slash, stab: w.damage.stab }, { slash: 0, stab: 0 }, strike);
+      assert.ok(w.damage.blunt > 0 && w.damage.blunt <= damageTotal(b.damage) / 4, strike);
     }
   });
 
@@ -59,17 +86,6 @@ describe("the arsenal", () => {
         assert.ok(damageOf(s.damage) > 0, `${id} ${strike}`);
       }
       assert.ok(weapon.whiffRecoverTime > 0 && weapon.feintRecoverTime > 0 && weapon.parryWeight > 0, id);
-    }
-  });
-
-  test("the Old Stick is quick, cheap and feeble, yet no strike opens on the floor or is all but free", () => {
-    const stick = WEAPONS["old-stick"], sword = WEAPONS.sword;
-    for (const strike of STRIKES) {
-      const s = stick.strikes[strike], b = sword.strikes[strike];
-      assert.ok(s.windupTime < b.windupTime && s.windupTime > 0.4, strike);
-      assert.ok(s.cost < b.cost && s.cost >= b.cost / 3, strike);
-      assert.ok(damageOf(s.damage) < damageOf(b.damage), strike);
-      assert.ok(s.liveTime >= 0.1 && s.recoverTime >= 0.05, strike);
     }
   });
 
@@ -108,12 +124,12 @@ describe("the arsenal", () => {
       assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength), true, id);
       if (weapon.minStrength > 0) assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength - 1), false, id);
     }
-    assert.ok(WEAPONS.sword.minStrength > WEAPONS["old-stick"].minStrength);
+    assert.ok(WEAPONS.sword.minStrength > WEAPONS["wooden-sword"].minStrength);
   });
 
-  test("a new player can wield the Old Stick and the Basic Sword in one hand", () => {
+  test("a new player can wield the Wooden sword and the Iron shortsword in one hand", () => {
     const strength = coreStats(newCore()).strength;
-    assert.ok(canWield("old-stick", strength) && canWield("sword", strength), `${strength}`);
+    assert.ok(canWield("wooden-sword", strength) && canWield("sword", strength), `${strength}`);
   });
 });
 
@@ -121,7 +137,7 @@ const damageOf = (damage: Damage) => damage.slash + damage.stab + damage.blunt;
 
 describe("a weapon's damage, by type", () => {
   test("a swing deals slash and blunt only, a stab only stab, each in whole numbers; a heavy twice a light", () => {
-    for (const id of MELEE) {
+    for (const id of SWORDS) {
       const { light, heavy, stab } = WEAPONS[id].strikes;
       for (const type of DAMAGE_TYPES) {
         for (const s of [light, heavy, stab]) assert.ok(Number.isInteger(s.damage[type]), `${id} ${type}`);
@@ -163,14 +179,43 @@ describe("a weapon's damage, by type", () => {
     assert.ok(share("greatsword").blunt > share("sword").blunt);
   });
 
-  test("the old stick has no edge: a blunt swing and a weak poke", () => {
-    const damage = weaponDamage(WEAPONS["old-stick"]);
-    assert.equal(damage.slash, 0);
-    assert.ok(damage.blunt > 0 && damage.stab > 0 && damage.stab < damage.blunt);
+  test("the Wooden sword has no edge or point: it only bludgeons", () => {
+    const damage = weaponDamage(WEAPONS["wooden-sword"]);
+    assert.equal(damage.slash + damage.stab, 0);
+    assert.ok(damage.blunt > 0);
   });
 
   test("a bow's arrow is all stab", () => {
     const damage = weaponDamage(WEAPONS["training-bow"]);
     assert.ok(damage.stab > 0 && damage.slash === 0 && damage.blunt === 0);
+  });
+});
+
+const perSecond = (weapon: MeleeWeapon, strike: Strike) => {
+  const s = weapon.strikes[strike];
+  return damageTotal(s.damage) / (s.windupTime + s.liveTime + s.recoverTime);
+};
+
+describe("each class plays its own way (opening strikes, at each one's minimum strength)", () => {
+  const short = CLASS_TABLES.shortsword, long = CLASS_TABLES.longsword, great = CLASS_TABLES.greatsword;
+
+  test("the longsword reaches further and stabs best, its swings' damage a second about the shortsword's", () => {
+    assert.ok(long.length > short.length);
+    for (const strike of ["light", "heavy"] as const) {
+      const ratio = perSecond(long, strike) / perSecond(short, strike);
+      assert.ok(ratio > 0.9 && ratio < 1.1, `${strike}: ${ratio}`);
+    }
+    for (const other of [short, great]) assert.ok(perSecond(long, "stab") > perSecond(other, "stab"));
+  });
+
+  test("the greatsword hits about twice as hard a swing, 15-25% more a second, and its heavy breaks poise in two", () => {
+    for (const strike of ["light", "heavy"] as const) {
+      const hit = damageTotal(great.strikes[strike].damage) / damageTotal(short.strikes[strike].damage);
+      assert.ok(hit > 1.8 && hit < 2.4, `${strike} a hit: ${hit}`);
+      const ratio = perSecond(great, strike) / perSecond(short, strike);
+      assert.ok(ratio >= 1.15 && ratio <= 1.25, `${strike} a second: ${ratio}`);
+      assert.ok(great.strikes[strike].cost >= 2 * short.strikes[strike].cost, `${strike} cost`);
+    }
+    assert.ok(great.strikes.heavy.poiseDamage * 2 >= short.strikes.heavy.poiseDamage * 3);
   });
 });

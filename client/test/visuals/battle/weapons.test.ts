@@ -8,7 +8,7 @@ import {
 } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
-const { trail, windup, stroke: strokeBlade, held } = MOTIONS.sword;
+const { trail, windup, stroke: strokeBlade, held } = MOTIONS.melee;
 const near = (a: Vec3, b: Vec3, msg: string) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 1e-9, msg);
 
 const KINDS: readonly AttackKind[] = ["light", "heavy"];

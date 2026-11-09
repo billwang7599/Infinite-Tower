@@ -13,13 +13,13 @@ const D = Math.SQRT1_2;
 const LR: Cut = { x: 1, y: 0 }, RL: Cut = { x: -1, y: 0 }, TB: Cut = { x: 0, y: -1 };
 const TLBR: Cut = { x: D, y: -D }, TRBL: Cut = { x: -D, y: -D };
 const CUTS = [LR, RL, TB, TLBR, TRBL];
-const TOP_GUARD = MOTIONS.sword.held(TB);
+const TOP_GUARD = MOTIONS.melee.held(TB);
 
 const poseOf = (
   state: EnemyState, t: number, k: number, cut: Cut, stroke: { set: number; turn: number } | null = {
     set: k, turn: 0,
   }, held: BladePose = TOP_GUARD, heavy = false,
-) => koboldPose(state, t, k, cut, MOTIONS.sword, stroke, held, heavy);
+) => koboldPose(state, t, k, cut, MOTIONS.melee, stroke, held, heavy);
 
 describe("the kobold's pose", () => {
   test("an attack's wind-up turns the blade to where its cut starts", () => {
@@ -42,7 +42,7 @@ describe("the kobold's pose", () => {
   });
 
   test("on guard, and holding its tell, its blade is where its guard holds it", () => {
-    const left = MOTIONS.sword.held(RL);
+    const left = MOTIONS.melee.held(RL);
     for (const state of ["approach", "weaponWindup"] as const) {
       assert.deepEqual(poseOf(state, 0.5, 0.5, RL, null, left).blade, left.blade, state);
     }
@@ -67,11 +67,11 @@ describe("the kobold's pose", () => {
 
   test("a wind-up draws the blade back past its plain path, wider and behind, from any guard", () => {
     for (const cut of CUTS) {
-      const own = MOTIONS.sword.held(cut);
+      const own = MOTIONS.melee.held(cut);
       for (const [name, held] of [["its own side", own], ["the top", TOP_GUARD]] as const) {
         const fromGuard = (v: Vec3): number =>
           Math.acos(Math.min(1, v.x * held.blade.x + v.y * held.blade.y + v.z * held.blade.z));
-        const set = 0.9, plain = MOTIONS.sword.windup(cut, set, held).blade;
+        const set = 0.9, plain = MOTIONS.melee.windup(cut, set, held).blade;
         const wound = poseOf("weapon", 0.5, set, cut, { set, turn: 0 }, held).blade;
         assert.ok(fromGuard(wound) > fromGuard(plain), `${JSON.stringify(cut)} from ${name}: further from guard`);
         assert.ok(wound.z < plain.z, `${JSON.stringify(cut)} from ${name}: further back`);
@@ -83,9 +83,9 @@ describe("the kobold's pose", () => {
     const { goneByTurn } = DRAWBACK;
     for (const cut of CUTS) {
       const driven = poseOf("weapon", 0.5, 0.95, cut, { set: 1, turn: 0 }).blade;
-      assert.ok(driven.z < MOTIONS.sword.stroke(cut, 0).blade.z, `${JSON.stringify(cut)}: still back as it drives`);
+      assert.ok(driven.z < MOTIONS.melee.stroke(cut, 0).blade.z, `${JSON.stringify(cut)}: still back as it drives`);
       const live = poseOf("weapon", 0, 0, cut, { set: 1, turn: goneByTurn });
-      assert.deepEqual(live.blade, MOTIONS.sword.stroke(cut, goneByTurn).blade, JSON.stringify(cut));
+      assert.deepEqual(live.blade, MOTIONS.melee.stroke(cut, goneByTurn).blade, JSON.stringify(cut));
     }
   });
 
@@ -149,7 +149,7 @@ describe("the kobold's guard", () => {
   const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
   const gap = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
   const guarding = (raised: number, state: EnemyState = "approach") =>
-    koboldPose(state, 0.5, 0.5, TB, MOTIONS.sword, null, TOP_GUARD, false, { kind: "one", raised });
+    koboldPose(state, 0.5, 0.5, TB, MOTIONS.melee, null, TOP_GUARD, false, { kind: "one", raised });
   const block = guardPose("one", 1, KOBOLD_GUARD_FIT);
 
   test("blocking, it holds its blade across its body as a person does, fitted to it, edge toward its foe", () => {
@@ -188,7 +188,7 @@ describe("a kobold with a shield", () => {
   const faceOf = ({ blade: b, edge: e }: { blade: Vec3; edge: Vec3 }): Vec3 =>
     ({ x: e.y * b.z - e.z * b.y, y: e.z * b.x - e.x * b.z, z: e.x * b.y - e.y * b.x });
   const shielded = (raised: number) =>
-    koboldPose("approach", 0.5, 0.5, TB, MOTIONS.sword, null, TOP_GUARD, false, { kind: "shield", raised });
+    koboldPose("approach", 0.5, 0.5, TB, MOTIONS.melee, null, TOP_GUARD, false, { kind: "shield", raised });
 
   test("carries it as a person does, fitted to it: a little up and ahead, turned out", () => {
     const p = shielded(0), carried = carryPose("shield", 1, KOBOLD_GUARD_FIT);

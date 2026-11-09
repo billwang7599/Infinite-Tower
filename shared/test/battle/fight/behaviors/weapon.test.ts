@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   BASE_STATS, CHAIN, emptyBag, Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, packFor,
-  isSwing, parryWay, Player, Stamina, strikeOf, toSteps, WeaponAttack, Wielder, wayStepsAfter, weaponTime, windupTime,
+  isSwing, parryWay, Player, Stamina, STRENGTH_QUICKENING, strikeOf, toSteps, WeaponAttack, Wielder, wayStepsAfter,
+  weaponTime, windupTime,
   type EnemyDef, type Entity, type PlayerInputData, type Strike, type SwingDir, type Way, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, armed, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE, swings, SWORDSMAN, SWORDSMAN_STRENGTH,
+  ARENA, armed, enemy, FULL_HP, FULL_STAMINA, input, player, STATS, STATUE, swings, swingTime, SWORDSMAN,
+  SWORDSMAN_STRENGTH,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -110,7 +112,7 @@ describe("a swordsman", () => {
       while (!fight.events.some((e) => e.type === "feint" && e.by === it)) fight.step([input({ locked: 0 })]);
       const feintAt = fight.steps;
       let parried = false;
-      while (fight.steps < feintAt + wait + 30) {
+      while (fight.steps < feintAt + wait + toSteps(swingTime())) {
         const s = fight.steps + 1;
         fight.step([input({ locked: 0, way: "lr", attack: s === feintAt + wait ? "light" : null })]);
         parried ||= fight.events.some((e) => e.type === "parry" && e.by === it);
@@ -289,20 +291,26 @@ describe("a swordsman's parries", () => {
   });
 
   test("lets a swing by that it could only meet by winding up under the floor", () => {
-    const stick = wayStepsAfter(WEAPONS["old-stick"], "light", windupTime(WEAPONS["old-stick"], "light", "opening"),
-      BASE_STATS.strength);
-    assert.ok(stick.liveAt < toSteps(CHAIN.minWindupTime) + toSteps(HYBRID.parry.clashTime));
-    const equipment = { ...armed(), rightHand: "old-stick" as const };
+    const def = kobold({ parryChance: 0, firstDelay: 99 }), parrying = def.attacks.weapon!;
+    const quickest = WEAPONS.sword.minStrength + STRENGTH_QUICKENING.max / STRENGTH_QUICKENING.perPoint;
     const fight = new Fight({
-      arena: ARENA,
-      players: [player({ x: 0, y: 0.05, z: 0 }, {
-        gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment },
-      })],
-      enemies: [enemy(kobold({ parryChance: 1, firstDelay: 99 }), { x: 0, y: 0.05, z: 2 })],
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { stats: { ...STATS, strength: quickest } })],
+      enemies: [enemy(def, { x: 0, y: 0.05, z: 2 })],
     });
-    const events: FightEvent[] = [];
-    for (let s = 1; s <= 45; s++) {
-      fight.step([input({ locked: 0, way: "lr", attack: s === 20 ? "light" : null })]);
+    const me = fight.players[0]!, events: FightEvent[] = [];
+    let reversed = null as { liveAt: number } | null;
+    for (let s = 1; s <= 120 && !reversed; s++) {
+      const first = s < 25;
+      const attack = s === 20 || (!first && s % 2 === 0) ? "light" : null;
+      fight.step([input({ locked: 0, way: first ? "lr" : "rl", attack })]);
+      if (s === 21) parrying.parryChance = 1;
+      const swing = fight.world.require(me, Wielder).swing;
+      if (swing?.way === "rl" && swing.step === 1) reversed = swing;
+    }
+    assert.ok(reversed, "no reverse swing");
+    assert.ok(reversed.liveAt - toSteps(HYBRID.parry.clashTime) - 2 < toSteps(CHAIN.minWindupTime));
+    for (let s = 0; s < reversed.liveAt + 5; s++) {
+      fight.step([input({ locked: 0, way: "rl" })]);
       events.push(...fight.events);
       assert.equal(fight.world.require(fight.enemies[0]!, Wielder).swing, null, `step ${s}`);
     }

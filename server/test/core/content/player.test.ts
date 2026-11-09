@@ -131,4 +131,15 @@ describe("loading a save", () => {
     assert.deepEqual([save.equipment.rightHand, save.equipment.leftHand], ["training-bow", null]);
     assert.equal(stowedCounts(save).skillbook, 1);
   });
+
+  test("an old stick, in hand or in a grid, comes back a Wooden sword, laid out again where it fits", () => {
+    const old = { item: "old-stick", count: 1, x: 0, y: 0, turned: false } as unknown as BagItem;
+    const bag = { ...emptyBag(), items: [old, stack("boar-meat", 1, 0, 3)] };
+    const equipment = { ...emptyEquipment(), rightHand: "old-stick" } as unknown as StoredSave["equipment"];
+    const { save, spilled } = keptSave(stored(bag, { equipment }));
+    assert.equal(save.equipment.rightHand, "wooden-sword");
+    assert.deepEqual(stowedCounts(save), { "wooden-sword": 1, "boar-meat": 3 });
+    assert.deepEqual(bagProblems(save.bag), []);
+    assert.deepEqual(spilled, {});
+  });
 });

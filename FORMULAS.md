@@ -50,9 +50,9 @@ hits to kill each other at every step.
 ## Weapon attacks
 
 `CHAIN`, `MOMENTUM`, `HYBRID` in `shared/src/weapons/hybrid.ts`; `STRENGTH_QUICKENING`, `STRENGTH_DISCOUNT` in
-`shared/src/weapons/weapons.ts`; every weapon's own table (per strike: wind-up, live, recovery, cost, typed damage,
+`shared/src/weapons/weapons.ts`; each class's base table (per strike: wind-up, live, recovery, cost, typed damage,
 poise damage; then whiff and feint recovery, raise time, parry weight, length, `minStrength`) in
-`shared/src/weapons/tables.ts`.
+`shared/src/weapons/tables.ts`, each weapon its class's table with its own fields over it (`ITEMS`).
 
 - **Grip strength** = the wielder's strength × `TWO_HAND_STRENGTH_FACTOR` for a lone melee weapon held in both
   hands, else their own (`appliedStrength`, `shared/src/weapons/kinds.ts`). It's the strength in every weapon
@@ -84,8 +84,8 @@ poise damage; then whiff and feint recovery, raise time, parry weight, length, `
 
 ## Bows (placeholder)
 
-`BOW` and its functions in `shared/src/weapons/bow.ts`; a bow's table (draw times and cost, arrow damage, `powerMps`)
-in `shared/src/weapons/tables.ts`; a quiver's `pack.holds` in `ITEMS`.
+`BOW` and its functions in `shared/src/weapons/bow.ts`; the bow class's table (draw times and cost, arrow damage,
+`powerMps`) in `shared/src/weapons/tables.ts`; a quiver's `pack.holds` in `ITEMS`.
 
 - **Draw** costs the bow's `draw.cost` × the strength discount; full after `draw.fullTime` × quickening; a release
   before `draw.minTime` × quickening looses then.

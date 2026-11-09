@@ -5,7 +5,7 @@ import {
   Statuses, statusOn, timeLeft, type CoreState, type InscriptionId, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BOAR, enemy, FULL_HP, IDLE, input, player, run, STATUE } from "./fixtures.js";
+import { ARENA, BOAR, enemy, FULL_HP, IDLE, input, player, run, STATUE, swingTime } from "./fixtures.js";
 
 await initPhysics();
 
@@ -20,7 +20,7 @@ function facingStatue(...inscriptions: InscriptionId[]): Fight {
   });
 }
 
-function swing(fight: Fight, settle = 0.6): void {
+function swing(fight: Fight, settle = swingTime()): void {
   fight.step([input({ attack: "light" })]);
   run(fight, settle);
 }

@@ -40,6 +40,14 @@ Swinging:
   and a hand switch never cuts a recovery short.
 - The body commits: you walk slowly while attacking, a live blade carries you forward, a whiff overextends you
   (carried further, a longer recovery), and a live blade's turn is capped (a drag for timing, never a spin).
+- Weapons belong to classes (the user: "we have dagger, shortsword, longsword... all weapons so far will have their
+  own name, but tagged with what kind of weapon they are"; "label + base table. each weapon can adjust them, but all
+  weapons stemming from classes build from that class"): shortsword, longsword, greatsword (the user: "greatsword is
+  the greatsword class") and bow, each a base table; a weapon is its class's table with the fields that set it apart
+  changed, and its tooltip names its class beside its rarity. The dagger waits until there's one. The shortsword is
+  the reference; the longsword reaches and stabs best at about its damage a second; the greatsword hits about twice
+  as hard a swing and more a second, slow and dear (the user: "greatsword seems to be weak right now... each weapon
+  should have a distinction of playstyle and stats").
 - Each weapon is a table of its own stats, read as they are (the user: "do we need heft anymore? im thinking every
   weapon has just now a table of stats to read from"): per strike (light, heavy, stab) its wind-up, live time,
   recovery, stamina cost, typed damage and poise damage; then its whiff and feint recovery, guard raise time, parry
@@ -63,9 +71,10 @@ Swinging:
 - A lone melee weapon is held in both hands, putting 1.5× the strength in, through the same math; anything in the
   other hand makes it one-handed. The Kobolds stay one-handed. No toggle.
 - Weapon damage is typed: slash, stab and blunt, each strike's its table's own. A swing deals slash and blunt, a stab
-  only stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The old stick does almost nothing.
-- Enemies swing by the player's rule, from their weapon's table and their strength. A swordsman's def keeps only pacing (cooldowns, chain
-  lengths, chances); balance goes through its weapon and stats. Beasts keep their own attack timings.
+  only stab. Sword stabs stay weak; rapiers and spears will be the stab weapons. The Wooden sword, Bram's, only
+  bludgeons, and barely (the user: "wooden sword has abysmal damage").
+- Enemies swing by the player's rule, from their weapon's table and their strength. A swordsman's def keeps only
+  pacing (cooldowns, chain lengths, chances); balance goes through its weapon and stats. Beasts keep their own attack timings.
 
 Defending:
 

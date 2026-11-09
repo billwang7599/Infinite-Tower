@@ -65,7 +65,7 @@ World and story:
 - Highmere, the Empire's sacred Door City, grows ward by ward, joined by gates; it has three shops, one summoning pad
   (the Castle Ward's platform), no campfires and no enemies but the butcher's chickens.
 - New players start there with nothing (no words, empty hands, only a starter backpack), on its platform. The herald
-  greets them and names the controls only in what he says. An old man (Bram) gives an old stick.
+  greets them and names the controls only in what he says. An old man (Bram) gives a wooden sword.
 - The start is linear: the herald, then Bram's training yard, then the butcher's chickens, which teach tall grass
   (his pen is the city's only tall grass). Wenna's and Tamsin's quests are open from the start.
 - Summoning pads are respawn points: Interact by any pad binds you, free; logging in and dying wake you on your pad.
@@ -107,6 +107,8 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
   slightly increases speed, but only up to 5-10%"), and cheapens it; otherwise strength adds damage, so weapons keep
   their character (the user: "if things get too quick, they lose uniqueness and its unbalanced"). A better weapon
   keeps its table and only hits harder (the user: "higher tier weapons would be around the same weight wise").
+- Weapons belong to classes (shortsword, longsword, greatsword, bow): a class is the label shown on the item and the
+  base table its weapons build from, each weapon changing only what sets it apart.
 - Each weapon has a minimum strength: under it you can't equip it (the user: "they cant wield it if they dont have
   sufficient strenght"), and one that falls under it leaves the hand. A lone blade is held in both hands, putting in
   1.5× the strength, which counts toward the minimum.
@@ -115,6 +117,8 @@ Combat (every decision in detail: [plan/combat-v2.md](plan/combat-v2.md)):
   swings").
 - Enemies swing by the same rule as players, from their weapon's table and their strength; balance goes through
   weapons, stats and pacing.
+- Balance is judged by playtesting, not by bot fights (the user: "i dont think that really factors in any skill +
+  weapon differences"); tests check mechanics, never who wins.
 - Every wind-up has a hard floor, so every attack is reactable. Momentum pays in damage, never speed.
 - Hits do damage only (no knockback, no stun); enemies stagger only when their poise breaks. A stun resets an enemy's
   attack; a swordsman's counter after a parry or perfect block can be met.
