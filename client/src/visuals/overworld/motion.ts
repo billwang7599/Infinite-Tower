@@ -24,13 +24,11 @@ export function stepHop(phase: number, moving: boolean, dt: number): number {
 
 export const hopTiles = (phase: number): number => Math.abs(Math.sin(phase)) * HOP_TILES;
 
-/** The local player is stepped at a fixed rate; drawn `fraction` of the way through the next step. */
 export const stepped = (from: Vec2, to: Vec2, fraction: number): Vec2 =>
   ({ x: from.x + (to.x - from.x) * fraction, z: from.z + (to.z - from.z) * fraction });
 
 export interface Glide {
   drawn: Vec2;
-  /** The latest snapshot seen, and how long ago it came. */
   last: Vec2;
   sinceSnapTime: number;
 }
@@ -51,7 +49,6 @@ export function glide(g: Glide, snapped: Vec2, vel: { vx: number; vz: number }, 
   g.drawn.z += (snapped.z + vel.vz * lead - g.drawn.z) * k;
 }
 
-/** Someone standing breathes: drawn one sprite pixel up for part of each breath, out of step with their neighbours. */
 export function breathLiftTiles(time: number, seed: number, sizeTiles: number, moving: boolean): number {
   if (moving) return 0;
   const cycle = (time / BREATH_PERIOD_TIME + seed * 0.618) % 1;

@@ -6,7 +6,6 @@ import type { PropKind } from "./scenery.js";
 
 interface Sway { tipPx: number; ratePerSec: number }
 
-/** Plants lean in the wind: the top of the picture moves sideways on screen, its foot stays put. */
 export const SWAY: Partial<Record<PropKind, Sway>> = {
   tallGrass: { tipPx: 1.5, ratePerSec: 1.6 },
   tuft: { tipPx: 1, ratePerSec: 1.9 },
