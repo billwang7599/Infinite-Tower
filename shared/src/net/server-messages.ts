@@ -176,9 +176,15 @@ export type ServerMsg =
   /** A shop opened beside the bag (`openShop`), or null: it closed. */
   | { t: "shop"; shop: ShopView | null }
   | { t: "trade"; news: TradeNews; gear: Gear; shop: ShopView }
-  /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
+  /**
+   * Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit; `from`, the giver's
+   * name when another player gave it. `gave`: the giver's answer for a give to another player (`to`, their username).
+   * `giveRefused`: nobody by that username is online and in the world.
+   */
   | { t: "healed"; vitals: Vitals }
-  | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
+  | { t: "given"; item: ItemId; count: number; left: number; gear: Gear; from?: string }
+  | { t: "gave"; to: string; item: ItemId; count: number; left: number }
+  | { t: "giveRefused"; to: string }
   | { t: "invulnerable"; on: boolean }
   | { t: "keepInventory"; on: boolean }
   | { t: "noQuest" }

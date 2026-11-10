@@ -18,7 +18,9 @@ export type GameEvent =
   | { kind: "tooWeak"; item: WeaponId }
   | { kind: "noHands"; item: ItemId; displaced: ItemId }
   | { kind: "leftOnCloth"; items: ItemCounts }
-  | { kind: "given"; item: ItemId; count: number; left: number }
+  | { kind: "given"; item: ItemId; count: number; left: number; from?: string }
+  | { kind: "gave"; to: string; item: ItemId; count: number; left: number }
+  | { kind: "giveRefused"; to: string }
   | { kind: "healed" }
   | { kind: "noQuest" }
   | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
@@ -47,6 +49,8 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   noHands:      noHandsLines,
   leftOnCloth:  ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`],
   given:        givenLines,
+  gave:         gaveLines,
+  giveRefused:  ({ to }) => [`Nobody named ${to} is online.`],
   healed:       () => ["HP and stamina are restored."],
   noQuest:      () => ["There's no quest left to complete."],
   chatRefused:  ({ reason }) => [CHAT_REFUSED[reason]],
@@ -110,9 +114,16 @@ function noHandsLines({ item, displaced }: EventOf<"noHands">): string[] {
   return [`The ${bow} takes both hands, and there's no room in the bag ${away}.`];
 }
 
-function givenLines({ item, count, left }: EventOf<"given">): string[] {
-  const lines = count > 0 ? [`You get ${describeItems({ [item]: count })}.`] : [];
+function givenLines({ item, count, left, from }: EventOf<"given">): string[] {
+  const got = describeItems({ [item]: count });
+  const lines = count > 0 ? [from ? `${from} gives you ${got}.` : `You get ${got}.`] : [];
   if (left > 0) lines.push(`The bag is full: ${describeItems({ [item]: left })} didn't fit.`);
+  return lines;
+}
+
+function gaveLines({ to, item, count, left }: EventOf<"gave">): string[] {
+  const lines = count > 0 ? [`You give ${to} ${describeItems({ [item]: count })}.`] : [];
+  if (left > 0) lines.push(`${to}'s bag is full: ${describeItems({ [item]: left })} didn't fit.`);
   return lines;
 }
 

@@ -30,13 +30,21 @@ describe("commands: what each runs", () => {
       { cheat: { kind: "give", item: ITEM, count: MAX_GIVE_COUNT } });
   });
 
+  test("/give <item> [count] [username] gives to that player, the count coming first so a name can't be read as one", () => {
+    assert.deepEqual(actOf(`/give ${ITEM} 3 test3`), { cheat: { kind: "give", item: ITEM, count: 3, to: "test3" } });
+    assert.deepEqual(actOf(`/give ${ITEM} 1 Some_One-2`),
+      { cheat: { kind: "give", item: ITEM, count: 1, to: "some_one-2" } });
+    assert.match(errorOf(`/give ${ITEM} test3`), /Count must be/);
+    assert.match(errorOf(`/give ${ITEM} 1 bad!name`), /^Unknown username: bad!name$/);
+  });
+
   test("a bad /give says what's wrong", () => {
     assert.equal(errorOf("/give foo"), "Unknown item: foo");
     assert.match(errorOf(`/give ${ITEM} 0`), /^Count must be 1 to 100: 0$/);
     assert.match(errorOf(`/give ${ITEM} ${MAX_GIVE_COUNT + 1}`), /Count must be/);
     assert.match(errorOf(`/give ${ITEM} lots`), /Count must be/);
-    assert.equal(errorOf("/give"), "Usage: /give <item> [count]");
-    assert.equal(errorOf(`/give ${ITEM} 1 2`), "Usage: /give <item> [count]");
+    assert.equal(errorOf("/give"), "Usage: /give <item> [count] [username]");
+    assert.equal(errorOf(`/give ${ITEM} 1 2 3`), "Usage: /give <item> [count] [username]");
   });
 
   test("/encounter <enemy> [foes] brings that many, one unless counted", () => {
@@ -94,13 +102,13 @@ describe("commands: what each runs", () => {
     const all = parseCommand("/help", OVERWORLD);
     assert.ok("help" in all);
     assert.equal(all.help.length, COMMANDS.length);
-    for (const name of ["/give <item> [count]", "/god [on|off]", "/time <dawn|noon|dusk|midnight>"]) {
+    for (const name of ["/give <item> [count] [username]", "/god [on|off]", "/time <dawn|noon|dusk|midnight>"]) {
       assert.ok(all.help.some((line) => line.startsWith(name)), name);
     }
     const one = parseCommand("/help give", OVERWORLD);
     assert.ok("help" in one);
     assert.equal(one.help.length, 1);
-    assert.match(one.help[0]!, /^\/give <item> \[count\]/);
+    assert.match(one.help[0]!, /^\/give <item> \[count\] \[username\]/);
     assert.equal(errorOf("/help fly"), "Unknown command: fly");
   });
 
@@ -134,7 +142,7 @@ describe("commands: suggestions as you type", () => {
   });
 
   test("after the command, its argument's options filter as the word is typed, with the usage as a hint", () => {
-    assert.equal(suggest("/give ").usage, "/give <item> [count]");
+    assert.equal(suggest("/give ").usage, "/give <item> [count] [username]");
     assert.equal(labels("/give ").length, ITEM_IDS.length);
     const boar = labels("/give boar");
     assert.ok(boar.length > 0 && boar.every((id) => id.startsWith("boar")), boar.join());
@@ -158,7 +166,7 @@ describe("commands: suggestions as you type", () => {
     assert.deepEqual(labels("/timespeed "), DAY_SPEEDS.map(String));
     assert.deepEqual(labels("/faith "), [...GODS]);
     assert.equal(labels("/encounter k").every((id) => id.includes("k")), true);
-    assert.equal(suggest(`/give ${ITEM} `).usage, "/give <item> [count]");
+    assert.equal(suggest(`/give ${ITEM} `).usage, "/give <item> [count] [username]");
     assert.equal(suggest("/heal ").options.length, 0);
   });
 

@@ -389,6 +389,9 @@ describe("parseClientMsg", () => {
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1.5 }), null);
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT + 1 }), null);
     assert.notEqual(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT }), null);
+    assert.notEqual(cheat({ kind: "give", item: "boar-meat", count: 1, to: "test3" }), null);
+    assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1, to: "" }), null);
+    assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1, to: "x".repeat(65) }), null);
     assert.equal(cheat({ kind: "coreStep" }), null);
   });
 

@@ -223,6 +223,13 @@ export class GameSession {
     else this.link.send({ t: "joinRefused", reason: "nobodyNear" });
   }
 
+  /** The online player with this username (any case), or null. */
+  onlineByUsername(username: string): GameSession | null {
+    const wanted = username.toLowerCase();
+    for (const s of this.others.online()) if (s.account.username.toLowerCase() === wanted) return s;
+    return null;
+  }
+
   cheat(cheat: Cheat): void {
     if (this.cheats) runCheat(this, cheat);
   }

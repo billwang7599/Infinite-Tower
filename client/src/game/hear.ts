@@ -44,7 +44,10 @@ export function hear({ net, welcome }: Joined, ui: UiState): void {
   });
   net.on("faith", ({ gained, blessed }) => say(ui.notifications, { kind: "faith", gained, blessed }));
   net.on("healed", () => say(ui.notifications, { kind: "healed" }));
-  net.on("given", ({ item, count, left }) => say(ui.notifications, { kind: "given", item, count, left }));
+  net.on("given", ({ item, count, left, from }) =>
+    say(ui.notifications, { kind: "given", item, count, left, ...(from === undefined ? {} : { from }) }));
+  net.on("gave", ({ to, item, count, left }) => say(ui.notifications, { kind: "gave", to, item, count, left }));
+  net.on("giveRefused", ({ to }) => say(ui.notifications, { kind: "giveRefused", to }));
   net.on("invulnerable", (msg) => ui.admin.set({ invulnerable: msg.on }));
   net.on("keepInventory", (msg) => ui.admin.set({ keepInventory: msg.on }));
   net.on("noQuest", () => say(ui.notifications, { kind: "noQuest" }));

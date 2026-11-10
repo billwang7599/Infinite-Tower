@@ -114,6 +114,21 @@ describe("say", () => {
     assert.deepEqual(notices(arrows), ["You get 20 arrows."]);
   });
 
+  test("a gift from another player names the giver; the giver hears where it went, or that nobody's there", () => {
+    const to = new Notifications();
+    say(to, { kind: "given", item: "boar-meat", count: 3, left: 0, from: "Wren" });
+    assert.deepEqual(notices(to), ["Wren gives you 3 boar meat."]);
+    const giver = new Notifications();
+    say(giver, { kind: "gave", to: "test3", item: "boar-meat", count: 3, left: 0 });
+    assert.deepEqual(notices(giver), ["You give test3 3 boar meat."]);
+    const full = new Notifications();
+    say(full, { kind: "gave", to: "test3", item: "boar-hide", count: 0, left: 2 });
+    assert.deepEqual(notices(full), ["test3's bag is full: 2 boar hides didn't fit."]);
+    const nobody = new Notifications();
+    say(nobody, { kind: "giveRefused", to: "ghost" });
+    assert.deepEqual(notices(nobody), ["Nobody named ghost is online."]);
+  });
+
   test("a dev cheat's heal is a notice", () => {
     const to = new Notifications();
     say(to, { kind: "healed" });
