@@ -109,8 +109,22 @@ Hits and pushback:
 - Fighters are moved by code, not forces: an enemy shoves a player, a player can't push an enemy, and a dodging,
   staggered or dead player passes through everyone. Allies (foe and foe, player and player) can't overlap and shove
   each other apart (the user: "they can knock each other back, block each other, etc. but they don't friendly fire").
-- Open: whether a swing sweeping through an ally is stopped by its body or shoves it (today it passes through,
-  harmless), and whether foes should route around each other instead of jostling.
+- A swing sweeping through an ally passes through it, harmless and without pushing it (agents' pick, delegated by the
+  user: "swing through ally i think, or whatever you think will make teamplay/raids fun").
+
+Group fights (agents' picks, delegated by the user: "use your best judgement for what would make raids
+fun/semi-realistic"):
+
+- Foes take turns on each player, as attack tokens do in Souls games: only so many may be attacking one player at
+  once, and a foe can't start its wind-up while another's wind-up (or combo) on that player is still running, so every
+  tell can be read on its own. A foe that has just attacked lets one that has waited longer go first. Parries and
+  blocks are reactions and aren't gated.
+- While a player's turns are full, the other foes on them hold back out of every melee reach and come round into the
+  player's view, so their tells stay readable; every foe keeps some room from the others, so a group fans out
+  around the player instead of queuing. No pathfinding: they still shove when they meet.
+- With several players, each foe takes the nearest player still standing, counting the foes already on each as extra
+  distance, so a group splits its attention. Nothing is remembered between steps: it's worked out afresh each step.
+- Open: aggro by who hit a foe last, and foes routing around each other.
 
 Reading the other side:
 

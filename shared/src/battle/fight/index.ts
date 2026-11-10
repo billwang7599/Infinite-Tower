@@ -1,6 +1,7 @@
 // The arena fight, "@infinite-tower/shared/fight". Its own entry point because it brings Rapier (a few MB), so the
 // title screen's bundle and the rest of the server don't load it.
 export { aimOf } from "./aim.js";
+export { GROUP } from "./behaviors/group.js";
 export { Fight } from "./fight.js";
 export type { FightEvent, FightOutcome, FightState } from "./context.js";
 export { LEAVING_LOSES, MAX_FIGHT_TIME, playerResult, type PlayerResult } from "./outcome.js";

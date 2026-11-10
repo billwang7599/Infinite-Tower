@@ -3,6 +3,7 @@ import { turnToward } from "../../../core/math.js";
 import { Enemy, SlamAttack } from "../../components.js";
 import type { FightContext } from "../context.js";
 import { addHitAhead, enter } from "./common.js";
+import { mayStart } from "./group.js";
 
 const MIN_FACING_DOT = 0.8;
 const WINDUP_TURN_RAD_PER_SEC = 1.2;
@@ -14,7 +15,7 @@ export function slamAttackSystem(ctx: FightContext): System {
       slam.cooldown -= dt;
       switch (enemy.state) {
         case "approach":
-          if (!sense.targetAlive || slam.cooldown > 0) break;
+          if (!sense.targetAlive || slam.cooldown > 0 || !mayStart(world, e, enemy)) break;
           if (sense.dist < sweep.range && sense.facingDot < sweep.belowDot) enter(world, e, enemy, "sweepWindup");
           else if (sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT) {
             enter(world, e, enemy, "slamWindup");
