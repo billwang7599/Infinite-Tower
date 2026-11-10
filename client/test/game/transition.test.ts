@@ -46,6 +46,22 @@ describe("transition", () => {
     assert.ok(frames.some((f) => f.opacity === 0) && frames.some((f) => f.opacity > 0));
   });
 
+  for (const to of ["battle", "overworld"] as const) {
+    test(`into ${to}: the black eases in and out, with no jumps`, () => {
+      const black = run(to).filter((f) => f.color === "#000");
+      for (let i = 1; i < black.length; i++) {
+        assert.ok(Math.abs(black[i]!.opacity - black[i - 1]!.opacity) < 0.12, `frame ${i}`);
+      }
+      assert.ok(black[0]!.opacity < 0.02 && black.at(-2)!.opacity < 0.02);
+    });
+  }
+
+  test("each white flash fades off rather than cutting out", () => {
+    const white = run("battle").filter((f) => f.color === "#fff").map((f) => f.opacity);
+    const lit = white.filter((o) => o > 0);
+    assert.ok(new Set(lit.map((o) => o.toFixed(2))).size > 2);
+  });
+
   test("back to the overworld fades through black, with no flashes", () => {
     assert.ok(run("overworld").every((f) => f.color === "#000"));
   });
