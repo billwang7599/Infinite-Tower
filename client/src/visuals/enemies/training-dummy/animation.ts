@@ -3,9 +3,8 @@ import { damp, Enemy, Health, STRIKES, type Strike } from "@infinite-tower/share
 import { fighter } from "../../battle/battle.js";
 import { loft } from "../../battle/person/loft.js";
 import { colorMaterial } from "../../materials.js";
-import { enemyMaterial } from "../shape.js";
+import { enemyMaterial, flashMaterials } from "../shape.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const STRUCK_COLOR = new Color3(0.9, 0.7, 0.2);
 const UNLIT = Color3.Black();
 const WOBBLE_RAD = 0.25;
@@ -87,6 +86,6 @@ export const trainingDummyVisual = fighter<DummyModel>("enemy", {
     for (const strike of STRIKES) {
       model.marks[strike].emissiveColor.copyFrom(enemy.struck.includes(strike) ? STRUCK_COLOR : UNLIT);
     }
-    model.materials.forEach((m, i) => m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : model.fills[i]!));
+    flashMaterials(model.materials, model.fills, health.flash);
   },
 });

@@ -15,6 +15,7 @@ export interface LurkerModel {
   baseEmissive: Color3[];
   eyes: StandardMaterial;
   gait: number;
+  pace: number;
   visualYaw: number;
   spin: number;
   clock: number;
@@ -139,6 +140,6 @@ export function buildLurker(
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
     root, model, trunk, head, jaw, tail, arms: [shoulder(-1), shoulder(1)], materials, baseEmissive, eyes, gait: 0,
-    visualYaw: yaw, spin: 0, clock: 0,
+    visualYaw: yaw, spin: 0, clock: 0, pace: 0,
   };
 }

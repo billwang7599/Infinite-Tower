@@ -1,5 +1,6 @@
 import { Color3, MeshBuilder, type Mesh, type Scene, type StandardMaterial } from "@babylonjs/core";
-import type { Vec3 } from "@infinite-tower/shared";
+import { clamp, damp, type Vec3 } from "@infinite-tower/shared";
+import { HIT_FLASH_TIME } from "@infinite-tower/shared/fight";
 import { placeBetween } from "../battle/arm.js";
 import { loft } from "../battle/person/loft.js";
 import { colorMaterial } from "../materials.js";
@@ -41,4 +42,40 @@ export const breathOf = (time: number, periodTime: number) => Math.sin((2 * Math
 export function flickOf(time: number, everyTime: number, lengthTime = 0.25): number {
   const t = ((time % everyTime) + everyTime) % everyTime;
   return t < lengthTime ? Math.sin((Math.PI * t) / lengthTime) : 0;
+}
+
+const PACE_EASE_RATE = 8;
+const LEG_HOLD_RATE = 12;
+const LEG_AIM_RATE = 18;
+
+/** The speed (m/s) a body's walk is drawn at, eased after its own, so legs never freeze mid-step or start at a run. */
+export const easePace = (pace: number, speed: number, dt: number): number => damp(pace, speed, PACE_EASE_RATE, dt);
+
+/** A leg's held angle, as last eased toward, and how much of the leg it has from the walk (0..1). */
+export interface LegHold { angle: number; share: number }
+export const newLegHold = (): LegHold => ({ angle: 0, share: 0 });
+
+export function holdLeg(h: LegHold, held: number | null | undefined, walk: number, dt: number): number {
+  const holding = held !== null && held !== undefined;
+  if (holding && h.share < 1e-3) h.angle = walk;
+  if (holding) h.angle = damp(h.angle, held, LEG_AIM_RATE, dt);
+  h.share = damp(h.share, holding ? 1 : 0, LEG_HOLD_RATE, dt);
+  if (!holding && h.share < 1e-3) h.share = 0;
+  return walk + (h.angle - walk) * h.share;
+}
+
+export const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
+
+/** `flash`: seconds of the fight's hit flash left. */
+export const flashShare = (flash: number): number => clamp(flash / HIT_FLASH_TIME, 0, 1);
+
+export function flashOver(color: Color3, flash: number): void {
+  Color3.LerpToRef(color, HIT_FLASH_COLOR, flashShare(flash), color);
+}
+
+export function flashMaterials(materials: readonly StandardMaterial[], base: readonly Color3[], flash: number): void {
+  const share = flashShare(flash);
+  for (let i = 0; i < materials.length; i++) {
+    Color3.LerpToRef(base[i]!, HIT_FLASH_COLOR, share, materials[i]!.emissiveColor);
+  }
 }

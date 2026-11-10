@@ -1,12 +1,10 @@
-import { Color3 } from "@babylonjs/core";
 import { Body, ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapAngle } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
 import { buildBoar, disposeBoar, type BoarModel } from "./model.js";
 import { boarPose } from "./pose.js";
-import { breathOf, flickOf } from "../shape.js";
+import { breathOf, easePace, flashMaterials, flashOver, flickOf, holdLeg } from "../shape.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI, 0] as const; // diagonal pairs move together
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const IDLE = { breathTime: 1.9, breathScale: 0.03, earEveryTime: 3.1, earRad: 0.5, tailTime: 0.9, tailRad: 0.35 };
 
 export const boarVisual = fighter<BoarModel>("enemy", {
@@ -18,7 +16,7 @@ export const boarVisual = fighter<BoarModel>("enemy", {
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
     nodes.clock += dt;
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = nodes.pace = easePace(nodes.pace, Math.hypot(body.vel.x, body.vel.z), dt);
 
     nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(15, dt);
     nodes.root.rotation.y = nodes.visualYaw;
@@ -27,7 +25,9 @@ export const boarVisual = fighter<BoarModel>("enemy", {
     const pose = boarPose(health.hp > 0 ? enemy.state : "dead", enemy.stateTime, lunge, charge);
     nodes.gait += dt * speed * 2.2;
     const amp = Math.min(0.75, speed * 0.13);
-    for (let i = 0; i < 4; i++) nodes.legs[i]!.rotation.x = pose.legs[i] ?? Math.sin(nodes.gait + LEG_PHASE[i]!) * amp;
+    for (let i = 0; i < 4; i++) {
+      nodes.legs[i]!.rotation.x = holdLeg(nodes.legHolds[i]!, pose.legs[i], Math.sin(nodes.gait + LEG_PHASE[i]!) * amp, dt);
+    }
     const bob = Math.abs(Math.sin(nodes.gait)) * 0.05 * Math.min(1, speed / 3);
 
     const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
@@ -50,11 +50,11 @@ export const boarVisual = fighter<BoarModel>("enemy", {
     nodes.telegraph.setEnabled(pose.telegraph !== null);
     if (pose.telegraph !== null) nodes.telegraph.visibility = pose.telegraph;
 
-    // Hit flash on every material, then the eye glow on top.
-    for (let i = 0; i < nodes.materials.length; i++) {
-      nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
+    flashMaterials(nodes.materials, nodes.baseEmissive, health.flash);
+    const { glow } = pose, { eyes } = nodes;
+    if (glow > 0) {
+      eyes.emissiveColor.set(2.2 * glow, 0.3 * glow, 0.1 * glow);
+      flashOver(eyes.emissiveColor, health.flash);
     }
-    const { glow } = pose;
-    if (glow > 0 && health.flash <= 0) nodes.eyes.emissiveColor.set(2.2 * glow, 0.3 * glow, 0.1 * glow);
   },
 });

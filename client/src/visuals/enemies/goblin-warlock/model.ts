@@ -29,6 +29,7 @@ export interface GoblinModel {
   materials: StandardMaterial[];
   baseEmissive: Color3[];
   gait: number;
+  pace: number;
   visualYaw: number;
   clock: number;
 }
@@ -153,6 +154,6 @@ export function buildGoblin(
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
     root, model, gown, head, ears, staffArm, offArm, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw,
-    clock: 0,
+    clock: 0, pace: 0,
   };
 }

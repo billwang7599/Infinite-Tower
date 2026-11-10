@@ -2,7 +2,7 @@ import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } 
 import type { EnemyDef, Entity, Vec3 } from "@infinite-tower/shared";
 import { loft } from "../../battle/person/loft.js";
 import type { ArenaScene } from "../../battle/scene.js";
-import { enemyMaterial, lengthwise, limb } from "../shape.js";
+import { enemyMaterial, lengthwise, limb, newLegHold, type LegHold } from "../shape.js";
 
 export interface WolfModel {
   root: TransformNode;
@@ -18,6 +18,8 @@ export interface WolfModel {
   baseEmissive: Color3[];
   eyes: StandardMaterial;
   gait: number;
+  pace: number;
+  legHolds: LegHold[];
   ground: number;
   visualYaw: number;
   clock: number;
@@ -130,6 +132,6 @@ export function buildWolf(ctx: ArenaScene, e: Entity, parent: TransformNode, def
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
     root, model, trunk, head, jaw, ears, tail, legs, materials, baseEmissive, eyes, gait: 0, ground: 0, visualYaw: yaw,
-    clock: 0,
+    clock: 0, pace: 0, legHolds: legs.map(newLegHold),
   };
 }

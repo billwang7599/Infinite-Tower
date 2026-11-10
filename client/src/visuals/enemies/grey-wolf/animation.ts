@@ -1,12 +1,10 @@
-import { Color3 } from "@babylonjs/core";
 import { Body, damp, dampFactor, Enemy, Health, PounceAttack, wrapAngle } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
 import { buildWolf, disposeWolf, type WolfModel } from "./model.js";
 import { wolfPose } from "./pose.js";
-import { breathOf, flickOf } from "../shape.js";
+import { breathOf, easePace, flashMaterials, flashOver, flickOf, holdLeg } from "../shape.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI * 0.5, Math.PI * 1.5] as const;
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const IDLE = { breathTime: 1.4, breathScale: 0.035, earEveryTime: 2.6, earRad: 0.45 };
 
 export const wolfVisual = fighter<WolfModel>("enemy", {
@@ -18,7 +16,7 @@ export const wolfVisual = fighter<WolfModel>("enemy", {
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
     nodes.clock += dt;
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = nodes.pace = easePace(nodes.pace, Math.hypot(body.vel.x, body.vel.z), dt);
 
     nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(18, dt);
     nodes.root.rotation.y = nodes.visualYaw;
@@ -27,9 +25,7 @@ export const wolfVisual = fighter<WolfModel>("enemy", {
     nodes.gait += dt * speed * 2.6;
     const amp = Math.min(0.8, speed * 0.14);
     for (let i = 0; i < 4; i++) {
-      const leg = nodes.legs[i]!, held = pose.legs[i];
-      leg.rotation.x = held === null || held === undefined
-        ? Math.sin(nodes.gait + LEG_PHASE[i]!) * amp : damp(leg.rotation.x, held, 18, dt);
+      nodes.legs[i]!.rotation.x = holdLeg(nodes.legHolds[i]!, pose.legs[i], Math.sin(nodes.gait + LEG_PHASE[i]!) * amp, dt);
     }
     const bob = Math.abs(Math.sin(nodes.gait)) * 0.04 * Math.min(1, speed / 3);
 
@@ -49,10 +45,11 @@ export const wolfVisual = fighter<WolfModel>("enemy", {
       damp(nodes.model.position.z, pose.zOff, 14, dt),
     );
 
-    for (let i = 0; i < nodes.materials.length; i++) {
-      nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
+    flashMaterials(nodes.materials, nodes.baseEmissive, health.flash);
+    const { glow } = pose, { eyes } = nodes;
+    if (glow > 0) {
+      eyes.emissiveColor.set(1.6 * glow, 1.0 * glow, 0.2 * glow);
+      flashOver(eyes.emissiveColor, health.flash);
     }
-    const { glow } = pose;
-    if (glow > 0 && health.flash <= 0) nodes.eyes.emissiveColor.set(1.6 * glow, 1.0 * glow, 0.2 * glow);
   },
 });

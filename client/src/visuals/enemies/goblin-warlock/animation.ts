@@ -4,9 +4,8 @@ import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import { buildGoblin, disposeGoblin, type GoblinModel } from "./model.js";
 import { goblinPose } from "./pose.js";
-import { breathOf, flickOf } from "../shape.js";
+import { breathOf, easePace, flashMaterials, flashOver, flickOf } from "../shape.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const ORB_GLOW = new Color3(1.6, 0.55, 0.15);
 export const STAFF_HAND_X = 0.2;
 const IDLE = { breathTime: 2.1, breathScale: 0.03, earEveryTime: 2.3, earRad: 0.35, nodTime: 4.2, nodRad: 0.06 };
@@ -21,7 +20,7 @@ export const goblinVisual = fighter<GoblinModel & { handAt: Vector3; offAt: Vect
   dispose: disposeGoblin,
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = nodes.pace = easePace(nodes.pace, Math.hypot(body.vel.x, body.vel.z), dt);
     nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(15, dt);
     nodes.root.rotation.y = nodes.visualYaw;
     nodes.gait += dt * speed * 4;
@@ -53,9 +52,8 @@ export const goblinVisual = fighter<GoblinModel & { handAt: Vector3; offAt: Vect
     nodes.stars.setEnabled(pose.stars);
     if (pose.stars) nodes.stars.rotation.y += dt * 5;
 
-    for (let i = 0; i < nodes.materials.length; i++) {
-      nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
-    }
-    if (health.flash <= 0) ORB_GLOW.scaleToRef(pose.glow, nodes.orb.emissiveColor);
+    flashMaterials(nodes.materials, nodes.baseEmissive, health.flash);
+    ORB_GLOW.scaleToRef(pose.glow, nodes.orb.emissiveColor);
+    flashOver(nodes.orb.emissiveColor, health.flash);
   },
 });

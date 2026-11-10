@@ -5,7 +5,7 @@
 import { Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
-import { enemyMaterial, lengthwise, limb } from "../shape.js";
+import { enemyMaterial, lengthwise, limb, newLegHold, type LegHold } from "../shape.js";
 
 /** The charge telegraph: a stripe this long on the ground, starting just in front of the snout. */
 const TELEGRAPH_LENGTH = 14;
@@ -29,6 +29,8 @@ export interface BoarModel {
   baseEmissive: Color3[];
   eyes: StandardMaterial;
   gait: number;
+  pace: number;
+  legHolds: LegHold[];
   visualYaw: number;
   clock: number;
 }
@@ -163,6 +165,6 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
     root, model, trunk, head, ears, tail, legs, stars, telegraph, materials, baseEmissive, eyes, gait: 0,
-    visualYaw: yaw, clock: 0,
+    visualYaw: yaw, clock: 0, pace: 0, legHolds: legs.map(newLegHold),
   };
 }

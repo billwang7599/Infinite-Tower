@@ -1,4 +1,4 @@
-import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
+import { Quaternion, Vector3 } from "@babylonjs/core";
 import {
   Body, clamp, damp, dampFactor, Enemy, gripOf, guardOf, Health, itemDef, smoothstep, weaponItemIn,
   Wielder, wrapAngle, type Vec3,
@@ -22,9 +22,8 @@ import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
 } from "./model.js";
 import { koboldPose } from "./pose.js";
-import { breathOf } from "../shape.js";
+import { breathOf, easePace, flashMaterials } from "../shape.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const HEAD_COUNTER = 0.6;
 const TAIL_TRAIL = 0.8;
 const IDLE = { breathTime: 2.4, breathScale: 0.03, tailTime: 3.1, tailRad: 0.12 };
@@ -65,7 +64,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
   },
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = nodes.pace = easePace(nodes.pace, Math.hypot(body.vel.x, body.vel.z), dt);
     nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(15, dt);
     nodes.root.rotation.y = nodes.visualYaw;
     nodes.gait += dt * speed * 3;
@@ -123,9 +122,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.stars.setEnabled(pose.stars);
     if (pose.stars) nodes.stars.rotation.y += dt * 5;
 
-    for (let i = 0; i < nodes.materials.length; i++) {
-      nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
-    }
+    flashMaterials(nodes.materials, nodes.baseEmissive, health.flash);
   },
 });
 
