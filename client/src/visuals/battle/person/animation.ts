@@ -1,4 +1,4 @@
-import { Color3, Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
+import { Matrix, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
   Body, damp, dampFactor, gripOf, guardOf, Health, itemDef, Player, smoothstep,
   weaponHandIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Equipment, type Guard, type Hands,
@@ -19,11 +19,11 @@ import { ROUNDNESS, type Section } from "./loft.js";
 import {
   buildPerson, disposePerson, FILL_EMISSIVE, personBuild, toMetres, type PersonBuild, type PersonModel,
 } from "./model.js";
+import { flashOver } from "../../enemies/shape.js";
 import { STILL_HAIR, strideOf, swayHair, type Sway } from "./motion.js";
 import { drawnStep, easeGrip, LANDING, OFF_GRIP_M, personPose, POSED_JOINTS, type PersonPose } from "./pose.js";
 import { M_PER_PX, restAt, type JointName, type Joints } from "./skeleton.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 export const JOINT_RATE = 30;
 const YAW_RATE = 15;
 const UPPER_ARM_M = -restAt("forearm.R", "medium").y, FOREARM_M = -restAt("hand.R", "medium").y;
@@ -268,7 +268,7 @@ export function framePerson(
   p.deadTime = alive ? 0 : p.deadTime + dt;
 
   model.holder.setEnabled(!(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1));
-  for (const m of model.materials) m.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : FILL_EMISSIVE);
+  for (const m of model.materials) flashOver(m.emissiveColor.copyFrom(FILL_EMISSIVE), health.flash);
   if (p.blade) showCue(p.blade.cue, alive ? wielder.swing : null);
 
   const steps = ctx.pixel.steps;

@@ -34,6 +34,7 @@ export interface KoboldModel {
   /** Each material's own emissive color (same order), to return to after the hit flash. */
   baseEmissive: Color3[];
   gait: number;
+  pace: number;
   visualYaw: number;
 }
 
@@ -214,6 +215,6 @@ export function buildKobold(
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
     root, model, hips, chest, torso, head, tail, swordArm, offArm, legs, stars, materials, baseEmissive,
-    gait: 0, visualYaw: yaw,
+    gait: 0, pace: 0, visualYaw: yaw,
   };
 }

@@ -195,9 +195,11 @@ const bodyAt = new Vector3(), turned = new Quaternion(), bodyTurned = new Quater
 const mainTo = { at: new Vector3(), turn: new Quaternion() }, offTo = { at: new Vector3(), turn: new Quaternion() };
 const posed = new Matrix(), seen = new Matrix(), carry = new Matrix(), moved = new Matrix();
 const parentInverse = new Matrix(), look = new Vector3(), eye = new Vector3(), scale = new Vector3();
+const swayed = new Vector3(), STILL: Vec3 = { x: 0, y: 0, z: 0 };
 const posedTurn = new Quaternion(), seenTurn = new Quaternion(), posedAt = new Vector3(), seenAt = new Vector3();
 
-export function holdInView(p: PersonDrawing, view: ArenaView, share: number, dt: number): void {
+/** `swayM`: how far the sword arms are moved off their pose, in the eye's frame (fpSway). */
+export function holdInView(p: PersonDrawing, view: ArenaView, share: number, dt: number, swayM: Vec3 = STILL): void {
   const { model } = p;
   if (!model || !p.look) return;
   const { joints, holder } = model, side = p.bladeSide;
@@ -216,6 +218,9 @@ export function holdInView(p: PersonDrawing, view: ArenaView, share: number, dt:
     const want = swordInView(p);
     shown = p.inView = easeArms(p.inView, want, { key: heldKey(p.pose), side, swung: want.swung,
       shiftTime: shiftTimeOf(p), returnTime: FP_SWING.returnTime, dt, ahead: POSED_FOR.forward });
+    const by = fromCamera(swayM.x, swayM.y, swayM.z);
+    swayed.set(by.x, by.y, by.z);
+    shown = { ...shown, hand: shown.hand.add(swayed), offHand: shown.offHand.add(swayed) };
   } else return;
   const pole = (s: 1 | -1) => {
     const { x, y, z } = lerp(ARM_POLE, FP_ARMS.pole, share);

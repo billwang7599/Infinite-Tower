@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, VertexBuffer } from "@babylonjs/core";
+import { HIT_FLASH_TIME } from "@infinite-tower/shared/fight";
 import {
-  breathOf, ENEMY_FILL, ENEMY_SHADE_TINT, enemyMaterial, flickOf, lengthwise,
+  breathOf, easePace, ENEMY_FILL, ENEMY_SHADE_TINT, enemyMaterial, flashMaterials, flickOf, HIT_FLASH_COLOR,
+  holdLeg, lengthwise, newLegHold,
 } from "../../../src/visuals/enemies/shape.js";
 
 describe("enemy shapes", () => {
@@ -46,5 +48,48 @@ describe("enemy shapes", () => {
       const f = flickOf(t, every, length);
       assert.ok(f >= 0 && f <= 1);
     }
+  });
+});
+
+const FRAME_TIME = 1 / 60;
+
+describe("enemy motion never pops", () => {
+  test("a walk eases out when it stops and in when it starts", () => {
+    let pace = 0.6;
+    const stopped: number[] = [];
+    for (let i = 0; i < 60; i++) stopped.push(pace = easePace(pace, 0, FRAME_TIME));
+    assert.ok(stopped[0]! > 0.45, "still nearly at its pace the frame it stops");
+    assert.ok(stopped.at(-1)! < 0.01, "standing within a second");
+    for (let i = 1; i < stopped.length; i++) assert.ok(stopped[i - 1]! - stopped[i]! < 0.1);
+    assert.ok(easePace(0, 0.6, FRAME_TIME) < 0.1, "and grows in from standing");
+  });
+
+  test("a leg eases into a held angle and back into its walk", () => {
+    const hold = newLegHold(), walkAt = (i: number) => Math.sin(i * 0.2) * 0.5;
+    let last = holdLeg(hold, null, walkAt(0), FRAME_TIME);
+    assert.equal(last, walkAt(0), "walking free, exactly the walk");
+    for (let i = 1; i < 120; i++) {
+      const held = i >= 30 && i < 60 ? -1 : i >= 60 && i < 70 ? -0.2 : null;
+      const leg = holdLeg(hold, held, walkAt(i), FRAME_TIME);
+      assert.ok(Math.abs(leg - last) < 0.25, `frame ${i}: ${last.toFixed(2)} to ${leg.toFixed(2)}`);
+      last = leg;
+    }
+    assert.ok(Math.abs(last - walkAt(119)) < 0.01, "back to the walk");
+    const settled = newLegHold();
+    for (let i = 0; i < 30; i++) last = holdLeg(settled, -1, 0, FRAME_TIME);
+    assert.ok(Math.abs(last + 1) < 0.01, "held long enough, it's at the angle");
+  });
+
+  test("a hit's flash is brightest at the hit and fades out with it", () => {
+    const scene = new Scene(new NullEngine()), m = enemyMaterial(scene, "hide", "#806040");
+    const base = [m.emissiveColor.clone()], at = (flash: number) => {
+      flashMaterials([m], base, flash);
+      return m.emissiveColor.r;
+    };
+    assert.ok(Math.abs(at(HIT_FLASH_TIME) - HIT_FLASH_COLOR.r) < 1e-6);
+    const half = at(HIT_FLASH_TIME / 2);
+    assert.ok(half > base[0]!.r && half < HIT_FLASH_COLOR.r, "between, half way");
+    assert.ok(Math.abs(at(0) - base[0]!.r) < 1e-6, "its own colour after");
+    scene.dispose();
   });
 });

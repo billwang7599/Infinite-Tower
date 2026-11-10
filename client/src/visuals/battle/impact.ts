@@ -20,6 +20,21 @@ const PARRY_BOUNCE_MS = 220;
 const BROKEN_JOLT_M = 0.35;
 const BROKEN_JOLT_MS = 200;
 
+// A turn of the head, not a move of the eye: moved, the arms half a metre off would leap across the view.
+export const SHAKE_RAD_PER_M = 0.14;
+const SHAKE_WAVES = [
+  { hz: 4.7, phase: 0, share: 0.7 }, { hz: 8.9, phase: 1.9, share: 0.3 },
+] as const;
+
+/** `time`: seconds, any running clock; `amount`: the scene's shake. Two waves each way, so it never quite repeats. */
+export function shakeTurn(time: number, amount: number): { pitchRad: number; yawRad: number } {
+  if (amount <= 0) return { pitchRad: 0, yawRad: 0 };
+  const wave = (offset: number) => SHAKE_WAVES.reduce((sum, w) =>
+    sum + w.share * Math.sin(2 * Math.PI * w.hz * time + w.phase + offset), 0);
+  const most = amount * SHAKE_RAD_PER_M;
+  return { pitchRad: most * wave(0), yawRad: most * wave(2.4) };
+}
+
 export interface Impact { ageMs: number; push: Vec3; pushMs: number }
 
 export function impactPose({ ageMs, push, pushMs }: Impact): { offset: Vec3; done: boolean } {

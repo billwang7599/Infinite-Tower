@@ -1,11 +1,9 @@
-import { Color3 } from "@babylonjs/core";
 import { Body, damp, dampFactor, Enemy, Health, SlamAttack, wrapAngle } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
 import { buildLurker, disposeLurker, type LurkerModel } from "./model.js";
 import { lurkerPose } from "./pose.js";
-import { breathOf } from "../shape.js";
+import { breathOf, easePace, flashMaterials, flashOver } from "../shape.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const IDLE = { breathTime: 3.2, breathScale: 0.035 };
 
 export const lurkerVisual = fighter<LurkerModel>("enemy", {
@@ -17,7 +15,7 @@ export const lurkerVisual = fighter<LurkerModel>("enemy", {
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
     nodes.clock += dt;
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = nodes.pace = easePace(nodes.pace, Math.hypot(body.vel.x, body.vel.z), dt);
 
     nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(10, dt);
     nodes.root.rotation.y = nodes.visualYaw;
@@ -44,10 +42,11 @@ export const lurkerVisual = fighter<LurkerModel>("enemy", {
     nodes.model.position.x = Math.sin(nodes.clock * 60) * pose.tremble;
     nodes.model.position.y = damp(nodes.model.position.y, -pose.sink + bob, state === "slam" ? 30 : 6, dt);
 
-    for (let i = 0; i < nodes.materials.length; i++) {
-      nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
+    flashMaterials(nodes.materials, nodes.baseEmissive, health.flash);
+    const { glow } = pose, { eyes } = nodes;
+    if (glow > 0) {
+      eyes.emissiveColor.set(0.9 * glow, 1.3 * glow, 0.2 * glow);
+      flashOver(eyes.emissiveColor, health.flash);
     }
-    const { glow } = pose;
-    if (glow > 0 && health.flash <= 0) nodes.eyes.emissiveColor.set(0.9 * glow, 1.3 * glow, 0.2 * glow);
   },
 });

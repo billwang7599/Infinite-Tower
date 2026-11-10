@@ -1,7 +1,7 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode } from "@babylonjs/core";
 import {
   Body, clamp, damp, Enemy, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, Wielder, type Entity,
-  type PlayerData, type Vec2, type World,
+  type PlayerData, type Vec2, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { blocking } from "@infinite-tower/shared/fight";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
@@ -13,6 +13,7 @@ import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } 
 import { pullString } from "./bow.js";
 import { bowDrawOf } from "./bowMotion.js";
 import { fpShare, holdInView, restShoulders } from "./firstPerson.js";
+import { newFpSway, swayArms, type FpSway } from "./fpSway.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
@@ -48,6 +49,7 @@ interface PlayerSprite {
   blade: HeldBlade | null;
   person: PersonDrawing | null;
   armsInView: boolean;
+  sway: FpSway;
 }
 
 interface Stance extends Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> {
@@ -92,7 +94,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   return {
     ctx, node, plane, shadows, slash: buildSlash(scene, `${e}`, materials.slashFx), walkPhase: 0, stretch: 1,
     staggerTime: 0, fading: null, facing: "back",
-    sword: materials.slashFx, blade: null, person: ctx.pixel.player3d ? newPerson() : null, armsInView: false,
+    sword: materials.slashFx, blade: null, person: ctx.pixel.player3d ? newPerson() : null, armsInView: false, sway: newFpSway(),
   };
 }
 
@@ -130,7 +132,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
     const share = hidden && ctx.pixel.steps === null ? fpShare(ctx.battle.view.eye, ctx.battle.blend.pos(world, e)) : 0;
     sprite.armsInView = share > 0;
-    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, share, dt);
+    if (sprite.armsInView) holdInView(sprite.person, ctx.battle.view, share, dt, swayOf(sprite, world, e, player, dt));
     else sprite.person.inView = null;
   } else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {
@@ -151,6 +153,14 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
     sprite.sword = sword;
     sprite.slash.mesh.material = sword;
   }
+}
+
+function swayOf(sprite: PlayerSprite, world: World, e: Entity, player: Stance, dt: number): Vec3 {
+  const { vel } = world.require(e, Body), pose = sprite.person?.pose, { yaw, pitch } = sprite.ctx.battle.view;
+  const free = player.action === "none" && !pose?.swing && !pose?.held?.block;
+  return swayArms(sprite.sway, {
+    speed: Math.hypot(vel.x, vel.z), stridePhase: sprite.person?.gait ?? 0, grounded: player.grounded, free, yaw, pitch,
+  }, dt);
 }
 
 function drawSprite(

@@ -3,9 +3,8 @@ import {
   Body, damp, dampFactor, Enemy, Health, PounceAttack, wrapAngle, type EnemyState, type PounceDef, type Vec3,
 } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
-import { enemyMaterial, lengthwise, limb } from "../shape.js";
+import { easePace, enemyMaterial, flashMaterials, lengthwise, limb } from "../shape.js";
 
-const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const FLAP_RAD_PER_SEC = 40;
 
 interface ChickenModel {
@@ -17,6 +16,7 @@ interface ChickenModel {
   materials: StandardMaterial[];
   baseEmissive: Color3[];
   gait: number;
+  pace: number;
   ground: number;
   visualYaw: number;
   clock: number;
@@ -116,7 +116,7 @@ export const chickenVisual = fighter<ChickenModel>("enemy", {
 
     return {
       root, model, head, wings: [wing(-1), wing(1)], legs: [leg(-1), leg(1)], materials,
-      baseEmissive: materials.map((m) => m.emissiveColor.clone()), gait: 0, ground: 0, visualYaw: enemy.yaw,
+      baseEmissive: materials.map((m) => m.emissiveColor.clone()), gait: 0, pace: 0, ground: 0, visualYaw: enemy.yaw,
       clock: 0,
     };
   },
@@ -130,7 +130,7 @@ export const chickenVisual = fighter<ChickenModel>("enemy", {
     c.visualYaw += wrapAngle(enemy.yaw - c.visualYaw) * dampFactor(18, dt);
     c.root.rotation.y = c.visualYaw;
     const pose = chickenPose(health.hp > 0 ? enemy.state : "dead", enemy.stateTime, world.get(e, PounceAttack)?.def);
-    const speed = Math.hypot(body.vel.x, body.vel.z);
+    const speed = c.pace = easePace(c.pace, Math.hypot(body.vel.x, body.vel.z), dt);
     c.gait += dt * speed * 9;
     const stride = Math.min(0.7, speed * 0.25);
     c.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(c.gait + i * Math.PI) * stride; });
@@ -142,8 +142,6 @@ export const chickenVisual = fighter<ChickenModel>("enemy", {
     c.model.rotation.z = damp(c.model.rotation.z, pose.roll, 10, dt);
     c.ground = damp(c.ground, -pose.crouch, 12, dt);
     c.model.position.y = c.ground + pose.lift;
-    for (let i = 0; i < c.materials.length; i++) {
-      c.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : c.baseEmissive[i]!);
-    }
+    flashMaterials(c.materials, c.baseEmissive, health.flash);
   },
 });

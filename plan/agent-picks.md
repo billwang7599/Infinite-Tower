@@ -97,6 +97,11 @@ Decided by the user since (the agent's picks within them):
   sword's guard per way; enemies hold the same guard stance.
 - The camera's numbers, turn rates, the dodge's shoulder view, the stun cue's look (`CAMERA_VIEWS`, `TURN`, `STUN_CUE`).
 - Hit-stop's length and camera dip; the hit's jolt and sparks (`client/src/visuals/battle/impact.ts`).
+- Animation polish (the user: "improve on everything's animation ... use your best judgement"; looks only, no timing
+  touched): camera shake is a small smooth turn of the head (two slow waves, `SHAKE_RAD_PER_M`), never a move of the
+  eye; first person's sword arms bob in step with the legs, trail a little behind a turning view and breathe at
+  rest, faded out during a swing, guard, dodge or jump (`FP_SWAY`); enemies' walks and held legs ease in and out, and
+  a hit's flash fades over its length (`client/src/visuals/enemies/shape.ts`).
 - A fight that runs past `MAX_FIGHT_TIME` is a loss (a guard on the server); netcode windows (`netcode.ts`).
 - Bows, all placeholders: the training bow, arrows and quiver (admin panel only), two-handed rules, the quiver's grid,
   the draw, nocking, Minecraft-like flight, the draw meter, the bow's first-person pose (`shared/src/weapons/bow.ts`).
