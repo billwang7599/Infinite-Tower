@@ -2,7 +2,7 @@ import {
   Color3, StandardMaterial, Texture, VertexBuffer, type DynamicTexture, type Mesh, type Scene,
 } from "@babylonjs/core";
 import { seededRandom, type Theme } from "@infinite-tower/shared";
-import { drawCampfire, REGION_LOOKS } from "../regions/index.js";
+import { CAMPFIRE_FRAMES, drawCampfire, REGION_LOOKS } from "../regions/index.js";
 import { spriteMaterial } from "../sprites.js";
 import { waterMaterial } from "../water/water.js";
 import { PX_PER_TILE } from "../../gfx/grid.js";
@@ -52,7 +52,7 @@ export function terrainArt(scene: Scene): TerrainArt {
       quarry: [tile("cut-top", drawCutTop), tile("cut-face", drawCutFace)],
     },
     stalls,
-    fire: ([0, 1] as const).map((f) => spriteMaterial(scene, `campfire-${f}`, drawCampfire(f))),
+    fire: CAMPFIRE_FRAMES.map((f) => spriteMaterial(scene, `campfire-${f}`, drawCampfire(f))),
     water(theme) {
       let m = waters.get(theme);
       if (!m) waters.set(theme, m = waterMaterial(scene, `water-${theme}`, REGION_LOOKS[theme].water));

@@ -6,7 +6,7 @@ import {
   dampFactor, regionAt, wrapAngle, type Rect, type Theme, type Vec3, type WorldMap,
 } from "@infinite-tower/shared";
 import type { WaterMap } from "../../modes/overworld/water.js";
-import { FLICKER_TIME, tileLooksOf } from "../regions/index.js";
+import { FLICKER_ORDER, FLICKER_TIME, tileLooksOf } from "../regions/index.js";
 import { paintGround, tileProps } from "../regions/tiles.js";
 import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
 import { chunkWater } from "../water/chunk.js";
@@ -260,8 +260,8 @@ function buildCampfires(
   let time = 0;
   const flicker = (dt: number) => {
     time += dt;
-    const frame = frames[Math.floor(time / FLICKER_TIME) % 2]!;
-    for (const m of fires) m.material = frame;
+    const tick = Math.floor(time / FLICKER_TIME);
+    fires.forEach((m, i) => { m.material = frames[FLICKER_ORDER[(tick + i * 5) % FLICKER_ORDER.length]!]!; });
   };
   return { meshes: fires, flicker };
 }
