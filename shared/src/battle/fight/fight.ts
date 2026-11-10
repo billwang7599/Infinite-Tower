@@ -14,6 +14,7 @@ import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
 import type { FightContext, FightEvent, FightOutcome } from "./context.js";
 import { enemyBrainSystem } from "./behaviors/brain.js";
+import { groupSystem } from "./behaviors/group.js";
 import { sidestepSystem } from "./behaviors/sidestep.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
@@ -100,6 +101,7 @@ export class Fight {
       playerControllerSystem(this.targets, this.events, this.arena.radius),
       enemyBrainSystem(),
       ...Object.values(ATTACKS).map((attack) => attack.system(ctx)),
+      groupSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),

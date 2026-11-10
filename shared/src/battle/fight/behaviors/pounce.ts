@@ -4,6 +4,7 @@ import { clamp, turnToward } from "../../../core/math.js";
 import { ActiveHit, Enemy, PounceAttack, type EnemyData, type PounceAttackData } from "../../components.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
 import { addHitAhead, enter, roll } from "./common.js";
+import { mayStart } from "./group.js";
 
 const MIN_FACING_DOT = 0.9;
 const WINDUP_TURN_RAD_PER_SEC = 5;
@@ -31,7 +32,8 @@ export function pounceAttackSystem(): System {
           const round = moveSpeed(def.circleSpeed, stats) * pounce.side;
           const vx = toX * inward + toZ * round, vz = toZ * inward - toX * round, speed = Math.hypot(vx, vz);
           if (speed > 0) Object.assign(move, { dirX: vx / speed, dirZ: vz / speed, speed });
-          if (pounce.cooldown <= 0 && sense.dist < def.leapFromM && sense.facingDot > MIN_FACING_DOT) {
+          if (pounce.cooldown <= 0 && sense.dist < def.leapFromM && sense.facingDot > MIN_FACING_DOT
+            && mayStart(world, e, enemy)) {
             enter(world, e, enemy, "pounceWindup");
             enemy.armored = true;
           }

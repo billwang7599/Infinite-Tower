@@ -11,6 +11,7 @@ import { turnToward } from "../../../core/math.js";
 import { Body, ChargeAttack, Enemy } from "../../components.js";
 import type { FightContext } from "../context.js";
 import { addHitAhead, enter, stun } from "./common.js";
+import { mayStart } from "./group.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.7;
@@ -31,7 +32,8 @@ export function chargeAttackSystem(ctx: Pick<FightContext, "arena" | "events">):
       switch (enemy.state) {
         case "approach": {
           const inRange = sense.dist >= def.minDist && sense.dist <= def.maxDist;
-          if (sense.targetAlive && charge.cooldown <= 0 && inRange && sense.facingDot > MIN_FACING_DOT) {
+          if (sense.targetAlive && charge.cooldown <= 0 && inRange && sense.facingDot > MIN_FACING_DOT
+            && mayStart(world, e, enemy)) {
             enter(world, e, enemy, "chargeWindup");
           }
           break;

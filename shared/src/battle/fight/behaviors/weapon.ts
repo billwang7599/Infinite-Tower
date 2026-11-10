@@ -14,6 +14,7 @@ import { canSwing, carrySpeed, committed, feint as feintSwing, steer } from "../
 import { startWaySwing, strengthIn } from "../weapons/swing.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
+import { mayStart } from "./group.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.8;
@@ -95,6 +96,7 @@ export function weaponAttackSystem(events: FightEvent[]): System {
       switch (enemy.state) {
         case "approach": {
           if (!ready || !sense.targetAlive || target === null || attack.cooldown > 0) break;
+          if (!mayStart(world, e, enemy)) break;
           if (sense.dist >= def.triggerDist || sense.facingDot <= MIN_FACING_DOT) break;
           if (attack.riposte) Object.assign(attack, { riposte: false, swingsLeft: 0 });
           else attack.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));

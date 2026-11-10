@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  damageTotal, emptyBag, emptyEquipment, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER, strikeDamage,
-  toSteps, wayShape, WEAPONS, Wielder, type Strike, type SwingDir,
+  Body, damageTotal, emptyBag, emptyEquipment, Enemy, Health, packFor, physicalTakenFactor, Player, PLAYER,
+  strikeDamage, toSteps, wayShape, WEAPONS, Wielder, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -147,7 +147,7 @@ describe("no friendly fire in a fight with several on a side", () => {
     assert.equal(fight.world.require(fight.enemies[1]!, Health).hp, STATUE.maxHp);
   });
 
-  test("a player's swing at an ally in reach doesn't hurt them", () => {
+  test("a player's swing at an ally in reach passes through: it doesn't hurt or move them", () => {
     const fight = new Fight({
       arena: ARENA,
       players: [player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: shape("lr").range + PLAYER.radius - 0.3 }, {
@@ -155,9 +155,11 @@ describe("no friendly fire in a fight with several on a side", () => {
       })],
       enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
     });
+    const ally = fight.world.require(fight.players[1]!, Body).pos, start = { ...ally };
     for (let step = 0; step < 12 + toSteps(swingTime()); step++) {
       fight.step([input({ locked: 0, way: "lr", attack: step === 12 ? "light" : null }), input({})]);
     }
     assert.equal(fight.world.require(fight.players[1]!, Health).hp, FULL_HP);
+    assert.ok(Math.hypot(ally.x - start.x, ally.z - start.z) < 0.01, "the ally was pushed");
   });
 });

@@ -8,6 +8,7 @@ import { modsOf } from "../../statuses.js";
 import { chant, interrupt, releaseChant, startCast } from "../skills/skilled.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
+import { mayStart } from "./group.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.8;
@@ -25,7 +26,7 @@ export function skillAttackSystem(): System {
           if ([...world.query(SkillObject)].some(([, o]) => o.caster === e)) break;
           attack.cooldown -= dt;
           const ready = sense.targetAlive && attack.cooldown <= 0 && sense.dist <= def.rangeM;
-          if (!ready || sense.facingDot < MIN_FACING_DOT) break;
+          if (!ready || sense.facingDot < MIN_FACING_DOT || !mayStart(world, e, enemy)) break;
           const modifiers = def.extras.filter((extra) => roll(enemy) < extra.chance).map((extra) => extra.modifier);
           const skill: Skill = { segments: [{ ...def.skill, modifiers: [...def.skill.modifiers, ...modifiers] }] };
           if (stamina.value < skillCost(skill)) break;

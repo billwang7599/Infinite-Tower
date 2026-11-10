@@ -7,6 +7,7 @@ import type { System } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { Enemy, LungeAttack } from "../../components.js";
 import { addHitAhead, enter } from "./common.js";
+import { mayStart } from "./group.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.8;
@@ -23,7 +24,7 @@ export function lungeAttackSystem(): System {
       switch (enemy.state) {
         case "approach":
           const inReach = sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT;
-          if (sense.targetAlive && lunge.cooldown <= 0 && inReach) enter(world, e, enemy, "lungeWindup");
+          if (sense.targetAlive && lunge.cooldown <= 0 && inReach && mayStart(world, e, enemy)) enter(world, e, enemy, "lungeWindup");
           break;
         case "lungeWindup":
           enemy.yaw = turnToward(enemy.yaw, sense.toYaw, WINDUP_TURN_RAD_PER_SEC * dt);

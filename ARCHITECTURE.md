@@ -94,8 +94,9 @@ game socket, and runs a fixed 60 Hz clock that ticks the overworld and every ses
   one object per battle with its own ECS world, its own Rapier world and fixed steps, for any number of players and
   enemies. Its only randomness comes from seeds in its state and Rapier's deterministic build, so the same setup and
   inputs always give the same fight. Its whole state saves and loads as plain JSON and hashes to a fingerprint.
-- **Systems run in order**: player controller, enemy brain, attacks, motor, physics, ground, combat, outcome. A step
-  reports what happened as events (hits, blocks, releases), which drawing and sound read once each.
+- **Systems run in order**: player controller, enemy brain, attacks, group (turns and spacing), motor, physics,
+  ground, combat, outcome. A step reports what happened as events (hits, blocks, releases), which drawing and sound
+  read once each.
 - **Fighters are moved by code, not forces**: systems set velocities, and the physics only resolves collisions.
 - **Attacks and enemies are data.** Weapons are items with a `weapon` component and a kind whose moves are data;
   enemy behaviours are components with a system each, combined in an enemy's def. AI only sets state and hitboxes;

@@ -175,4 +175,9 @@ Decided by the user since (the agent's picks within them):
 - Allies' bodies: two overlapping allies each move half the overlap apart across the floor (no speed passed on; one
   held by the wall leaves the rest to the other), four rounds a step; bodies keep their existing sizes; a dodging,
   staggered or dead player passes through allies too.
+- Group fights (delegated by the user, for review): swings pass through allies harmlessly; at most 2 foes attack one
+  player at once (`GROUP.maxAttackers`) with never two wind-ups together; a foe that just attacked gives way to a
+  longer-waiting one for 1.5 s; waiting foes hold at 4.5 m (or a caster's own distance) and come within about 55° of
+  the player's facing; foes keep 1 m between bodies; each foe already on a player counts as 3 m farther when picking
+  a target (`shared/src/battle/fight/behaviors/group.ts`, `brain.ts`).
 - The HUD's custom pointer and the "Inscribed" look's details (the user picked the style).
