@@ -72,6 +72,7 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
   const state: OverworldState = {
     world, player, map: null, held: nothingHeld(), cameraTurns: camera.get().overworldTurns,
     cameraPitchRad: CAMERA_PITCH.startRad, cameraDistanceTiles: CAMERA_DISTANCE.maxTiles,
+    playerFrom: { x: 0, z: 0 }, stepFraction: 1,
   };
   const actors = new ActorMirror(world);
 
@@ -197,8 +198,10 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
       state.held = nothingHeld();
     },
     update(dt, frozen) {
-      if (frozen || inBattle || !state.map || !prediction) accumulator = 0;
-      else accumulator += dt;
+      if (frozen || inBattle || !state.map || !prediction) {
+        accumulator = 0;
+        Object.assign(state.playerFrom, playerPos());
+      } else accumulator += dt;
       const drag = actions.lookDelta();
       if (prediction && !frozen && !inBattle) turnCamera({ turn: 0, look: 0 }, drag, 0);
       while (prediction && accumulator >= FIXED_DT) {
@@ -207,9 +210,11 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
         const { minTiles, maxTiles } = CAMERA_DISTANCE;
         state.cameraDistanceTiles = zoomBy(state.cameraDistanceTiles, polled.zoom, minTiles, maxTiles);
         const move = mapMove(polled.move, camera.get().overworldTurns);
+        Object.assign(state.playerFrom, playerPos());
         prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;
       }
+      state.stepFraction = accumulator / FIXED_DT;
       for (const [e, speech] of world.query(Speech)) if ((speech.remainingTime -= dt) <= 0) world.remove(e, Speech);
       state.cameraTurns = camera.get().overworldTurns;
       const byFire = !inBattle && state.map !== null && nearCampfire(state.map, playerPos());
@@ -221,6 +226,7 @@ export function createOverworld({ world, actions, hud, you, camera }: OverworldO
     backFromBattle(me) {
       inBattle = false;
       prediction?.reset(me);
+      Object.assign(state.playerFrom, me);
     },
     setGear,
     interact,

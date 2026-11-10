@@ -1,5 +1,5 @@
 import { Color3, DynamicTexture, StandardMaterial, VertexBuffer, type Mesh, type Scene } from "@babylonjs/core";
-import { dampFactor, distXZ, type Entity, type Look, type Vec2, type World } from "@infinite-tower/shared";
+import { distXZ, type Entity, type Look, type World } from "@infinite-tower/shared";
 import { CHIBI_FACINGS, type ChibiFacing } from "../../gfx/look/look.js";
 import {
   Npc, OverworldActor, OverworldPos, Peer, Speech, type OverworldActorData,
@@ -12,15 +12,13 @@ import type { Blobs } from "../sky/blobs.js";
 import { spriteMaterial } from "../sprites.js";
 import type { Visual } from "../visuals.js";
 import { speechBubble, type Bubble } from "./bubble.js";
+import { breathLiftTiles, glide, hopTiles, stepHop, stepped, type Glide } from "./motion.js";
 import { standingQuad, type OverworldScene } from "./scene.js";
 
-/** Server snapshots arrive ~20x/s: glide toward them (1/s, for dampFactor); snap if far off (respawn, teleport). */
-const GLIDE_RATE = 14;
-const SNAP_DIST_TILES = 3;
 /** Slower than this (tiles/s) counts as standing: no walk hop. */
 const MOVING_SPEED = 0.1;
-const WALK_CYCLE_RAD_PER_SEC = 12;
-const HOP_TILES = 0.12;
+/** The local player drawn between fixed steps, unless the server moved them further (respawn, teleport). */
+const SNAP_DIST_TILES = 3;
 
 /** The feet sit this share of a sprite's height above its bottom edge. */
 const FOOT_SHARE = 0.1;
@@ -55,9 +53,11 @@ interface Walker {
   named: Named | null;
   bubble: Bubble | null;
   sizeTiles: number;
-  drawn: Vec2;
+  drawn: Glide;
   glide: boolean;
-  walkPhase: number;
+  breathes: boolean;
+  hopPhase: number;
+  time: number;
   /** Side-only pictures keep their last side while walking toward or away from the camera. */
   mirror: 1 | -1;
 }
@@ -67,6 +67,7 @@ function walker(spec: {
   facings?: (view: OverworldScene) => Record<ChibiFacing, StandardMaterial>;
   sizeTiles: number;
   glide: boolean;
+  breathes?: boolean;
   alert?: boolean;
 }): Visual<Walker, OverworldScene> {
   return {
@@ -89,7 +90,8 @@ function walker(spec: {
       mesh.material = facings?.front ?? spec.material(view);
       return {
         view, mesh, blobs, tint, alert, named, bubble: null, mirror: 1, facings, sizeTiles: size,
-        drawn: { x: pos.x, z: pos.z }, glide: spec.glide, walkPhase: 0,
+        drawn: { drawn: { x: pos.x, z: pos.z }, last: { x: pos.x, z: pos.z }, sinceSnapTime: 0 }, glide: spec.glide,
+        breathes: spec.breathes ?? true, hopPhase: 0, time: 0,
       };
     },
     frame: drawWalker,
@@ -112,8 +114,8 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
   }),
   peer: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: true }),
   npc: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: false }),
-  pile: walker({ material: (v) => v.materials.pile, sizeTiles: PILE_SIZE_TILES, glide: false }),
-  trace: walker({ material: (v) => v.materials.bedroll, sizeTiles: BEDROLL_SIZE_TILES, glide: false }),
+  pile: walker({ material: (v) => v.materials.pile, sizeTiles: PILE_SIZE_TILES, glide: false, breathes: false }),
+  trace: walker({ material: (v) => v.materials.bedroll, sizeTiles: BEDROLL_SIZE_TILES, glide: false, breathes: false }),
   ...byEnemy(({ sprite }, id) => walker({
     material: (v) => v.materials.enemies[id], sizeTiles: sprite.sizeTiles, glide: true, alert: true,
   })),
@@ -166,25 +168,27 @@ function nameMaterial(scene: Scene, name: string): StandardMaterial {
   return material;
 }
 
-function glideWalker(
-  w: Walker, world: World, e: Entity, dt: number,
-): { actor: OverworldActorData; hop: number } {
-  const pos = world.require(e, OverworldPos), actor = world.require(e, OverworldActor), at = w.drawn;
-  const k = !w.glide || distXZ(at, pos) > SNAP_DIST_TILES ? 1 : dampFactor(GLIDE_RATE, dt);
-  at.x += (pos.x - at.x) * k;
-  at.z += (pos.z - at.z) * k;
+function placeWalker(w: Walker, world: World, e: Entity, dt: number): { actor: OverworldActorData; liftTiles: number } {
+  const pos = world.require(e, OverworldPos), actor = world.require(e, OverworldActor), g = w.drawn;
+  const { state } = w.view;
+  if (w.glide) glide(g, pos, actor, dt);
+  else if (e === state.player && distXZ(state.playerFrom, pos) < SNAP_DIST_TILES) {
+    g.drawn = stepped(state.playerFrom, pos, state.stepFraction);
+  } else g.drawn = { x: pos.x, z: pos.z };
   const moving = Math.hypot(actor.vx, actor.vz) > MOVING_SPEED;
-  w.walkPhase = moving ? w.walkPhase + dt * WALK_CYCLE_RAD_PER_SEC : 0;
-  return { actor, hop: Math.abs(Math.sin(w.walkPhase)) * HOP_TILES };
+  w.time += dt;
+  w.hopPhase = stepHop(w.hopPhase, moving, dt);
+  const breath = w.breathes && w.hopPhase === 0 ? breathLiftTiles(w.time, e, w.sizeTiles, moving) : 0;
+  return { actor, liftTiles: hopTiles(w.hopPhase) + breath };
 }
 
 const tint = new Color3();
 
 function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
-  const { actor, hop } = glideWalker(w, world, e, dt), at = w.drawn, yaw = w.view.yawRad, { sky } = w.view;
+  const { actor, liftTiles } = placeWalker(w, world, e, dt), at = w.drawn.drawn, yaw = w.view.yawRad, { sky } = w.view;
   const facing = facingOnScreen(actor.heading, Math.round(yaw / QUARTER_TURN_RAD));
   if (w.facings || facing === "left" || facing === "right") w.mirror = mirrorFor(facing);
-  w.mesh.position.set(at.x, hop, at.z);
+  w.mesh.position.set(at.x, liftTiles, at.z);
   w.mesh.rotation.y = yaw;
   w.mesh.scaling.x = w.mirror;
   sky.tintAt({ x: at.x, y: w.sizeTiles / 2, z: at.z }, tint);

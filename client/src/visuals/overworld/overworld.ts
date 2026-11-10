@@ -5,9 +5,12 @@ import { floorReach, orbitBack } from "../../modes/orbit.js";
 import { CAMERA, type OverworldScene } from "./scene.js";
 import { worldDrawing, type WorldDrawing } from "./chunks.js";
 import { terrainArt, type TerrainArt } from "./terrainArt.js";
+import { stepped } from "./motion.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
+/** Turning and tilting ease in over a few frames, so key turns stepped at the fixed rate don't judder. */
+const CAMERA_TURN_RATE = 20;
 const ZOOM_RATE = 6;
 /** Tilted under, the camera stays this far above the ground. */
 const FLOOR_MARGIN_TILES = 0.15;
@@ -21,7 +24,7 @@ export interface OverworldStage {
 export function overworldStage(view: OverworldScene): OverworldStage {
   let art: TerrainArt | null = null, world: WorldDrawing | null = null;
   const target = new Vector3(0, CAMERA.pivotTiles, 0), feet = { x: 0, y: 0, z: 0 };
-  let facedYaw = NaN, distanceTiles = view.state.cameraDistanceTiles;
+  let facedYaw = NaN, distanceTiles = view.state.cameraDistanceTiles, pitchRad = view.state.cameraPitchRad;
   const follow = () => {
     if (view.state.map === world?.map) return false;
     world?.dispose();
@@ -39,14 +42,17 @@ export function overworldStage(view: OverworldScene): OverworldStage {
     if (follow()) fresh = true;
     if (!world) return;
     const wantedRad = state.cameraTurns * QUARTER_TURN_RAD;
-    view.yawRad = fresh ? wantedRad : view.yawRad + wrapAngle(wantedRad - view.yawRad);
+    const turnK = fresh ? 1 : dampFactor(CAMERA_TURN_RATE, dt);
+    view.yawRad += wrapAngle(wantedRad - view.yawRad) * turnK;
+    if (Math.abs(wrapAngle(wantedRad - view.yawRad)) < 1e-4) view.yawRad = wantedRad;
+    pitchRad += (state.cameraPitchRad - pitchRad) * turnK;
     if (view.yawRad !== facedYaw) world.face(facedYaw = view.yawRad);
-    const player = state.world.require(state.player, OverworldPos);
+    const player = stepped(state.playerFrom, state.world.require(state.player, OverworldPos), state.stepFraction);
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
     target.x += (player.x - target.x) * k;
     target.z += (player.z - target.z) * k;
     distanceTiles = fresh ? state.cameraDistanceTiles : damp(distanceTiles, state.cameraDistanceTiles, ZOOM_RATE, dt);
-    const back = orbitBack(view.yawRad, state.cameraPitchRad);
+    const back = orbitBack(view.yawRad, pitchRad);
     const dist = floorReach(CAMERA.pivotTiles, back.y, 0, distanceTiles, FLOOR_MARGIN_TILES);
     camera.position.set(target.x + back.x * dist, target.y + back.y * dist, target.z + back.z * dist);
     camera.setTarget(target);
