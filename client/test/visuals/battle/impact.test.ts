@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Body, FIXED_DT, newWielder, Wielder, World, type Entity, type Vec3 } from "@infinite-tower/shared";
 import {
-  clash, HIT_STOP_EASE_MS, HIT_STOP_MS, heldSwing, hitStopKickRad, impactPose, JOLT_M, joltOf, parried, strike,
-  type HitStop, type Impact, type Swung,
+  clash, HIT_STOP_EASE_MS, HIT_STOP_MS, heldSwing, hitStopKickRad, impactPose, JOLT_M, joltOf, parried,
+  SHAKE_RAD_PER_M, shakeTurn, strike, type HitStop, type Impact, type Swung,
 } from "../../../src/visuals/battle/impact.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 import { wayCut } from "../../../src/visuals/battle/weapons.js";
@@ -154,5 +154,29 @@ describe("the jolt of a hit", () => {
   test("an attack gone by pushes straight away", () => {
     const v = joltOf(null, AWAY, RIGHT);
     assert.ok(Math.abs(v.z - JOLT_M) < 1e-9 && Math.abs(v.x) < 1e-9 && Math.abs(v.y) < 1e-9);
+  });
+});
+
+describe("a shake turns the head a little, smoothly, never jolting the eye about", () => {
+  const FRAME_TIME = 1 / 60, amount = 0.2, most = amount * SHAKE_RAD_PER_M;
+  const turnAt = (time: number) => shakeTurn(time, amount);
+
+  test("no shake, no turn", () => assert.deepEqual(shakeTurn(1.3, 0), { pitchRad: 0, yawRad: 0 }));
+
+  test("it stays within its size, and comes near it", () => {
+    let reached = 0;
+    for (let t = 0; t < 1; t += FRAME_TIME) {
+      const { pitchRad, yawRad } = turnAt(t);
+      assert.ok(Math.abs(pitchRad) <= most + 1e-9 && Math.abs(yawRad) <= most + 1e-9);
+      reached = Math.max(reached, Math.abs(pitchRad), Math.abs(yawRad));
+    }
+    assert.ok(reached > most / 2);
+  });
+
+  test("from one frame to the next it moves only part of its size", () => {
+    for (let t = 0; t < 1; t += FRAME_TIME) {
+      const a = turnAt(t), b = turnAt(t + FRAME_TIME);
+      assert.ok(Math.abs(b.pitchRad - a.pitchRad) < most * 0.75 && Math.abs(b.yawRad - a.yawRad) < most * 0.75);
+    }
   });
 });

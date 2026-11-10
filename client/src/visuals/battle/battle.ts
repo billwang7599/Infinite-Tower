@@ -7,7 +7,7 @@ import type { Fight } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../../modes/components.js";
 import { showArena } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
-import { hitStopDone, hitStopKickRad, impactPose } from "./impact.js";
+import { hitStopDone, hitStopKickRad, impactPose, shakeTurn } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 
@@ -131,6 +131,7 @@ export function arenaStage(ctx: ArenaScene): {
   frame(dt: number): void;
 } {
   const lookAt = new Vector3();
+  let shakeTime = 0;
   let arena: { id: string; theme: Theme; root: TransformNode } | null = null;
   const piles = new Map<number, Mesh>();
 
@@ -167,15 +168,15 @@ export function arenaStage(ctx: ArenaScene): {
     },
     frame(dt) {
       ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
-      const s = ctx.shake > SHAKE_CUTOFF ? ctx.shake : 0;
+      shakeTime += dt;
+      const shake = shakeTurn(shakeTime, ctx.shake > SHAKE_CUTOFF ? ctx.shake : 0);
       const { eye, at } = ctx.battle.view;
-      ctx.camera.position.set(
-        eye.x + (Math.random() - 0.5) * s, eye.y + (Math.random() - 0.5) * s, eye.z + (Math.random() - 0.5) * s,
-      );
+      ctx.camera.position.set(eye.x, eye.y, eye.z);
       ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
       const me = ctx.battle.fight?.world.first(LocalPlayer)?.[0];
       const stop = me === undefined ? undefined : ctx.hitStops.get(me);
-      ctx.camera.rotation.x += ctx.battle.stun.pitchRad + hitStopKickRad(stop);
+      ctx.camera.rotation.x += ctx.battle.stun.pitchRad + hitStopKickRad(stop) + shake.pitchRad;
+      ctx.camera.rotation.y += shake.yawRad;
       ctx.camera.rotation.z = ctx.battle.stun.rollRad;
       ctx.camera.fov = ctx.battle.view.fovRad;
       ctx.sky.frame(Date.now(), ctx.camera.position);
