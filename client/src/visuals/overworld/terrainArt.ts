@@ -9,6 +9,7 @@ import { PX_PER_TILE } from "../../gfx/grid.js";
 import { pixelCanvas } from "../sprites.js";
 import { PROP_ART, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad } from "./scene.js";
+import { swayIn } from "./sway.js";
 import { townArt, type TownArt } from "./buildings.js";
 import { isTall, type PropKind } from "./scenery.js";
 import { stallLooks, type StallLooks } from "./stalls.js";
@@ -64,7 +65,10 @@ export function terrainArt(scene: Scene): TerrainArt {
       if (tpl) return tpl;
       const art = PROP_ART[kind], width = art.widthPx / PX_PER_TILE, height = art.heightPx / PX_PER_TILE;
       let material = materials.get(kind);
-      if (!material) materials.set(kind, material = cutoutMaterial(scene, `prop-${kind}`, propTexture(scene, kind, 31)));
+      if (!material) {
+        materials.set(kind, material = cutoutMaterial(scene, `prop-${kind}`, propTexture(scene, kind, 31)));
+        swayIn(material, kind, height);
+      }
       const quad = standingQuad(scene, `prop-${key}`, width, height);
       quad.material = material;
       let card: Mesh | null = null;
