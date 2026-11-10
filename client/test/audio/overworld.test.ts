@@ -29,6 +29,7 @@ function overworld(map: WorldLayout | null = LEVEL) {
   const state: OverworldState = {
     world, player, map, held: { keys: new Set(), flow: map ? waterFlow(map) : new Map(), revision: 0 },
     cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad, cameraDistanceTiles: CAMERA_DISTANCE.maxTiles,
+    playerFrom: { x: 0, z: 0 }, stepFraction: 1,
   };
   return { state, world, walker, player, hear: overworldEars() };
 }

@@ -37,7 +37,10 @@ export function PanelFrame({ id, title, titleId, close, width, shownWidth, child
         width, top: fit?.top, right: fit?.right, transform: fit ? `scale(${fit.scale})` : undefined,
         visibility: fit ? undefined : "hidden",
       }}
-      className="absolute w-max origin-top-right cut-14 engraved px-6 py-5 font-normal"
+      className={
+        "absolute w-max origin-top-right cut-14 engraved px-6 py-5 font-normal animate-carve-in "
+        + "motion-reduce:animate-none"
+      }
     >
       <header className={`mb-3 ${PANEL_HEAD}`}>
         <h2 id={titleId} className={PANEL_TITLE}>{title}</h2>

@@ -58,7 +58,8 @@ Characters tab, from the front too.
   with pointed ends, cut corners, Gill Sans capitals, bone text and a cinnabar accent, the foe's bar red. The tokens
   are in `client/src/ui/styles.css`.
 - **The overworld**: HD-2D, pixel sprites and props on 3D ground; Highmere's walls and houses are 3D volumes whose
-  depth comes from geometry, never painted shading.
+  depth comes from geometry, never painted shading. It lives by small motion: plants lean in the wind, people standing
+  breathe a pixel, and anything that moves or turns is eased, never snapped.
 - **The arena**: outlined pixel art whose pixels shrink with depth but never to dust, so far things still read as
   pixel art. What reads as HUD (the aim ring, crosshair, lock-on, chant words) is drawn sharp over it. Arenas keep the
   fight's ring clear and put their depth outside it, with flat far sprites that face the camera.

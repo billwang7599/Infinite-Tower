@@ -38,4 +38,7 @@ export interface OverworldState {
   cameraTurns: number;
   cameraPitchRad: number;
   cameraDistanceTiles: number;
+  /** The player before the last fixed step, and how far the frame is into the next: drawing goes between. */
+  playerFrom: Vec2;
+  stepFraction: number;
 }

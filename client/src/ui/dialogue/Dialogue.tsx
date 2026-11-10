@@ -33,7 +33,7 @@ export function Dialogue() {
       id="dialogue"
       className={
         "pointer-events-auto absolute bottom-5 left-1/2 flex w-[min(36rem,50%)] -translate-x-1/2 flex-col gap-3 "
-        + "cut-14 engraved p-5 text-bone"
+        + "cut-14 engraved p-5 text-bone animate-carve-in motion-reduce:animate-none"
       }
     >
       <button

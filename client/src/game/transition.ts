@@ -1,5 +1,5 @@
 /** Screen transitions between modes: Pokémon-style white flashes into battle, a black fade back. */
-import { clamp } from "@infinite-tower/shared";
+import { clamp, smoothstep } from "@infinite-tower/shared";
 
 export type Mode = "overworld" | "battle";
 
@@ -24,6 +24,8 @@ const TIMING = { battle: { swapTime: 0.85, endTime: 1.25 }, overworld: { swapTim
 const FLASH_END_TIME = 0.6;
 const FLASH_PERIOD = 0.1;
 const FLASH_OPACITY = 0.85;
+/** Each flash is lit for half its period, fading off over it like a camera's. */
+const FLASH_ON_SHARE = 0.5;
 
 export function startTransition(to: Mode): Transition {
   return { to, time: 0, swapped: false };
@@ -35,12 +37,12 @@ export function stepTransition(tr: Transition, dt: number): TransitionFrame {
   let color = "#000", opacity: number;
   if (tr.to === "battle" && tr.time < FLASH_END_TIME) {
     color = "#fff";
-    opacity = Math.floor(tr.time / FLASH_PERIOD) % 2 === 0 ? FLASH_OPACITY : 0;
+    const into = (tr.time % (2 * FLASH_PERIOD)) / (2 * FLASH_PERIOD * FLASH_ON_SHARE);
+    opacity = into < 1 ? FLASH_OPACITY * (1 - into) ** 2 : 0;
   } else if (tr.time < swapTime) {
-    const from = tr.to === "battle" ? FLASH_END_TIME : 0;
-    opacity = (tr.time - from) / (swapTime - from);
+    opacity = smoothstep(tr.to === "battle" ? FLASH_END_TIME : 0, swapTime, tr.time);
   } else {
-    opacity = 1 - (tr.time - swapTime) / (endTime - swapTime);
+    opacity = 1 - smoothstep(swapTime, endTime, tr.time);
   }
   const swapNow = tr.time >= swapTime && !tr.swapped;
   if (swapNow) tr.swapped = true;

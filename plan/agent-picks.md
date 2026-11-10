@@ -143,6 +143,18 @@ Decided by the user since (the agent's picks within them):
 - Highmere's two wards and how they grew grander (the Hall of Arrival, the throne room, the courtyard, the Market
   Ward's square, avenues and gates); who stands where; Highmere's prices.
 - The training yard: Bram (a placeholder name) and his quest, three dummies, a spar; the starting area's quests.
+- Overworld motion, looks only (the user: "improve on everything's animation... use your best judgement"; numbers in
+  `client/src/visuals/overworld/motion.ts`, `sway.ts`, `overworld.ts`):
+  - Your sprite is drawn between fixed steps; other players and monsters are led along their velocity between
+    snapshots and eased; the walk hop lands instead of dropping when you stop.
+  - Anyone standing breathes: drawn one sprite pixel up for part of a 2.4 s breath, out of step with their neighbours.
+  - The camera's turn and tilt ease over a few frames (about 50 ms) instead of stepping with the fixed tick.
+  - Plants sway: grass, reeds and flowers up to 2 pixels at the tip, bushes and trees about 1, slower; rocks, ruins
+    and wood stand still.
+  - Campfires play four flame frames in an uneven order, each fire out of step with its neighbours.
+  - Into battle the three white flashes each fade off like a camera's; the black eases in and out (timings unchanged).
+  - The dialogue, side panels and interact prompt open with a short scale-and-fade "carved in" reveal; closing is
+    instant, so nothing lags the keys.
 - Summoning pads: a carved-stone tile; binding has no confirm and a corner notice; a missing pad wakes you in Highmere.
 - Resting: campfires out in the wild, a reach with lag slack; resting doesn't move your respawn point.
 - Every NPC, their lines and quests: the Hollow's Maren and Tobin, Corwin, Ilse, Hollis (who moves on to the
