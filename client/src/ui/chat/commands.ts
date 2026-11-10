@@ -1,5 +1,5 @@
 import {
-  ENEMY_IDS, GODS, ITEM_IDS, ITEMS, MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT, type Cheat, type EnemyId, type God, type ItemId,
+  ENEMY_IDS, GODS, USERNAME_RULES, ITEM_IDS, ITEMS, MAX_ENCOUNTER_FOES, MAX_GIVE_COUNT, type Cheat, type EnemyId, type God, type ItemId,
 } from "@infinite-tower/shared";
 import { GOD_NAMES } from "../hud/blessings.js";
 import {
@@ -56,6 +56,10 @@ const countArg = (name: string, options: readonly number[], max: number): Arg =>
 });
 const COUNT = countArg("count", GIVE_COUNTS, MAX_GIVE_COUNT);
 const FOES = countArg("foes", FOE_COUNTS, MAX_ENCOUNTER_FOES);
+/** Open (the client doesn't know who's online), so it takes any word a username could be; the server checks it. */
+const USERNAME: Arg = {
+  name: "username", options: [], optional: true, valid: (word) => new RegExp(USERNAME_RULES.pattern).test(word),
+};
 const ENEMY: Arg = { name: "enemy", options: ENEMY_IDS.map((id) => ({ value: id })) };
 const GOD: Arg = { name: "god", options: GODS.map((god) => ({ value: god })) };
 const CORE_WAY: Arg = { name: "up or down", options: [{ value: "up" }, { value: "down" }] };
@@ -67,10 +71,12 @@ const onOff = (word: string | undefined, now: boolean) => word === undefined ? !
 
 export const COMMANDS: readonly Command[] = [
   {
-    name: "give", args: [ITEM, COUNT], about: "put items in your bag",
-    run: ([item, count]) => {
-      const id = item as ItemId, n = count ? Number(count) : 1;
-      return cheat({ kind: "give", item: id, count: n }, `Giving ${n} × ${ITEMS[id].name}.`);
+    name: "give", args: [ITEM, COUNT, USERNAME], about: "put items in your bag, or a player's",
+    run: ([item, count, to]) => {
+      const id = item as ItemId, n = count ? Number(count) : 1, what = `${n} × ${ITEMS[id].name}`;
+      return to
+        ? cheat({ kind: "give", item: id, count: n, to }, `Giving ${what} to ${to}.`)
+        : cheat({ kind: "give", item: id, count: n }, `Giving ${what}.`);
     },
   },
   {

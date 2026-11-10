@@ -200,6 +200,8 @@ const CheatSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("give"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]),
     count: z.number().int().min(1).max(MAX_GIVE_COUNT),
+    /** An online player's username (any case); none gives to the sender. */
+    to: z.string().trim().min(1).max(64).optional(),
   }),
   z.object({ kind: z.literal("heal") }),
   z.object({ kind: z.literal("coreStep"), add: z.boolean() }),

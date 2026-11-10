@@ -1,8 +1,9 @@
-import { coreAtStep, distXZ, Health, Player, Stamina, stow, type Cheat, type CoreState } from "@infinite-tower/shared";
+import { coreAtStep, distXZ, Health, Player, Stamina, type Cheat, type CoreState } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../content/player.js";
 import { QUESTS } from "../content/quests.js";
 import { startBattle } from "./battle.js";
+import { give } from "./give.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn } from "./story.js";
 
@@ -36,24 +37,9 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       session.keepInventory = cheat.on;
       session.link.send({ t: "keepInventory", on: cheat.on });
       return;
-    case "give": {
-      if (!session.inWorld) return;
-      let left = 0;
-      if (battle) {
-        battle.room.edit(battle.seat, (world, me) => {
-          const player = world.require(me, Player), stowed = stow(player.gear, cheat.item, cheat.count);
-          player.gear = stowed.gear;
-          left = stowed.left;
-        });
-      } else {
-        const stowed = stow(session.gear, cheat.item, cheat.count);
-        session.gear = stowed.gear;
-        left = stowed.left;
-        session.save();
-      }
-      session.link.send({ t: "given", item: cheat.item, count: cheat.count - left, left, gear: session.gear });
+    case "give":
+      give(session, cheat);
       return;
-    }
     case "coreStep": {
       const stepped = (core: CoreState) => coreAtStep(core, core.steps + (cheat.add ? 1 : -1));
       if (battle) {
