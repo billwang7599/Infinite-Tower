@@ -132,11 +132,12 @@ function InteractButton({ interaction, interact }: { interaction: Interaction | 
   const { id, label } = INTERACTIONS[interaction];
   return (
     <button
-      type="button" id={id} {...NO_FOCUS} onClick={interact}
+      key={id} type="button" id={id} {...NO_FOCUS} onClick={interact}
       style={{ bottom: REST_BUTTON_BOTTOM_PX, height: REST_BUTTON_HEIGHT_PX }}
       className={
         "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer clip-pointed bg-stone/85 px-9 "
-        + "text-sm tracking-[0.3em] uppercase transition-colors [--point:12px] hover:bg-stone hover:text-cinnabar"
+        + "text-sm tracking-[0.3em] uppercase transition-colors [--point:12px] hover:bg-stone hover:text-cinnabar "
+        + "animate-carve-in motion-reduce:animate-none"
       }
     >
       {label}
