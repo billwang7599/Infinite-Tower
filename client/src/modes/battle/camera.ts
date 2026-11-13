@@ -174,11 +174,16 @@ export function arenaCamera(ctx: BattleContext, fightView: CameraTuning): (fight
     const wallDist = clamp(maxFlat / Math.max(0.05, flat), nearestM, tuning.distanceM);
     const dist = floorReach(oy, back.y, follow.y - row[2].centerHeight, wallDist, FLOOR_MARGIN_M);
     Object.assign(view.eye, { x: ox + back.x * dist, y: oy + back.y * dist, z: oz + back.z * dist });
+    // The tilt is the view's own, from its pitch and framing alone: the look point shifts toward the target and the eye
+    // is pulled in by the wall or floor, but at the look's height for that tilt, so walking never tilts the camera.
     const ahead = tuning.lookAheadM;
-    Object.assign(view.at, {
-      x: ox + lookShift.x - back.x * ahead, y: follow.y + tuning.lookHeightM - back.y * ahead,
-      z: oz + lookShift.z - back.z * ahead,
-    });
+    const at = { x: ox - back.x * ahead, y: follow.y + tuning.lookHeightM - back.y * ahead, z: oz - back.z * ahead };
+    const tunedFlat = (tuning.distanceM + ahead) * flat;
+    const tunedDrop = oy + back.y * tuning.distanceM - at.y;
+    at.x += lookShift.x;
+    at.z += lookShift.z;
+    if (tunedFlat > 1e-6) at.y = view.eye.y - (tunedDrop / tunedFlat) * Math.hypot(at.x - view.eye.x, at.z - view.eye.z);
+    Object.assign(view.at, at);
     view.fovRad = tuning.fovRad;
   };
 }

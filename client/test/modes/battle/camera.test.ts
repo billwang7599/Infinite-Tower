@@ -128,7 +128,9 @@ describe("the views apply locked or not", () => {
     near(view.eye.z, -Math.cos(lockPitchRad) * distanceM, "eye z");
     near(view.eye.y, orbitHeightM + Math.sin(lockPitchRad) * distanceM, "eye y");
     near(view.at.z, lockLookMaxM, "at z");
-    near(view.at.y, lookHeightM, "at y");
+    // As far down as from the eye to the look height over you, unshifted: shifted ahead, the look keeps that tilt.
+    const eyeZ = view.eye.z, tilt = (view.eye.y - lookHeightM) / -eyeZ;
+    near(view.at.y, view.eye.y - tilt * (lockLookMaxM - eyeZ), "at y");
   });
 
   test("locking and unlocking ease, with no jump; unlocking keeps the view", () => {
@@ -182,6 +184,24 @@ describe("the views apply locked or not", () => {
   test("with a side offset the wall still pulls the camera inside the arena", () => {
     const radiusM = 10, view = settle({ ...SHOULDER, sideM: 1.5 }, { x: 0, y: 0, z: -7 }, null, radiusM);
     assert.ok(Math.hypot(view.eye.x, view.eye.z) <= radiusM - 0.39, `eye at ${JSON.stringify(view.eye)}`);
+  });
+
+  test("walking never tilts it: near or far from the target, or backed to the wall, the view's tilt is the same", () => {
+    const tiltOf = (view: ArenaView) =>
+      Math.atan2(view.eye.y - view.at.y, Math.hypot(view.at.x - view.eye.x, view.at.z - view.eye.z));
+    for (const name of ["fp", "shoulder", "close", "high", "both"] as const) {
+      const tuning = cameraTuning(`?cam=${name}`), foe = { x: 0, y: 0.7, z: 0 };
+      // Unlocked in the open, held at the lock's pitch: the tilt the view is tuned for.
+      const open = arena({ x: 0, y: 0.7, z: 0 }, null, 40), freeCamera = arenaCamera(open.ctx, tuning);
+      open.view.pitch = tuning.lockPitchRad;
+      for (let i = 0; i < 240; i++) freeCamera(open.fight, FRAME_TIME);
+      const tuned = tiltOf(open.view);
+      for (const [meZ, radiusM] of [[-1.5, 40], [-3, 40], [-6, 40], [-12, 40], [-3, 4], [-6, 7]] as const) {
+        const view = settle(tuning, { x: 0, y: 0.7, z: meZ }, foe, radiusM);
+        near(tiltOf(view), tuned, `${name}, ${-meZ} m off, arena ${radiusM} m`);
+      }
+      if (name === "fp") near(tiltOf(settle(tuning, { x: 0, y: 0.7, z: -3 }, foe)), tuning.lockPitchRad, "fp tilt");
+    }
   });
 
   test("framing both looks halfway between the player and the target", () => {
